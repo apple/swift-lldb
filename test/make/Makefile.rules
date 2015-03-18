@@ -1,0 +1,394 @@
+#----------------------------------------------------------------------
+# Clients fill in the source files to build
+#----------------------------------------------------------------------
+# C_SOURCES := main.c
+# CXX_SOURCES :=
+# OBJC_SOURCES :=
+# OBJCXX_SOURCES :=
+# DYLIB_C_SOURCES :=
+# DYLIB_CXX_SOURCES :=
+#
+# Specifying DYLIB_ONLY has the effect of building dylib only, skipping
+# the building of the a.out executable program.  For example,
+# DYLIB_ONLY := YES
+#
+# Also might be of interest:
+# FRAMEWORK_INCLUDES (Darwin only) :=
+# CFLAGS_EXTRAS :=
+# LD_EXTRAS :=
+# SPLIT_DEBUG_SYMBOLS := YES
+#
+# And test/functionalities/archives/Makefile:
+# MAKE_DSYM := NO
+# ARCHIVE_NAME := libfoo.a
+# ARCHIVE_C_SOURCES := a.c b.c
+
+# Uncomment line below for debugging shell commands
+# SHELL = /bin/sh -x
+
+#----------------------------------------------------------------------
+# If ARCH is not defined, default to x86_64.
+# If OS is not defined, use 'uname -s' to determine the OS name.
+#----------------------------------------------------------------------
+ifeq "$(ARCH)" ""
+	ARCH = x86_64
+endif
+
+ifeq "$(OS)" ""
+	OS = $(shell uname -s)
+endif
+
+#----------------------------------------------------------------------
+# CC defaults to clang.
+#
+# If you change the defaults of CC, be sure to also change it in the file
+# test/plugins/builder_base.py, which provides a Python way to return the
+# value of the make variable CC -- getCompiler().
+#
+# See also these functions:
+#   o cxx_compiler
+#   o cxx_linker
+#----------------------------------------------------------------------
+CC ?= clang
+ifeq "$(CC)" "cc"
+	CC = clang
+endif
+
+#----------------------------------------------------------------------
+# ARCHFLAG is the flag used to tell the compiler which architecture
+# to compile for. The default is the flag that clang accepts.
+#----------------------------------------------------------------------
+ARCHFLAG ?= -arch 
+
+#----------------------------------------------------------------------
+# Change any build/tool options needed
+#----------------------------------------------------------------------
+ifeq "$(OS)" "Darwin"
+	DS := dsymutil
+	DSFLAGS =
+	DSYM = $(EXE).dSYM
+	AR := libtool
+	ARFLAGS := -static -o
+else
+	# On non-Apple platforms, -arch becomes -m
+	ARCHFLAG := -m
+
+	# i386 becomes 32, and amd64 or x86_64 becomes 64
+	ifeq "$(ARCH)" "amd64"
+	    override ARCH := $(subst amd64,64,$(ARCH))
+	endif
+	ifeq "$(ARCH)" "x86_64"
+	    override ARCH := $(subst x86_64,64,$(ARCH))
+	endif
+	ifeq "$(ARCH)" "i386"
+	    override ARCH := $(subst i386,32,$(ARCH))
+	endif
+
+	ifeq "$(SPLIT_DEBUG_SYMBOLS)" "YES"
+		DSYM = $(EXE).debug
+	endif
+endif
+
+CFLAGS ?= -g -O0
+CFLAGS += $(ARCHFLAG)$(ARCH) $(FRAMEWORK_INCLUDES) $(CFLAGS_EXTRAS)
+
+# Use this one if you want to build one part of the result without debug information:
+CFLAGS_NO_DEBUG = -O0 $(ARCHFLAG)$(ARCH) $(FRAMEWORK_INCLUDES) $(CFLAGS_EXTRAS)
+
+CXXFLAGS +=$(CFLAGS)
+LD = $(CC)
+LDFLAGS ?= $(CFLAGS)
+LDFLAGS += $(LD_EXTRAS)
+OBJECTS =
+EXE ?= a.out
+
+ifneq "$(DYLIB_NAME)" ""
+	ifeq "$(OS)" "Darwin"
+		DYLIB_FILENAME = lib$(DYLIB_NAME).dylib
+	else
+		DYLIB_FILENAME = lib$(DYLIB_NAME).so
+	endif
+endif
+
+# Function that returns the counterpart C++ compiler, given $(CC) as arg.
+cxx_compiler_notdir = $(if $(findstring clang,$(1)), $(subst clang,clang++,$(1)), $(if $(findstring icc,$(1)), $(subst icc,icpc,$(1)), $(if $(findstring llvm-gcc,$(1)), $(subst llvm-gcc,llvm-g++,$(1)), $(subst gcc,g++,$(1)))))
+cxx_compiler = $(if $(findstring /,$(1)),$(join $(dir $(1)), $(call cxx_compiler_notdir,$(notdir $(1)))),$(call cxx_compiler_notdir,$(1)))
+
+# Function that returns the C++ linker, given $(CC) as arg.
+cxx_linker_notdir = $(if $(findstring clang,$(1)), $(subst clang,clang++,$(1)), $(if $(findstring icc,$(1)), $(subst icc,icpc,$(1)), $(if $(findstring llvm-gcc,$(1)), $(subst llvm-gcc,llvm-g++,$(1)), $(subst gcc,g++,$(1)))))
+cxx_linker = $(if $(findstring /,$(1)),$(join $(dir $(1)), $(call cxx_linker_notdir,$(notdir $(1)))),$(call cxx_linker_notdir,$(1)))
+
+#----------------------------------------------------------------------
+# C++ standard library options
+#----------------------------------------------------------------------
+ifeq (1,$(USE_LIBSTDCPP))
+	# Clang requires an extra flag: -stdlib=libstdc++
+	ifneq (,$(findstring clang,$(CC)))
+		CXXFLAGS += -stdlib=libstdc++
+		LDFLAGS += -stdlib=libstdc++
+	endif
+endif
+
+ifeq (1,$(USE_LIBCPP))
+	# Clang requires an extra flag: -stdlib=libstdc++
+	ifneq (,$(findstring clang,$(CC)))
+		CXXFLAGS += -stdlib=libc++
+		LDFLAGS += -stdlib=libc++
+	endif
+endif
+
+#----------------------------------------------------------------------
+# dylib settings
+#----------------------------------------------------------------------
+ifneq "$(strip $(DYLIB_C_SOURCES))" ""
+	DYLIB_OBJECTS +=$(strip $(DYLIB_C_SOURCES:.c=.o))
+endif
+
+ifneq "$(strip $(DYLIB_OBJC_SOURCES))" ""
+	DYLIB_OBJECTS +=$(strip $(DYLIB_OBJC_SOURCES:.m=.o))
+endif
+
+ifneq "$(strip $(DYLIB_CXX_SOURCES))" ""
+    DYLIB_OBJECTS +=$(strip $(DYLIB_CXX_SOURCES:.cpp=.o))
+    CXX = $(call cxx_compiler,$(CC))
+    LD = $(call cxx_linker,$(CC))
+endif
+
+#----------------------------------------------------------------------
+# Check if we have any C source files
+#----------------------------------------------------------------------
+ifneq "$(strip $(C_SOURCES))" ""
+	OBJECTS +=$(strip $(C_SOURCES:.c=.o))
+endif
+
+#----------------------------------------------------------------------
+# Check if we have any C++ source files
+#----------------------------------------------------------------------
+ifneq "$(strip $(CXX_SOURCES))" ""
+	OBJECTS +=$(strip $(CXX_SOURCES:.cpp=.o))
+	CXX = $(call cxx_compiler,$(CC))
+	LD = $(call cxx_linker,$(CC))
+endif
+
+#----------------------------------------------------------------------
+# Check if we have any ObjC source files
+#----------------------------------------------------------------------
+ifneq "$(strip $(OBJC_SOURCES))" ""
+	OBJECTS +=$(strip $(OBJC_SOURCES:.m=.o))
+	LDFLAGS +=-lobjc
+endif
+
+#----------------------------------------------------------------------
+# Check if we have any ObjC++ source files
+#----------------------------------------------------------------------
+ifneq "$(strip $(OBJCXX_SOURCES))" ""
+	OBJECTS +=$(strip $(OBJCXX_SOURCES:.mm=.o))
+	CXX = $(call cxx_compiler,$(CC))
+	LD = $(call cxx_linker,$(CC))
+	ifeq "$(findstring lobjc,$(LDFLAGS))" ""
+		LDFLAGS +=-lobjc
+	endif
+endif
+
+#----------------------------------------------------------------------
+# Check if we have any C source files for archive
+#----------------------------------------------------------------------
+ifneq "$(strip $(ARCHIVE_C_SOURCES))" ""
+	ARCHIVE_OBJECTS +=$(strip $(ARCHIVE_C_SOURCES:.c=.o))
+endif
+
+#----------------------------------------------------------------------
+# Check if we have any C++ source files for archive
+#----------------------------------------------------------------------
+ifneq "$(strip $(ARCHIVE_CXX_SOURCES))" ""
+	ARCHIVE_OBJECTS +=$(strip $(ARCHIVE_CXX_SOURCES:.cpp=.o))
+	CXX = $(call cxx_compiler,$(CC))
+	LD = $(call cxx_linker,$(CC))
+endif
+
+#----------------------------------------------------------------------
+# Check if we have any ObjC source files for archive
+#----------------------------------------------------------------------
+ifneq "$(strip $(ARCHIVE_OBJC_SOURCES))" ""
+	ARCHIVE_OBJECTS +=$(strip $(ARCHIVE_OBJC_SOURCES:.m=.o))
+	LDFLAGS +=-lobjc
+endif
+
+#----------------------------------------------------------------------
+# Check if we have any ObjC++ source files for archive
+#----------------------------------------------------------------------
+ifneq "$(strip $(ARCHIVE_OBJCXX_SOURCES))" ""
+	ARCHIVE_OBJECTS +=$(strip $(ARCHIVE_OBJCXX_SOURCES:.mm=.o))
+	CXX = $(call cxx_compiler,$(CC))
+	LD = $(call cxx_linker,$(CC))
+	ifeq "$(findstring lobjc,$(LDFLAGS))" ""
+		LDFLAGS +=-lobjc
+	endif
+endif
+
+#----------------------------------------------------------------------
+# Check if we are compiling with gcc 4.6
+#----------------------------------------------------------------------
+ifneq (,$(filter g++,$(CXX)))
+	CXXVERSION = $(shell g++ -dumpversion | cut -b 1-3)
+	ifeq "$(CXXVERSION)" "4.6"
+                # GCC 4.6 cannot handle -std=c++11, so replace it with -std=c++0x
+                # instead. FIXME: remove once GCC version is upgraded.
+		override CXXFLAGS := $(subst -std=c++11,-std=c++0x,$(CXXFLAGS))
+	endif
+endif
+
+#----------------------------------------------------------------------
+# DYLIB_ONLY variable can be used to skip the building of a.out.
+# See the sections below regarding dSYM file as well as the building of
+# EXE from all the objects.
+#----------------------------------------------------------------------
+
+#----------------------------------------------------------------------
+# Make the dSYM file from the executable if $(MAKE_DSYM) != "NO"
+#----------------------------------------------------------------------
+ifneq "$(DYLIB_ONLY)" "YES"
+$(DSYM) : $(EXE)
+ifeq "$(OS)" "Darwin"
+ifneq "$(MAKE_DSYM)" "NO"
+	$(DS) $(DSFLAGS) -o "$(DSYM)" "$(EXE)"
+endif
+else
+ifeq "$(SPLIT_DEBUG_SYMBOLS)" "YES"
+	objcopy --only-keep-debug "$(EXE)" "$(DSYM)"
+	objcopy --strip-debug --add-gnu-debuglink="$(DSYM)" "$(EXE)" "$(EXE)"
+endif
+endif
+endif
+
+#----------------------------------------------------------------------
+# Compile the executable from all the objects.
+#----------------------------------------------------------------------
+ifneq "$(DYLIB_NAME)" ""
+ifeq "$(DYLIB_ONLY)" ""
+$(EXE) : $(OBJECTS) $(ARCHIVE_NAME) $(DYLIB_FILENAME)
+	$(LD) $(OBJECTS) $(ARCHIVE_NAME) -L. -l$(DYLIB_NAME) $(LDFLAGS) -o "$(EXE)"
+else
+EXE = $(DYLIB_FILENAME)
+endif
+else
+$(EXE) : $(OBJECTS) $(ARCHIVE_NAME)
+	$(LD) $(OBJECTS) $(LDFLAGS) $(ARCHIVE_NAME) -o "$(EXE)"
+endif
+
+#----------------------------------------------------------------------
+# Make the archive
+#----------------------------------------------------------------------
+ifneq "$(ARCHIVE_NAME)" ""
+ifeq "$(OS)" "Darwin"
+$(ARCHIVE_NAME) : $(ARCHIVE_OBJECTS)
+	$(AR) $(ARFLAGS) $(ARCHIVE_NAME) $(ARCHIVE_OBJECTS)
+	$(RM) $(ARCHIVE_OBJECTS)
+else
+$(ARCHIVE_NAME) : $(foreach ar_obj,$(ARCHIVE_OBJECTS),$(ARCHIVE_NAME)($(ar_obj)))
+endif
+endif
+
+#----------------------------------------------------------------------
+# Make the dylib
+#----------------------------------------------------------------------
+$(DYLIB_FILENAME) : $(DYLIB_OBJECTS)
+ifeq "$(OS)" "Darwin"
+	$(LD) $(LDFLAGS) $(DYLIB_OBJECTS) -install_name "@executable_path/$(DYLIB_FILENAME)" -dynamiclib -o "$(DYLIB_FILENAME)"
+ifneq "$(MAKE_DSYM)" "NO"
+ifneq "$(DS)" ""
+	$(DS) $(DSFLAGS) "$(DYLIB_FILENAME)"
+endif
+endif
+else
+	$(LD) $(LDFLAGS) $(DYLIB_OBJECTS) -shared -o "$(DYLIB_FILENAME)"
+ifeq "$(SPLIT_DEBUG_SYMBOLS)" "YES"
+	objcopy --only-keep-debug "$(DYLIB_FILENAME)" "$(DYLIB_FILENAME).debug"
+	objcopy --strip-debug --add-gnu-debuglink="$(DYLIB_FILENAME).debug" "$(DYLIB_FILENAME)" "$(DYLIB_FILENAME)"
+endif
+endif
+
+#----------------------------------------------------------------------
+# Automatic variables based on items already entered. Below we create
+# an objects lists from the list of sources by replacing all entries
+# that end with .c with .o, and we also create a list of prerequisite
+# files by replacing all .c files with .d.
+#----------------------------------------------------------------------
+PREREQS := $(OBJECTS:.o=.d)
+ifneq "$(DYLIB_NAME)" ""
+	DYLIB_PREREQS := $(DYLIB_OBJECTS:.o=.d)
+endif
+
+#----------------------------------------------------------------------
+# Rule for Generating Prerequisites Automatically using .d files and
+# the compiler -MM option. The -M option will list all system headers,
+# and the -MM option will list all non-system dependencies.
+#----------------------------------------------------------------------
+%.d: %.c
+	@set -e; rm -f $@; \
+	$(CC) -M $(CFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+%.d: %.cpp
+	@set -e; rm -f $@; \
+	$(CXX) -M $(CXXFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+%.d: %.m
+	@set -e; rm -f $@; \
+	$(CC) -M $(CFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+%.d: %.mm
+	@set -e; rm -f $@; \
+	$(CXX) -M $(CXXFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+#----------------------------------------------------------------------
+# Include all of the makefiles for each source file so we don't have
+# to manually track all of the prerequisites for each source file.
+#----------------------------------------------------------------------
+sinclude $(PREREQS)
+ifneq "$(DYLIB_NAME)" ""
+	sinclude $(DYLIB_PREREQS)
+endif
+
+# Define a suffix rule for .mm -> .o
+.SUFFIXES: .mm .o
+.mm.o:
+	$(CXX) $(CXXFLAGS) -c $<
+
+.PHONY: clean
+dsym:	$(DSYM)
+all:	$(EXE) $(DSYM)
+clean::
+	$(RM) "$(EXE)" $(OBJECTS) $(PREREQS) $(ARCHIVE_NAME) $(ARCHIVE_OBJECTS)
+	$(RM) -r *.d.[0-9] *.d.[0-9][0-9] *.d.[0-9][0-9][0-9] *.d.[0-9][0-9][0-9][0-9] *.d.[0-9][0-9][0-9][0-9][0-9]
+ifneq "$(DYLIB_NAME)" ""
+	$(RM) -r $(DYLIB_FILENAME).dSYM
+	$(RM) $(DYLIB_OBJECTS) $(DYLIB_PREREQS) $(DYLIB_FILENAME) $(DYLIB_FILENAME).debug
+endif
+ifneq "$(DSYM)" ""
+	$(RM) -r "$(DSYM)"
+endif
+	
+
+#----------------------------------------------------------------------
+# From http://blog.melski.net/tag/debugging-makefiles/
+# 
+# Usage: make print-CC print-CXX print-LD
+#----------------------------------------------------------------------
+print-%:
+	@echo '$*=$($*)'
+	@echo '  origin = $(origin $*)'
+	@echo '  flavor = $(flavor $*)'
+	@echo '   value = $(value  $*)'
+
+
+### Local Variables: ###
+### mode:makefile ###
+### End: ###
