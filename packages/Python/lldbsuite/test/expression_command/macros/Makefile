@@ -1,6 +1,8 @@
-LEVEL = ../../../make
+LEVEL = ../../make
 
 CXX_SOURCES := main.cpp
-ENABLE_THREADS := YES
+
+DEBUG_INFO_FLAG = -g3
+
 
 include $(LEVEL)/Makefile.rules
