@@ -1119,7 +1119,9 @@ SwiftLanguageRuntime::GetMetadataForType (CompilerType type)
     Flags type_flags(type.GetTypeInfo());
     if (!type_flags.AllSet(eTypeIsSwift | eTypeIsGeneric))
     {
-        swift::Mangle::Mangler mangler;
+        std::string buffer;
+        llvm::raw_string_ostream stream{buffer};
+        swift::Mangle::Mangler mangler{stream};
         if (has_objc_support)
             mangler.mangleTypeFullMetadataFull(GetSwiftType(type)->getCanonicalType());
         else
@@ -1127,9 +1129,9 @@ SwiftLanguageRuntime::GetMetadataForType (CompilerType type)
             const bool is_pattern = false;
             mangler.mangleTypeMetadataFull(GetSwiftType(type)->getCanonicalType(), is_pattern);
         }
-
-        ConstString symbol_name = ConstString(mangler.finalize().c_str());
-
+        
+        ConstString symbol_name (stream.str().c_str());
+        
         if (symbol_name)
         {
             Target& target(m_process->GetTarget());
@@ -1180,10 +1182,12 @@ SwiftLanguageRuntime::GetGenericPatternForType (CompilerType type)
 
     const bool is_pattern = true;
     
-    swift::Mangle::Mangler mangler;
+    std::string buffer;
+    llvm::raw_string_ostream stream{buffer};
+    swift::Mangle::Mangler mangler{stream};
     mangler.mangleTypeMetadataFull(GetSwiftType(type)->getCanonicalType(), is_pattern);
     
-    ConstString symbol_name = ConstString(mangler.finalize().c_str());
+    ConstString symbol_name (stream.str().c_str());
     
     if (symbol_name)
     {
@@ -4002,10 +4006,15 @@ SwiftLanguageRuntime::RegisterGlobalError(Target &target, ConstString name, lldb
             ConstString mangled_name;
             
             {
-                swift::Mangle::Mangler mangler;
+                std::string buffer;
+                llvm::raw_string_ostream stream(buffer);
+                swift::Mangle::Mangler mangler(stream);
                 
                 mangler.mangleGlobalVariableFull(var_decl);
-                mangled_name = ConstString(mangler.finalize().c_str());
+                
+                stream.flush();
+                
+                mangled_name = ConstString(buffer);
             }
             
             lldb::addr_t symbol_addr;
