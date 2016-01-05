@@ -1119,9 +1119,7 @@ SwiftLanguageRuntime::GetMetadataForType (CompilerType type)
     Flags type_flags(type.GetTypeInfo());
     if (!type_flags.AllSet(eTypeIsSwift | eTypeIsGeneric))
     {
-        std::string buffer;
-        llvm::raw_string_ostream stream{buffer};
-        swift::Mangle::Mangler mangler{stream};
+        swift::Mangle::Mangler mangler;
         if (has_objc_support)
             mangler.mangleTypeFullMetadataFull(GetSwiftType(type)->getCanonicalType());
         else
@@ -1129,9 +1127,9 @@ SwiftLanguageRuntime::GetMetadataForType (CompilerType type)
             const bool is_pattern = false;
             mangler.mangleTypeMetadataFull(GetSwiftType(type)->getCanonicalType(), is_pattern);
         }
-        
-        ConstString symbol_name (stream.str().c_str());
-        
+
+        ConstString symbol_name = ConstString(mangler.finalize().c_str());
+
         if (symbol_name)
         {
             Target& target(m_process->GetTarget());
@@ -1182,12 +1180,10 @@ SwiftLanguageRuntime::GetGenericPatternForType (CompilerType type)
 
     const bool is_pattern = true;
     
-    std::string buffer;
-    llvm::raw_string_ostream stream{buffer};
-    swift::Mangle::Mangler mangler{stream};
+    swift::Mangle::Mangler mangler;
     mangler.mangleTypeMetadataFull(GetSwiftType(type)->getCanonicalType(), is_pattern);
     
-    ConstString symbol_name (stream.str().c_str());
+    ConstString symbol_name = ConstString(mangler.finalize().c_str());
     
     if (symbol_name)
     {
@@ -4006,15 +4002,10 @@ SwiftLanguageRuntime::RegisterGlobalError(Target &target, ConstString name, lldb
             ConstString mangled_name;
             
             {
-                std::string buffer;
-                llvm::raw_string_ostream stream(buffer);
-                swift::Mangle::Mangler mangler(stream);
+                swift::Mangle::Mangler mangler;
                 
                 mangler.mangleGlobalVariableFull(var_decl);
-                
-                stream.flush();
-                
-                mangled_name = ConstString(buffer);
+                mangled_name = ConstString(mangler.finalize().c_str());
             }
             
             lldb::addr_t symbol_addr;
@@ -4053,14 +4044,32 @@ SwiftLanguageRuntime::SwiftExceptionPrecondition::EvaluatePrecondition(Stoppoint
         if (!error_valobj_sp || error_valobj_sp->GetError().Fail())
             return true;
 
-                    // This shouldn't fail, since at worst it will return me the object I just successfully got.
-        std::string found_type_name(error_valobj_sp->GetCompilerType().GetTypeName().AsCString());
-        
-        for (auto type_name : m_type_names)
+        // This shouldn't fail, since at worst it will return me the object I just successfully got.
+        std::string full_error_name (error_valobj_sp->GetCompilerType().GetTypeName().AsCString());
+        size_t last_dot_pos = full_error_name.rfind('.');
+        std::string type_name_base;
+        if (last_dot_pos == std::string::npos)
+            type_name_base = full_error_name;
+        else
         {
-            if (found_type_name.find(type_name) != std::string::npos)
+            if (last_dot_pos + 1 <= full_error_name.size())
+                type_name_base = full_error_name.substr(last_dot_pos + 1, full_error_name.size());
+        }
+        
+        // The type name will be the module and then the type.  If the match name has a dot, we require a complete
+        // match against the type, if the type name has no dot, we match it against the base.
+        
+        for (std::string name : m_type_names)
+        {
+            if (name.rfind('.') != std::string::npos)
             {
-                return true;
+                if (name == full_error_name)
+                    return true;
+            }
+            else
+            {
+                if (name == type_name_base)
+                    return true;
             }
         }
         return false;
@@ -4070,8 +4079,22 @@ SwiftLanguageRuntime::SwiftExceptionPrecondition::EvaluatePrecondition(Stoppoint
 }
 
 void
-SwiftLanguageRuntime::SwiftExceptionPrecondition::DescribePrecondition(Stream &stream, lldb::DescriptionLevel level)
+SwiftLanguageRuntime::SwiftExceptionPrecondition::GetDescription(Stream &stream, lldb::DescriptionLevel level)
 {
+    if (level == eDescriptionLevelFull
+        || level == eDescriptionLevelVerbose)
+    {
+        if (m_type_names.size() > 0)
+        {
+            stream.Printf("\nType Filters:");
+            for (std::string name : m_type_names)
+            {
+                stream.Printf(" %s", name.c_str());
+            }
+            stream.Printf("\n");
+        }
+    }
+
 }
 
 Error
