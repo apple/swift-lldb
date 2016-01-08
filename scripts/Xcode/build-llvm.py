@@ -16,15 +16,15 @@ def LLVM_HASH_INCLUDES_DIFFS ():
 # it with regexps.  Only change how this works if you know what you are doing.
 
 def LLVM_REF ():
-    llvm_ref = "stable"
+    llvm_ref = "swift-2.2-branch"
     return llvm_ref
 
 def CLANG_REF ():
-    clang_ref = "stable"
+    clang_ref = "swift-2.2-branch"
     return clang_ref
 
 def SWIFT_REF ():
-    swift_ref = "master"
+    swift_ref = "swift-2.2-branch"
     return swift_ref
 
 # For use with Xcode-style builds
