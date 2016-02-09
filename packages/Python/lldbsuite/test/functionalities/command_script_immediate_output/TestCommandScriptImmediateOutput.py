@@ -21,7 +21,7 @@ class CommandScriptImmediateOutputTestCase (PExpectTest):
 
     @skipIfRemote # test not remote-ready llvm.org/pr24813
     @expectedFlakeyFreeBSD("llvm.org/pr25172 fails rarely on the buildbot")
-    @expectedFailureLinux("rdar://24287948")
+    @expectedFlakeyLinux("llvm.org/pr25172")
     # @expectedFlakeyLinux("llvm.org/pr25172")
     @expectedFailureWindows("llvm.org/pr22274: need a pexpect replacement for windows")
     def test_command_script_immediate_output (self):
