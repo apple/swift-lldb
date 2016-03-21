@@ -109,53 +109,7 @@ _GetVersionOSS ()
     static std::string g_version_string;
     if (g_version_string.empty())
     {
-        std::string build_string;
-        llvm::raw_string_ostream out(build_string);
-
-        std::string build_flavor = "local";
-#if defined (LLDB_IS_BUILDBOT_BUILD)
-# if (LLDB_IS_BUILDBOT_BUILD != 0)
-        build_flavor = "buildbot";
-# endif
-#endif
-        out << "lldb-" << build_flavor;
-
-        // We only run this code when the build date is both set and non-default.
-        // Otherwise this code doesn't compile.
-        const std::string build_date(GetBuildDate());
-        if (!build_date.empty())
-            out << "-" << build_date;
-
-        out << " (";
-
-        std::string lldb_revision = GetLLDBRevision();
-        if (lldb_revision.length() > 0)
-        {
-            const size_t MAX_REVISION_LENGTH = 10;
-
-            out << "LLDB ";
-            out << lldb_revision.substr(0, MAX_REVISION_LENGTH);
-
-            const std::string llvm_revision = clang::getLLVMRevision();
-            if (!llvm_revision.empty())
-                out << ", LLVM " << llvm_revision.substr(0, MAX_REVISION_LENGTH);
-
-            const std::string clang_revision = clang::getClangRevision();
-            if (!clang_revision.empty())
-                out << ", Clang " << clang_revision.substr(0, MAX_REVISION_LENGTH);
-
-            // TODO replace this with a swift::version::GetSwiftRevision() call
-            // once added.
-            const std::string swift_revision = ExtractSwiftRevision(swift::version::getSwiftFullVersion());
-            if (!swift_revision.empty())
-            {
-                auto const swift_version = swift::version::getSwiftNumericVersion();
-                out << ", Swift-" << swift_version.first << "." << swift_version.second << " " << swift_revision.substr(0, MAX_REVISION_LENGTH);
-            }
-        }
-        out << ")";
-
-        g_version_string = out.str();
+        g_version_string = "lldb (swift-2.2-RELEASE)";
     }
     return g_version_string.c_str();
 }
