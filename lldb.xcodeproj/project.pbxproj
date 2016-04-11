@@ -16,6 +16,7 @@
 			dependencies = (
 				26CEF3B014FD591F007286B2 /* PBXTargetDependency */,
 				2687EACD1508115900DD8C2E /* PBXTargetDependency */,
+				2330A1CD1CBC017200076028 /* PBXTargetDependency */,
 			);
 			name = desktop_no_xpc;
 			productName = snowleopard;
@@ -31,6 +32,7 @@
 				26CEF3BB14FD595B007286B2 /* PBXTargetDependency */,
 				2687EACB1508115000DD8C2E /* PBXTargetDependency */,
 				AF5DFFDF1A9C2A2E00983E81 /* PBXTargetDependency */,
+				2330A1CB1CBC016700076028 /* PBXTargetDependency */,
 			);
 			name = desktop;
 			productName = desktop;
@@ -61,6 +63,7 @@
 				49753FAA1BEAB2BB00019E45 /* PBXTargetDependency */,
 				49753FAE1BEAB2BB00019E45 /* PBXTargetDependency */,
 				49753FB01BEAB2BB00019E45 /* PBXTargetDependency */,
+				2330A1D11CBC019100076028 /* PBXTargetDependency */,
 			);
 			name = toolchain;
 			productName = desktop;
@@ -1006,6 +1009,27 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		2330A1CA1CBC016700076028 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2690CD161A6DC0D000E717C8;
+			remoteInfo = "lldb-mi";
+		};
+		2330A1CC1CBC017200076028 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2690CD161A6DC0D000E717C8;
+			remoteInfo = "lldb-mi";
+		};
+		2330A1D01CBC019100076028 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2690CD161A6DC0D000E717C8;
+			remoteInfo = "lldb-mi";
+		};
 		2341D3B31C4433D200E481AD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
@@ -7654,6 +7678,21 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		2330A1CB1CBC016700076028 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2690CD161A6DC0D000E717C8 /* lldb-mi */;
+			targetProxy = 2330A1CA1CBC016700076028 /* PBXContainerItemProxy */;
+		};
+		2330A1CD1CBC017200076028 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2690CD161A6DC0D000E717C8 /* lldb-mi */;
+			targetProxy = 2330A1CC1CBC017200076028 /* PBXContainerItemProxy */;
+		};
+		2330A1D11CBC019100076028 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2690CD161A6DC0D000E717C8 /* lldb-mi */;
+			targetProxy = 2330A1D01CBC019100076028 /* PBXContainerItemProxy */;
+		};
 		23AB8B6B1BDF513B008BF3B0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 2689FFC913353D7A00698AC0 /* lldb-core */;
