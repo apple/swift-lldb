@@ -109,7 +109,7 @@ _GetVersionOSS ()
     static std::string g_version_string;
     if (g_version_string.empty())
     {
-        g_version_string = "lldb (swift-2.2-RELEASE)";
+        g_version_string = "lldb (swift-2.2.1-RELEASE)";
     }
     return g_version_string.c_str();
 }
