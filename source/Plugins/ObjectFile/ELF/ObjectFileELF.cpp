@@ -2150,7 +2150,7 @@ ObjectFileELF::ParseSymbols (Symtab *symtab,
             }
         }
 
-        if (symbol_type == eSymbolTypeInvalid)
+        if (symbol_type == eSymbolTypeInvalid && symbol.getType() != STT_SECTION)
         {
             if (symbol_section_sp)
             {
