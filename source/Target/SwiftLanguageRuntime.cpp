@@ -1161,7 +1161,7 @@ SwiftLanguageRuntime::GetMemoryReader ()
             return swift::remote::RemoteAddress(nullptr);
         }
         
-        bool
+        int
         readBytes(swift::remote::RemoteAddress address, uint8_t *dest, uint64_t size) override
         {
             if (size > m_max_read_amount)
