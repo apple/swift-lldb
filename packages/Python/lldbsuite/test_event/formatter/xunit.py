@@ -8,8 +8,8 @@ Provides an xUnit ResultsFormatter for integrating the LLDB
 test suite with the Jenkins xUnit aggregator and other xUnit-compliant
 test output processors.
 """
-from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import print_function
 
 # System modules
 import re
@@ -20,8 +20,9 @@ import xml.sax.saxutils
 import six
 
 # Local modules
-from .result_formatter import EventBuilder
-from .result_formatter import ResultsFormatter
+from ..event_builder import EventBuilder
+from ..build_exception import BuildError
+from .results_formatter import ResultsFormatter
 
 
 class XunitFormatter(ResultsFormatter):
@@ -36,10 +37,10 @@ class XunitFormatter(ResultsFormatter):
 
     @staticmethod
     def _build_illegal_xml_regex():
-        """Contructs a regex to match all illegal xml characters.
+        """Constructs a regex to match all illegal xml characters.
 
         Expects to be used against a unicode string."""
-        # Construct the range pairs of invalid unicode chareacters.
+        # Construct the range pairs of invalid unicode characters.
         illegal_chars_u = [
             (0x00, 0x08), (0x0B, 0x0C), (0x0E, 0x1F), (0x7F, 0x84),
             (0x86, 0x9F), (0xFDD0, 0xFDDF), (0xFFFE, 0xFFFF)]
@@ -139,10 +140,10 @@ class XunitFormatter(ResultsFormatter):
 
     @staticmethod
     def _build_regex_list_from_patterns(patterns):
-        """Builds a list of compiled regexes from option value.
+        """Builds a list of compiled regular expressions from option value.
 
-        @param option string containing a comma-separated list of regex
-        patterns. Zero-length or None will produce an empty regex list.
+        @param patterns contains a list of regular expression
+        patterns.
 
         @return list of compiled regular expressions, empty if no
         patterns provided.
@@ -153,14 +154,14 @@ class XunitFormatter(ResultsFormatter):
                 regex_list.append(re.compile(pattern))
         return regex_list
 
-    def __init__(self, out_file, options):
+    def __init__(self, out_file, options, file_is_stream):
         """Initializes the XunitFormatter instance.
         @param out_file file-like object where formatted output is written.
-        @param options_dict specifies a dictionary of options for the
+        @param options specifies a dictionary of options for the
         formatter.
         """
         # Initialize the parent
-        super(XunitFormatter, self).__init__(out_file, options)
+        super(XunitFormatter, self).__init__(out_file, options, file_is_stream)
         self.text_encoding = "UTF-8"
         self.invalid_xml_re = XunitFormatter._build_illegal_xml_regex()
         self.total_test_count = 0
@@ -198,9 +199,7 @@ class XunitFormatter(ResultsFormatter):
                 self._handle_timeout
             }
 
-    RESULT_TYPES = set(
-        [EventBuilder.TYPE_TEST_RESULT,
-         EventBuilder.TYPE_JOB_RESULT])
+    RESULT_TYPES = {EventBuilder.TYPE_TEST_RESULT, EventBuilder.TYPE_JOB_RESULT}
 
     def handle_event(self, test_event):
         super(XunitFormatter, self).handle_event(test_event)
@@ -248,7 +247,28 @@ class XunitFormatter(ResultsFormatter):
         with self.lock:
             self.elements["failures"].append(result)
 
-    def _handle_error(self, test_event):
+    def _handle_error_build(self, test_event):
+        """Handles a test error.
+        @param test_event the test event to handle.
+        """
+        message = self._replace_invalid_xml(test_event["issue_message"])
+        build_issue_description = self._replace_invalid_xml(
+            BuildError.format_build_error(
+                test_event.get("build_command", "<None>"),
+                test_event.get("build_error", "<None>")))
+
+        result = self._common_add_testcase_entry(
+            test_event,
+            inner_content=(
+                '<error type={} message={}><![CDATA[{}]]></error>'.format(
+                    XunitFormatter._quote_attribute(test_event["issue_class"]),
+                    XunitFormatter._quote_attribute(message),
+                    build_issue_description)
+            ))
+        with self.lock:
+            self.elements["errors"].append(result)
+
+    def _handle_error_standard(self, test_event):
         """Handles a test error.
         @param test_event the test event to handle.
         """
@@ -266,6 +286,12 @@ class XunitFormatter(ResultsFormatter):
             ))
         with self.lock:
             self.elements["errors"].append(result)
+
+    def _handle_error(self, test_event):
+        if test_event.get("issue_phase", None) == "build":
+            self._handle_error_build(test_event)
+        else:
+            self._handle_error_standard(test_event)
 
     def _handle_exceptional_exit(self, test_event):
         """Handles an exceptional exit.
@@ -401,7 +427,8 @@ class XunitFormatter(ResultsFormatter):
             raise Exception(
                 "unknown xfail option: {}".format(self.options.xfail))
 
-    def _handle_expected_timeout(self, test_event):
+    @staticmethod
+    def _handle_expected_timeout(test_event):
         """Handles expected_timeout.
         @param test_event the test event to handle.
         """
@@ -418,7 +445,7 @@ class XunitFormatter(ResultsFormatter):
             # test results viewer.
             result = self._common_add_testcase_entry(
                 test_event,
-                inner_content=("<unexpected-success />"))
+                inner_content="<unexpected-success />")
             with self.lock:
                 self.elements["unexpected_successes"].append(result)
         elif self.options.xpass == XunitFormatter.RM_SUCCESS:
@@ -519,7 +546,7 @@ class XunitFormatter(ResultsFormatter):
 
         xUnit output is in XML.  The reporting system cannot complete the
         formatting of the output without knowing when there is no more input.
-        This call addresses notifcation of the completed test run and thus is
+        This call addresses notification of the completed test run and thus is
         when we can finish off the report output.
         """
 

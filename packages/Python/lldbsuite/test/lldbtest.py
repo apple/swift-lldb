@@ -31,8 +31,8 @@ OK
 $ 
 """
 
-from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import print_function
 
 # System modules
 import abc
@@ -42,12 +42,13 @@ import gc
 import glob
 import inspect
 import io
-import os, sys, traceback
 import os.path
 import re
 import signal
 from subprocess import *
+import sys
 import time
+import traceback
 import types
 import lldb
 
@@ -69,8 +70,6 @@ from . import lock
 from . import test_categories
 from lldbsuite.support import encoded_file
 from lldbsuite.support import funcutils
-
-from .result_formatter import EventBuilder
 
 # dosep.py starts lots and lots of dotest instances
 # This option helps you find if two (or more) dotest instances are using the same
@@ -422,7 +421,14 @@ def system(commands, **kwargs):
             cmd = kwargs.get("args")
             if cmd is None:
                 cmd = shellCommand
-            raise CalledProcessError(retcode, cmd)
+            cpe = CalledProcessError(retcode, cmd)
+            # Ensure caller can access the stdout/stderr.
+            cpe.lldb_extensions = {
+                "stdout_content": this_output,
+                "stderr_content": this_error,
+                "command": shellCommand
+            }
+            raise cpe
         output = output + this_output
         error = error + this_error
     return (output, error)
