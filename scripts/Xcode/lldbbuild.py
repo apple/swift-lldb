@@ -14,6 +14,7 @@ def LLVM_BUILD_DIRS ():
         "Debug":                "Ninja-RelWithDebInfoAssert",
         "DebugClang":           "Ninja-DebugAssert",
         "Release":              "Ninja-RelWithDebInfoAssert",
+        "BuildAndIntegration":  "Ninja-RelWithDebInfo"
     }
 
 #### INTERFACE TO THE XCODEPROJ ####
@@ -55,12 +56,16 @@ def llvm_build_dirtree ():
 # Edit the code below when adding build styles.
 
 BuildType = enum('CustomSwift',          # CustomSwift-(Debug,Release)
-                 'Xcode')                # (Debug,DebugClang,Release)
+                 'Xcode',                # (Debug,DebugClang,Release)
+                 'BuildAndIntegration')  # BuildAndIntegration
 
 def build_type ():
     configuration = lldb_configuration()
     if "CustomSwift" in configuration:
         return BuildType.CustomSwift
+    if configuration == "BuildAndIntegration":
+        # TODO make sure this is what Xcode actually emits
+        return BuildType.BuildAndIntegration
     return BuildType.Xcode
 
 #### VCS UTILITIES ####
@@ -105,31 +110,31 @@ def vcs (spec):
 def llvm_source_path ():
     if build_type() == BuildType.CustomSwift:
         return os.path.join(lldb_source_path(), "..", "llvm")
-    elif build_type() == BuildType.Xcode:
+    elif (build_type() == BuildType.Xcode) or (build_type() == BuildType.BuildAndIntegration):
         return os.path.join(lldb_source_path(), "llvm")
 
 def clang_source_path ():
     if build_type() == BuildType.CustomSwift:
         return os.path.join(lldb_source_path(), "..", "clang")
-    elif build_type() == BuildType.Xcode:
+    elif (build_type() == BuildType.Xcode) or (build_type() == BuildType.BuildAndIntegration):
         return os.path.join(llvm_source_path(), "tools", "clang")
 
 def swift_source_path ():
     if build_type() == BuildType.CustomSwift:
         return os.path.join(lldb_source_path(), "..", "swift")
-    elif build_type() == BuildType.Xcode:
+    elif (build_type() == BuildType.Xcode) or (build_type() == BuildType.BuildAndIntegration):
         return os.path.join(llvm_source_path(), "tools", "swift")
 
 def cmark_source_path ():
     if build_type() == BuildType.CustomSwift:
         return os.path.join(lldb_source_path(), "..", "cmark")
-    elif build_type() == BuildType.Xcode:
+    elif (build_type() == BuildType.Xcode) or (build_type() == BuildType.BuildAndIntegration):
         return os.path.join(llvm_source_path(), "tools", "cmark")
 
 def ninja_source_path ():
     if build_type() == BuildType.CustomSwift:
         return os.path.join(lldb_source_path(), "..", "ninja")
-    elif build_type() == BuildType.Xcode:
+    elif (build_type() == BuildType.Xcode) or (build_type() == BuildType.BuildAndIntegration):
         return os.path.join(llvm_source_path(), "tools", "ninja")
 
 #### BUILD PATHS ####

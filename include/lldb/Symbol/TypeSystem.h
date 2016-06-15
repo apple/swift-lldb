@@ -91,7 +91,7 @@ public:
 
     static lldb::TypeSystemSP
     CreateInstance (lldb::LanguageType language, Target *target, const char *compiler_options);
-    
+
     // Free up any resources associated with this TypeSystem.  Done before removing
     // all the TypeSystems from the TypeSystemMap.
     virtual void
@@ -626,8 +626,6 @@ protected:
         TypeSystemMap(const TypeSystemMap &rhs);
         ~TypeSystemMap();
 
-        // Clear calls Finalize on all the TypeSystems managed by this map, and then
-        // empties the map.
         void
         operator =(const TypeSystemMap &rhs);
 

@@ -87,6 +87,7 @@
 #include "lldb/Target/ObjCLanguageRuntime.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/LLDBAssert.h"
 
 #include "Plugins/SymbolFile/DWARF/DWARFASTParserClang.h"
 
@@ -354,7 +355,7 @@ ClangASTContext::ClangASTContext (clang::ASTContext* ast_ctx) :
 ClangASTContext::~ClangASTContext()
 {
     Finalize();
-}
+    }
 
 ConstString
 ClangASTContext::GetPluginNameStatic()
@@ -1506,8 +1507,7 @@ CreateTemplateParameterList (ASTContext *ast,
     TemplateParameterList *template_param_list = TemplateParameterList::Create (*ast,
                                                                                 SourceLocation(),
                                                                                 SourceLocation(),
-                                                                                &template_param_decls[0],
-                                                                                num_template_params,
+                                                                                template_param_decls,
                                                                                 SourceLocation());
     return template_param_list;
 }
@@ -2102,10 +2102,33 @@ ClangASTContext::CreateFunctionType (ASTContext *ast,
                                      bool is_variadic, 
                                      unsigned type_quals)
 {
-    assert (ast != nullptr);
+    if (ast == nullptr)
+        return CompilerType(); // invalid AST
+
+    if (!result_type || !ClangASTContext::IsClangType(result_type))
+        return CompilerType(); // invalid return type
+
     std::vector<QualType> qual_type_args;
+    if (num_args > 0 && args == nullptr)
+        return CompilerType(); // invalid argument array passed in
+
+    // Verify that all arguments are valid and the right type
     for (unsigned i=0; i<num_args; ++i)
-        qual_type_args.push_back (GetQualType(args[i]));
+    {
+        if (args[i])
+        {
+            // Make sure we have a clang type in args[i] and not a type from another
+            // language whose name might match
+            const bool is_clang_type = ClangASTContext::IsClangType(args[i]);
+            lldbassert(is_clang_type);
+            if (is_clang_type)
+                qual_type_args.push_back(ClangASTContext::GetQualType(args[i]));
+            else
+                return CompilerType(); //  invalid argument type (must be a clang type)
+        }
+        else
+            return CompilerType(); // invalid argument type (empty)
+    }
 
     // TODO: Detect calling convention in DWARF?
     FunctionProtoType::ExtProtoInfo proto_info;

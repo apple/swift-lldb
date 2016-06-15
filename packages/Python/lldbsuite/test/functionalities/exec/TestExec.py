@@ -68,7 +68,7 @@ class ExecTestCase(TestBase):
             self.assertTrue(value.IsValid(), "Expression evaluated successfully")
             int_value = value.GetValueAsSigned()
             self.assertTrue(int_value == 3, "Expression got the right result.")
-
+            
             # Run and we should stop due to exec
             process.Continue()
         
@@ -77,7 +77,7 @@ class ExecTestCase(TestBase):
                         
             threads = lldbutil.get_stopped_threads(process, lldb.eStopReasonExec)
             self.assertTrue(len(threads) == 1, "We got a thread stopped for exec.")
-
+        
              # Run and we should stop at breakpoint in main after exec
             process.Continue()        
 

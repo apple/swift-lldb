@@ -174,7 +174,6 @@
 		262173A318395D4600C52091 /* SectionLoadHistory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 262173A218395D4600C52091 /* SectionLoadHistory.cpp */; };
 		26274FA714030F79006BA130 /* DynamicLoaderDarwinKernel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 26274FA514030F79006BA130 /* DynamicLoaderDarwinKernel.cpp */; };
 		2628A4D513D4977900F5487A /* ThreadKDP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2628A4D313D4977900F5487A /* ThreadKDP.cpp */; };
-		262CFC7711A4510000946C6C /* debugserver in Resources */ = {isa = PBXBuildFile; fileRef = 26CE05A0115C31E50022F371 /* debugserver */; };
 		262ED0081631FA3A00879631 /* OptionGroupString.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 262ED0071631FA3A00879631 /* OptionGroupString.cpp */; };
 		262F12B51835468600AEB384 /* SBPlatform.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 262F12B41835468600AEB384 /* SBPlatform.cpp */; };
 		262F12B71835469C00AEB384 /* SBPlatform.h in Headers */ = {isa = PBXBuildFile; fileRef = 262F12B61835469C00AEB384 /* SBPlatform.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -961,7 +960,6 @@
 		AF77E0A41A033D360096C0EA /* RegisterContextPOSIX_powerpc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF77E09D1A033D360096C0EA /* RegisterContextPOSIX_powerpc.cpp */; };
 		AF77E0A91A033D740096C0EA /* RegisterContextPOSIXCore_powerpc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF77E0A71A033D740096C0EA /* RegisterContextPOSIXCore_powerpc.cpp */; };
 		AF81DEFA1828A23F0042CF19 /* SystemRuntime.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF81DEF91828A23F0042CF19 /* SystemRuntime.cpp */; };
-		AF90106515AB7D3600FF120D /* lldb.1 in Copy Files */ = {isa = PBXBuildFile; fileRef = AF90106315AB7C5700FF120D /* lldb.1 */; };
 		AF9107EE168570D200DBCD3C /* RegisterContextDarwin_arm64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF9107EC168570D200DBCD3C /* RegisterContextDarwin_arm64.cpp */; };
 		AF9107EF168570D200DBCD3C /* RegisterContextDarwin_arm64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF9107EC168570D200DBCD3C /* RegisterContextDarwin_arm64.cpp */; };
 		AF9B8F33182DB52900DA866F /* SystemRuntimeMacOSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF9B8F31182DB52900DA866F /* SystemRuntimeMacOSX.cpp */; };
@@ -1267,7 +1265,6 @@
 			dstPath = "/$(DT_VARIANT)/$(DEVELOPER_DIR)/usr/share/man/man1";
 			dstSubfolderSpec = 0;
 			files = (
-				AF90106515AB7D3600FF120D /* lldb.1 in Copy Files */,
 			);
 			name = "Copy Files";
 			runOnlyForDeploymentPostprocessing = 1;
@@ -6568,7 +6565,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				94E829CA152D33C1006F96A3 /* lldb-server in Resources */,
-				262CFC7711A4510000946C6C /* debugserver in Resources */,
 				26368AF7126B960500E8659F /* darwin-debug in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -6634,7 +6630,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = "/bin/sh -x";
-			shellScript = "/usr/bin/env python $SRCROOT/scripts/Xcode/build-swift-repl.py \"$CONFIGURATION_BUILD_DIR/$EXECUTABLE_NAME\" \"$SCRIPT_INPUT_FILE_0\"\n";
+			shellScript = "if [ \"$CONFIGURATION\" != 'BuildAndIntegration' ]\nthen\n  /usr/bin/env python $SRCROOT/scripts/Xcode/build-swift-repl.py \"$CONFIGURATION_BUILD_DIR/$EXECUTABLE_NAME\" \"$SCRIPT_INPUT_FILE_0\"\nfi";
 		};
 		26DC6A5813380D4300FF7998 /* Prepare Swig Bindings */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -9342,7 +9338,7 @@
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_1 = "-DLLDB_USE_OSS_VERSION_SCHEME";
 				LLDB_DISABLE_PYTHON = 0;
 				"LLDB_DISABLE_PYTHON[sdk=iphoneos*]" = 1;
-				LLDB_FRAMEWORK_INSTALL_DIR = "/$(DT_VARIANT)/Applications/Xcode.app/Contents/SharedFrameworks";
+				LLDB_FRAMEWORK_INSTALL_DIR = "/$(DT_TOOLCHAIN_DIR)/System/Library/PrivateFrameworks";
 				"LLDB_FRAMEWORK_INSTALL_DIR[sdk=iphoneos*]" = "/$(DT_VARIANT)/System/Library/PrivateFrameworks";
 				LLDB_GUI_CFLAGS = "";
 				"LLDB_GUI_CFLAGS[sdk=appletvos*]" = "-DLLDB_DISABLE_CURSES=1";
@@ -9360,7 +9356,7 @@
 				LLDB_PATH_TO_LLVM_SOURCE = "$(PROJECT_DIR)/../llvm";
 				LLDB_PATH_TO_SWIFT_BUILD = "$(PROJECT_DIR)/../build/Ninja-$(LLVM_CONFIGURATION)/swift-macosx-$(CURRENT_ARCH)";
 				LLDB_PATH_TO_SWIFT_SOURCE = "$(PROJECT_DIR)/../swift";
-				LLDB_TOOLS_INSTALL_DIR = "/$(DT_VARIANT)/Applications/Xcode.app/Contents/Developer/usr/bin";
+				LLDB_TOOLS_INSTALL_DIR = "/$(DT_TOOLCHAIN_DIR)/usr/bin";
 				"LLDB_TOOLS_INSTALL_DIR[sdk=iphoneos*]" = "/$(DT_VARIANT)/usr/local/bin";
 				LLDB_USE_OSS_VERSION_SCHEME = 0;
 				LLDB_VERSION_SCHEME_CFLAGS = "$(LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_$(LLDB_USE_OSS_VERSION_SCHEME))";
@@ -10217,6 +10213,7 @@
 				STRIP_INSTALLED_PRODUCT = YES;
 				SWIFT_FORCE_DYNAMIC_LINK_STDLIB = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 2.2;
 			};
 			name = BuildAndIntegration;
 		};

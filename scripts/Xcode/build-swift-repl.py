@@ -2,7 +2,7 @@
 
 # build-swift-repl.py
 #
-# The Swift REPL must be built using the newly-built
+# In non-B&I configurations, the Swift REPL must be built using the newly-built
 # Swift compiler or we can't debug it.
 
 import os

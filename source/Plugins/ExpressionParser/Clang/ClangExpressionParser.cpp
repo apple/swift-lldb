@@ -317,9 +317,9 @@ ClangExpressionParser::ClangExpressionParser (ExecutionContextScope *exe_scope,
     m_compiler->getCodeGenOpts().DisableFPElim = true;
     m_compiler->getCodeGenOpts().OmitLeafFramePointer = false;
     if (generate_debug_info)
-        m_compiler->getCodeGenOpts().setDebugInfo(CodeGenOptions::FullDebugInfo);
+        m_compiler->getCodeGenOpts().setDebugInfo(clang::codegenoptions::FullDebugInfo);
     else
-        m_compiler->getCodeGenOpts().setDebugInfo(CodeGenOptions::NoDebugInfo);
+        m_compiler->getCodeGenOpts().setDebugInfo(clang::codegenoptions::NoDebugInfo);
 
     // Disable some warnings.
     m_compiler->getDiagnostics().setSeverityForGroup(clang::diag::Flavor::WarningOrError,
@@ -413,7 +413,7 @@ ClangExpressionParser::Parse (Stream &stream,
 
     clang::SourceManager &SourceMgr = m_compiler->getSourceManager();
     bool created_main_file = false;
-    if (m_expr.GetOptions() && m_expr.GetOptions()->GetPoundLineFilePath() == NULL && m_compiler->getCodeGenOpts().getDebugInfo() == CodeGenOptions::FullDebugInfo)
+    if (m_expr.GetOptions() && m_expr.GetOptions()->GetPoundLineFilePath() == NULL && m_compiler->getCodeGenOpts().getDebugInfo() == clang::codegenoptions::FullDebugInfo)
     {
         std::string temp_source_path;
         if (ExpressionSourceCode::SaveExpressionTextToTempFile(expr_text, *m_expr.GetOptions(), temp_source_path))

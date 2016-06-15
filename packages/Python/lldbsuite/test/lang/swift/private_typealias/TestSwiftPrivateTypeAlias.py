@@ -15,7 +15,6 @@ Test that we correctly find private decls
 """
 import lldb
 from lldbsuite.test.lldbtest import *
-import lldbsuite.test.decorators as decorators
 import lldbsuite.test.lldbutil as lldbutil
 import os
 import unittest2
@@ -30,8 +29,8 @@ class TestSwiftPrivateTypeAlias(TestBase):
         self.a_source = "main.swift"
         self.a_source_spec = lldb.SBFileSpec(self.a_source)
 
-    @decorators.swiftTest
-    @decorators.expectedFailureAll(bugnumber="rdar://24921067")
+    @swiftTest
+    @expectedFailureAll(bugnumber="rdar://24921067")
     def test_swift_private_typealias(self):
         """Test that we can correctly print variables whose types are private type aliases"""
         self.build()

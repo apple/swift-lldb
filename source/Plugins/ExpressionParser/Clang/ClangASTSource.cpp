@@ -274,7 +274,7 @@ ClangASTSource::CompleteType (TagDecl *tag_decl)
 
                     CompilerType clang_type (type->GetFullCompilerType ());
 
-                    if (!clang_type)
+                    if (!ClangASTContext::IsClangType(clang_type))
                         continue;
 
                     const TagType *tag_type = ClangASTContext::GetQualType(clang_type)->getAs<TagType>();
@@ -314,7 +314,7 @@ ClangASTSource::CompleteType (TagDecl *tag_decl)
 
                 CompilerType clang_type (type->GetFullCompilerType ());
 
-                if (!clang_type)
+                if (!ClangASTContext::IsClangType(clang_type))
                     continue;
 
                 const TagType *tag_type = ClangASTContext::GetQualType(clang_type)->getAs<TagType>();
@@ -1383,7 +1383,7 @@ FindObjCPropertyAndIvarDeclsWithOrigin (unsigned int current_id,
     StringRef name(name_str.c_str());
     IdentifierInfo &name_identifier(origin_iface_decl->getASTContext().Idents.get(name));
 
-    DeclFromUser<ObjCPropertyDecl> origin_property_decl(origin_iface_decl->FindPropertyDeclaration(&name_identifier));
+    DeclFromUser<ObjCPropertyDecl> origin_property_decl(origin_iface_decl->FindPropertyDeclaration(&name_identifier, ObjCPropertyQueryKind::OBJC_PR_query_instance));
 
     bool found = false;
 
@@ -2060,7 +2060,7 @@ NameSearchContext::AddGenericFunDecl()
 clang::NamedDecl *
 NameSearchContext::AddTypeDecl(const CompilerType &clang_type)
 {
-    if (clang_type)
+    if (ClangASTContext::IsClangType(clang_type))
     {
         QualType qual_type = ClangASTContext::GetQualType(clang_type);
 

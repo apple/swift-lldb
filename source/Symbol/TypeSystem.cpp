@@ -195,7 +195,6 @@ TypeSystemMap::TypeSystemMap() :
 {
 }
 
-
 TypeSystemMap::~TypeSystemMap()
 {
 }

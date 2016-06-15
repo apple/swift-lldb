@@ -14,6 +14,7 @@ class CmdPythonTestCase(TestBase):
 
     mydir = TestBase.compute_mydir(__file__)
 
+    @expectedFailureLinux('rdar://24299610')  # failing on Ubuntu 14.04
     def test (self):
         self.build ()
         self.pycmd_tests ()

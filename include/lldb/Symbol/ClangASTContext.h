@@ -132,7 +132,7 @@ public:
 
     void
     Clear();
-    
+
     const char *
     GetTargetTriple ();
 

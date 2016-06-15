@@ -1757,7 +1757,7 @@ SymbolFileDWARF::CompleteType (CompilerType &compiler_type)
     DWARFDebugInfo* debug_info = DebugInfo();
     DWARFDIE dwarf_die = debug_info->GetDIE(die_it->getSecond());
 
-    assert(UserIDMatches(die_it->getSecond().GetUID()) && "CompleteType called on the wrong SymbolFile");
+    //assert(UserIDMatches(die_it->getSecond().GetUID()) && "CompleteType called on the wrong SymbolFile");
 
     // Once we start resolving this type, remove it from the forward declaration
     // map in case anyone child members or other types require this type to get resolved.
@@ -1905,9 +1905,25 @@ SymbolFileDWARF::UpdateExternalModuleListIfNeeded()
                     {
                         ModuleSpec dwo_module_spec;
                         dwo_module_spec.GetFileSpec().SetFile(dwo_path, false);
+                        if (dwo_module_spec.GetFileSpec().IsRelative())
+                        {
+                            const char *comp_dir = die.GetAttributeValueAsString(DW_AT_comp_dir, nullptr);
+                            if (comp_dir)
+                            {
+                                dwo_module_spec.GetFileSpec().SetFile(comp_dir, true);
+                                dwo_module_spec.GetFileSpec().AppendPathComponent(dwo_path);
+                            }
+                        }
                         dwo_module_spec.GetArchitecture() = m_obj_file->GetModule()->GetArchitecture();
                         //printf ("Loading dwo = '%s'\n", dwo_path);
                         Error error = ModuleList::GetSharedModule (dwo_module_spec, module_sp, NULL, NULL, NULL);
+                        if (!module_sp)
+                        {
+                            GetObjectFile()->GetModule()->ReportWarning ("0x%8.8x: unable to locate module needed for external types: %s\nerror: %s\nDebugging will be degraded due to missing types. Rebuilding your project will regenerate the needed module files.",
+                                                                         die.GetOffset(),
+                                                                         dwo_module_spec.GetFileSpec().GetPath().c_str(),
+                                                                         error.AsCString("unknown error"));
+                        }
                     }
                     m_external_type_modules[const_name] = module_sp;
                 }
@@ -3869,8 +3885,12 @@ SymbolFileDWARF::FindDefinitionTypeForDWARFDeclContext (const DWARFDeclContext &
             }
             
             const size_t num_matches = die_offsets.size();
-            
-            
+
+            // Get the type system that we are looking to find a type for. We will use this
+            // to ensure any matches we find are in a language that this type system supports
+            const LanguageType language = dwarf_decl_ctx.GetLanguage();
+            TypeSystem *type_system = (language == eLanguageTypeUnknown) ? nullptr : GetTypeSystemForLanguage(language);
+
             if (num_matches)
             {
                 DWARFDebugInfo* debug_info = DebugInfo();
@@ -3881,6 +3901,11 @@ SymbolFileDWARF::FindDefinitionTypeForDWARFDeclContext (const DWARFDeclContext &
                     
                     if (type_die)
                     {
+                        // Make sure type_die's langauge matches the type system we are looking for.
+                        // We don't want to find a "Foo" type from Java if we are looking for a "Foo"
+                        // type for C, C++, ObjC, or ObjC++.
+                        if (type_system && !type_system->SupportsLanguage(type_die.GetLanguage()))
+                            continue;
                         bool try_resolving_type = false;
                         
                         // Don't try and resolve the DIE we are looking for with the DIE itself!
