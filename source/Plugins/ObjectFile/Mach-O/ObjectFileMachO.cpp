@@ -2764,11 +2764,16 @@ ObjectFileMachO::ParseSymtab ()
 
         const size_t function_starts_count = function_starts.GetSize();
 
-        if (function_starts_count == 0)
+        // For user process binaries (executables, dylibs, frameworks, bundles), if we don't have
+        // LC_FUNCTION_STARTS/eh_frame section in this binary, we're going to assume the binary
+        // has been stripped.  Don't allow assembly language instruction emulation because we don't
+        // know proper function start boundaries.
+        //
+        // For all other types of binaries (kernels, stand-alone bare board binaries, kexts), they
+        // may not have LC_FUNCTION_STARTS / eh_frame sections - we should not make any assumptions
+        // about them based on that.
+        if (function_starts_count == 0 && CalculateStrata() == eStrataUser)
         {
-            // No LC_FUNCTION_STARTS/eh_frame section in this binary, we're going to assume the binary 
-            // has been stripped.  Don't allow assembly language instruction emulation because we don't
-            // know proper function start boundaries.
             m_allow_assembly_emulation_unwind_plans = false;
             Log *unwind_or_symbol_log (lldb_private::GetLogIfAnyCategoriesSet (LIBLLDB_LOG_SYMBOLS | LIBLLDB_LOG_UNWIND));
 
