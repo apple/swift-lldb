@@ -55,8 +55,8 @@ def use_gold_linker():
 
 uname = str(subprocess.check_output(["uname", "-s"])).rstrip()
 
-checkout_git("llvm", "ssh://git@github.com/apple/swift-llvm.git", "swift-3.0-branch")
-checkout_git("clang", "ssh://git@github.com/apple/swift-clang.git", "swift-3.0-branch")
+checkout_git("llvm", "ssh://git@github.com/apple/swift-llvm.git", "swift-3.0-PREVIEW-3")
+checkout_git("clang", "ssh://git@github.com/apple/swift-clang.git", "swift-3.0-PREVIEW-3")
 checkout_git("swift", "ssh://git@github.com/apple/swift.git", "swift-3.0-preview-3-branch")
 checkout_git("cmark", "ssh://git@github.com/apple/swift-cmark.git", "master")
 checkout_git("ninja", "https://github.com/ninja-build/ninja.git", "master")
