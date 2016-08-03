@@ -57,21 +57,21 @@ def use_gold_linker():
 
 uname = str(subprocess.check_output(["uname", "-s"])).rstrip()
 
-checkout_git("llvm", "ssh://git@github.com/apple/swift-llvm.git", "stable")
-checkout_git("clang", "ssh://git@github.com/apple/swift-clang.git", "stable")
-checkout_git("swift", "ssh://git@github.com/apple/swift.git", "master")
+checkout_git("llvm", "ssh://git@github.com/apple/swift-llvm.git", "swift-3.0-branch")
+checkout_git("clang", "ssh://git@github.com/apple/swift-clang.git", "swift-3.0-branch")
+checkout_git("swift", "ssh://git@github.com/apple/swift.git", "swift-3.0-branch")
 checkout_git("cmark", "ssh://git@github.com/apple/swift-cmark.git", "master")
 checkout_git("ninja", "https://github.com/ninja-build/ninja.git", "master")
-checkout_git("lldb", "ssh://git@github.com/apple/swift-lldb.git", "master")
+checkout_git("lldb", "ssh://git@github.com/apple/swift-lldb.git", "swift-3.0-branch")
 
 if args.package:
-    checkout_git("llbuild", "ssh://git@github.com/apple/swift-llbuild.git", "master")
-    checkout_git("swiftpm", "ssh://git@github.com/apple/swift-package-manager.git", "master")
-    checkout_git("swift-corelibs-foundation", "ssh://git@github.com/apple/swift-corelibs-foundation.git", "master")
-    checkout_git("swift-corelibs-xctest", "ssh://git@github.com/apple/swift-corelibs-xctest.git", "master")
-    checkout_git("swift-integration-tests", "ssh://git@github.com/apple/swift-integration-tests.git", "master")
+    checkout_git("llbuild", "ssh://git@github.com/apple/swift-llbuild.git", "swift-3.0-branch")
+    checkout_git("swiftpm", "ssh://git@github.com/apple/swift-package-manager.git", "swift-3.0-branch")
+    checkout_git("swift-corelibs-foundation", "ssh://git@github.com/apple/swift-corelibs-foundation.git", "swift-3.0-branch")
+    checkout_git("swift-corelibs-xctest", "ssh://git@github.com/apple/swift-corelibs-xctest.git", "swift-3.0-branch")
+    checkout_git("swift-integration-tests", "ssh://git@github.com/apple/swift-integration-tests.git", "swift-3.0-branch")
 elif args.foundation:
-    checkout_git("swift-corelibs-foundation", "ssh://git@github.com/apple/swift-corelibs-foundation.git", "master")
+    checkout_git("swift-corelibs-foundation", "ssh://git@github.com/apple/swift-corelibs-foundation.git", "swift-3.0-branch")
 
 if args.update:
     update_git("llvm")
