@@ -1663,7 +1663,7 @@ SwiftLanguageRuntime::IsValidErrorValue (ValueObject& in_value,
         if (witness_table_ptr_value == 0 || witness_table_ptr_value == LLDB_INVALID_ADDRESS || error.Fail())
             return false;
 
-        lldb::addr_t payload_location = witness_table_location + ptr_size;
+        lldb::addr_t payload_location = witness_table_location + 3*ptr_size;
 
         if (out_error_descriptor)
         {
