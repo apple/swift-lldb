@@ -1,4 +1,4 @@
-//===-- StringExtractor.h ---------------------------------------*- C++ -*-===//
+//===-- StdStringExtractor.h ------------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef utility_StringExtractor_h_
-#define utility_StringExtractor_h_
+#ifndef utility_StdStringExtractor_h_
+#define utility_StdStringExtractor_h_
 
 // C Includes
 // C++ Includes
@@ -17,10 +17,10 @@
 
 // Other libraries and framework includes
 // Project includes
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/StringRef.h"
 
-class StringExtractor
+// Based on StringExtractor, with the added limitation that this file should not
+// take a dependency on LLVM, as it is used from debugserver.
+class StdStringExtractor
 {
 public:
 
@@ -31,24 +31,16 @@ public:
     //------------------------------------------------------------------
     // Constructors and Destructors
     //------------------------------------------------------------------
-    StringExtractor();
-    StringExtractor(llvm::StringRef packet_str);
-    StringExtractor(const char *packet_cstr);
-    StringExtractor(const StringExtractor& rhs);
-    virtual ~StringExtractor();
+    StdStringExtractor();
+    StdStringExtractor(const char *packet_cstr);
+    StdStringExtractor(const StdStringExtractor& rhs);
+    virtual ~StdStringExtractor();
 
     //------------------------------------------------------------------
     // Operators
     //------------------------------------------------------------------
-    const StringExtractor&
-    operator=(const StringExtractor& rhs);
-
-    void
-    Reset(llvm::StringRef str)
-    {
-        m_packet = str;
-        m_index = 0;
-    }
+    const StdStringExtractor&
+    operator=(const StdStringExtractor& rhs);
 
     // Returns true if the file position is still valid for the data
     // contained in this string extractor object.
@@ -128,7 +120,7 @@ public:
     GetHexU8Ex (uint8_t& ch, bool set_eof_on_fail = true);
 
     bool
-    GetNameColonValue(llvm::StringRef &name, llvm::StringRef &value);
+    GetNameColonValue (std::string &name, std::string &value);
 
     int32_t
     GetS32 (int32_t fail_value, int base = 0);
@@ -149,10 +141,10 @@ public:
     GetHexMaxU64 (bool little_endian, uint64_t fail_value);
 
     size_t
-    GetHexBytes (llvm::MutableArrayRef<uint8_t> dest, uint8_t fail_fill_value);
+    GetHexBytes (void *dst, size_t dst_len, uint8_t fail_fill_value);
 
     size_t
-    GetHexBytesAvail (llvm::MutableArrayRef<uint8_t> dest);
+    GetHexBytesAvail (void *dst, size_t dst_len);
 
     uint64_t
     GetHexWithFixedSize (uint32_t byte_size, bool little_endian, uint64_t fail_value);
@@ -176,14 +168,8 @@ public:
     }
 
 protected:
-    bool
-    fail()
-    {
-        m_index = UINT64_MAX;
-        return false;
-    }
     //------------------------------------------------------------------
-    // For StringExtractor only
+    // For StdStringExtractor only
     //------------------------------------------------------------------
     std::string m_packet;   // The string in which to extract data.
     uint64_t m_index;       // When extracting data from a packet, this index
