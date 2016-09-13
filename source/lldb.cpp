@@ -109,7 +109,7 @@ _GetVersionOSS ()
     static std::string g_version_string;
     if (g_version_string.empty())
     {
-        g_version_string = "lldb (swift-3.0-GM-CANDIDATE)";
+        g_version_string = "lldb (swift-3.0-RELEASE)";
     }
     return g_version_string.c_str();
 }
