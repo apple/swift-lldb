@@ -184,6 +184,9 @@ public:
     
     bool
     GetEnableNotifyAboutFixIts () const;
+
+    bool
+    GetEnableSaveObjects () const;
     
     bool
     GetEnableSyntheticValue () const;
