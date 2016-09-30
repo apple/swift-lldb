@@ -26,7 +26,6 @@ class TestSwiftBridgedArray(TestBase):
 
     @decorators.skipUnlessDarwin
     @decorators.swiftTest
-    @decorators.expectedFailureAll(bugnumber="rdar://28559803")
     def test_swift_bridged_array(self):
         """Check formatting for Swift.Array<T> that are bridged from ObjC"""
         self.build()
@@ -65,10 +64,10 @@ class TestSwiftBridgedArray(TestBase):
 
         self.expect(
             "frame variable -d run -- swarr",
-            substrs=['123456', '234567', '345678', '1.25'])
+            substrs=['Int(123456)', 'Int32(234567)', 'UInt16(45678)', 'Double(1.250000)', 'Float(2.500000)'])
         self.expect(
             "expression -d run -- swarr",
-            substrs=['123456', '234567', '345678', '1.25'])
+            substrs=['Int(123456)', 'Int32(234567)', 'UInt16(45678)', 'Double(1.250000)', 'Float(2.500000)'])
 
 if __name__ == '__main__':
     import atexit
