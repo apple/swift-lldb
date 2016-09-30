@@ -24,6 +24,7 @@ class REPLThrowReturnTestCase (REPLTest):
     @decorators.swiftTest
     @decorators.skipUnlessDarwin
     @decorators.no_debug_info_test
+    @decorators.expectedFailureAll(bugnumber="rdar://28559820")
     def testREPL(self):
         REPLTest.testREPL(self)
 
