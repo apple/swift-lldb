@@ -172,7 +172,6 @@ catch_mach_exception_raise
         g_message->task_port = task_port;
         g_message->thread_port = thread_port;
         g_message->exc_type = exc_type;
-        g_message->exc_data.resize(exc_data_count);
         for (mach_msg_type_number_t i=0; i<exc_data_count; ++i)
             g_message->exc_data.push_back(exc_data[i]);
         return KERN_SUCCESS;
