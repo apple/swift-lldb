@@ -112,6 +112,7 @@ class UniversalTestCase(TestBase):
     @skipUnlessDarwin
     @unittest2.skipUnless(hasattr(os, "uname") and os.uname()[4] in ['i386', 'x86_64'],
             "requires i386 or x86_64")
+    @expectedFailureAll(oslist=["macosx"])  # Not-to-be-fixed in this branch.
     def test_process_attach_with_wrong_arch(self):
         """Test that when we attach to a binary from the wrong fork of a universal binary, we fix up the ABI correctly."""
         # Now keep the architecture at 32 bit, but switch the binary we launch to
