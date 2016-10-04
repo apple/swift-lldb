@@ -25,6 +25,7 @@ class ExitDuringStepTestCase(TestBase):
 
     @skipIfFreeBSD # llvm.org/pr21411: test is hanging
     @expectedFlakeyAndroid("llvm.org/pr26206")
+    @skipIfDarwin  # sometimes times out rdar://28610301
     def test_step_over(self):
         """Test thread exit during step-over handling."""
         self.build(dictionary=self.getBuildFlags())
