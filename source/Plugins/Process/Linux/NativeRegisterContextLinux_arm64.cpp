@@ -52,7 +52,14 @@ static const uint32_t g_gpr_regnums_arm64[] = {
     gpr_x20_arm64,      gpr_x21_arm64,  gpr_x22_arm64, gpr_x23_arm64,
     gpr_x24_arm64,      gpr_x25_arm64,  gpr_x26_arm64, gpr_x27_arm64,
     gpr_x28_arm64,      gpr_fp_arm64,   gpr_lr_arm64,  gpr_sp_arm64,
-    gpr_pc_arm64,       gpr_cpsr_arm64,
+    gpr_pc_arm64,       gpr_cpsr_arm64, gpr_w0_arm64,  gpr_w1_arm64,
+    gpr_w2_arm64,       gpr_w3_arm64,   gpr_w4_arm64,  gpr_w5_arm64,
+    gpr_w6_arm64,       gpr_w7_arm64,   gpr_w8_arm64,  gpr_w9_arm64,
+    gpr_w10_arm64,      gpr_w11_arm64,  gpr_w12_arm64, gpr_w13_arm64,
+    gpr_w14_arm64,      gpr_w15_arm64,  gpr_w16_arm64, gpr_w17_arm64,
+    gpr_w18_arm64,      gpr_w19_arm64,  gpr_w20_arm64, gpr_w21_arm64,
+    gpr_w22_arm64,      gpr_w23_arm64,  gpr_w24_arm64, gpr_w25_arm64,
+    gpr_w26_arm64,      gpr_w27_arm64,  gpr_w28_arm64,
     LLDB_INVALID_REGNUM // register sets need to end with this flag
 };
 static_assert(((sizeof g_gpr_regnums_arm64 / sizeof g_gpr_regnums_arm64[0]) -
@@ -69,6 +76,23 @@ static const uint32_t g_fpu_regnums_arm64[] = {
     fpu_v20_arm64,      fpu_v21_arm64,  fpu_v22_arm64, fpu_v23_arm64,
     fpu_v24_arm64,      fpu_v25_arm64,  fpu_v26_arm64, fpu_v27_arm64,
     fpu_v28_arm64,      fpu_v29_arm64,  fpu_v30_arm64, fpu_v31_arm64,
+    fpu_s0_arm64,       fpu_s1_arm64,   fpu_s2_arm64,  fpu_s3_arm64,
+    fpu_s4_arm64,       fpu_s5_arm64,   fpu_s6_arm64,  fpu_s7_arm64,
+    fpu_s8_arm64,       fpu_s9_arm64,   fpu_s10_arm64, fpu_s11_arm64,
+    fpu_s12_arm64,      fpu_s13_arm64,  fpu_s14_arm64, fpu_s15_arm64,
+    fpu_s16_arm64,      fpu_s17_arm64,  fpu_s18_arm64, fpu_s19_arm64,
+    fpu_s20_arm64,      fpu_s21_arm64,  fpu_s22_arm64, fpu_s23_arm64,
+    fpu_s24_arm64,      fpu_s25_arm64,  fpu_s26_arm64, fpu_s27_arm64,
+    fpu_s28_arm64,      fpu_s29_arm64,  fpu_s30_arm64, fpu_s31_arm64,
+
+    fpu_d0_arm64,       fpu_d1_arm64,   fpu_d2_arm64,  fpu_d3_arm64,
+    fpu_d4_arm64,       fpu_d5_arm64,   fpu_d6_arm64,  fpu_d7_arm64,
+    fpu_d8_arm64,       fpu_d9_arm64,   fpu_d10_arm64, fpu_d11_arm64,
+    fpu_d12_arm64,      fpu_d13_arm64,  fpu_d14_arm64, fpu_d15_arm64,
+    fpu_d16_arm64,      fpu_d17_arm64,  fpu_d18_arm64, fpu_d19_arm64,
+    fpu_d20_arm64,      fpu_d21_arm64,  fpu_d22_arm64, fpu_d23_arm64,
+    fpu_d24_arm64,      fpu_d25_arm64,  fpu_d26_arm64, fpu_d27_arm64,
+    fpu_d28_arm64,      fpu_d29_arm64,  fpu_d30_arm64, fpu_d31_arm64,
     fpu_fpsr_arm64,     fpu_fpcr_arm64,
     LLDB_INVALID_REGNUM // register sets need to end with this flag
 };
@@ -538,42 +562,33 @@ uint32_t NativeRegisterContextLinux_arm64::SetHardwareWatchpoint(
   control_value |= ((1 << size) - 1) << 5;
   control_value |= (2 << 1) | 1;
 
-  // Iterate over stored watchpoints
-  // Find a free wp_index or update reference count if duplicate.
+  // Iterate over stored watchpoints and find a free wp_index
   wp_index = LLDB_INVALID_INDEX32;
   for (uint32_t i = 0; i < m_max_hwp_supported; i++) {
     if ((m_hwp_regs[i].control & 1) == 0) {
       wp_index = i; // Mark last free slot
-    } else if (m_hwp_regs[i].address == addr &&
-               m_hwp_regs[i].control == control_value) {
-      wp_index = i; // Mark duplicate index
-      break;        // Stop searching here
+    } else if (m_hwp_regs[i].address == addr) {
+      return LLDB_INVALID_INDEX32; // We do not support duplicate watchpoints.
     }
   }
 
   if (wp_index == LLDB_INVALID_INDEX32)
     return LLDB_INVALID_INDEX32;
 
-  // Add new or update existing watchpoint
-  if ((m_hwp_regs[wp_index].control & 1) == 0) {
-    // Update watchpoint in local cache
-    m_hwp_regs[wp_index].real_addr = real_addr;
-    m_hwp_regs[wp_index].address = addr;
-    m_hwp_regs[wp_index].control = control_value;
-    m_hwp_regs[wp_index].refcount = 1;
+  // Update watchpoint in local cache
+  m_hwp_regs[wp_index].real_addr = real_addr;
+  m_hwp_regs[wp_index].address = addr;
+  m_hwp_regs[wp_index].control = control_value;
 
-    // PTRACE call to set corresponding watchpoint register.
-    error = WriteHardwareDebugRegs(eDREGTypeWATCH);
+  // PTRACE call to set corresponding watchpoint register.
+  error = WriteHardwareDebugRegs(eDREGTypeWATCH);
 
-    if (error.Fail()) {
-      m_hwp_regs[wp_index].address = 0;
-      m_hwp_regs[wp_index].control &= ~1;
-      m_hwp_regs[wp_index].refcount = 0;
+  if (error.Fail()) {
+    m_hwp_regs[wp_index].address = 0;
+    m_hwp_regs[wp_index].control &= ~1;
 
-      return LLDB_INVALID_INDEX32;
-    }
-  } else
-    m_hwp_regs[wp_index].refcount++;
+    return LLDB_INVALID_INDEX32;
+  }
 
   return wp_index;
 }
@@ -596,36 +611,25 @@ bool NativeRegisterContextLinux_arm64::ClearHardwareWatchpoint(
   if (wp_index >= m_max_hwp_supported)
     return false;
 
-  // Update reference count if multiple references.
-  if (m_hwp_regs[wp_index].refcount > 1) {
-    m_hwp_regs[wp_index].refcount--;
-    return true;
-  } else if (m_hwp_regs[wp_index].refcount == 1) {
-    // Create a backup we can revert to in case of failure.
-    lldb::addr_t tempAddr = m_hwp_regs[wp_index].address;
-    uint32_t tempControl = m_hwp_regs[wp_index].control;
-    uint32_t tempRefCount = m_hwp_regs[wp_index].refcount;
+  // Create a backup we can revert to in case of failure.
+  lldb::addr_t tempAddr = m_hwp_regs[wp_index].address;
+  uint32_t tempControl = m_hwp_regs[wp_index].control;
 
-    // Update watchpoint in local cache
-    m_hwp_regs[wp_index].control &= ~1;
-    m_hwp_regs[wp_index].address = 0;
-    m_hwp_regs[wp_index].refcount = 0;
+  // Update watchpoint in local cache
+  m_hwp_regs[wp_index].control &= ~1;
+  m_hwp_regs[wp_index].address = 0;
 
-    // Ptrace call to update hardware debug registers
-    error = WriteHardwareDebugRegs(eDREGTypeWATCH);
+  // Ptrace call to update hardware debug registers
+  error = WriteHardwareDebugRegs(eDREGTypeWATCH);
 
-    if (error.Fail()) {
-      m_hwp_regs[wp_index].control = tempControl;
-      m_hwp_regs[wp_index].address = tempAddr;
-      m_hwp_regs[wp_index].refcount = tempRefCount;
+  if (error.Fail()) {
+    m_hwp_regs[wp_index].control = tempControl;
+    m_hwp_regs[wp_index].address = tempAddr;
 
-      return false;
-    }
-
-    return true;
+    return false;
   }
 
-  return false;
+  return true;
 }
 
 Error NativeRegisterContextLinux_arm64::ClearAllHardwareWatchpoints() {
@@ -650,12 +654,10 @@ Error NativeRegisterContextLinux_arm64::ClearAllHardwareWatchpoints() {
       // Create a backup we can revert to in case of failure.
       tempAddr = m_hwp_regs[i].address;
       tempControl = m_hwp_regs[i].control;
-      tempRefCount = m_hwp_regs[i].refcount;
 
       // Clear watchpoints in local cache
       m_hwp_regs[i].control &= ~1;
       m_hwp_regs[i].address = 0;
-      m_hwp_regs[i].refcount = 0;
 
       // Ptrace call to update hardware debug registers
       error = WriteHardwareDebugRegs(eDREGTypeWATCH);
@@ -663,7 +665,6 @@ Error NativeRegisterContextLinux_arm64::ClearAllHardwareWatchpoints() {
       if (error.Fail()) {
         m_hwp_regs[i].control = tempControl;
         m_hwp_regs[i].address = tempAddr;
-        m_hwp_regs[i].refcount = tempRefCount;
 
         return error;
       }
@@ -718,8 +719,8 @@ Error NativeRegisterContextLinux_arm64::GetWatchpointHitIndex(
     watch_size = GetWatchpointSize(wp_index);
     watch_addr = m_hwp_regs[wp_index].address;
 
-    if (m_hwp_regs[wp_index].refcount >= 1 && WatchpointIsEnabled(wp_index) &&
-        trap_addr >= watch_addr && trap_addr < watch_addr + watch_size) {
+    if (WatchpointIsEnabled(wp_index) && trap_addr >= watch_addr &&
+        trap_addr < watch_addr + watch_size) {
       m_hwp_regs[wp_index].hit_addr = trap_addr;
       return Error();
     }
