@@ -35,6 +35,7 @@ class ObjCNewSyntaxTestCase(TestBase):
             '7.0.0'])
     @skipIf(macos_version=["<", "10.12"])
     @expectedFailureAll(archs=["i[3-6]86"])
+    @expectedFailureAll(debug_info="gmodules", bugnumber="swift.org/SR-3181")
     def test_expr(self):
         self.build()
         exe = os.path.join(os.getcwd(), "a.out")
