@@ -1,4 +1,4 @@
-# TestSwiftModuleSearchPaths.py
+# TestSwiftFrameworkSearchPaths.py
 #
 # This source file is part of the Swift.org open source project
 #
@@ -10,33 +10,35 @@
 #
 # ------------------------------------------------------------------------------
 """
-Tests that we can import modules located using target.swift-module-search-paths
+Tests that we can import modules located using
+target.swift-framework-search-paths
 """
 
+import re
 import lldb
 from lldbsuite.test.lldbtest import *
 import lldbsuite.test.decorators as decorators
 import lldbsuite.test.lldbutil as lldbutil
 import unittest2
 
-class TestSwiftModuleSearchPaths(TestBase):
+class TestSwiftFrameworkSearchPaths(TestBase):
 
     mydir = TestBase.compute_mydir(__file__)
 
     def setUp(self):
         TestBase.setUp(self)
-        system([["make", "module"]])
+        system([["make", "_framework"]])
         self.addTearDownHook(lambda: system([["make", "cleanup"]]))
         
         self.main_source = "main.swift"
         self.main_source_spec = lldb.SBFileSpec(self.main_source)
-
-
+    
     @decorators.swiftTest
-    def test_swift_module_search_paths(self):
+    @decorators.skipUnlessDarwin
+    def test_swift_framework_search_paths(self):
         """
         Tests that we can import modules located using
-        target.swift-module-search-paths
+        target.swift-framework-search-paths
         """
         
         # Build and run the dummy target
@@ -62,16 +64,17 @@ class TestSwiftModuleSearchPaths(TestBase):
         self.thread = threads[0]
         self.frame = self.thread.frames[0]
         self.assertTrue(self.frame, "Frame 0 is valid.")
+        
 
-        # Add the current working dir to the swift-module-search-paths
-        self.runCmd("settings append target.swift-module-search-paths .")
+        # Add the framework dir to the swift-framework-search-paths
+        self.runCmd(
+            "settings append target.swift-framework-search-paths .")
         
-        # import the module
-        self.runCmd("e import Module")
+        # Check that we can find and import the Framework
+        self.runCmd("e import Framework")
         
-        # Check that we know about the function declared in the module
-        self.expect(
-            "e plusTen(10)", "error: Couldn't lookup symbols:", error=True)
+        # Check that we can call the function defined in the Framework
+        self.expect("e plusTen(10)", r"\(Int\) \$R0 = 20")
 
 
 if __name__ == '__main__':
