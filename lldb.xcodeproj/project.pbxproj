@@ -8612,7 +8612,7 @@
 					"$(LLDB_COVERAGE_CFLAGS)",
 					"-Wimplicit-fallthrough",
 				);
-				OTHER_LDFLAGS = "-lz";
+				OTHER_LDFLAGS = "$(LLDB_ZLIB_LDFLAGS)";
 				PYTHON_FRAMEWORK_PATH = /System/Library/Frameworks/Python.framework;
 				PYTHON_VERSION_MAJOR = 2;
 				PYTHON_VERSION_MINOR = 7;
@@ -8744,7 +8744,7 @@
 					"$(LLDB_COVERAGE_CFLAGS)",
 					"-Wimplicit-fallthrough",
 				);
-				OTHER_LDFLAGS = "-lz";
+				OTHER_LDFLAGS = "$(LLDB_ZLIB_LDFLAGS)";
 				PYTHON_FRAMEWORK_PATH = /System/Library/Frameworks/Python.framework;
 				PYTHON_VERSION_MAJOR = 2;
 				PYTHON_VERSION_MINOR = 7;
@@ -8932,7 +8932,7 @@
 					"$(LLDB_GTESTS_CFLAGS)",
 					"-DGTEST_HAS_RTTI=0",
 				);
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = "$(LLDB_ZLIB_LDFLAGS)";
 				PYTHON_FRAMEWORK_PATH = /System/Library/Frameworks/Python.framework;
 				PYTHON_VERSION_MAJOR = 2;
 				PYTHON_VERSION_MINOR = 7;
@@ -10459,7 +10459,7 @@
 					"-DLLDB_BUILD_DATE=\"$(LLDB_BUILD_DATE)\"",
 					"$(LLDB_VERSION_SCHEME_CFLAGS)",
 				);
-				OTHER_LDFLAGS = "-lz";
+				OTHER_LDFLAGS = "$(LLDB_ZLIB_LDFLAGS)";
 				PYTHON_FRAMEWORK_PATH = /System/Library/Frameworks/Python.framework;
 				PYTHON_VERSION_MAJOR = 2;
 				PYTHON_VERSION_MINOR = 7;
@@ -11471,10 +11471,7 @@
 					"-DLLDB_BUILD_DATE=\"$(LLDB_BUILD_DATE)\"",
 					"$(LLDB_VERSION_SCHEME_CFLAGS)",
 				);
-				OTHER_LDFLAGS = (
-					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)",
-				);
+				OTHER_LDFLAGS = "$(LLDB_ZLIB_LDFLAGS)";
 				PYTHON_FRAMEWORK_PATH = /System/Library/Frameworks/Python.framework;
 				PYTHON_VERSION_MAJOR = 2;
 				PYTHON_VERSION_MINOR = 7;
@@ -12175,7 +12172,7 @@
 					"-DLLDB_BUILD_DATE=\"$(LLDB_BUILD_DATE)\"",
 					"$(LLDB_VERSION_SCHEME_CFLAGS)",
 				);
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = "$(LLDB_ZLIB_LDFLAGS)";
 				PYTHON_FRAMEWORK_PATH = /System/Library/Frameworks/Python.framework;
 				PYTHON_VERSION_MAJOR = 2;
 				PYTHON_VERSION_MINOR = 7;
@@ -13111,7 +13108,7 @@
 					"-DLLDB_BUILD_DATE=\"$(LLDB_BUILD_DATE)\"",
 					"$(LLDB_VERSION_SCHEME_CFLAGS)",
 				);
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = "$(LLDB_ZLIB_LDFLAGS)";
 				PYTHON_FRAMEWORK_PATH = /System/Library/Frameworks/Python.framework;
 				PYTHON_VERSION_MAJOR = 2;
 				PYTHON_VERSION_MINOR = 7;
@@ -13706,7 +13703,7 @@
 					"$(LLDB_VERSION_SCHEME_CFLAGS)",
 					"-Wimplicit-fallthrough",
 				);
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = "$(LLDB_ZLIB_LDFLAGS)";
 				PYTHON_FRAMEWORK_PATH = /System/Library/Frameworks/Python.framework;
 				PYTHON_VERSION_MAJOR = 2;
 				PYTHON_VERSION_MINOR = 7;
