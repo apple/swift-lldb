@@ -129,7 +129,7 @@ public:
                              const Expression::SwiftGenericInfo &generic_info,
                              uint32_t &first_body_line);
 
-  void FindSpecialNames(llvm::SmallVectorImpl<swift::Identifier> &names,
+  void FindSpecialNames(llvm::SmallVectorImpl<swift::DeclName> &names,
                         llvm::StringRef prefix);
 
   swift::VarDecl *AddExternalVariable(swift::Identifier name,

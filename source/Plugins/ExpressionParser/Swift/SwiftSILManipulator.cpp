@@ -42,7 +42,10 @@ swift::SILValue SwiftSILManipulator::emitLValueForVariable(
   swift::SILArgument *struct_argument = nullptr;
 
   for (swift::SILArgument *argument : entry_block.getArguments()) {
-    swift::Identifier argument_name = argument->getDecl()->getName();
+    assert(!argument->getDecl()->getBaseName().isSpecialName() &&
+             "Special SIL name?");
+    swift::Identifier argument_name = argument->getDecl()->getBaseName()
+                                        .getIdentifier();
 
     if (!strcmp(argument_name.get(), SwiftASTManipulator::GetArgumentName())) {
       struct_argument = argument;
@@ -69,7 +72,7 @@ swift::SILValue SwiftSILManipulator::emitLValueForVariable(
 
   for (swift::Decl *member : unsafe_mutable_pointer_struct_decl->getMembers()) {
     if (swift::VarDecl *member_var = llvm::dyn_cast<swift::VarDecl>(member)) {
-      if (member_var->getName().str().equals("_rawValue")) {
+      if (member_var->getBaseName() == "_rawValue") {
         value_member_decl = member_var;
         break;
       }

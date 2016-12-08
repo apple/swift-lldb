@@ -49,9 +49,9 @@ lldb_private::formatters::swift::SwiftOptionSetSummaryProvider::
 static ConstString GetDisplayCaseName(::swift::ClangImporter *clang_importer,
                                       clang::EnumConstantDecl *case_decl) {
   if (clang_importer) {
-    ::swift::Identifier imported_identifier =
+    ::swift::DeclName imported_identifier =
         clang_importer->getEnumConstantName(case_decl);
-    if (false == imported_identifier.empty())
+    if (imported_identifier)
       return ConstString(imported_identifier.str());
   }
   return ConstString(case_decl->getName());
