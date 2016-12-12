@@ -2666,6 +2666,8 @@ bool SwiftASTContext::TargetHasNoSDK() {
   }
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpessimizing-move"
 swift::ClangImporterOptions &SwiftASTContext::GetClangImporterOptions() {
   swift::ClangImporterOptions &clang_importer_options =
       GetCompilerInvocation().getClangImporterOptions();
@@ -2678,6 +2680,7 @@ swift::ClangImporterOptions &SwiftASTContext::GetClangImporterOptions() {
   }
   return clang_importer_options;
 }
+#pragma clang diagnostic pop
 
 swift::SearchPathOptions &SwiftASTContext::GetSearchPathOptions() {
   swift::SearchPathOptions &search_path_opts =
