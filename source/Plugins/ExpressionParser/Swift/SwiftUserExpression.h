@@ -51,12 +51,11 @@ public:
   class SwiftUserExpressionHelper : public ExpressionTypeSystemHelper {
   public:
     SwiftUserExpressionHelper(Target &target)
-        : ExpressionTypeSystemHelper(eKindSwiftHelper), m_target(target) {}
+        : ExpressionTypeSystemHelper(eKindSwiftHelper) {
+      (void)target;
+    }
 
     ~SwiftUserExpressionHelper() {}
-
-  private:
-    Target &m_target;
   };
 
   //------------------------------------------------------------------
@@ -161,7 +160,6 @@ private:
     lldb::ExpressionVariableSP &GetVariable();
 
   private:
-    SwiftUserExpression &m_user_expression;
     bool m_is_error;
     PersistentExpressionState *m_persistent_state;
     lldb::ExpressionVariableSP m_variable;
@@ -176,9 +174,6 @@ private:
     PersistentVariableDelegate(SwiftUserExpression &);
     ConstString GetName() override;
     void DidDematerialize(lldb::ExpressionVariableSP &variable) override;
-
-  private:
-    SwiftUserExpression &m_user_expression;
   };
 
   PersistentVariableDelegate m_persistent_variable_delegate;
