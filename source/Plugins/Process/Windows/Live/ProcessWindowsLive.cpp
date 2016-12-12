@@ -680,7 +680,7 @@ size_t ProcessWindowsLive::DoReadMemory(lldb::addr_t vm_addr, void *buf,
 
   WINLOG_IFALL(WINDOWS_LOG_MEMORY,
                "DoReadMemory attempting to read %u bytes from address 0x%I64x",
-               size, vm_addr);
+               static_cast<unsigned>(size), vm_addr);
 
   HostProcess process = m_session_data->m_debugger->GetProcess();
   void *addr = reinterpret_cast<void *>(vm_addr);
@@ -699,7 +699,8 @@ size_t ProcessWindowsLive::DoWriteMemory(lldb::addr_t vm_addr, const void *buf,
   llvm::sys::ScopedLock lock(m_mutex);
   WINLOG_IFALL(
       WINDOWS_LOG_MEMORY,
-      "DoWriteMemory attempting to write %u bytes into address 0x%I64x", size,
+      "DoWriteMemory attempting to write %u bytes into address 0x%I64x",
+      static_cast<unsigned>(size),
       vm_addr);
 
   if (!m_session_data) {

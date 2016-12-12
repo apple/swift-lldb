@@ -363,7 +363,7 @@ Error Socket::Close() {
   Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION));
   if (log)
     log->Printf("%p Socket::Close (fd = %i)", static_cast<void *>(this),
-                m_socket);
+                static_cast<int>(m_socket));
 
 #if defined(_WIN32)
   bool success = !!closesocket(m_socket);
