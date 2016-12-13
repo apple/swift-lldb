@@ -2,11 +2,11 @@
 //
 // This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2014 - 2015 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2016 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See http://swift.org/LICENSE.txt for license information
-// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -1770,13 +1770,20 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
         IRExecutionUnit::GetLLVMGlobalContextMutex());
 
     m_module = swift::performIRGeneration(
-        m_swift_ast_context->GetIRGenOptions(), module, sil_module.get(),
+        m_swift_ast_context->GetIRGenOptions(), module, std::move(sil_module),
         "lldb_module", SwiftASTContext::GetGlobalLLVMContext());
   }
 
   if (m_swift_ast_context->HasErrors()) {
     m_swift_ast_context->PrintDiagnostics(diagnostic_manager, buffer_id,
                                           first_line, last_line, line_offset);
+    return 1;
+  }
+
+  if (!m_module) {
+    diagnostic_manager.PutCString(
+        eDiagnosticSeverityError,
+        "Couldn't IRGen expression, no additional error");
     return 1;
   }
 

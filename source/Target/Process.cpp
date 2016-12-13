@@ -1293,10 +1293,12 @@ bool Process::HandleProcessStateChangedEvent(const EventSP &event_sp,
             const uint32_t start_frame = 0;
             const uint32_t num_frames = 1;
             const uint32_t num_frames_with_source = 1;
+            const bool stop_format = true;
             process_sp->GetStatus(*stream);
             process_sp->GetThreadStatus(*stream, only_threads_with_stop_reason,
                                         start_frame, num_frames,
-                                        num_frames_with_source);
+                                        num_frames_with_source,
+                                        stop_format);
             if (curr_thread_stop_info_sp) {
               lldb::addr_t crashing_address;
               ValueObjectSP valobj_sp = StopInfo::GetCrashingDereference(
@@ -4331,6 +4333,13 @@ void Process::ProcessEventData::DoOnRemoval(Event *event_ptr) {
   process_sp->SetPublicState(
       m_state, Process::ProcessEventData::GetRestartedFromEvent(event_ptr));
 
+  if (m_state == eStateStopped && !m_restarted) {
+    // Let process subclasses know we are about to do a public stop and
+    // do anything they might need to in order to speed up register and
+    // memory accesses.
+    process_sp->WillPublicStop();
+  }
+
   // If this is a halt event, even if the halt stopped with some reason other
   // than a plain interrupt (e.g. we had
   // already stopped for a breakpoint when the halt request came through) don't
@@ -4341,11 +4350,6 @@ void Process::ProcessEventData::DoOnRemoval(Event *event_ptr) {
 
   // If we're stopped and haven't restarted, then do the StopInfo actions here:
   if (m_state == eStateStopped && !m_restarted) {
-    // Let process subclasses know we are about to do a public stop and
-    // do anything they might need to in order to speed up register and
-    // memory accesses.
-    process_sp->WillPublicStop();
-
     ThreadList &curr_thread_list = process_sp->GetThreadList();
     uint32_t num_threads = curr_thread_list.GetSize();
     uint32_t idx;
@@ -5945,7 +5949,8 @@ void Process::GetStatus(Stream &strm) {
 size_t Process::GetThreadStatus(Stream &strm,
                                 bool only_threads_with_stop_reason,
                                 uint32_t start_frame, uint32_t num_frames,
-                                uint32_t num_frames_with_source) {
+                                uint32_t num_frames_with_source,
+                                bool stop_format) {
   size_t num_thread_infos_dumped = 0;
 
   // You can't hold the thread list lock while calling Thread::GetStatus.  That
@@ -5976,7 +5981,8 @@ size_t Process::GetThreadStatus(Stream &strm,
           continue;
       }
       thread_sp->GetStatus(strm, start_frame, num_frames,
-                           num_frames_with_source);
+                           num_frames_with_source,
+                           stop_format);
       ++num_thread_infos_dumped;
     } else {
       Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_PROCESS));

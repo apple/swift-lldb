@@ -2,11 +2,11 @@
 //
 // This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2014 - 2015 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2016 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See http://swift.org/LICENSE.txt for license information
-// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -41,7 +41,7 @@ swift::SILValue SwiftSILManipulator::emitLValueForVariable(
 
   swift::SILArgument *struct_argument = nullptr;
 
-  for (swift::SILArgument *argument : entry_block.getBBArgs()) {
+  for (swift::SILArgument *argument : entry_block.getArguments()) {
     swift::Identifier argument_name = argument->getDecl()->getName();
 
     if (!strcmp(argument_name.get(), SwiftASTManipulator::GetArgumentName())) {

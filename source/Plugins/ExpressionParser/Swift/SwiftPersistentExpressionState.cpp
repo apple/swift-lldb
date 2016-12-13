@@ -2,11 +2,11 @@
 //
 // This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2014 - 2015 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2016 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See http://swift.org/LICENSE.txt for license information
-// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -149,9 +149,9 @@ bool SwiftPersistentExpressionState::SwiftDeclMap::DeclsAreEquivalent(
       if (body_params_equal) {
         // The bodies look the same, now try the return values:
         swift::CanType lhs_result_type =
-            lhs_func_decl->getBodyResultType().getCanonicalTypeOrNull();
+            lhs_func_decl->getResultInterfaceType().getCanonicalTypeOrNull();
         swift::CanType rhs_result_type =
-            rhs_func_decl->getBodyResultType().getCanonicalTypeOrNull();
+            rhs_func_decl->getResultInterfaceType().getCanonicalTypeOrNull();
 
         if (lhs_result_type == rhs_result_type) {
           equivalent = true;

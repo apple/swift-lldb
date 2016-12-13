@@ -2,11 +2,11 @@
 //
 // This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2014 - 2015 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2016 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
-// See http://swift.org/LICENSE.txt for license information
-// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://swift.org/LICENSE.txt for license information
+// See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -1804,8 +1804,10 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Protocol(
     if (!descriptor_sp)
       return false;
     std::vector<clang::NamedDecl *> decls;
-    objc_runtime->GetDeclVendor()->FindDecls(descriptor_sp->GetClassName(),
-                                             true, 1, decls);
+    DeclVendor *vendor = objc_runtime->GetDeclVendor();
+    if (!vendor)
+      return false;
+    vendor->FindDecls(descriptor_sp->GetClassName(), true, 1, decls);
     if (decls.size() == 0)
       return false;
     CompilerType type = ClangASTContext::GetTypeForDecl(decls[0]);
@@ -2065,7 +2067,7 @@ SwiftLanguageRuntime::DoArchetypeBindingForType(StackFrame &stack_frame,
                     llvm::dyn_cast_or_null<swift::ArchetypeType>(
                         candidate_type.getPointer())) {
               llvm::StringRef candidate_name =
-                  candidate_archetype->getName().str();
+                  candidate_archetype->getFullName();
 
               CompilerType concrete_type = this->GetConcreteType(
                   &stack_frame, ConstString(candidate_name));
@@ -3150,6 +3152,7 @@ void SwiftLanguageRuntime::RegisterGlobalError(Target &target, ConstString name,
                          ast_context->GetIdentifier(name.GetCString()),
                          GetSwiftType(ast_context->GetErrorType()),
                          module_decl);
+      var_decl->setInterfaceType(var_decl->getType());
       var_decl->setDebuggerVar(true);
 
       persistent_state->RegisterSwiftPersistentDecl(var_decl);
