@@ -1559,8 +1559,8 @@ SwiftASTManipulator::GetTypesForResultFixup(uint32_t language_flags) {
 
           if (name_alias_type) {
             // FIXME: What if the generic parameter is concrete?
-            ret.Wrapper_archetype = swift::ArchetypeBuilder::mapTypeIntoContext(
-                extension_decl, type_parameter->getDeclaredInterfaceType())
+            ret.Wrapper_archetype = extension_decl->mapTypeIntoContext(
+                type_parameter->getDeclaredInterfaceType())
                     ->castTo<swift::ArchetypeType>();
             ret.context_alias = name_alias_type;
             ret.context_real = name_alias_type->getSinglyDesugaredType();
