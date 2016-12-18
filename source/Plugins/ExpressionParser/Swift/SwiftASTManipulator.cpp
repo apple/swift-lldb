@@ -1361,8 +1361,7 @@ bool SwiftASTManipulator::AddExternalVariables(
       swift::VarDecl *redirected_var_decl = new (ast_context) swift::VarDecl(
           is_static, is_let, loc, name, var_type, containing_function);
       redirected_var_decl->setInterfaceType(
-        swift::ArchetypeBuilder::mapTypeOutOfContext(
-          containing_function, var_type));
+        containing_function->mapTypeOutOfContext(var_type));
       redirected_var_decl->setDebuggerVar(true);
       redirected_var_decl->setImplicit(true);
 
@@ -1559,8 +1558,8 @@ SwiftASTManipulator::GetTypesForResultFixup(uint32_t language_flags) {
 
           if (name_alias_type) {
             // FIXME: What if the generic parameter is concrete?
-            ret.Wrapper_archetype = swift::ArchetypeBuilder::mapTypeIntoContext(
-                extension_decl, type_parameter->getDeclaredInterfaceType())
+            ret.Wrapper_archetype = extension_decl->mapTypeIntoContext(
+                type_parameter->getDeclaredInterfaceType())
                     ->castTo<swift::ArchetypeType>();
             ret.context_alias = name_alias_type;
             ret.context_real = name_alias_type->getSinglyDesugaredType();
