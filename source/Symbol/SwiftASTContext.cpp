@@ -1265,7 +1265,15 @@ static bool HasASTData(Module &module) {
   return true;
 }
 
-static lldb::ModuleSP GetSwiftModule(Target &target) {
+// Swift uses Clang to import the C/Objective-C portions of Swift modules.
+// Clang needs a set of compiler flags, and these are serialized into the ASTs
+// for Swift frameworks.  The compiler flags for different frameworks might
+// conflict, so LLDB has to pick one.
+// This is not ideal, because of course those flags might change the layout of
+// structs (imagine -Dchar=int).
+// The job of this function is to identify the module that will be used for
+// these flags.  All other modules will be ignored.
+static lldb::ModuleSP GetModuleForCanonicalCompilerFlags(Target &target) {
   ModuleSP candidate_sp(target.GetExecutableModule());
 
   // If we're debugging a testsuite, then treat the main test bundle as the
@@ -1712,7 +1720,7 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
           break;
       }
 
-      ModuleSP exe_module_sp(GetSwiftModule(*target));
+      ModuleSP exe_module_sp(GetModuleForCanonicalCompilerFlags(*target));
 
       Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_TYPES));
 
@@ -1722,7 +1730,7 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
                       exe_module_sp->GetFileSpec().GetFilename().AsCString(
                           "<anonymous>"));
         }
-        // The following sequence is safe because GetSwiftModule()
+        // The following sequence is safe because GetModuleForCanonicalCompilerFlags()
         // wouldn't have returned anything otherwise.
         SymbolVendor *sym_vendor = exe_module_sp->GetSymbolVendor();
         auto ast_datas = sym_vendor->GetASTData(eLanguageTypeSwift);
