@@ -393,7 +393,7 @@ public:
 
   virtual ~LLDBNameLookup() {}
 
-  virtual bool shouldGlobalize(swift::Identifier Name, swift::DeclKind Kind) {
+  virtual bool shouldGlobalize(swift::DeclName Name, swift::DeclKind Kind) {
     if (m_parser.GetOptions().GetREPLEnabled())
       return true;
     else {
@@ -407,7 +407,7 @@ public:
       if (Kind == swift::DeclKind::Func && Name.isOperator())
         return true;
 
-      const char *name_cstr = Name.get();
+      const char *name_cstr = Name.str().str().c_str();
       if (name_cstr && name_cstr[0] == '$') {
         if (m_log)
           m_log->Printf("[LLDBNameLookup::shouldGlobalize] Returning true to "
@@ -427,12 +427,12 @@ public:
       // the source-file level to be legal.  But we don't want to register them
       // with
       // lldb unless they are of the kind lldb explicitly wants to globalize.
-      if (shouldGlobalize(value_decl->getName(), value_decl->getKind()))
+      if (shouldGlobalize(value_decl->getBaseName(), value_decl->getKind()))
         m_staged_decls.AddDecl(value_decl, false, ConstString());
     }
   }
 
-  virtual bool lookupOverrides(swift::Identifier Name, swift::DeclContext *DC,
+  virtual bool lookupOverrides(swift::DeclName Name, swift::DeclContext *DC,
                                swift::SourceLoc Loc, bool IsTypeLookup,
                                ResultVector &RV) {
     static unsigned counter = 0;
@@ -440,13 +440,13 @@ public:
 
     if (m_log) {
       m_log->Printf("[LLDBNameLookup::lookupOverrides(%u)] Searching for %s",
-                    count, Name.get());
+                    count, Name.str().str().c_str());
     }
 
     return false;
   }
 
-  virtual bool lookupAdditions(swift::Identifier Name, swift::DeclContext *DC,
+  virtual bool lookupAdditions(swift::DeclName Name, swift::DeclContext *DC,
                                swift::SourceLoc Loc, bool IsTypeLookup,
                                ResultVector &RV) {
     static unsigned counter = 0;
@@ -454,7 +454,7 @@ public:
 
     if (m_log) {
       m_log->Printf("[LLDBNameLookup::lookupAdditions (%u)] Searching for %s",
-                    count, Name.get());
+                    count, Name.str().str().c_str());
     }
 
     ConstString name_const_str(Name.str());
