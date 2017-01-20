@@ -4072,7 +4072,8 @@ SwiftASTContext::GetTypeFromMangledTypename(const char *mangled_typename,
     error.Clear();
 
     // If we were to crash doing this, remember what type caused it
-    llvm::PrettyStackTraceFormat PST("error finding type for %s", mangled_typename);
+    llvm::PrettyStackTraceFormat PST("error finding type for %s",
+                                        mangled_typename);
     ConstString mangled_name(mangled_typename);
     swift::TypeBase *found_type =
         m_mangled_name_to_type_map.lookup(mangled_name.GetCString());

@@ -1534,7 +1534,7 @@ bool CommandInterpreter::HandleCommand(const char *command_line,
 
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_COMMANDS));
   llvm::PrettyStackTraceFormat stack_trace("HandleCommand(command = \"%s\")",
-                                   command_line);
+                                           command_line);
 
   if (log)
     log->Printf("Processing command: %s", command_line);
