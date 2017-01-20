@@ -22,6 +22,7 @@
 #include "lldb/Core/StreamString.h"
 #include "lldb/Host/ConnectionFileDescriptor.h"
 #include "lldb/Host/FileSpec.h"
+#include "lldb/Host/FileSystem.h"
 #include "lldb/Host/PosixApi.h"
 
 #include <limits.h>
@@ -40,10 +41,11 @@
 using namespace lldb;
 using namespace lldb_private;
 using namespace lldb_private::platform_android;
+using namespace std::chrono;
 
 namespace {
 
-const std::chrono::seconds kReadTimeout(8);
+const seconds kReadTimeout(8);
 const char *kOKAY = "OKAY";
 const char *kFAIL = "FAIL";
 const char *kDATA = "DATA";
@@ -63,7 +65,6 @@ const char *kSocketNamespaceAbstract = "localabstract";
 const char *kSocketNamespaceFileSystem = "localfilesystem";
 
 Error ReadAllBytes(Connection &conn, void *buffer, size_t size) {
-  using namespace std::chrono;
 
   Error error;
   ConnectionStatus status;
@@ -73,10 +74,9 @@ Error ReadAllBytes(Connection &conn, void *buffer, size_t size) {
   const auto deadline = now + kReadTimeout;
   size_t total_read_bytes = 0;
   while (total_read_bytes < size && now < deadline) {
-    uint32_t timeout_usec = duration_cast<microseconds>(deadline - now).count();
     auto read_bytes =
         conn.Read(read_buffer + total_read_bytes, size - total_read_bytes,
-                  timeout_usec, status, &error);
+                  duration_cast<microseconds>(deadline - now), status, &error);
     if (error.Fail())
       return error;
     total_read_bytes += read_bytes;
@@ -184,7 +184,7 @@ Error AdbClient::SetPortForwarding(const uint16_t local_port,
 }
 
 Error AdbClient::SetPortForwarding(const uint16_t local_port,
-                                   const char *remote_socket_name,
+                                   llvm::StringRef remote_socket_name,
                                    const UnixSocketNamespace socket_namespace) {
   char message[PATH_MAX];
   const char *sock_namespace_str =
@@ -192,7 +192,7 @@ Error AdbClient::SetPortForwarding(const uint16_t local_port,
           ? kSocketNamespaceAbstract
           : kSocketNamespaceFileSystem;
   snprintf(message, sizeof(message), "forward:tcp:%d;%s:%s", local_port,
-           sock_namespace_str, remote_socket_name);
+           sock_namespace_str, remote_socket_name.str().c_str());
 
   const auto error = SendDeviceMessage(message);
   if (error.Fail())
@@ -262,23 +262,22 @@ Error AdbClient::ReadMessage(std::vector<char> &message) {
 }
 
 Error AdbClient::ReadMessageStream(std::vector<char> &message,
-                                   uint32_t timeout_ms) {
-  auto start = std::chrono::steady_clock::now();
+                                   milliseconds timeout) {
+  auto start = steady_clock::now();
   message.clear();
 
   Error error;
   lldb::ConnectionStatus status = lldb::eConnectionStatusSuccess;
   char buffer[1024];
   while (error.Success() && status == lldb::eConnectionStatusSuccess) {
-    auto end = std::chrono::steady_clock::now();
-    uint32_t elapsed_time =
-        std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-            .count();
-    if (elapsed_time >= timeout_ms)
+    auto end = steady_clock::now();
+    auto elapsed = end - start;
+    if (elapsed >= timeout)
       return Error("Timed out");
 
     size_t n = m_conn->Read(buffer, sizeof(buffer),
-                            1000 * (timeout_ms - elapsed_time), status, &error);
+                            duration_cast<microseconds>(timeout - elapsed),
+                            status, &error);
     if (n > 0)
       message.insert(message.end(), &buffer[0], &buffer[n]);
   }
@@ -349,7 +348,7 @@ Error AdbClient::ReadAllBytes(void *buffer, size_t size) {
   return ::ReadAllBytes(*m_conn, buffer, size);
 }
 
-Error AdbClient::internalShell(const char *command, uint32_t timeout_ms,
+Error AdbClient::internalShell(const char *command, milliseconds timeout,
                                std::vector<char> &output_buf) {
   output_buf.clear();
 
@@ -359,7 +358,7 @@ Error AdbClient::internalShell(const char *command, uint32_t timeout_ms,
 
   StreamString adb_command;
   adb_command.Printf("shell:%s", command);
-  error = SendMessage(adb_command.GetData(), false);
+  error = SendMessage(adb_command.GetString(), false);
   if (error.Fail())
     return error;
 
@@ -367,7 +366,7 @@ Error AdbClient::internalShell(const char *command, uint32_t timeout_ms,
   if (error.Fail())
     return error;
 
-  error = ReadMessageStream(output_buf, timeout_ms);
+  error = ReadMessageStream(output_buf, timeout);
   if (error.Fail())
     return error;
 
@@ -383,10 +382,10 @@ Error AdbClient::internalShell(const char *command, uint32_t timeout_ms,
   return Error();
 }
 
-Error AdbClient::Shell(const char *command, uint32_t timeout_ms,
+Error AdbClient::Shell(const char *command, milliseconds timeout,
                        std::string *output) {
   std::vector<char> output_buffer;
-  auto error = internalShell(command, timeout_ms, output_buffer);
+  auto error = internalShell(command, timeout, output_buffer);
   if (error.Fail())
     return error;
 
@@ -395,10 +394,10 @@ Error AdbClient::Shell(const char *command, uint32_t timeout_ms,
   return error;
 }
 
-Error AdbClient::ShellToFile(const char *command, uint32_t timeout_ms,
+Error AdbClient::ShellToFile(const char *command, milliseconds timeout,
                              const FileSpec &output_file_spec) {
   std::vector<char> output_buffer;
-  auto error = internalShell(command, timeout_ms, output_buffer);
+  auto error = internalShell(command, timeout, output_buffer);
   if (error.Fail())
     return error;
 
@@ -427,7 +426,7 @@ AdbClient::GetSyncService(Error &error) {
 Error AdbClient::SyncService::internalPullFile(const FileSpec &remote_file,
                                                const FileSpec &local_file) {
   const auto local_file_path = local_file.GetPath();
-  llvm::FileRemover local_file_remover(local_file_path.c_str());
+  llvm::FileRemover local_file_remover(local_file_path);
 
   std::ofstream dst(local_file_path, std::ios::out | std::ios::binary);
   if (!dst.is_open())
@@ -475,8 +474,9 @@ Error AdbClient::SyncService::internalPushFile(const FileSpec &local_file,
     if (error.Fail())
       return Error("Failed to send file chunk: %s", error.AsCString());
   }
-  error = SendSyncRequest(kDONE, local_file.GetModificationTime().seconds(),
-                          nullptr);
+  error = SendSyncRequest(
+      kDONE, llvm::sys::toTimeT(FileSystem::GetModificationTime(local_file)),
+      nullptr);
   if (error.Fail())
     return error;
 

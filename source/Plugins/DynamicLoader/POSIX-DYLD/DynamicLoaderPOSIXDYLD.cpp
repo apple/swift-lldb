@@ -1,4 +1,4 @@
-//===-- DynamicLoaderPOSIX.h ------------------------------------*- C++ -*-===//
+//===-- DynamicLoaderPOSIXDYLD.cpp ------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -682,7 +682,7 @@ void DynamicLoaderPOSIXDYLD::ResolveExecutableModule(
     if (log)
       log->Printf("DynamicLoaderPOSIXDYLD::%s - failed to resolve executable "
                   "with module spec \"%s\": %s",
-                  __FUNCTION__, stream.GetString().c_str(), error.AsCString());
+                  __FUNCTION__, stream.GetData(), error.AsCString());
     return;
   }
 

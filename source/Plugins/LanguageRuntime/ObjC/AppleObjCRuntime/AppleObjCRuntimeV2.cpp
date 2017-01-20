@@ -71,7 +71,7 @@ using namespace lldb;
 using namespace lldb_private;
 
 // 2 second timeout when running utility functions
-#define UTILITY_FUNCTION_TIMEOUT_USEC 2 * 1000 * 1000
+static constexpr std::chrono::seconds g_utility_function_timeout(2);
 
 static const char *g_get_dynamic_class_info_name =
     "__lldb_apple_objc_v2_get_dynamic_class_info";
@@ -497,7 +497,7 @@ public:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
       const int short_option = m_getopt_table[option_idx].val;
@@ -1425,7 +1425,7 @@ AppleObjCRuntimeV2::UpdateISAToDescriptorMapDynamic(
     options.SetTryAllThreads(false);
     options.SetStopOthers(true);
     options.SetIgnoreBreakpoints(true);
-    options.SetTimeoutUsec(UTILITY_FUNCTION_TIMEOUT_USEC);
+    options.SetTimeout(g_utility_function_timeout);
 
     Value return_value;
     return_value.SetValueType(Value::eValueTypeScalar);
@@ -1670,7 +1670,7 @@ AppleObjCRuntimeV2::UpdateISAToDescriptorMapSharedCache() {
     options.SetTryAllThreads(false);
     options.SetStopOthers(true);
     options.SetIgnoreBreakpoints(true);
-    options.SetTimeoutUsec(UTILITY_FUNCTION_TIMEOUT_USEC);
+    options.SetTimeout(g_utility_function_timeout);
 
     Value return_value;
     return_value.SetValueType(Value::eValueTypeScalar);
@@ -1925,8 +1925,6 @@ void AppleObjCRuntimeV2::WarnIfNoClassesCached(
   }
 }
 
-// TODO: should we have a transparent_kvo parameter here to say if we
-// want to replace the KVO swizzled class with the actual user-level type?
 ConstString
 AppleObjCRuntimeV2::GetActualTypeName(ObjCLanguageRuntime::ObjCISA isa) {
   if (isa == g_objc_Tagged_ISA) {
@@ -2180,23 +2178,28 @@ AppleObjCRuntimeV2::TaggedPointerVendorLegacy::GetClassDescriptor(
   uint64_t class_bits = (ptr & 0xE) >> 1;
   ConstString name;
 
-  // TODO: make a table
+  static ConstString g_NSAtom("NSAtom");
+  static ConstString g_NSNumber("NSNumber");
+  static ConstString g_NSDateTS("NSDateTS");
+  static ConstString g_NSManagedObject("NSManagedObject");
+  static ConstString g_NSDate("NSDate");
+
   if (foundation_version >= 900) {
     switch (class_bits) {
     case 0:
-      name = ConstString("NSAtom");
+      name = g_NSAtom;
       break;
     case 3:
-      name = ConstString("NSNumber");
+      name = g_NSNumber;
       break;
     case 4:
-      name = ConstString("NSDateTS");
+      name = g_NSDateTS;
       break;
     case 5:
-      name = ConstString("NSManagedObject");
+      name = g_NSManagedObject;
       break;
     case 6:
-      name = ConstString("NSDate");
+      name = g_NSDate;
       break;
     default:
       return ObjCLanguageRuntime::ClassDescriptorSP();
@@ -2204,16 +2207,16 @@ AppleObjCRuntimeV2::TaggedPointerVendorLegacy::GetClassDescriptor(
   } else {
     switch (class_bits) {
     case 1:
-      name = ConstString("NSNumber");
+      name = g_NSNumber;
       break;
     case 5:
-      name = ConstString("NSManagedObject");
+      name = g_NSManagedObject;
       break;
     case 6:
-      name = ConstString("NSDate");
+      name = g_NSDate;
       break;
     case 7:
-      name = ConstString("NSDateTS");
+      name = g_NSDateTS;
       break;
     default:
       return ObjCLanguageRuntime::ClassDescriptorSP();

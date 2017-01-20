@@ -52,48 +52,42 @@ CommandObject::CommandObject(CommandInterpreter &interpreter, llvm::StringRef na
 
 CommandObject::~CommandObject() {}
 
-const char *CommandObject::GetHelp() { return m_cmd_help_short.c_str(); }
+llvm::StringRef CommandObject::GetHelp() { return m_cmd_help_short; }
 
-const char *CommandObject::GetHelpLong() { return m_cmd_help_long.c_str(); }
+llvm::StringRef CommandObject::GetHelpLong() { return m_cmd_help_long; }
 
-const char *CommandObject::GetSyntax() {
-  if (m_cmd_syntax.length() == 0) {
-    StreamString syntax_str;
-    syntax_str.Printf("%s", GetCommandName().str().c_str());
-    if (!IsDashDashCommand() && GetOptions() != nullptr)
-      syntax_str.Printf(" <cmd-options>");
-    if (m_arguments.size() > 0) {
-      syntax_str.Printf(" ");
-      if (!IsDashDashCommand() && WantsRawCommandString() && GetOptions() &&
-          GetOptions()->NumCommandOptions())
-        syntax_str.Printf("-- ");
-      GetFormattedCommandArguments(syntax_str);
-    }
-    m_cmd_syntax = syntax_str.GetData();
+llvm::StringRef CommandObject::GetSyntax() {
+  if (m_cmd_syntax.empty())
+    return m_cmd_syntax;
+
+  StreamString syntax_str;
+  syntax_str.PutCString(GetCommandName());
+
+  if (!IsDashDashCommand() && GetOptions() != nullptr)
+    syntax_str.PutCString(" <cmd-options>");
+
+  if (!m_arguments.empty()) {
+    syntax_str.PutCString(" ");
+
+    if (!IsDashDashCommand() && WantsRawCommandString() && GetOptions() &&
+        GetOptions()->NumCommandOptions())
+      syntax_str.PutCString("-- ");
+    GetFormattedCommandArguments(syntax_str);
   }
+  m_cmd_syntax = syntax_str.GetString();
 
-  return m_cmd_syntax.c_str();
+  return m_cmd_syntax;
 }
 
 llvm::StringRef CommandObject::GetCommandName() const { return m_cmd_name; }
 
-void CommandObject::SetCommandName(const char *name) { m_cmd_name = name; }
+void CommandObject::SetCommandName(llvm::StringRef name) { m_cmd_name = name; }
 
-void CommandObject::SetHelp(const char *cstr) {
-  if (cstr)
-    m_cmd_help_short = cstr;
-  else
-    m_cmd_help_short.assign("");
-}
+void CommandObject::SetHelp(llvm::StringRef str) { m_cmd_help_short = str; }
 
-void CommandObject::SetHelpLong(const char *cstr) {
-  if (cstr)
-    m_cmd_help_long = cstr;
-  else
-    m_cmd_help_long.assign("");
-}
+void CommandObject::SetHelpLong(llvm::StringRef str) { m_cmd_help_long = str; }
 
-void CommandObject::SetSyntax(const char *cstr) { m_cmd_syntax = cstr; }
+void CommandObject::SetSyntax(llvm::StringRef str) { m_cmd_syntax = str; }
 
 Options *CommandObject::GetOptions() {
   // By default commands don't have options unless this virtual function
@@ -322,7 +316,7 @@ int CommandObject::HandleCompletion(Args &input, int &cursor_index,
   }
 }
 
-bool CommandObject::HelpTextContainsWord(const char *search_word,
+bool CommandObject::HelpTextContainsWord(llvm::StringRef search_word,
                                          bool search_short_help,
                                          bool search_long_help,
                                          bool search_syntax,
@@ -331,15 +325,15 @@ bool CommandObject::HelpTextContainsWord(const char *search_word,
 
   bool found_word = false;
 
-  const char *short_help = GetHelp();
-  const char *long_help = GetHelpLong();
-  const char *syntax_help = GetSyntax();
+  llvm::StringRef short_help = GetHelp();
+  llvm::StringRef long_help = GetHelpLong();
+  llvm::StringRef syntax_help = GetSyntax();
 
-  if (search_short_help && short_help && strcasestr(short_help, search_word))
+  if (search_short_help && short_help.contains_lower(search_word))
     found_word = true;
-  else if (search_long_help && long_help && strcasestr(long_help, search_word))
+  else if (search_long_help && long_help.contains_lower(search_word))
     found_word = true;
-  else if (search_syntax && syntax_help && strcasestr(syntax_help, search_word))
+  else if (search_syntax && syntax_help.contains_lower(search_word))
     found_word = true;
 
   if (!found_word && search_options && GetOptions() != nullptr) {
@@ -347,9 +341,9 @@ bool CommandObject::HelpTextContainsWord(const char *search_word,
     GetOptions()->GenerateOptionUsage(
         usage_help, this,
         GetCommandInterpreter().GetDebugger().GetTerminalWidth());
-    if (usage_help.GetSize() > 0) {
-      const char *usage_text = usage_help.GetData();
-      if (strcasestr(usage_text, search_word))
+    if (!usage_help.Empty()) {
+      llvm::StringRef usage_text = usage_help.GetString();
+      if (usage_text.contains_lower(search_word))
         found_word = true;
     }
   }
@@ -396,16 +390,16 @@ void CommandObject::GetArgumentHelp(Stream &str, CommandArgumentType arg_type,
   name_str.Printf("<%s>", entry->arg_name);
 
   if (entry->help_function) {
-    const char *help_text = entry->help_function();
+    llvm::StringRef help_text = entry->help_function();
     if (!entry->help_function.self_formatting) {
-      interpreter.OutputFormattedHelpText(str, name_str.GetData(), "--",
+      interpreter.OutputFormattedHelpText(str, name_str.GetString(), "--",
                                           help_text, name_str.GetSize());
     } else {
-      interpreter.OutputHelpText(str, name_str.GetData(), "--", help_text,
+      interpreter.OutputHelpText(str, name_str.GetString(), "--", help_text,
                                  name_str.GetSize());
     }
   } else
-    interpreter.OutputFormattedHelpText(str, name_str.GetData(), "--",
+    interpreter.OutputFormattedHelpText(str, name_str.GetString(), "--",
                                         entry->help_text, name_str.GetSize());
 }
 
@@ -422,9 +416,7 @@ const char *CommandObject::GetArgumentName(CommandArgumentType arg_type) {
   if (entry)
     return entry->arg_name;
 
-  StreamString str;
-  str << "Arg name for type (" << arg_type << ") not in arg table!";
-  return str.GetData();
+  return nullptr;
 }
 
 bool CommandObject::IsPairType(ArgumentRepetitionType arg_repeat_type) {
@@ -509,21 +501,23 @@ void CommandObject::GetFormattedCommandArguments(Stream &str,
           names.Printf(" | ");
         names.Printf("%s", GetArgumentName(arg_entry[j].arg_type));
       }
+
+      std::string name_str = names.GetString();
       switch (arg_entry[0].arg_repetition) {
       case eArgRepeatPlain:
-        str.Printf("<%s>", names.GetData());
+        str.Printf("<%s>", name_str.c_str());
         break;
       case eArgRepeatPlus:
-        str.Printf("<%s> [<%s> [...]]", names.GetData(), names.GetData());
+        str.Printf("<%s> [<%s> [...]]", name_str.c_str(), name_str.c_str());
         break;
       case eArgRepeatStar:
-        str.Printf("[<%s> [<%s> [...]]]", names.GetData(), names.GetData());
+        str.Printf("[<%s> [<%s> [...]]]", name_str.c_str(), name_str.c_str());
         break;
       case eArgRepeatOptional:
-        str.Printf("[<%s>]", names.GetData());
+        str.Printf("[<%s>]", name_str.c_str());
         break;
       case eArgRepeatRange:
-        str.Printf("<%s_1> .. <%s_n>", names.GetData(), names.GetData());
+        str.Printf("<%s_1> .. <%s_n>", name_str.c_str(), name_str.c_str());
         break;
       // Explicitly test for all the rest of the cases, so if new types get
       // added we will notice the
@@ -543,23 +537,21 @@ void CommandObject::GetFormattedCommandArguments(Stream &str,
   }
 }
 
-CommandArgumentType CommandObject::LookupArgumentName(const char *arg_name) {
+CommandArgumentType
+CommandObject::LookupArgumentName(llvm::StringRef arg_name) {
   CommandArgumentType return_type = eArgTypeLastArg;
 
-  std::string arg_name_str(arg_name);
-  size_t len = arg_name_str.length();
-  if (arg_name[0] == '<' && arg_name[len - 1] == '>')
-    arg_name_str = arg_name_str.substr(1, len - 2);
+  arg_name = arg_name.ltrim('<').rtrim('>');
 
   const ArgumentTableEntry *table = GetArgumentTable();
   for (int i = 0; i < eArgTypeLastArg; ++i)
-    if (arg_name_str.compare(table[i].arg_name) == 0)
+    if (arg_name == table[i].arg_name)
       return_type = g_arguments_data[i].arg_type;
 
   return return_type;
 }
 
-static const char *RegisterNameHelpTextCallback() {
+static llvm::StringRef RegisterNameHelpTextCallback() {
   return "Register names can be specified using the architecture specific "
          "names.  "
          "They can also be specified using generic names.  Not all generic "
@@ -577,7 +569,7 @@ static const char *RegisterNameHelpTextCallback() {
          "arg{1-6} - integer argument passing registers.\n";
 }
 
-static const char *BreakpointIDHelpTextCallback() {
+static llvm::StringRef BreakpointIDHelpTextCallback() {
   return "Breakpoints are identified using major and minor numbers; the major "
          "number corresponds to the single entity that was created with a "
          "'breakpoint "
@@ -596,7 +588,7 @@ static const char *BreakpointIDHelpTextCallback() {
          "3 or 3.2 could both be valid breakpoint IDs.)";
 }
 
-static const char *BreakpointIDRangeHelpTextCallback() {
+static llvm::StringRef BreakpointIDRangeHelpTextCallback() {
   return "A 'breakpoint ID list' is a manner of specifying multiple "
          "breakpoints. "
          "This can be done through several mechanisms.  The easiest way is to "
@@ -615,7 +607,7 @@ static const char *BreakpointIDRangeHelpTextCallback() {
          " is legal; 2 - 5 is legal; but 3.2 - 4.4 is not legal.";
 }
 
-static const char *BreakpointNameHelpTextCallback() {
+static llvm::StringRef BreakpointNameHelpTextCallback() {
   return "A name that can be added to a breakpoint when it is created, or "
          "later "
          "on with the \"breakpoint name add\" command.  "
@@ -640,7 +632,7 @@ static const char *BreakpointNameHelpTextCallback() {
          "breakpoint locations.";
 }
 
-static const char *GDBFormatHelpTextCallback() {
+static llvm::StringRef GDBFormatHelpTextCallback() {
   return "A GDB format consists of a repeat count, a format letter and a size "
          "letter. "
          "The repeat count is optional and defaults to 1. The format letter is "
@@ -677,12 +669,11 @@ static const char *GDBFormatHelpTextCallback() {
          "dw   - show 1 4 byte decimal integer value\n";
 }
 
-static const char *FormatHelpTextCallback() {
+static llvm::StringRef FormatHelpTextCallback() {
+  static std::string help_text;
 
-  static char *help_text_ptr = nullptr;
-
-  if (help_text_ptr)
-    return help_text_ptr;
+  if (!help_text.empty())
+    return help_text;
 
   StreamString sstr;
   sstr << "One of the format names (or one-character names) that can be used "
@@ -700,20 +691,16 @@ static const char *FormatHelpTextCallback() {
 
   sstr.Flush();
 
-  std::string data = sstr.GetString();
+  help_text = sstr.GetString();
 
-  help_text_ptr = new char[data.length() + 1];
-
-  data.copy(help_text_ptr, data.length());
-
-  return help_text_ptr;
+  return help_text;
 }
 
-static const char *LanguageTypeHelpTextCallback() {
-  static char *help_text_ptr = nullptr;
+static llvm::StringRef LanguageTypeHelpTextCallback() {
+  static std::string help_text;
 
-  if (help_text_ptr)
-    return help_text_ptr;
+  if (!help_text.empty())
+    return help_text;
 
   StreamString sstr;
   sstr << "One of the following languages:\n";
@@ -722,16 +709,12 @@ static const char *LanguageTypeHelpTextCallback() {
 
   sstr.Flush();
 
-  std::string data = sstr.GetString();
+  help_text = sstr.GetString();
 
-  help_text_ptr = new char[data.length() + 1];
-
-  data.copy(help_text_ptr, data.length());
-
-  return help_text_ptr;
+  return help_text;
 }
 
-static const char *SummaryStringHelpTextCallback() {
+static llvm::StringRef SummaryStringHelpTextCallback() {
   return "A summary string is a way to extract information from variables in "
          "order to present them using a summary.\n"
          "Summary strings contain static text, variables, scopes and control "
@@ -806,7 +789,7 @@ static const char *SummaryStringHelpTextCallback() {
          "type summary add -s \"${svar%#}\" -x \"std::list<\"";
 }
 
-static const char *ExprPathHelpTextCallback() {
+static llvm::StringRef ExprPathHelpTextCallback() {
   return "An expression path is the sequence of symbols that is used in C/C++ "
          "to access a member variable of an aggregate object (class).\n"
          "For instance, given a class:\n"
@@ -842,7 +825,7 @@ static const char *ExprPathHelpTextCallback() {
 }
 
 void CommandObject::FormatLongHelpText(Stream &output_strm,
-                                       const char *long_help) {
+                                       llvm::StringRef long_help) {
   CommandInterpreter &interpreter = GetCommandInterpreter();
   std::stringstream lineStream(long_help);
   std::string line;
@@ -877,15 +860,15 @@ void CommandObject::GenerateHelpText(Stream &output_strm) {
                                         1);
   } else
     interpreter.OutputFormattedHelpText(output_strm, "", "", GetHelp(), 1);
-  output_strm.Printf("\nSyntax: %s\n", GetSyntax());
+  output_strm << "\nSyntax: " << GetSyntax() << "\n";
   Options *options = GetOptions();
   if (options != nullptr) {
     options->GenerateOptionUsage(
         output_strm, this,
         GetCommandInterpreter().GetDebugger().GetTerminalWidth());
   }
-  const char *long_help = GetHelpLong();
-  if ((long_help != nullptr) && (strlen(long_help) > 0)) {
+  llvm::StringRef long_help = GetHelpLong();
+  if (!long_help.empty()) {
     FormatLongHelpText(output_strm, long_help);
   }
   if (!IsDashDashCommand() && options && options->NumCommandOptions() > 0) {
@@ -1034,15 +1017,15 @@ bool CommandObjectRaw::Execute(const char *args_string,
   return handled;
 }
 
-static const char *arch_helper() {
+static llvm::StringRef arch_helper() {
   static StreamString g_archs_help;
   if (g_archs_help.Empty()) {
     StringList archs;
-    ArchSpec::AutoComplete(nullptr, archs);
+    ArchSpec::AutoComplete(llvm::StringRef(), archs);
     g_archs_help.Printf("These are the supported architecture names:\n");
     archs.Join("\n", g_archs_help);
   }
-  return g_archs_help.GetData();
+  return g_archs_help.GetString();
 }
 
 CommandObject::ArgumentTableEntry CommandObject::g_arguments_data[] = {

@@ -550,7 +550,7 @@ public:
         perms = lldb::eFilePermissionsUserRW | lldb::eFilePermissionsGroupRW |
                 lldb::eFilePermissionsWorldRead;
       lldb::user_id_t fd = platform_sp->OpenFile(
-          FileSpec(cmd_line.c_str(), false),
+          FileSpec(cmd_line, false),
           File::eOpenOptionRead | File::eOpenOptionWrite |
               File::eOpenOptionAppend | File::eOpenOptionCanCreate,
           perms, error);
@@ -667,22 +667,21 @@ protected:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
       char short_option = (char)m_getopt_table[option_idx].val;
-      bool success = false;
 
       switch (short_option) {
       case 'o':
-        m_offset = StringConvert::ToUInt32(option_arg, 0, 0, &success);
-        if (!success)
-          error.SetErrorStringWithFormat("invalid offset: '%s'", option_arg);
+        if (option_arg.getAsInteger(0, m_offset))
+          error.SetErrorStringWithFormat("invalid offset: '%s'",
+                                         option_arg.str().c_str());
         break;
       case 'c':
-        m_count = StringConvert::ToUInt32(option_arg, 0, 0, &success);
-        if (!success)
-          error.SetErrorStringWithFormat("invalid offset: '%s'", option_arg);
+        if (option_arg.getAsInteger(0, m_count))
+          error.SetErrorStringWithFormat("invalid offset: '%s'",
+                                         option_arg.str().c_str());
         break;
       default:
         error.SetErrorStringWithFormat("unrecognized option '%c'",
@@ -762,17 +761,16 @@ protected:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
       char short_option = (char)m_getopt_table[option_idx].val;
-      bool success = false;
 
       switch (short_option) {
       case 'o':
-        m_offset = StringConvert::ToUInt32(option_arg, 0, 0, &success);
-        if (!success)
-          error.SetErrorStringWithFormat("invalid offset: '%s'", option_arg);
+        if (option_arg.getAsInteger(0, m_offset))
+          error.SetErrorStringWithFormat("invalid offset: '%s'",
+                                         option_arg.str().c_str());
         break;
       case 'd':
         m_data.assign(option_arg);
@@ -957,7 +955,7 @@ public:
     if (platform_sp) {
       std::string remote_file_path(args.GetArgumentAtIndex(0));
       user_id_t size =
-          platform_sp->GetFileSize(FileSpec(remote_file_path.c_str(), false));
+          platform_sp->GetFileSize(FileSpec(remote_file_path, false));
       if (size != UINT64_MAX) {
         result.AppendMessageWithFormat("File size of %s (remote): %" PRIu64
                                        "\n",
@@ -1272,59 +1270,60 @@ protected:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
       const int short_option = m_getopt_table[option_idx].val;
       bool success = false;
 
+      uint32_t id = LLDB_INVALID_PROCESS_ID;
+      success = !option_arg.getAsInteger(0, id);
       switch (short_option) {
-      case 'p':
-        match_info.GetProcessInfo().SetProcessID(StringConvert::ToUInt32(
-            option_arg, LLDB_INVALID_PROCESS_ID, 0, &success));
+      case 'p': {
+        match_info.GetProcessInfo().SetProcessID(id);
         if (!success)
           error.SetErrorStringWithFormat("invalid process ID string: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
-
+      }
       case 'P':
-        match_info.GetProcessInfo().SetParentProcessID(StringConvert::ToUInt32(
-            option_arg, LLDB_INVALID_PROCESS_ID, 0, &success));
+        match_info.GetProcessInfo().SetParentProcessID(id);
         if (!success)
           error.SetErrorStringWithFormat(
-              "invalid parent process ID string: '%s'", option_arg);
+              "invalid parent process ID string: '%s'",
+              option_arg.str().c_str());
         break;
 
       case 'u':
-        match_info.GetProcessInfo().SetUserID(
-            StringConvert::ToUInt32(option_arg, UINT32_MAX, 0, &success));
+        match_info.GetProcessInfo().SetUserID(success ? id : UINT32_MAX);
         if (!success)
           error.SetErrorStringWithFormat("invalid user ID string: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 'U':
-        match_info.GetProcessInfo().SetEffectiveUserID(
-            StringConvert::ToUInt32(option_arg, UINT32_MAX, 0, &success));
+        match_info.GetProcessInfo().SetEffectiveUserID(success ? id
+                                                               : UINT32_MAX);
         if (!success)
           error.SetErrorStringWithFormat(
-              "invalid effective user ID string: '%s'", option_arg);
+              "invalid effective user ID string: '%s'",
+              option_arg.str().c_str());
         break;
 
       case 'g':
-        match_info.GetProcessInfo().SetGroupID(
-            StringConvert::ToUInt32(option_arg, UINT32_MAX, 0, &success));
+        match_info.GetProcessInfo().SetGroupID(success ? id : UINT32_MAX);
         if (!success)
           error.SetErrorStringWithFormat("invalid group ID string: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 'G':
-        match_info.GetProcessInfo().SetEffectiveGroupID(
-            StringConvert::ToUInt32(option_arg, UINT32_MAX, 0, &success));
+        match_info.GetProcessInfo().SetEffectiveGroupID(success ? id
+                                                                : UINT32_MAX);
         if (!success)
           error.SetErrorStringWithFormat(
-              "invalid effective group ID string: '%s'", option_arg);
+              "invalid effective group ID string: '%s'",
+              option_arg.str().c_str());
         break;
 
       case 'a': {
@@ -1515,17 +1514,16 @@ public:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
       char short_option = (char)m_getopt_table[option_idx].val;
-      bool success = false;
       switch (short_option) {
       case 'p': {
-        lldb::pid_t pid = StringConvert::ToUInt32(
-            option_arg, LLDB_INVALID_PROCESS_ID, 0, &success);
-        if (!success || pid == LLDB_INVALID_PROCESS_ID) {
-          error.SetErrorStringWithFormat("invalid process ID '%s'", option_arg);
+        lldb::pid_t pid = LLDB_INVALID_PROCESS_ID;
+        if (option_arg.getAsInteger(0, pid)) {
+          error.SetErrorStringWithFormat("invalid process ID '%s'",
+                                         option_arg.str().c_str());
         } else {
           attach_info.SetProcessID(pid);
         }
@@ -1701,21 +1699,20 @@ public:
       return llvm::makeArrayRef(g_platform_shell_options);
     }
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_value,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
 
       const char short_option = (char)GetDefinitions()[option_idx].short_option;
 
       switch (short_option) {
-      case 't': {
-        bool success;
-        timeout = StringConvert::ToUInt32(option_value, 10, 10, &success);
-        if (!success)
+      case 't':
+        timeout = 10;
+        if (option_arg.getAsInteger(10, timeout))
           error.SetErrorStringWithFormat(
-              "could not convert \"%s\" to a numeric value.", option_value);
+              "could not convert \"%s\" to a numeric value.",
+              option_arg.str().c_str());
         break;
-      }
       default:
         error.SetErrorStringWithFormat("invalid short option character '%c'",
                                        short_option);
@@ -1749,7 +1746,7 @@ public:
 
     // Print out an usage syntax on an empty command line.
     if (raw_command_line[0] == '\0') {
-      result.GetOutputStream().Printf("%s\n", this->GetSyntax());
+      result.GetOutputStream().Printf("%s\n", this->GetSyntax().str().c_str());
       return true;
     }
 
@@ -1793,7 +1790,7 @@ public:
       error = (platform_sp->RunShellCommand(expr, working_dir, &status, &signo,
                                             &output, m_options.timeout));
       if (!output.empty())
-        result.GetOutputStream().PutCString(output.c_str());
+        result.GetOutputStream().PutCString(output);
       if (status > 0) {
         if (signo > 0) {
           const char *signo_cstr = Host::GetSignalAsCString(signo);

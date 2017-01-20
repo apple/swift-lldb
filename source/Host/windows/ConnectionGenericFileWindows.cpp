@@ -10,7 +10,6 @@
 #include "lldb/Host/windows/ConnectionGenericFileWindows.h"
 #include "lldb/Core/Error.h"
 #include "lldb/Core/Log.h"
-#include "lldb/Host/TimeValue.h"
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
@@ -93,17 +92,17 @@ bool ConnectionGenericFile::IsConnected() const {
   return m_file && (m_file != INVALID_HANDLE_VALUE);
 }
 
-lldb::ConnectionStatus ConnectionGenericFile::Connect(const char *s,
+lldb::ConnectionStatus ConnectionGenericFile::Connect(llvm::StringRef path,
                                                       Error *error_ptr) {
   Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION));
   if (log)
     log->Printf("%p ConnectionGenericFile::Connect (url = '%s')",
-                static_cast<void *>(this), s);
+                static_cast<void *>(this), path.str().c_str());
 
-  if (strstr(s, "file://") != s) {
+  if (!path.consume_front("file://")) {
     if (error_ptr)
       error_ptr->SetErrorStringWithFormat("unsupported connection URL: '%s'",
-                                          s);
+                                          path.str().c_str());
     return eConnectionStatusError;
   }
 
@@ -113,13 +112,10 @@ lldb::ConnectionStatus ConnectionGenericFile::Connect(const char *s,
       return status;
   }
 
-  // file://PATH
-  const char *path = s + strlen("file://");
   // Open the file for overlapped access.  If it does not exist, create it.  We
-  // open it overlapped
-  // so that we can issue asynchronous reads and then use WaitForMultipleObjects
-  // to allow the read
-  // to be interrupted by an event object.
+  // open it overlapped so that we can issue asynchronous reads and then use
+  // WaitForMultipleObjects to allow the read to be interrupted by an event
+  // object.
   std::wstring wpath;
   if (!llvm::ConvertUTF8toWide(path, wpath)) {
     if (error_ptr)
@@ -136,7 +132,7 @@ lldb::ConnectionStatus ConnectionGenericFile::Connect(const char *s,
   }
 
   m_owns_file = true;
-  m_uri.assign(s);
+  m_uri.assign(path);
   return eConnectionStatusSuccess;
 }
 
@@ -172,7 +168,7 @@ lldb::ConnectionStatus ConnectionGenericFile::Disconnect(Error *error_ptr) {
 }
 
 size_t ConnectionGenericFile::Read(void *dst, size_t dst_len,
-                                   uint32_t timeout_usec,
+                                   const Timeout<std::micro> &timeout,
                                    lldb::ConnectionStatus &status,
                                    Error *error_ptr) {
   ReturnInfo return_info;
@@ -195,9 +191,11 @@ size_t ConnectionGenericFile::Read(void *dst, size_t dst_len,
       // The expected return path.  The operation is pending.  Wait for the
       // operation to complete
       // or be interrupted.
-      TimeValue time_value;
-      time_value.OffsetWithMicroSeconds(timeout_usec);
-      DWORD milliseconds = time_value.milliseconds();
+      DWORD milliseconds =
+          timeout
+              ? std::chrono::duration_cast<std::chrono::milliseconds>(*timeout)
+                    .count()
+              : INFINITE;
       DWORD wait_result =
           ::WaitForMultipleObjects(llvm::array_lengthof(m_event_handles),
                                    m_event_handles, FALSE, milliseconds);

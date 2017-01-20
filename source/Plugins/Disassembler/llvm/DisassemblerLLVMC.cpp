@@ -359,7 +359,7 @@ public:
             }
             break;
           }
-          m_mnemonics.swap(mnemonic_strm.GetString());
+          m_mnemonics = mnemonic_strm.GetString();
           return;
         } else {
           if (m_does_branch == eLazyBoolCalculate) {
@@ -736,7 +736,7 @@ public:
       if (op.m_negative) {
         s.PutCString("-");
       }
-      s.PutCString(llvm::to_string(op.m_immediate).c_str());
+      s.PutCString(llvm::to_string(op.m_immediate));
       break;
     case Operand::Type::Invalid:
       s.PutCString("Invalid");
@@ -834,7 +834,7 @@ public:
         ss.PutCString("\n");
       }
 
-      log->PutCString(ss.GetData());
+      log->PutString(ss.GetString());
     }
 
     return true;
@@ -1044,8 +1044,7 @@ DisassemblerLLVMC::DisassemblerLLVMC(const ArchSpec &arch,
     } else {
       thumb_arch_name = "thumbv8.2a";
     }
-    thumb_arch.GetTriple().setArchName(
-        llvm::StringRef(thumb_arch_name.c_str()));
+    thumb_arch.GetTriple().setArchName(llvm::StringRef(thumb_arch_name));
   }
 
   // If no sub architecture specified then use the most recent arm architecture
@@ -1352,12 +1351,12 @@ const char *DisassemblerLLVMC::SymbolLookup(uint64_t value, uint64_t *type_ptr,
           // seen when we
           // have multiple levels of inlined functions at an address, only show
           // the first line.
-          std::string &str(ss.GetString());
+          std::string str = ss.GetString();
           size_t first_eol_char = str.find_first_of("\r\n");
           if (first_eol_char != std::string::npos) {
             str.erase(first_eol_char);
           }
-          m_inst->AppendComment(ss.GetString());
+          m_inst->AppendComment(str);
         }
       }
     }

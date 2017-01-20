@@ -109,9 +109,9 @@ bool Watchpoint::CaptureWatchedValue(const ExecutionContext &exe_ctx) {
     // we can go grab the value raw and print it as unsigned.
     return false;
   }
-  m_new_value_sp =
-      ValueObjectMemory::Create(exe_ctx.GetBestExecutionContextScope(),
-                                watch_name.AsCString(), watch_address, m_type);
+  m_new_value_sp = ValueObjectMemory::Create(
+      exe_ctx.GetBestExecutionContextScope(), watch_name.GetStringRef(),
+      watch_address, m_type);
   m_new_value_sp = m_new_value_sp->CreateConstantValue(watch_name);
   return (m_new_value_sp && m_new_value_sp->GetError().Success());
 }
@@ -288,7 +288,7 @@ void Watchpoint::SetCondition(const char *condition) {
     // Pass nullptr for expr_prefix (no translation-unit level definitions).
     Error error;
     m_condition_ap.reset(m_target.GetUserExpressionForLanguage(
-        condition, nullptr, lldb::eLanguageTypeUnknown,
+        condition, llvm::StringRef(), lldb::eLanguageTypeUnknown,
         UserExpression::eResultTypeAny, EvaluateExpressionOptions(), error));
     if (error.Fail()) {
       // FIXME: Log something...

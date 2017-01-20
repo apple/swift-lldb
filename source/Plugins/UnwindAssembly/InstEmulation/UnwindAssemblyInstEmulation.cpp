@@ -1,5 +1,4 @@
-//===-- UnwindAssemblyInstEmulation.cpp --------------------------*- C++
-//-*-===//
+//===-- UnwindAssemblyInstEmulation.cpp --------------------------*- C++-*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -221,7 +220,7 @@ bool UnwindAssemblyInstEmulation::GetNonCallSiteUnwindPlanFromAssembly(
               FormatEntity::Parse("${frame.pc}: ", format);
               inst->Dump(&strm, inst_list.GetMaxOpcocdeByteSize(), show_address,
                          show_bytes, NULL, NULL, NULL, &format, 0);
-              log->PutCString(strm.GetData());
+              log->PutString(strm.GetString());
             }
 
             last_condition = m_inst_emulator_ap->GetInstructionCondition();
@@ -276,7 +275,7 @@ bool UnwindAssemblyInstEmulation::GetNonCallSiteUnwindPlanFromAssembly(
       strm.Printf("Resulting unwind rows for [0x%" PRIx64 " - 0x%" PRIx64 "):",
                   base_addr, base_addr + range.GetByteSize());
       unwind_plan.Dump(strm, nullptr, base_addr);
-      log->PutCString(strm.GetData());
+      log->PutString(strm.GetString());
     }
     return unwind_plan.GetRowCount() > 0;
   }
@@ -380,7 +379,7 @@ size_t UnwindAssemblyInstEmulation::ReadMemory(
         ", dst = %p, dst_len = %" PRIu64 ", context = ",
         addr, dst, (uint64_t)dst_len);
     context.Dump(strm, instruction);
-    log->PutCString(strm.GetData());
+    log->PutString(strm.GetString());
   }
   memset(dst, 0, dst_len);
   return dst_len;
@@ -412,7 +411,7 @@ size_t UnwindAssemblyInstEmulation::WriteMemory(
     data.Dump(&strm, 0, eFormatBytes, 1, dst_len, UINT32_MAX, addr, 0, 0);
     strm.PutCString(", context = ");
     context.Dump(strm, instruction);
-    log->PutCString(strm.GetData());
+    log->PutString(strm.GetString());
   }
 
   const bool cant_replace = false;
@@ -443,15 +442,14 @@ size_t UnwindAssemblyInstEmulation::WriteMemory(
   case EmulateInstruction::eContextPushRegisterOnStack: {
     uint32_t reg_num = LLDB_INVALID_REGNUM;
     uint32_t generic_regnum = LLDB_INVALID_REGNUM;
-    if (context.info_type ==
-        EmulateInstruction::eInfoTypeRegisterToRegisterPlusOffset) {
-      const uint32_t unwind_reg_kind = m_unwind_plan_ptr->GetRegisterKind();
-      reg_num = context.info.RegisterToRegisterPlusOffset.data_reg
-                    .kinds[unwind_reg_kind];
-      generic_regnum = context.info.RegisterToRegisterPlusOffset.data_reg
-                           .kinds[eRegisterKindGeneric];
-    } else
-      assert(!"unhandled case, add code to handle this!");
+    assert(context.info_type ==
+               EmulateInstruction::eInfoTypeRegisterToRegisterPlusOffset &&
+           "unhandled case, add code to handle this!");
+    const uint32_t unwind_reg_kind = m_unwind_plan_ptr->GetRegisterKind();
+    reg_num = context.info.RegisterToRegisterPlusOffset.data_reg
+                  .kinds[unwind_reg_kind];
+    generic_regnum = context.info.RegisterToRegisterPlusOffset.data_reg
+                         .kinds[eRegisterKindGeneric];
 
     if (reg_num != LLDB_INVALID_REGNUM &&
         generic_regnum != LLDB_REGNUM_GENERIC_SP) {
@@ -493,7 +491,7 @@ bool UnwindAssemblyInstEmulation::ReadRegister(EmulateInstruction *instruction,
                 "synthetic_value = %i, value = ",
                 reg_info->name, synthetic);
     reg_value.Dump(&strm, reg_info, false, false, eFormatDefault);
-    log->PutCString(strm.GetData());
+    log->PutString(strm.GetString());
   }
   return true;
 }
@@ -521,7 +519,7 @@ bool UnwindAssemblyInstEmulation::WriteRegister(
     reg_value.Dump(&strm, reg_info, false, false, eFormatDefault);
     strm.PutCString(", context = ");
     context.Dump(strm, instruction);
-    log->PutCString(strm.GetData());
+    log->PutString(strm.GetString());
   }
 
   SetRegisterValue(*reg_info, reg_value);

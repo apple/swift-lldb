@@ -12,12 +12,15 @@
 #if defined(__cplusplus)
 
 #include "llvm/Support/DataTypes.h"
+#include "llvm/Support/FormatVariadic.h"
 
 #include <cstdarg>
 #include <cstdio>
 #include <string>
 
 #include "lldb/lldb-private.h"
+
+#include "llvm/Support/FormatVariadic.h"
 
 namespace lldb_private {
 
@@ -245,7 +248,7 @@ public:
   /// @param err_str
   ///     The new custom error string to copy and cache.
   //------------------------------------------------------------------
-  void SetErrorString(const char *err_str);
+  void SetErrorString(llvm::StringRef err_str);
 
   //------------------------------------------------------------------
   /// Set the current error string to a formatted error string.
@@ -257,6 +260,11 @@ public:
       __attribute__((format(printf, 2, 3)));
 
   int SetErrorStringWithVarArg(const char *format, va_list args);
+
+  template <typename... Args>
+  void SetErrorStringWithFormatv(const char *format, Args &&... args) {
+    SetErrorString(llvm::formatv(format, std::forward<Args>(args)...).str());
+  }
 
   //------------------------------------------------------------------
   /// Test for success condition.
@@ -292,6 +300,16 @@ protected:
 };
 
 } // namespace lldb_private
+
+namespace llvm {
+template <> struct format_provider<lldb_private::Error> {
+  static void format(const lldb_private::Error &error, llvm::raw_ostream &OS,
+                     llvm::StringRef Options) {
+    llvm::format_provider<llvm::StringRef>::format(error.AsCString(), OS,
+                                                   Options);
+  }
+};
+}
 
 #endif // #if defined(__cplusplus)
 #endif // #ifndef __DCError_h__

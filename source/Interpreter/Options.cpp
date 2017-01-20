@@ -529,7 +529,7 @@ void Options::GenerateOptionUsage(Stream &strm, CommandObject *cmd,
         if (cmd->WantsRawCommandString() && !only_print_args)
           strm.Printf(" --");
 
-        strm.Printf(" %s", args_str.GetData());
+        strm << " " << args_str.GetString();
         if (only_print_args)
           break;
       }
@@ -541,7 +541,7 @@ void Options::GenerateOptionUsage(Stream &strm, CommandObject *cmd,
     if (!only_print_args)
       strm.PutChar('\n');
     strm.Indent(name);
-    strm.Printf(" %s", arguments_str.GetData());
+    strm << " " << arguments_str.GetString();
   }
 
   strm.Printf("\n\n");
@@ -905,7 +905,7 @@ void OptionGroupOptions::Finalize() {
 }
 
 Error OptionGroupOptions::SetOptionValue(uint32_t option_idx,
-                                         const char *option_value,
+                                         llvm::StringRef option_value,
                                          ExecutionContext *execution_context) {
   // After calling OptionGroupOptions::Append(...), you must finalize the groups
   // by calling OptionGroupOptions::Finlize()
@@ -913,8 +913,8 @@ Error OptionGroupOptions::SetOptionValue(uint32_t option_idx,
   Error error;
   if (option_idx < m_option_infos.size()) {
     error = m_option_infos[option_idx].option_group->SetOptionValue(
-        m_option_infos[option_idx].option_index,
-        llvm::StringRef::withNullAsEmpty(option_value), execution_context);
+        m_option_infos[option_idx].option_index, option_value,
+        execution_context);
 
   } else {
     error.SetErrorString("invalid option index"); // Shouldn't happen...

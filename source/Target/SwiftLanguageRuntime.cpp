@@ -783,8 +783,7 @@ bool SwiftLanguageRuntime::MethodName::ExtractFunctionBasenameFromMangled(
           }
 
           if (!identifier.GetString().empty()) {
-            basename.SetCStringWithLength(identifier.GetString().c_str(),
-                                          identifier.GetString().length());
+            basename.SetString(identifier.GetString());
           }
         }
       }
@@ -3686,7 +3685,7 @@ public:
 
     virtual ~CommandOptions() {}
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                                  ExecutionContext *execution_context) override {
       Error error;
       const int short_option = m_getopt_table[option_idx].val;

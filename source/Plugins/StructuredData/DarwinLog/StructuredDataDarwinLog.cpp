@@ -157,7 +157,7 @@ public:
         nullptr, idx, g_properties[idx].default_uint_value != 0);
   }
 
-  const char *GetAutoEnableOptions() const {
+  llvm::StringRef GetAutoEnableOptions() const {
     const uint32_t idx = ePropertyAutoEnableOptions;
     return m_collection_sp->GetPropertyAtIndexAsString(
         nullptr, idx, g_properties[idx].default_cstr_value);
@@ -523,12 +523,11 @@ public:
     m_filter_rules.clear();
   }
 
-  Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+  Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                        ExecutionContext *execution_context) override {
     Error error;
 
     const int short_option = m_getopt_table[option_idx].val;
-    auto option_strref = llvm::StringRef::withNullAsEmpty(option_arg);
     switch (short_option) {
     case 'a':
       m_include_any_process = true;
@@ -542,7 +541,7 @@ public:
       break;
 
     case 'b':
-      m_broadcast_events = Args::StringToBoolean(option_strref, true, nullptr);
+      m_broadcast_events = Args::StringToBoolean(option_arg, true, nullptr);
       break;
 
     case 'c':
@@ -558,7 +557,7 @@ public:
       break;
 
     case 'e':
-      m_echo_to_stderr = Args::StringToBoolean(option_strref, false, nullptr);
+      m_echo_to_stderr = Args::StringToBoolean(option_arg, false, nullptr);
       break;
 
     case 'f':
@@ -569,12 +568,12 @@ public:
       break;
 
     case 'l':
-      m_live_stream = Args::StringToBoolean(option_strref, false, nullptr);
+      m_live_stream = Args::StringToBoolean(option_arg, false, nullptr);
       break;
 
     case 'n':
       m_filter_fall_through_accepts =
-          Args::StringToBoolean(option_strref, true, nullptr);
+          Args::StringToBoolean(option_arg, true, nullptr);
       break;
 
     case 'r':
@@ -664,10 +663,10 @@ public:
   bool GetBroadcastEvents() const { return m_broadcast_events; }
 
 private:
-  Error ParseFilterRule(const char *rule_text_cstr) {
+  Error ParseFilterRule(llvm::StringRef rule_text) {
     Error error;
 
-    if (!rule_text_cstr || !rule_text_cstr[0]) {
+    if (rule_text.empty()) {
       error.SetErrorString("invalid rule_text");
       return error;
     }
@@ -692,14 +691,12 @@ private:
     //   match {exact-match-text} |
     //   regex {search-regex}
 
-    const std::string rule_text(rule_text_cstr);
-
     // Parse action.
     auto action_end_pos = rule_text.find(" ");
     if (action_end_pos == std::string::npos) {
       error.SetErrorStringWithFormat("could not parse filter rule "
                                      "action from \"%s\"",
-                                     rule_text_cstr);
+                                     rule_text.str().c_str());
       return error;
     }
     auto action = rule_text.substr(0, action_end_pos);
@@ -709,8 +706,7 @@ private:
     else if (action == "reject")
       accept = false;
     else {
-      error.SetErrorString("filter action must be \"accept\" or "
-                           "\"deny\"");
+      error.SetErrorString("filter action must be \"accept\" or \"deny\"");
       return error;
     }
 
@@ -719,7 +715,7 @@ private:
     if (attribute_end_pos == std::string::npos) {
       error.SetErrorStringWithFormat("could not parse filter rule "
                                      "attribute from \"%s\"",
-                                     rule_text_cstr);
+                                     rule_text.str().c_str());
       return error;
     }
     auto attribute = rule_text.substr(action_end_pos + 1,
@@ -728,7 +724,7 @@ private:
     if (attribute_index < 0) {
       error.SetErrorStringWithFormat("filter rule attribute unknown: "
                                      "%s",
-                                     attribute.c_str());
+                                     attribute.str().c_str());
       return error;
     }
 
@@ -748,12 +744,10 @@ private:
     return error;
   }
 
-  int MatchAttributeIndex(const std::string &attribute_name) {
-    auto attribute_count =
-        sizeof(s_filter_attributes) / sizeof(s_filter_attributes[0]);
-    for (size_t i = 0; i < attribute_count; ++i) {
-      if (attribute_name == s_filter_attributes[i])
-        return static_cast<int>(i);
+  int MatchAttributeIndex(llvm::StringRef attribute_name) const {
+    for (const auto &Item : llvm::enumerate(s_filter_attributes)) {
+      if (attribute_name == Item.Value)
+        return Item.Index;
     }
 
     // We didn't match anything.
@@ -802,7 +796,7 @@ protected:
                   " the property and relaunch the target binary to have"
                   " these messages excluded.",
                   source_name, source_name);
-    result.AppendWarning(stream.GetString().c_str());
+    result.AppendWarning(stream.GetString());
   }
 
   bool DoExecute(Args &command, CommandReturnObject &result) override {
@@ -1106,14 +1100,14 @@ bool RunEnableCommand(CommandInterpreter &interpreter) {
 
   command_stream << "plugin structured-data darwin-log enable";
   auto enable_options = GetGlobalProperties()->GetAutoEnableOptions();
-  if (enable_options && (strlen(enable_options) > 0)) {
+  if (!enable_options.empty()) {
     command_stream << ' ';
     command_stream << enable_options;
   }
 
   // Run the command.
   CommandReturnObject return_object;
-  interpreter.HandleCommand(command_stream.GetString().c_str(), eLazyBoolNo,
+  interpreter.HandleCommand(command_stream.GetData(), eLazyBoolNo,
                             return_object);
   return return_object.Succeeded();
 }
@@ -1179,7 +1173,7 @@ void StructuredDataDarwinLog::HandleArrivalOfStructuredData(
     else
       json_stream.PutCString("<null>");
     log->Printf("StructuredDataDarwinLog::%s() called with json: %s",
-                __FUNCTION__, json_stream.GetString().c_str());
+                __FUNCTION__, json_stream.GetData());
   }
 
   // Ignore empty structured data.
@@ -1228,8 +1222,7 @@ static void SetErrorWithJSON(Error &error, const char *message,
   object.Dump(object_stream);
   object_stream.Flush();
 
-  error.SetErrorStringWithFormat("%s: %s", message,
-                                 object_stream.GetString().c_str());
+  error.SetErrorStringWithFormat("%s: %s", message, object_stream.GetData());
 }
 
 Error StructuredDataDarwinLog::GetDescription(
@@ -1834,7 +1827,7 @@ StructuredDataDarwinLog::DumpHeader(Stream &output_stream,
       // Display the activity chain, from parent-most to child-most
       // activity, separated by a colon (:).
       stream.PutCString("activity-chain=");
-      stream.PutCString(activity_chain.c_str());
+      stream.PutCString(activity_chain);
 #else
       if (GetGlobalProperties()->GetDisplayActivityChain()) {
         // Display the activity chain, from parent-most to child-most
@@ -1866,7 +1859,7 @@ StructuredDataDarwinLog::DumpHeader(Stream &output_stream,
       if (header_count > 0)
         stream.PutChar(',');
       stream.PutCString("subsystem=");
-      stream.PutCString(subsystem.c_str());
+      stream.PutCString(subsystem);
       ++header_count;
     }
   }
@@ -1878,16 +1871,15 @@ StructuredDataDarwinLog::DumpHeader(Stream &output_stream,
       if (header_count > 0)
         stream.PutChar(',');
       stream.PutCString("category=");
-      stream.PutCString(category.c_str());
+      stream.PutCString(category);
       ++header_count;
     }
   }
   stream.PutCString("] ");
 
-  auto &result = stream.GetString();
-  output_stream.PutCString(result.c_str());
+  output_stream.PutCString(stream.GetString());
 
-  return result.size();
+  return stream.GetSize();
 }
 
 size_t StructuredDataDarwinLog::HandleDisplayOfEvent(

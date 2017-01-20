@@ -1581,6 +1581,7 @@ bool SwiftLanguage::GetFunctionDisplayName(
         }
       }
     }
+    break;
   }
   case Language::FunctionNameRepresentation::eNameWithArgs: {
     if (sc->function) {
@@ -1684,8 +1685,7 @@ bool SwiftLanguage::GetFunctionDisplayName(
                       ss, ValueObject::ValueObjectRepresentationStyle::
                               eValueObjectRepresentationStyleSummary,
                       eFormatDefault,
-                      ValueObject::PrintableRepresentationSpecialCases::
-                          ePrintableRepresentationSpecialCasesAllow,
+                      ValueObject::PrintableRepresentationSpecialCases::eAllow,
                       false);
               }
               if (ss.GetData() && ss.GetSize())

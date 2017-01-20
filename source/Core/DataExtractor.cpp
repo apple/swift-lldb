@@ -1726,7 +1726,7 @@ lldb::offset_t DataExtractor::Dump(
               auto byte_size = item_byte_size;
               const auto &semantics =
                   ast->getFloatTypeSemantics(ast->LongDoubleTy);
-              if (&semantics == &llvm::APFloat::x87DoubleExtended)
+              if (&semantics == &llvm::APFloat::x87DoubleExtended())
                 byte_size = 10;
 
               llvm::APInt apint;
@@ -1982,7 +1982,7 @@ lldb::offset_t DataExtractor::PutToLog(Log *log, offset_t start_offset,
     if ((count % num_per_line) == 0) {
       // Print out any previous string
       if (sstr.GetSize() > 0) {
-        log->Printf("%s", sstr.GetData());
+        log->PutString(sstr.GetString());
         sstr.Clear();
       }
       // Reset string offset and fill the current line string with address:
@@ -2020,8 +2020,8 @@ lldb::offset_t DataExtractor::PutToLog(Log *log, offset_t start_offset,
     }
   }
 
-  if (sstr.GetSize() > 0)
-    log->Printf("%s", sstr.GetData());
+  if (!sstr.Empty())
+    log->PutString(sstr.GetString());
 
   return offset; // Return the offset at which we ended up
 }

@@ -227,7 +227,7 @@ Error PlatformFreeBSD::ResolveExecutable(
           error.SetErrorStringWithFormat(
               "'%s' doesn't contain any '%s' platform architectures: %s",
               resolved_module_spec.GetFileSpec().GetPath().c_str(),
-              GetPluginName().GetCString(), arch_names.GetString().c_str());
+              GetPluginName().GetCString(), arch_names.GetData());
         } else {
           error.SetErrorStringWithFormat(
               "'%s' is not readable",
@@ -582,9 +582,9 @@ lldb::ProcessSP PlatformFreeBSD::Attach(ProcessAttachInfo &attach_info,
       TargetSP new_target_sp;
       ArchSpec emptyArchSpec;
 
-      error = debugger.GetTargetList().CreateTarget(
-          debugger, NULL, emptyArchSpec, false, m_remote_platform_sp,
-          new_target_sp);
+      error = debugger.GetTargetList().CreateTarget(debugger, "", emptyArchSpec,
+                                                    false, m_remote_platform_sp,
+                                                    new_target_sp);
       target = new_target_sp.get();
     } else
       error.Clear();

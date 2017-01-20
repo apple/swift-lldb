@@ -29,7 +29,7 @@
 
 #if defined(__linux__) || defined(__FreeBSD__) ||                              \
     defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__NetBSD__)
-#if !defined(__ANDROID__) && !defined(__ANDROID_NDK__)
+#if !defined(__ANDROID__)
 #include <spawn.h>
 #endif
 #include <sys/syscall.h>
@@ -320,7 +320,7 @@ lldb::tid_t Host::GetCurrentThreadID() {
   return thread_self;
 #elif defined(__FreeBSD__)
   return lldb::tid_t(pthread_getthreadid_np());
-#elif defined(__ANDROID_NDK__)
+#elif defined(__ANDROID__)
   return lldb::tid_t(gettid());
 #elif defined(__linux__)
   return lldb::tid_t(syscall(SYS_gettid));
@@ -454,7 +454,7 @@ bool Host::ResolveExecutableInBundle(FileSpec &file) { return false; }
 
 FileSpec Host::GetModuleFileSpecForHostAddress(const void *host_addr) {
   FileSpec module_filespec;
-#if !defined(__ANDROID__) && !defined(__ANDROID_NDK__)
+#if !defined(__ANDROID__)
   Dl_info info;
   if (::dladdr(host_addr, &info)) {
     if (info.dli_fname)
@@ -539,7 +539,7 @@ Error Host::RunShellCommand(const Args &args, const FileSpec &working_dir,
     FileSpec tmpdir_file_spec;
     if (HostInfo::GetLLDBPath(ePathTypeLLDBTempSystemDir, tmpdir_file_spec)) {
       tmpdir_file_spec.AppendPathComponent("lldb-shell-output.%%%%%%");
-      llvm::sys::fs::createUniqueFile(tmpdir_file_spec.GetPath().c_str(),
+      llvm::sys::fs::createUniqueFile(tmpdir_file_spec.GetPath(),
                                       output_file_path);
     } else {
       llvm::sys::fs::createTemporaryFile("lldb-shell-output.%%%%%%", "",
@@ -622,7 +622,7 @@ Error Host::RunShellCommand(const Args &args, const FileSpec &working_dir,
 
 #if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__) ||        \
     defined(__GLIBC__) || defined(__NetBSD__)
-#if !defined(__ANDROID__) && !defined(__ANDROID_NDK__)
+#if !defined(__ANDROID__)
 // this method needs to be visible to macosx/Host.cpp and
 // common/Host.cpp.
 
@@ -956,7 +956,7 @@ bool Host::AddPosixSpawnFileAction(void *_file_actions, const FileAction *info,
   }
   return error.Success();
 }
-#endif // !defined(__ANDROID__) && !defined(__ANDROID_NDK__)
+#endif // !defined(__ANDROID__)
 #endif // defined (__APPLE__) || defined (__linux__) || defined (__FreeBSD__) ||
        // defined (__GLIBC__) || defined(__NetBSD__)
 
@@ -998,10 +998,6 @@ bool Host::OpenFileInExternalEditor(const FileSpec &file_spec,
                                     uint32_t line_no) {
   return false;
 }
-
-void Host::SetCrashDescriptionWithFormat(const char *format, ...) {}
-
-void Host::SetCrashDescription(const char *description) {}
 
 #endif
 

@@ -1,26 +1,28 @@
 {
-  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++3685269",
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++CE5F9D4",
   "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
 
   },
   "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++CE5F9D4" : 9223372036854775807,
     "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++E3A2871" : 0,
     "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++BA66559" : 0,
-    "AE64145A7EC4DF48237CC237E9F101298A8B65AA+++7307205" : 0,
-    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++3685269" : 0,
     "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++5364E63" : 0,
-    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++DB813B4" : 0,
-    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++AECC645" : 0
+    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++3685269" : 0,
+    "AE64145A7EC4DF48237CC237E9F101298A8B65AA+++7307205" : 0,
+    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++AECC645" : 0,
+    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++DB813B4" : 0
   },
   "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "5EC123D9-B5E1-4215-950B-FF414173A3BF",
   "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++CE5F9D4" : "master-next\/",
     "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++E3A2871" : "swift-oss\/lldb\/",
     "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++BA66559" : "..\/tot\/git-svn\/lldb",
-    "AE64145A7EC4DF48237CC237E9F101298A8B65AA+++7307205" : "PlaygroundLogger\/",
-    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++3685269" : "lldb.stash\/",
     "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++5364E63" : "stash\/",
-    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++DB813B4" : "..\/tot\/git-svn\/lldb",
-    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++AECC645" : "lldb\/"
+    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++3685269" : "lldb.stash\/",
+    "AE64145A7EC4DF48237CC237E9F101298A8B65AA+++7307205" : "PlaygroundLogger\/",
+    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++AECC645" : "lldb\/",
+    "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++DB813B4" : "..\/tot\/git-svn\/lldb"
   },
   "DVTSourceControlWorkspaceBlueprintNameKey" : "lldb",
   "DVTSourceControlWorkspaceBlueprintVersion" : 204,
@@ -45,6 +47,11 @@
       "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "http:\/\/llvm.org\/git\/lldb.git",
       "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
       "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++BA66559"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/apple\/swift-lldb.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "42DDEF266BFD7CFD920E2C3201FC4A107CEFDBC1+++CE5F9D4"
     },
     {
       "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "ssh:\/\/github.com\/apple\/swift-lldb",

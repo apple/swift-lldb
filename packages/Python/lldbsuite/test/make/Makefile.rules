@@ -235,16 +235,15 @@ SWIFTFLAGS ?= -g -Onone -save-temps -Xfrontend -serialize-debugging-options
 SWIFT_MODULE_CACHE_PATH ?= /tmp/lldbtest.swift.modulecache.$(USER)
 SWIFTFLAGS += -module-cache-path $(SWIFT_MODULE_CACHE_PATH)
 
-CFLAGS += $(FRAMEWORK_INCLUDES) $(CFLAGS_EXTRAS) -I$(LLDB_BASE_DIR)include
 ifeq "$(OS)" "Darwin"
-	ifneq "$(SDKROOT)" ""
-		CFLAGS += -isysroot "$(SDKROOT)"
-	endif
+	CFLAGS_NO_ARCH := $(FRAMEWORK_INCLUDES) $(CFLAGS_EXTRAS) -I$(LLDB_BASE_DIR)include -isysroot "$(SDKROOT)"
+	CFLAGS += $(ARCHFLAG) $(ARCH) $(CFLAGS_NO_ARCH)
+else
+	CFLAGS_NO_ARCH += $(FRAMEWORK_INCLUDES) $(CFLAGS_EXTRAS) -I$(LLDB_BASE_DIR)include
+	CFLAGS += $(ARCHFLAG)$(ARCH) $(CFLAGS_NO_ARCH)
 endif
 
 CFLAGS += -include $(THIS_FILE_DIR)test_common.h $(TRIPLE_CFLAGS)
-CFLAGS_NO_ARCH := $(CFLAGS)
-CFLAGS += $(ARCHFLAG)$(ARCH)
 
 SWIFTFLAGS += $(TRIPLE_SWIFTFLAGS)
 

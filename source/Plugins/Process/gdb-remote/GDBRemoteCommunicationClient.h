@@ -244,7 +244,7 @@ public:
 
   const ArchSpec &GetHostArchitecture();
 
-  uint32_t GetHostDefaultPacketTimeout();
+  std::chrono::seconds GetHostDefaultPacketTimeout();
 
   const ArchSpec &GetProcessArchitecture();
 
@@ -323,7 +323,8 @@ public:
   bool SetNonStopMode(const bool enable);
 
   void TestPacketSpeed(const uint32_t num_packets, uint32_t max_send,
-                       uint32_t max_recv, bool json, Stream &strm);
+                       uint32_t max_recv, uint64_t recv_amount, bool json,
+                       Stream &strm);
 
   // This packet is for testing the speed of the interface only. Both
   // the client and server need to support it, but this allows us to
@@ -556,7 +557,7 @@ protected:
                                  // qGDBServerVersion is not supported
   uint32_t m_gdb_server_version; // from reply to qGDBServerVersion, zero if
                                  // qGDBServerVersion is not supported
-  uint32_t m_default_packet_timeout;
+  std::chrono::seconds m_default_packet_timeout;
   uint64_t m_max_packet_size;        // as returned by qSupported
   std::string m_qSupported_response; // the complete response to qSupported
 
