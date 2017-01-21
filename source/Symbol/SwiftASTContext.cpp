@@ -1732,8 +1732,7 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
             platform_sp->GetOSVersion(major, minor, update,
                                       target->GetProcessSP().get())) {
           StreamString full_triple_name;
-          full_triple_name.GetString() =
-              std::move(target->GetArchitecture().GetTriple().str());
+          full_triple_name.PutCString(target->GetArchitecture().GetTriple().str());
           if (major != UINT32_MAX) {
             full_triple_name.Printf("%u", major);
             if (minor != UINT32_MAX) {

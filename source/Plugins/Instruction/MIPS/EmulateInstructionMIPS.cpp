@@ -1106,9 +1106,6 @@ bool EmulateInstructionMIPS::EvaluateInstruction(uint32_t evaluate_options) {
   if (op_name == NULL)
     return false;
 
-  std::string op_name_str = op_name_ref;
-  const char *op_name = op_name_str.c_str();
-
   /*
    * Decoding has been done already. Just get the call-back function
    * and emulate the instruction.

@@ -28,6 +28,7 @@ class AsanSwiftTestCase(lldbtest.TestBase):
     @decorators.swiftTest
     @decorators.skipIfLinux
     @decorators.skipUnlessThreadSanitizer
+    @decorators.expectedFailureAll(compiler="clang", bugnumber="rdar://problem/30127672")
     def test_asan_swift(self):
         self.build()
         self.do_test()
