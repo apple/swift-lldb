@@ -223,7 +223,6 @@
 		260CC65415D0440D002BF2E0 /* OptionValueUUID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 260CC64715D0440D002BF2E0 /* OptionValueUUID.cpp */; };
 		260E07C6136FA69E00CF21D3 /* OptionGroupUUID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 260E07C5136FA69E00CF21D3 /* OptionGroupUUID.cpp */; };
 		260E07C8136FAB9200CF21D3 /* OptionGroupFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 260E07C7136FAB9200CF21D3 /* OptionGroupFile.cpp */; };
-		2613F6C81B17B82F00D4DB85 /* CxaDemangle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2613F6C71B17B82F00D4DB85 /* CxaDemangle.cpp */; };
 		26151DC31B41E4A200FF7F1C /* SharingPtr.h in Headers */ = {isa = PBXBuildFile; fileRef = 261B5A5311C3F2AD00AABD0A /* SharingPtr.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		261744781168585B005ADD65 /* SBType.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 261744771168585B005ADD65 /* SBType.cpp */; };
 		2617447A11685869005ADD65 /* SBType.h in Headers */ = {isa = PBXBuildFile; fileRef = 2617447911685869005ADD65 /* SBType.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -825,6 +824,8 @@
 		4CCA645613B40B82003BDF98 /* AppleObjCTrampolineHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CCA644813B40B82003BDF98 /* AppleObjCTrampolineHandler.cpp */; };
 		4CCA645813B40B82003BDF98 /* AppleThreadPlanStepThroughObjCTrampoline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CCA644A13B40B82003BDF98 /* AppleThreadPlanStepThroughObjCTrampoline.cpp */; };
 		4CD0BD0F134BFADF00CB44D4 /* ValueObjectDynamicValue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CD0BD0E134BFADF00CB44D4 /* ValueObjectDynamicValue.cpp */; };
+		4CDB8D6D1DBA91B6006C5B13 /* LibStdcppUniquePointer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CDB8D671DBA91A6006C5B13 /* LibStdcppUniquePointer.cpp */; };
+		4CDB8D6E1DBA91B6006C5B13 /* LibStdcppTuple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CDB8D681DBA91A6006C5B13 /* LibStdcppTuple.cpp */; };
 		4CE4F673162C971A00F75CB3 /* SBExpressionOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = 4CE4F672162C971A00F75CB3 /* SBExpressionOptions.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		4CE4F675162C973F00F75CB3 /* SBExpressionOptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CE4F674162C973F00F75CB3 /* SBExpressionOptions.cpp */; };
 		4CF3D80C15AF4DC800845BF3 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDB919B414F6F10D008FF64B /* Security.framework */; };
@@ -1713,8 +1714,6 @@
 		2611FF11142D83060017FEA3 /* SBType.i */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c.preprocessed; path = SBType.i; sourceTree = "<group>"; };
 		2611FF12142D83060017FEA3 /* SBValue.i */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c.preprocessed; path = SBValue.i; sourceTree = "<group>"; };
 		2611FF13142D83060017FEA3 /* SBValueList.i */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c.preprocessed; path = SBValueList.i; sourceTree = "<group>"; };
-		2613F6C71B17B82F00D4DB85 /* CxaDemangle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CxaDemangle.cpp; path = source/Core/CxaDemangle.cpp; sourceTree = "<group>"; };
-		2613F6C91B17B84500D4DB85 /* CxaDemangle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CxaDemangle.h; path = include/lldb/Core/CxaDemangle.h; sourceTree = "<group>"; };
 		2613F6CA1B17B85400D4DB85 /* FastDemangle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FastDemangle.h; path = include/lldb/Core/FastDemangle.h; sourceTree = "<group>"; };
 		2615DB841208A9C90021781D /* StopInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StopInfo.h; path = include/lldb/Target/StopInfo.h; sourceTree = "<group>"; };
 		2615DB861208A9E40021781D /* StopInfo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = StopInfo.cpp; path = source/Target/StopInfo.cpp; sourceTree = "<group>"; };
@@ -2783,6 +2782,8 @@
 		4CCA644B13B40B82003BDF98 /* AppleThreadPlanStepThroughObjCTrampoline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppleThreadPlanStepThroughObjCTrampoline.h; sourceTree = "<group>"; };
 		4CD0BD0C134BFAB600CB44D4 /* ValueObjectDynamicValue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ValueObjectDynamicValue.h; path = include/lldb/Core/ValueObjectDynamicValue.h; sourceTree = "<group>"; };
 		4CD0BD0E134BFADF00CB44D4 /* ValueObjectDynamicValue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ValueObjectDynamicValue.cpp; path = source/Core/ValueObjectDynamicValue.cpp; sourceTree = "<group>"; };
+		4CDB8D671DBA91A6006C5B13 /* LibStdcppUniquePointer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = LibStdcppUniquePointer.cpp; path = Language/CPlusPlus/LibStdcppUniquePointer.cpp; sourceTree = "<group>"; };
+		4CDB8D681DBA91A6006C5B13 /* LibStdcppTuple.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = LibStdcppTuple.cpp; path = Language/CPlusPlus/LibStdcppTuple.cpp; sourceTree = "<group>"; };
 		4CE4F672162C971A00F75CB3 /* SBExpressionOptions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SBExpressionOptions.h; path = include/lldb/API/SBExpressionOptions.h; sourceTree = "<group>"; };
 		4CE4F674162C973F00F75CB3 /* SBExpressionOptions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SBExpressionOptions.cpp; path = source/API/SBExpressionOptions.cpp; sourceTree = "<group>"; };
 		4CE4F676162CE1E100F75CB3 /* SBExpressionOptions.i */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c.preprocessed; path = SBExpressionOptions.i; sourceTree = "<group>"; };
@@ -4960,8 +4961,6 @@
 				266603C91345B5A8004DA8B6 /* ConnectionSharedMemory.cpp */,
 				26BC7D7C10F1B77400F91463 /* ConstString.h */,
 				26BC7E9410F1B85900F91463 /* ConstString.cpp */,
-				2613F6C91B17B84500D4DB85 /* CxaDemangle.h */,
-				2613F6C71B17B82F00D4DB85 /* CxaDemangle.cpp */,
 				26BC7D5910F1B77400F91463 /* DataBuffer.h */,
 				26BC7D5B10F1B77400F91463 /* DataBufferHeap.h */,
 				26BC7E7210F1B85900F91463 /* DataBufferHeap.cpp */,
@@ -6354,6 +6353,8 @@
 		945261B01B9A11BE00BF138D /* Formatters */ = {
 			isa = PBXGroup;
 			children = (
+				4CDB8D671DBA91A6006C5B13 /* LibStdcppUniquePointer.cpp */,
+				4CDB8D681DBA91A6006C5B13 /* LibStdcppTuple.cpp */,
 				49DEF1201CD7BD90006A7C7D /* BlockPointer.h */,
 				49DEF11F1CD7BD90006A7C7D /* BlockPointer.cpp */,
 				945261B41B9A11E800BF138D /* CxxStringTypes.h */,
@@ -7598,6 +7599,7 @@
 				2689FFF313353DB600698AC0 /* BreakpointIDList.cpp in Sources */,
 				2689FFF513353DB600698AC0 /* BreakpointList.cpp in Sources */,
 				942F52271BC44E780004C182 /* NSSet.cpp in Sources */,
+				4CDB8D6E1DBA91B6006C5B13 /* LibStdcppTuple.cpp in Sources */,
 				AF77E08F1A033C700096C0EA /* ABISysV_ppc.cpp in Sources */,
 				2689FFF713353DB600698AC0 /* BreakpointLocation.cpp in Sources */,
 				2689FFF913353DB600698AC0 /* BreakpointLocationCollection.cpp in Sources */,
@@ -7821,6 +7823,7 @@
 				26CEB5F218762056008F575A /* CommandObjectGUI.cpp in Sources */,
 				2689008013353E2200698AC0 /* CommandInterpreter.cpp in Sources */,
 				AF77E0A41A033D360096C0EA /* RegisterContextPOSIX_powerpc.cpp in Sources */,
+				4CDB8D6D1DBA91B6006C5B13 /* LibStdcppUniquePointer.cpp in Sources */,
 				AF9B8F33182DB52900DA866F /* SystemRuntimeMacOSX.cpp in Sources */,
 				23A4522F1DC00D5D00E44395 /* MinidumpTypes.cpp in Sources */,
 				9447DE431BD5963300E67212 /* DumpValueObjectOptions.cpp in Sources */,
@@ -7910,7 +7913,6 @@
 				268900CF13353E5F00698AC0 /* SymbolVendorMacOSX.cpp in Sources */,
 				268900D013353E6F00698AC0 /* Block.cpp in Sources */,
 				268900D113353E6F00698AC0 /* ClangASTContext.cpp in Sources */,
-				2613F6C81B17B82F00D4DB85 /* CxaDemangle.cpp in Sources */,
 				4C848E0B18D28C0C00EC6DD0 /* SwiftLanguageRuntime.cpp in Sources */,
 				265192C61BA8E905002F08F6 /* CompilerDecl.cpp in Sources */,
 				945261C11B9A11FC00BF138D /* LibCxxInitializerList.cpp in Sources */,

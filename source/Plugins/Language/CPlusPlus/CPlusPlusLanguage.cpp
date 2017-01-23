@@ -806,6 +806,11 @@ static void LoadLibStdcppFormatters(lldb::TypeCategoryImplSP cpp_category_sp) {
 
   AddCXXSynthetic(
       cpp_category_sp,
+      lldb_private::formatters::LibStdcppUniquePtrSyntheticFrontEndCreator,
+      "std::unique_ptr synthetic children",
+      ConstString("^std::unique_ptr<.+>(( )?&)?$"), stl_synth_flags, true);
+  AddCXXSynthetic(
+      cpp_category_sp,
       lldb_private::formatters::LibStdcppSharedPtrSyntheticFrontEndCreator,
       "std::shared_ptr synthetic children",
       ConstString("^std::shared_ptr<.+>(( )?&)?$"), stl_synth_flags, true);
@@ -814,7 +819,17 @@ static void LoadLibStdcppFormatters(lldb::TypeCategoryImplSP cpp_category_sp) {
       lldb_private::formatters::LibStdcppSharedPtrSyntheticFrontEndCreator,
       "std::weak_ptr synthetic children",
       ConstString("^std::weak_ptr<.+>(( )?&)?$"), stl_synth_flags, true);
+  AddCXXSynthetic(
+      cpp_category_sp,
+      lldb_private::formatters::LibStdcppTupleSyntheticFrontEndCreator,
+      "std::tuple synthetic children", ConstString("^std::tuple<.+>(( )?&)?$"),
+      stl_synth_flags, true);
 
+  AddCXXSummary(cpp_category_sp,
+                lldb_private::formatters::LibStdcppUniquePointerSummaryProvider,
+                "libstdc++ std::unique_ptr summary provider",
+                ConstString("^std::unique_ptr<.+>(( )?&)?$"), stl_summary_flags,
+                true);
   AddCXXSummary(cpp_category_sp,
                 lldb_private::formatters::LibStdcppSmartPointerSummaryProvider,
                 "libstdc++ std::shared_ptr summary provider",
