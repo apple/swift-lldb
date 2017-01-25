@@ -149,7 +149,7 @@ static void CreateHistoryThreadFromValueObject(ProcessSP process_sp,
   result.push_back(new_thread_sp);
 }
 
-#define GET_STACK_FUNCTION_TIMEOUT_USEC 2 * 1000 * 1000
+static constexpr std::chrono::seconds g_get_stack_function_timeout(2);
 
 HistoryThreads MemoryHistoryASan::GetHistoryThreads(lldb::addr_t address) {
   HistoryThreads result;
@@ -178,13 +178,13 @@ HistoryThreads MemoryHistoryASan::GetHistoryThreads(lldb::addr_t address) {
   options.SetTryAllThreads(true);
   options.SetStopOthers(true);
   options.SetIgnoreBreakpoints(true);
-  options.SetTimeoutUsec(GET_STACK_FUNCTION_TIMEOUT_USEC);
+  options.SetTimeout(g_get_stack_function_timeout);
   options.SetPrefix(memory_history_asan_command_prefix);
   options.SetAutoApplyFixIts(false);
   options.SetLanguage(eLanguageTypeObjC_plus_plus);
 
   ExpressionResults expr_result = UserExpression::Evaluate(
-      exe_ctx, options, expr.GetData(), "", return_value_sp, eval_error);
+      exe_ctx, options, expr.GetString(), "", return_value_sp, eval_error);
   if (expr_result != eExpressionCompleted) {
     process_sp->GetTarget().GetDebugger().GetAsyncOutputStream()->Printf(
         "Warning: Cannot evaluate AddressSanitizer expression:\n%s\n",

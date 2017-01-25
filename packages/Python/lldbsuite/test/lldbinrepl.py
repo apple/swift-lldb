@@ -80,6 +80,11 @@ class CommandParser:
             for expr_and_regexp in self.exprs_and_regexps:
                 ret = frame.EvaluateExpression(
                     expr_and_regexp['expr'], options)
+                if ret.GetError().Fail():
+                    error_str = str(ret.GetError())
+                    print(error_str);
+                    # if "__swift_FORCE_LOAD_" in error_str:
+                    #     sys.exit(1)
                 desc_stream = lldb.SBStream()
                 ret.GetDescription(desc_stream)
                 desc = desc_stream.GetData()

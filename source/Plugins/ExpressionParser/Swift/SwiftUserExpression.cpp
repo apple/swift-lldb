@@ -44,7 +44,7 @@
 using namespace lldb_private;
 
 SwiftUserExpression::SwiftUserExpression(
-    ExecutionContextScope &exe_scope, const char *expr, const char *expr_prefix,
+    ExecutionContextScope &exe_scope, llvm::StringRef expr, llvm::StringRef expr_prefix,
     lldb::LanguageType language, ResultType desired_type,
     const EvaluateExpressionOptions &options)
     : LLVMUserExpression(exe_scope, expr, expr_prefix, language, desired_type,
@@ -417,13 +417,13 @@ bool SwiftUserExpression::Parse(DiagnosticManager &diagnostic_manager,
       m_result_delegate.RegisterPersistentState(persistent_state);
       m_error_delegate.RegisterPersistentState(persistent_state);
     } else {
-      diagnostic_manager.PutCString(
+      diagnostic_manager.PutString(
           eDiagnosticSeverityError,
           "couldn't start parsing (no persistent data)");
       return false;
     }
   } else {
-    diagnostic_manager.PutCString(eDiagnosticSeverityError,
+    diagnostic_manager.PutString(eDiagnosticSeverityError,
                                   "couldn't start parsing (no target)");
     return false;
   }
@@ -454,7 +454,7 @@ bool SwiftUserExpression::Parse(DiagnosticManager &diagnostic_manager,
   if (!source_code->GetText(m_transformed_text, lang_type, m_language_flags,
                             m_options, m_swift_generic_info, exe_ctx,
                             first_body_line)) {
-    diagnostic_manager.PutCString(eDiagnosticSeverityError,
+    diagnostic_manager.PutString(eDiagnosticSeverityError,
                                   "couldn't construct expression body");
     return false;
   }
@@ -469,7 +469,7 @@ bool SwiftUserExpression::Parse(DiagnosticManager &diagnostic_manager,
   Target *target = exe_ctx.GetTargetPtr();
 
   if (!target) {
-    diagnostic_manager.PutCString(eDiagnosticSeverityError, "invalid target\n");
+    diagnostic_manager.PutString(eDiagnosticSeverityError, "invalid target\n");
     return false;
   }
 
@@ -589,7 +589,7 @@ bool SwiftUserExpression::Parse(DiagnosticManager &diagnostic_manager,
       limit_end_line = limit_start_line +
                        std::count(m_expr_text.begin(), m_expr_text.end(), '\n');
     }
-    m_execution_unit_sp->CreateJITModule(jit_module_name.GetString().c_str(),
+    m_execution_unit_sp->CreateJITModule(jit_module_name.GetData(),
                                          limit_file ? &limit_file_spec : NULL,
                                          limit_start_line, limit_end_line);
   }
@@ -601,9 +601,9 @@ bool SwiftUserExpression::Parse(DiagnosticManager &diagnostic_manager,
   } else {
     const char *error_cstr = jit_error.AsCString();
     if (error_cstr && error_cstr[0])
-      diagnostic_manager.PutCString(eDiagnosticSeverityError, error_cstr);
+      diagnostic_manager.PutString(eDiagnosticSeverityError, error_cstr);
     else
-      diagnostic_manager.PutCString(eDiagnosticSeverityError,
+      diagnostic_manager.PutString(eDiagnosticSeverityError,
                                     "expression can't be interpreted or run\n");
     return false;
   }

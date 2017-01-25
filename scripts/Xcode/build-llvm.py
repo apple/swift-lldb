@@ -73,11 +73,10 @@ def XCODE_REPOSITORIES():
 
 def BUILD_SCRIPT_FLAGS():
     return {
-        "Debug": ["--preset=LLDB_Swift_ReleaseAssert"],
+        "Debug": ["--preset=asan", "--preset=LLDB_Swift_ReleaseAssert"],
         "DebugClang": ["--preset=LLDB_Swift_DebugAssert"],
         "Release": ["--preset=LLDB_Swift_ReleaseAssert"],
     }
-
 
 def BUILD_SCRIPT_ENVIRONMENT():
     return {

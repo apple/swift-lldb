@@ -195,7 +195,7 @@ void ThreadPlanCallFunction::ReportRegisterState(const char *message) {
         strm.EOL();
       }
     }
-    log->PutCString(strm.GetData());
+    log->PutString(strm.GetString());
   }
 }
 
@@ -260,7 +260,7 @@ bool ThreadPlanCallFunction::ValidatePlan(Stream *error) {
   if (!m_valid) {
     if (error) {
       if (m_constructor_errors.GetSize() > 0)
-        error->PutCString(m_constructor_errors.GetData());
+        error->PutCString(m_constructor_errors.GetString());
       else
         error->PutCString("Unknown error");
     }

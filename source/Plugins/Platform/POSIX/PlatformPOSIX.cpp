@@ -435,7 +435,7 @@ std::string PlatformPOSIX::GetPlatformSpecificConnectionInformation() {
   if (GetLocalCacheDirectory() && *GetLocalCacheDirectory())
     stream.Printf("cache dir: %s", GetLocalCacheDirectory());
   if (stream.GetSize())
-    return stream.GetData();
+    return stream.GetString();
   else
     return "";
 }
@@ -629,7 +629,7 @@ lldb::ProcessSP PlatformPOSIX::Attach(ProcessAttachInfo &attach_info,
     if (target == NULL) {
       TargetSP new_target_sp;
 
-      error = debugger.GetTargetList().CreateTarget(debugger, NULL, NULL, false,
+      error = debugger.GetTargetList().CreateTarget(debugger, "", "", false,
                                                     NULL, new_target_sp);
       target = new_target_sp.get();
       if (log)
@@ -734,11 +734,15 @@ Error PlatformPOSIX::EvaluateLibdlExpression(
   expr_options.SetLanguage(eLanguageTypeC_plus_plus);
   expr_options.SetTrapExceptions(false); // dlopen can't throw exceptions, so
                                          // don't do the work to trap them.
-  expr_options.SetTimeoutUsec(2000000);  // 2 seconds
+  expr_options.SetTimeout(std::chrono::seconds(2));
 
   Error expr_error;
-  UserExpression::Evaluate(exe_ctx, expr_options, expr_cstr, expr_prefix,
-                           result_valobj_sp, expr_error);
+  ExpressionResults result =
+      UserExpression::Evaluate(exe_ctx, expr_options, expr_cstr, expr_prefix,
+                               result_valobj_sp, expr_error);
+  if (result != eExpressionCompleted)
+    return expr_error;
+
   if (result_valobj_sp->GetError().Fail())
     return result_valobj_sp->GetError();
   return Error();
@@ -832,8 +836,8 @@ Error PlatformPOSIX::UnloadImage(lldb_private::Process *process,
   return Error();
 }
 
-lldb::ProcessSP PlatformPOSIX::ConnectProcess(const char *connect_url,
-                                              const char *plugin_name,
+lldb::ProcessSP PlatformPOSIX::ConnectProcess(llvm::StringRef connect_url,
+                                              llvm::StringRef plugin_name,
                                               lldb_private::Debugger &debugger,
                                               lldb_private::Target *target,
                                               lldb_private::Error &error) {

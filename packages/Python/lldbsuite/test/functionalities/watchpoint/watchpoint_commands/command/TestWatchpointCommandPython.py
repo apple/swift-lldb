@@ -1,4 +1,4 @@
-﻿"""
+"""
 Test 'watchpoint command'.
 """
 
@@ -106,8 +106,6 @@ class WatchpointPythonCommandTestCase(TestBase):
                     substrs=['(int32_t)', 'cookie = 777'])
 
     @skipIfFreeBSD  # timing out on buildbot
-    @expectedFailureAll(
-        bugnumber="llvm.org/pr28055: continue in watchpoint commands disables the watchpoint, <rdar://problem/28680909>")
     @expectedFailureAll(
         oslist=["windows"],
         bugnumber="llvm.org/pr24446: WINDOWS XFAIL TRIAGE - Watchpoints not supported on Windows")

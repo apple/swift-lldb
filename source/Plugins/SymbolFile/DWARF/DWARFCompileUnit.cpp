@@ -265,7 +265,7 @@ size_t DWARFCompileUnit::ExtractDIEsIfNeeded(bool cu_die_only) {
       strm.Printf("error: no DIE for compile unit");
     else
       m_die_array[0].Dump(m_dwarf2Data, this, strm, UINT32_MAX);
-    verbose_log->PutCString(strm.GetString().c_str());
+    verbose_log->PutString(strm.GetString());
   }
 
   if (!m_dwo_symbol_file)
@@ -324,11 +324,8 @@ bool DWARFCompileUnit::Verify(Stream *s) const {
   bool abbr_offset_OK =
       m_dwarf2Data->get_debug_abbrev_data().ValidOffset(GetAbbrevOffset());
   bool addr_size_OK = ((m_addr_size == 4) || (m_addr_size == 8));
-  bool verbose = s->GetVerbose();
   if (valid_offset && length_OK && version_OK && addr_size_OK &&
       abbr_offset_OK) {
-    if (verbose)
-      s->Printf("    0x%8.8x: OK\n", m_offset);
     return true;
   } else {
     s->Printf("    0x%8.8x: ", m_offset);

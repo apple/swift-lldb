@@ -516,27 +516,18 @@ int Editline::GetCharacter(EditLineCharType *c) {
     // mutex again and
     // check if we were interrupted.
     m_output_mutex.unlock();
-    int read_count = m_input_connection.Read(&ch, 1, UINT32_MAX, status, NULL);
+    int read_count = m_input_connection.Read(&ch, 1, llvm::None, status, NULL);
     m_output_mutex.lock();
     if (m_editor_status == EditorStatus::Interrupted) {
       while (read_count > 0 && status == lldb::eConnectionStatusSuccess)
-        read_count = m_input_connection.Read(&ch, 1, UINT32_MAX, status, NULL);
+        read_count = m_input_connection.Read(&ch, 1, llvm::None, status, NULL);
       lldbassert(status == lldb::eConnectionStatusInterrupted);
       return 0;
     }
 
     if (read_count) {
-#if LLDB_EDITLINE_USE_WCHAR
-      // After the initial interruptible read, this is guaranteed not to block
-      ungetc(ch, m_input_file);
-      *c = fgetwc(m_input_file);
-      if (*c != WEOF)
+      if (CompleteCharacter(ch, *c))
         return 1;
-#else
-      *c = ch;
-      if (ch != (char)EOF)
-        return 1;
-#endif
     } else {
       switch (status) {
       case lldb::eConnectionStatusSuccess: // Success
@@ -1367,4 +1358,40 @@ void Editline::PrintAsync(Stream *stream, const char *s, size_t len) {
     DisplayInput();
     MoveCursor(CursorLocation::BlockEnd, CursorLocation::EditingCursor);
   }
+}
+
+bool Editline::CompleteCharacter(char ch, EditLineCharType &out) {
+#if !LLDB_EDITLINE_USE_WCHAR
+  if (ch == (char)EOF)
+    return false;
+
+  out = ch;
+  return true;
+#else
+  std::codecvt_utf8<wchar_t> cvt;
+  llvm::SmallString<4> input;
+  for (;;) {
+    const char *from_next;
+    wchar_t *to_next;
+    std::mbstate_t state = std::mbstate_t();
+    input.push_back(ch);
+    switch (cvt.in(state, input.begin(), input.end(), from_next, &out, &out + 1,
+                   to_next)) {
+    case std::codecvt_base::ok:
+      return out != WEOF;
+
+    case std::codecvt_base::error:
+    case std::codecvt_base::noconv:
+      return false;
+
+    case std::codecvt_base::partial:
+      lldb::ConnectionStatus status;
+      size_t read_count = m_input_connection.Read(
+          &ch, 1, std::chrono::seconds(0), status, nullptr);
+      if (read_count == 0)
+        return false;
+      break;
+    }
+  }
+#endif
 }

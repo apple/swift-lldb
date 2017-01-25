@@ -124,8 +124,7 @@ static Error save_socket_id_to_file(const std::string &socket_id,
     temp_file << socket_id;
   }
 
-  err_code = llvm::sys::fs::rename(temp_file_path.c_str(),
-                                   file_spec.GetPath().c_str());
+  err_code = llvm::sys::fs::rename(temp_file_path.c_str(), file_spec.GetPath());
   if (err_code)
     return Error("Failed to rename file %s to %s: %s", temp_file_path.c_str(),
                  file_spec.GetPath().c_str(), err_code.message().c_str());
@@ -365,7 +364,7 @@ int main_platform(int argc, char *argv[]) {
         bool interrupt = false;
         bool done = false;
         while (!interrupt && !done) {
-          if (platform.GetPacketAndSendResponse(UINT32_MAX, error, interrupt,
+          if (platform.GetPacketAndSendResponse(llvm::None, error, interrupt,
                                                 done) !=
               GDBRemoteCommunication::PacketResult::Success)
             break;

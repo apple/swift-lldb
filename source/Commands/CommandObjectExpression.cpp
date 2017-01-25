@@ -382,9 +382,9 @@ bool CommandObjectExpression::EvaluateExpression(const char *expr,
       options.SetGenerateDebugInfo(true);
 
     if (m_command_options.timeout > 0)
-      options.SetTimeoutUsec(m_command_options.timeout);
+      options.SetTimeout(std::chrono::microseconds(m_command_options.timeout));
     else
-      options.SetTimeoutUsec(0);
+      options.SetTimeout(llvm::None);
 
     ExpressionResults success = target->EvaluateExpression(
         expr, exe_ctx.GetFramePtr(), result_valobj_sp, options,

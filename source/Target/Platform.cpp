@@ -573,7 +573,7 @@ RecurseCopy_Callback(void *baton, FileSpec::FileType file_type,
     FileSpec recurse_dst;
     recurse_dst.GetDirectory().SetCString(dst_dir.GetPath().c_str());
     RecurseCopyBaton rc_baton2 = {recurse_dst, rc_baton->platform_ptr, Error()};
-    FileSpec::EnumerateDirectory(src_dir_path.c_str(), true, true, true,
+    FileSpec::EnumerateDirectory(src_dir_path, true, true, true,
                                  RecurseCopy_Callback, &rc_baton2);
     if (rc_baton2.error.Fail()) {
       rc_baton->error.SetErrorString(rc_baton2.error.AsCString());
@@ -708,7 +708,7 @@ Error Platform::Install(const FileSpec &src, const FileSpec &dst) {
         recurse_dst.GetDirectory().SetCString(fixed_dst.GetCString());
         std::string src_dir_path(src.GetPath());
         RecurseCopyBaton baton = {recurse_dst, this, Error()};
-        FileSpec::EnumerateDirectory(src_dir_path.c_str(), true, true, true,
+        FileSpec::EnumerateDirectory(src_dir_path, true, true, true,
                                      RecurseCopy_Callback, &baton);
         return baton.error;
       }
@@ -1758,8 +1758,8 @@ Error Platform::UnloadImage(lldb_private::Process *process,
   return Error("UnloadImage is not supported on the current platform");
 }
 
-lldb::ProcessSP Platform::ConnectProcess(const char *connect_url,
-                                         const char *plugin_name,
+lldb::ProcessSP Platform::ConnectProcess(llvm::StringRef connect_url,
+                                         llvm::StringRef plugin_name,
                                          lldb_private::Debugger &debugger,
                                          lldb_private::Target *target,
                                          lldb_private::Error &error) {
@@ -1767,8 +1767,8 @@ lldb::ProcessSP Platform::ConnectProcess(const char *connect_url,
 
   if (!target) {
     TargetSP new_target_sp;
-    error = debugger.GetTargetList().CreateTarget(
-        debugger, nullptr, nullptr, false, nullptr, new_target_sp);
+    error = debugger.GetTargetList().CreateTarget(debugger, "", "", false,
+                                                  nullptr, new_target_sp);
     target = new_target_sp.get();
   }
 
@@ -1876,9 +1876,8 @@ size_t Platform::GetSoftwareBreakpointTrapOpcode(Target &target,
   } break;
 
   default:
-    assert(
-        !"Unhandled architecture in Platform::GetSoftwareBreakpointTrapOpcode");
-    break;
+    llvm_unreachable(
+        "Unhandled architecture in Platform::GetSoftwareBreakpointTrapOpcode");
   }
 
   assert(bp_site);

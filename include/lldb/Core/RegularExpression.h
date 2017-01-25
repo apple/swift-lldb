@@ -31,7 +31,7 @@ inline int regexec(const llvm_regex_t *a, const char *b, size_t c,
 
 inline void regfree(llvm_regex_t *a) { llvm_regfree(a); }
 #else
-#if __ANDROID_NDK__
+#ifdef __ANDROID__
 #include <regex>
 #endif
 #include <regex.h>
@@ -77,13 +77,14 @@ public:
       return (m_matches.empty() ? nullptr : m_matches.data());
     }
 
-    bool GetMatchAtIndex(const char *s, uint32_t idx,
+    bool GetMatchAtIndex(llvm::StringRef s, uint32_t idx,
                          std::string &match_str) const;
 
-    bool GetMatchAtIndex(const char *s, uint32_t idx,
+    bool GetMatchAtIndex(llvm::StringRef s, uint32_t idx,
                          llvm::StringRef &match_str) const;
 
-    bool GetMatchSpanningIndices(const char *s, uint32_t idx1, uint32_t idx2,
+    bool GetMatchSpanningIndices(llvm::StringRef s, uint32_t idx1,
+                                 uint32_t idx2,
                                  llvm::StringRef &match_str) const;
 
   protected:
@@ -100,7 +101,6 @@ public:
   RegularExpression();
 
   explicit RegularExpression(llvm::StringRef string);
-  explicit RegularExpression(const char *) = delete;
 
   //------------------------------------------------------------------
   /// Destructor.

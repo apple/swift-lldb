@@ -1,5 +1,4 @@
-//===---------------------StructuredData.cpp ---------------------*- C++
-//-*-===//
+//===---------------------StructuredData.cpp ---------------------*- C++-*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -181,7 +180,7 @@ StructuredData::Object::GetObjectForDotSeparatedPath(llvm::StringRef path) {
   if (this->GetType() == Type::eTypeDictionary) {
     std::pair<llvm::StringRef, llvm::StringRef> match = path.split('.');
     std::string key = match.first.str();
-    ObjectSP value = this->GetAsDictionary()->GetValueForKey(key.c_str());
+    ObjectSP value = this->GetAsDictionary()->GetValueForKey(key);
     if (value.get()) {
       // Do we have additional words to descend?  If not, return the
       // value we're at right now.
@@ -213,7 +212,7 @@ StructuredData::Object::GetObjectForDotSeparatedPath(llvm::StringRef path) {
 void StructuredData::Object::DumpToStdout(bool pretty_print) const {
   StreamString stream;
   Dump(stream, pretty_print);
-  printf("%s\n", stream.GetString().c_str());
+  printf("%s\n", stream.GetData());
 }
 
 void StructuredData::Array::Dump(Stream &s, bool pretty_print) const {

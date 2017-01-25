@@ -19,8 +19,10 @@
 // Project includes
 #include "lldb/Core/ConstString.h"
 #include "lldb/Core/STLUtils.h"
-#include "lldb/Host/TimeValue.h"
+#include "lldb/Host/PosixApi.h"
 #include "lldb/lldb-private.h"
+
+#include "llvm/Support/FormatVariadic.h"
 
 namespace lldb_private {
 
@@ -377,8 +379,6 @@ public:
   //------------------------------------------------------------------
   bool IsAbsolute() const;
 
-  TimeValue GetModificationTime() const;
-
   //------------------------------------------------------------------
   /// Extract the full path to the file.
   ///
@@ -620,22 +620,7 @@ public:
   /// Normalize a pathname by collapsing redundant separators and
   /// up-level references.
   //------------------------------------------------------------------
-  void NormalizePath();
-
-  //------------------------------------------------------------------
-  /// Run through the input string, replaying the effect of any ".." and produce
-  /// the resultant path.  The input path is not required to be in the host file
-  /// system
-  /// format, but it is required to be normalized to that system.
-  ///
-  /// @param[in] input
-  ///     The input path to analyze.
-  ///
-  /// @param[out] result
-  ///     The backup-resolved path will be written here.
-  //------------------------------------------------------------------
-  static void RemoveBackupDots(const ConstString &input_const_str,
-                               ConstString &result_const_str);
+  FileSpec GetNormalizedPath() const;
 
   //------------------------------------------------------------------
   /// Change the file specified with a new path.
@@ -762,9 +747,9 @@ protected:
   //------------------------------------------------------------------
   // Member variables
   //------------------------------------------------------------------
-  ConstString m_directory;    ///< The uniqued directory path
-  ConstString m_filename;     ///< The uniqued filename path
-  mutable bool m_is_resolved; ///< True if this path has been resolved.
+  ConstString m_directory;            ///< The uniqued directory path
+  ConstString m_filename;             ///< The uniqued filename path
+  mutable bool m_is_resolved = false; ///< True if this path has been resolved.
   PathSyntax
       m_syntax; ///< The syntax that this path uses (e.g. Windows / Posix)
 };
@@ -775,5 +760,31 @@ protected:
 Stream &operator<<(Stream &s, const FileSpec &f);
 
 } // namespace lldb_private
+
+namespace llvm {
+
+/// Implementation of format_provider<T> for FileSpec.
+///
+/// The options string of a FileSpec has the grammar:
+///
+///   file_spec_options   :: (empty) | F | D
+///
+///   =======================================================
+///   |  style  |     Meaning          |      Example       |
+///   -------------------------------------------------------
+///   |         |                      |  Input   |  Output |
+///   =======================================================
+///   |    F    | Only print filename  | /foo/bar |   bar   |
+///   |    D    | Only print directory | /foo/bar |  /foo/  |
+///   | (empty) | Print file and dir   |          |         |
+///   =======================================================
+///
+/// Any other value is considered an invalid format string.
+///
+template <> struct format_provider<lldb_private::FileSpec> {
+  static void format(const lldb_private::FileSpec &F, llvm::raw_ostream &Stream,
+                     StringRef Style);
+};
+}
 
 #endif // liblldb_FileSpec_h_

@@ -884,7 +884,7 @@ public:
   virtual ~SwiftASTContextForExpressions() {}
 
   UserExpression *
-  GetUserExpression(const char *expr, const char *expr_prefix,
+  GetUserExpression(llvm::StringRef expr, llvm::StringRef prefix,
                     lldb::LanguageType language,
                     Expression::ResultType desired_type,
                     const EvaluateExpressionOptions &options) override;

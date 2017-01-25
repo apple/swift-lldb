@@ -10,12 +10,10 @@
 #ifndef liblldb_OptionValueFileSpec_h_
 #define liblldb_OptionValueFileSpec_h_
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-// Project includes
-#include "lldb/Host/FileSpec.h"
 #include "lldb/Interpreter/OptionValue.h"
+
+#include "lldb/Host/FileSpec.h"
+#include "llvm/Support/Chrono.h"
 
 namespace lldb_private {
 
@@ -50,13 +48,13 @@ public:
     m_current_value = m_default_value;
     m_value_was_set = false;
     m_data_sp.reset();
-    m_data_mod_time.Clear();
+    m_data_mod_time = llvm::sys::TimePoint<>();
     return true;
   }
 
   lldb::OptionValueSP DeepCopy() const override;
 
-  size_t AutoComplete(CommandInterpreter &interpreter, const char *s,
+  size_t AutoComplete(CommandInterpreter &interpreter, llvm::StringRef s,
                       int match_start_point, int max_return_elements,
                       bool &word_complete, StringList &matches) override;
 
@@ -87,7 +85,7 @@ protected:
   FileSpec m_current_value;
   FileSpec m_default_value;
   lldb::DataBufferSP m_data_sp;
-  TimeValue m_data_mod_time;
+  llvm::sys::TimePoint<> m_data_mod_time;
   uint32_t m_completion_mask;
   bool m_resolve;
 };
