@@ -218,8 +218,7 @@ bool ExpressionSourceCode::SaveExpressionTextToTempFile(
   if (HostInfo::GetLLDBPath(lldb::ePathTypeLLDBTempSystemDir,
                             tmpdir_file_spec)) {
     strm.Printf("%s%u", file_prefix, expr_number);
-    tmpdir_file_spec.GetFilename().SetCStringWithLength(
-        strm.GetString().c_str(), strm.GetString().size());
+    tmpdir_file_spec.GetFilename().SetString(strm.GetString());
     expr_source_path = std::move(tmpdir_file_spec.GetPath());
   } else {
     strm.Printf("/tmp/%s%u", file_prefix, expr_number);
@@ -363,7 +362,7 @@ bool ExpressionSourceCode::GetText(
       } else {
         pound_body.Printf("#line %u \"%s\"\n%s", pound_line, pound_file, body);
       }
-      body = pound_body.GetString().c_str();
+      body = pound_body.GetData();
     }
 
     switch (wrapping_language) {

@@ -19,6 +19,8 @@
 #include "lldb/Core/Flags.h"
 #include "lldb/lldb-private.h"
 
+#include "llvm/Support/FormatVariadic.h"
+
 namespace lldb_private {
 
 //----------------------------------------------------------------------
@@ -31,14 +33,8 @@ public:
   /// \a m_flags bit values.
   //------------------------------------------------------------------
   enum {
-    eVerbose = (1 << 0),   ///< If set, verbose logging is enabled
-    eDebug = (1 << 1),     ///< If set, debug logging is enabled
-    eAddPrefix = (1 << 2), ///< Add number prefixes for binary, octal and hex
-                           ///when eBinary is clear
-    eBinary = (1 << 3),    ///< Get and put data as binary instead of as the
-                           ///default string mode.
-    eANSIColor = (1 << 4), ///< If set, then it is ok to colorize the output
-                           ///with ANSI escape sequences
+    eBinary = (1 << 0) ///< Get and put data as binary instead of as the default
+                       ///string mode.
   };
 
   //------------------------------------------------------------------
@@ -192,6 +188,8 @@ public:
   ///     in one statement.
   //------------------------------------------------------------------
   Stream &operator<<(const char *cstr);
+
+  Stream &operator<<(llvm::StringRef str);
 
   //------------------------------------------------------------------
   /// Output a pointer value \a p to the stream \a s.
@@ -383,15 +381,6 @@ public:
   uint32_t GetAddressByteSize() const;
 
   //------------------------------------------------------------------
-  /// Test if debug logging is enabled.
-  ///
-  /// @return
-  //      \b true if the debug flag bit is set in this stream, \b
-  //      false otherwise.
-  //------------------------------------------------------------------
-  bool GetDebug() const;
-
-  //------------------------------------------------------------------
   /// The flags accessor.
   ///
   /// @return
@@ -422,15 +411,6 @@ public:
   ///     The current indentation level as an integer.
   //------------------------------------------------------------------
   int GetIndentLevel() const;
-
-  //------------------------------------------------------------------
-  /// Test if verbose logging is enabled.
-  ///
-  /// @return
-  //      \b true if the verbose flag bit is set in this stream, \b
-  //      false otherwise.
-  //------------------------------------------------------------------
-  bool GetVerbose() const;
 
   //------------------------------------------------------------------
   /// Indent the current line in the stream.
@@ -484,6 +464,10 @@ public:
   size_t Printf(const char *format, ...) __attribute__((format(printf, 2, 3)));
 
   size_t PrintfVarArg(const char *format, va_list args);
+
+  template <typename... Args> void Format(const char *format, Args &&... args) {
+    PutCString(llvm::formatv(format, std::forward<Args>(args)...).str());
+  }
 
   //------------------------------------------------------------------
   /// Output a quoted C string value to the stream.

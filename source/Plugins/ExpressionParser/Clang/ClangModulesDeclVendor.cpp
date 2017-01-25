@@ -65,10 +65,10 @@ private:
 class ClangModulesDeclVendorImpl : public ClangModulesDeclVendor {
 public:
   ClangModulesDeclVendorImpl(
-      llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine> &diagnostics_engine,
-      std::shared_ptr<clang::CompilerInvocation> &compiler_invocation,
-      std::unique_ptr<clang::CompilerInstance> &&compiler_instance,
-      std::unique_ptr<clang::Parser> &&parser);
+      llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine> diagnostics_engine,
+      std::shared_ptr<clang::CompilerInvocation> compiler_invocation,
+      std::unique_ptr<clang::CompilerInstance> compiler_instance,
+      std::unique_ptr<clang::Parser> parser);
 
   ~ClangModulesDeclVendorImpl() override = default;
 
@@ -132,7 +132,7 @@ void StoringDiagnosticConsumer::DumpDiagnostics(Stream &error_stream) {
   for (IDAndDiagnostic &diag : m_diagnostics) {
     switch (diag.first) {
     default:
-      error_stream.PutCString(diag.second.c_str());
+      error_stream.PutCString(diag.second);
       error_stream.PutChar('\n');
       break;
     case clang::DiagnosticsEngine::Level::Ignored:
@@ -158,14 +158,14 @@ ClangModulesDeclVendor::ClangModulesDeclVendor() {}
 ClangModulesDeclVendor::~ClangModulesDeclVendor() {}
 
 ClangModulesDeclVendorImpl::ClangModulesDeclVendorImpl(
-    llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine> &diagnostics_engine,
-    std::shared_ptr<clang::CompilerInvocation> &compiler_invocation,
-    std::unique_ptr<clang::CompilerInstance> &&compiler_instance,
-    std::unique_ptr<clang::Parser> &&parser)
-    : ClangModulesDeclVendor(), m_diagnostics_engine(diagnostics_engine),
-      m_compiler_invocation(compiler_invocation),
+    llvm::IntrusiveRefCntPtr<clang::DiagnosticsEngine> diagnostics_engine,
+    std::shared_ptr<clang::CompilerInvocation> compiler_invocation,
+    std::unique_ptr<clang::CompilerInstance> compiler_instance,
+    std::unique_ptr<clang::Parser> parser)
+    : m_diagnostics_engine(std::move(diagnostics_engine)),
+      m_compiler_invocation(std::move(compiler_invocation)),
       m_compiler_instance(std::move(compiler_instance)),
-      m_parser(std::move(parser)), m_imported_modules() {}
+      m_parser(std::move(parser)) {}
 
 void ClangModulesDeclVendorImpl::ReportModuleExportsHelper(
     std::set<ClangModulesDeclVendor::ModuleID> &exports,
@@ -442,7 +442,7 @@ void ClangModulesDeclVendorImpl::ForEachMacro(
 
     if (macro_info) {
       std::string macro_expansion = "#define ";
-      macro_expansion.append(mi->first->getName().str().c_str());
+      macro_expansion.append(mi->first->getName().str());
 
       {
         if (macro_info->isFunctionLike()) {
@@ -499,7 +499,7 @@ void ClangModulesDeclVendorImpl::ForEachMacro(
                       ti->getLocation(), &invalid);
 
               if (invalid) {
-                lldbassert(!"Unhandled token kind");
+                lldbassert(0 && "Unhandled token kind");
                 macro_expansion.append("<unknown literal value>");
               } else {
                 macro_expansion.append(
@@ -622,9 +622,9 @@ ClangModulesDeclVendor::Create(Target &target) {
     compiler_invocation_argument_cstrs.push_back(arg.c_str());
   }
 
-  std::shared_ptr<clang::CompilerInvocation> invocation(
-      std::move(clang::createInvocationFromCommandLine(compiler_invocation_argument_cstrs,
-                                             diagnostics_engine)));
+  std::shared_ptr<clang::CompilerInvocation> invocation =
+      clang::createInvocationFromCommandLine(compiler_invocation_argument_cstrs,
+                                             diagnostics_engine);
 
   if (!invocation)
     return nullptr;
@@ -648,7 +648,7 @@ ClangModulesDeclVendor::Create(Target &target) {
       llvm::make_unique<clang::ObjectFilePCHContainerReader>());
 
   instance->setDiagnostics(diagnostics_engine.get());
-  instance->setInvocation(std::move(invocation));
+  instance->setInvocation(invocation);
 
   std::unique_ptr<clang::FrontendAction> action(new clang::SyntaxOnlyAction);
 
@@ -682,6 +682,7 @@ ClangModulesDeclVendor::Create(Target &target) {
   while (!parser->ParseTopLevelDecl(parsed))
     ;
 
-  return new ClangModulesDeclVendorImpl(diagnostics_engine, invocation,
+  return new ClangModulesDeclVendorImpl(std::move(diagnostics_engine),
+                                        std::move(invocation),
                                         std::move(instance), std::move(parser));
 }

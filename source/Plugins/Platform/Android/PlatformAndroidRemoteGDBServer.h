@@ -37,8 +37,8 @@ public:
 
   Error DisconnectRemote() override;
 
-  lldb::ProcessSP ConnectProcess(const char *connect_url,
-                                 const char *plugin_name,
+  lldb::ProcessSP ConnectProcess(llvm::StringRef connect_url,
+                                 llvm::StringRef plugin_name,
                                  lldb_private::Debugger &debugger,
                                  lldb_private::Target *target,
                                  lldb_private::Error &error) override;
@@ -55,7 +55,7 @@ protected:
   void DeleteForwardPort(lldb::pid_t pid);
 
   Error MakeConnectURL(const lldb::pid_t pid, const uint16_t remote_port,
-                       const char *remote_socket_name,
+                       llvm::StringRef remote_socket_name,
                        std::string &connect_url);
 
 private:

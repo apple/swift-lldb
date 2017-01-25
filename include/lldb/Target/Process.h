@@ -214,12 +214,7 @@ public:
     return (m_plugin_name.empty() ? nullptr : m_plugin_name.c_str());
   }
 
-  void SetProcessPluginName(const char *plugin) {
-    if (plugin && plugin[0])
-      m_plugin_name.assign(plugin);
-    else
-      m_plugin_name.clear();
-  }
+  void SetProcessPluginName(llvm::StringRef plugin) { m_plugin_name = plugin; }
 
   void Clear() {
     ProcessInstanceInfo::Clear();
@@ -285,7 +280,7 @@ public:
 
   ~ProcessLaunchCommandOptions() override = default;
 
-  Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+  Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                        ExecutionContext *execution_context) override;
 
   void OptionParsingStarting(ExecutionContext *execution_context) override {
@@ -696,7 +691,7 @@ public:
   /// @see Process::CanDebug ()
   //------------------------------------------------------------------
   static lldb::ProcessSP FindPlugin(lldb::TargetSP target_sp,
-                                    const char *plugin_name,
+                                    llvm::StringRef plugin_name,
                                     lldb::ListenerSP listener_sp,
                                     const FileSpec *crash_file_path);
 
@@ -887,7 +882,7 @@ public:
   /// @return
   ///     Returns an error object.
   //------------------------------------------------------------------
-  virtual Error ConnectRemote(Stream *strm, const char *remote_url);
+  virtual Error ConnectRemote(Stream *strm, llvm::StringRef remote_url);
 
   bool GetShouldDetach() const { return m_should_detach; }
 
@@ -1112,7 +1107,7 @@ public:
   /// @return
   ///     Returns an error object.
   //------------------------------------------------------------------
-  virtual Error DoConnectRemote(Stream *strm, const char *remote_url) {
+  virtual Error DoConnectRemote(Stream *strm, llvm::StringRef remote_url) {
     Error error;
     error.SetErrorString("remote connections are not supported");
     return error;
@@ -1938,6 +1933,7 @@ public:
   /// @return
   ///     The number of bytes that were actually written.
   //------------------------------------------------------------------
+  // TODO: change this to take an ArrayRef<uint8_t>
   size_t WriteMemory(lldb::addr_t vm_addr, const void *buf, size_t size,
                      Error &error);
 
@@ -2434,7 +2430,7 @@ public:
   // false
   // will avoid this behavior.
   lldb::StateType
-  WaitForProcessToStop(const std::chrono::microseconds &timeout,
+  WaitForProcessToStop(const Timeout<std::micro> &timeout,
                        lldb::EventSP *event_sp_ptr = nullptr,
                        bool wait_always = true,
                        lldb::ListenerSP hijack_listener = lldb::ListenerSP(),
@@ -2455,8 +2451,8 @@ public:
   //--------------------------------------------------------------------------------------
   void SyncIOHandler(uint32_t iohandler_id, uint64_t timeout_msec);
 
-  lldb::StateType WaitForStateChangedEvents(
-      const std::chrono::microseconds &timeout, lldb::EventSP &event_sp,
+  lldb::StateType GetStateChangedEvents(
+      lldb::EventSP &event_sp, const Timeout<std::micro> &timeout,
       lldb::ListenerSP
           hijack_listener); // Pass an empty ListenerSP to use builtin listener
 
@@ -3134,24 +3130,19 @@ protected:
 
   Error HaltPrivate();
 
-  lldb::StateType
-  WaitForProcessStopPrivate(const std::chrono::microseconds &timeout,
-                            lldb::EventSP &event_sp);
+  lldb::StateType WaitForProcessStopPrivate(lldb::EventSP &event_sp,
+                                            const Timeout<std::micro> &timeout);
 
   // This waits for both the state change broadcaster, and the control
   // broadcaster.
   // If control_only, it only waits for the control broadcaster.
 
-  bool WaitForEventsPrivate(const std::chrono::microseconds &timeout,
-                            lldb::EventSP &event_sp, bool control_only);
+  bool GetEventsPrivate(lldb::EventSP &event_sp,
+                        const Timeout<std::micro> &timeout, bool control_only);
 
   lldb::StateType
-  WaitForStateChangedEventsPrivate(const std::chrono::microseconds &timeout,
-                                   lldb::EventSP &event_sp);
-
-  lldb::StateType WaitForState(const std::chrono::microseconds &timeout,
-                               const lldb::StateType *match_states,
-                               const uint32_t num_match_states);
+  GetStateChangedEventsPrivate(lldb::EventSP &event_sp,
+                               const Timeout<std::micro> &timeout);
 
   size_t WriteMemoryPrivate(lldb::addr_t addr, const void *buf, size_t size,
                             Error &error);

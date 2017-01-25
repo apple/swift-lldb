@@ -953,13 +953,10 @@ bool EmulateInstructionMIPS64::EvaluateInstruction(uint32_t evaluate_options) {
    * mc_insn.getOpcode() returns decoded opcode. However to make use
    * of llvm::Mips::<insn> we would need "MipsGenInstrInfo.inc".
   */
-  llvm::StringRef op_name_ref = m_insn_info->getName(mc_insn.getOpcode());
+  const char *op_name = m_insn_info->getName(mc_insn.getOpcode()).data();
 
-  if (op_name_ref.empty())
+  if (op_name == NULL)
     return false;
-
-  std::string op_name_str = op_name_ref;
-  const char *op_name = op_name_str.c_str();
 
   /*
    * Decoding has been done already. Just get the call-back function

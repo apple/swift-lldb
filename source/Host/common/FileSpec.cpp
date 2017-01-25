@@ -277,16 +277,14 @@ void FileSpec::Resolve(llvm::SmallVectorImpl<char> &path) {
   }
 }
 
-FileSpec::FileSpec()
-    : m_directory(), m_filename(), m_syntax(FileSystem::GetNativePathSyntax()) {
-}
+FileSpec::FileSpec() : m_syntax(FileSystem::GetNativePathSyntax()) {}
 
 //------------------------------------------------------------------
 // Default constructor that can take an optional full path to a
 // file on disk.
 //------------------------------------------------------------------
 FileSpec::FileSpec(llvm::StringRef path, bool resolve_path, PathSyntax syntax)
-    : m_directory(), m_filename(), m_is_resolved(false), m_syntax(syntax) {
+    : m_syntax(syntax) {
   SetFile(path, resolve_path, syntax);
 }
 
@@ -356,10 +354,10 @@ void FileSpec::SetFile(llvm::StringRef pathname, bool resolve,
     m_is_resolved = true;
   }
 
-  Normalize(resolved, syntax);
+  Normalize(resolved, m_syntax);
 
   llvm::StringRef resolve_path_ref(resolved.c_str());
-  size_t dir_end = ParentPathEnd(resolve_path_ref, syntax);
+  size_t dir_end = ParentPathEnd(resolve_path_ref, m_syntax);
   if (dir_end == 0) {
     m_filename.SetString(resolve_path_ref);
     return;
@@ -368,11 +366,11 @@ void FileSpec::SetFile(llvm::StringRef pathname, bool resolve,
   m_directory.SetString(resolve_path_ref.substr(0, dir_end));
 
   size_t filename_begin = dir_end;
-  size_t root_dir_start = RootDirStart(resolve_path_ref, syntax);
+  size_t root_dir_start = RootDirStart(resolve_path_ref, m_syntax);
   while (filename_begin != llvm::StringRef::npos &&
          filename_begin < resolve_path_ref.size() &&
          filename_begin != root_dir_start &&
-         IsPathSeparator(resolve_path_ref[filename_begin], syntax))
+         IsPathSeparator(resolve_path_ref[filename_begin], m_syntax))
     ++filename_begin;
   m_filename.SetString((filename_begin == llvm::StringRef::npos ||
                         filename_begin >= resolve_path_ref.size())
@@ -533,120 +531,74 @@ bool FileSpec::Equal(const FileSpec &a, const FileSpec &b, bool full,
 
   if (!full && (a.GetDirectory().IsEmpty() || b.GetDirectory().IsEmpty()))
     return ConstString::Equals(a.m_filename, b.m_filename, case_sensitive);
-  else if (remove_backups == false)
+
+  if (remove_backups == false)
     return a == b;
-  else {
-    if (!ConstString::Equals(a.m_filename, b.m_filename, case_sensitive))
-      return false;
-    if (ConstString::Equals(a.m_directory, b.m_directory, case_sensitive))
-      return true;
-    ConstString a_without_dots;
-    ConstString b_without_dots;
 
-    RemoveBackupDots(a.m_directory, a_without_dots);
-    RemoveBackupDots(b.m_directory, b_without_dots);
-    return ConstString::Equals(a_without_dots, b_without_dots, case_sensitive);
-  }
+  if (a == b)
+    return true;
+
+  return Equal(a.GetNormalizedPath(), b.GetNormalizedPath(), full, false);
 }
 
-void FileSpec::NormalizePath() {
-  ConstString normalized_directory;
-  FileSpec::RemoveBackupDots(m_directory, normalized_directory);
-  m_directory = normalized_directory;
-}
+FileSpec FileSpec::GetNormalizedPath() const {
+  // Fast path. Do nothing if the path is not interesting.
+  if (!m_directory.GetStringRef().contains(".") &&
+      !m_directory.GetStringRef().contains("//") &&
+      m_filename.GetStringRef() != ".." && m_filename.GetStringRef() != ".")
+    return *this;
 
-void FileSpec::RemoveBackupDots(const ConstString &input_const_str,
-                                ConstString &result_const_str) {
-  const char *input = input_const_str.GetCString();
-  result_const_str.Clear();
-  if (!input || input[0] == '\0')
-    return;
+  llvm::SmallString<64> path, result;
+  const bool normalize = false;
+  GetPath(path, normalize);
+  llvm::StringRef rest(path);
 
-  const char win_sep = '\\';
-  const char unix_sep = '/';
-  char found_sep;
-  const char *win_backup = "\\..";
-  const char *unix_backup = "/..";
-
-  bool is_win = false;
-
-  // Determine the platform for the path (win or unix):
-
-  if (input[0] == win_sep)
-    is_win = true;
-  else if (input[0] == unix_sep)
-    is_win = false;
-  else if (input[1] == ':')
-    is_win = true;
-  else if (strchr(input, unix_sep) != nullptr)
-    is_win = false;
-  else if (strchr(input, win_sep) != nullptr)
-    is_win = true;
-  else {
-    // No separators at all, no reason to do any work here.
-    result_const_str = input_const_str;
-    return;
-  }
-
-  llvm::StringRef backup_sep;
-  if (is_win) {
-    found_sep = win_sep;
-    backup_sep = win_backup;
+  // We will not go below root dir.
+  size_t root_dir_start = RootDirStart(path, m_syntax);
+  const bool absolute = root_dir_start != llvm::StringRef::npos;
+  if (absolute) {
+    result += rest.take_front(root_dir_start + 1);
+    rest = rest.drop_front(root_dir_start + 1);
   } else {
-    found_sep = unix_sep;
-    backup_sep = unix_backup;
+    if (m_syntax == ePathSyntaxWindows && path.size() > 2 && path[1] == ':') {
+      result += rest.take_front(2);
+      rest = rest.drop_front(2);
+    }
   }
 
-  llvm::StringRef input_ref(input);
-  llvm::StringRef curpos(input);
-
-  bool had_dots = false;
-  std::string result;
-
-  while (1) {
-    // Start of loop
-    llvm::StringRef before_sep;
-    std::pair<llvm::StringRef, llvm::StringRef> around_sep =
-        curpos.split(backup_sep);
-
-    before_sep = around_sep.first;
-    curpos = around_sep.second;
-
-    if (curpos.empty()) {
-      if (had_dots) {
-        while (before_sep.startswith("//"))
-          before_sep = before_sep.substr(1);
-        if (!before_sep.empty()) {
-          result.append(before_sep.data(), before_sep.size());
-        }
-      }
-      break;
+  bool anything_added = false;
+  llvm::SmallVector<llvm::StringRef, 0> components, processed;
+  rest.split(components, '/', -1, false);
+  processed.reserve(components.size());
+  for (auto component : components) {
+    if (component == ".")
+      continue; // Skip these.
+    if (component != "..") {
+      processed.push_back(component);
+      continue; // Regular file name.
     }
-    had_dots = true;
-
-    unsigned num_backups = 1;
-    while (curpos.startswith(backup_sep)) {
-      num_backups++;
-      curpos = curpos.slice(backup_sep.size(), curpos.size());
+    if (!processed.empty()) {
+      processed.pop_back();
+      continue; // Dots. Go one level up if we can.
     }
+    if (absolute)
+      continue; // We're at the top level. Cannot go higher than that. Skip.
 
-    size_t end_pos = before_sep.size();
-    while (num_backups-- > 0) {
-      end_pos = before_sep.rfind(found_sep, end_pos);
-      if (end_pos == llvm::StringRef::npos) {
-        result_const_str = input_const_str;
-        return;
-      }
-    }
-    result.append(before_sep.data(), end_pos);
+    result += component; // We're a relative path. We need to keep these.
+    result += '/';
+    anything_added = true;
   }
+  for (auto component : processed) {
+    result += component;
+    result += '/';
+    anything_added = true;
+  }
+  if (anything_added)
+    result.pop_back(); // Pop last '/'.
+  else if (result.empty())
+    result = ".";
 
-  if (had_dots)
-    result_const_str.SetCString(result.c_str());
-  else
-    result_const_str = input_const_str;
-
-  return;
+  return FileSpec(result, false, m_syntax);
 }
 
 //------------------------------------------------------------------
@@ -657,7 +609,7 @@ void FileSpec::RemoveBackupDots(const ConstString &input_const_str,
 void FileSpec::Dump(Stream *s) const {
   if (s) {
     std::string path{GetPath(true)};
-    s->PutCString(path.c_str());
+    s->PutCString(path);
     char path_separator = GetPreferredPathSeparator(m_syntax);
     if (!m_filename && !path.empty() && path.back() != path_separator)
       s->PutChar(path_separator);
@@ -790,14 +742,6 @@ uint32_t FileSpec::GetPermissions() const {
   if (*this)
     FileSystem::GetFilePermissions(*this, file_permissions);
   return file_permissions;
-}
-
-TimeValue FileSpec::GetModificationTime() const {
-  TimeValue mod_time;
-  struct stat file_stats;
-  if (GetFileStats(this, &file_stats))
-    mod_time.OffsetWithSeconds(file_stats.st_mtime);
-  return mod_time;
 }
 
 //------------------------------------------------------------------
@@ -1304,6 +1248,22 @@ ConstString FileSpec::GetLastPathComponent() const {
   return ConstString();
 }
 
+static std::string
+join_path_components(FileSpec::PathSyntax syntax,
+                     const std::vector<llvm::StringRef> components) {
+  std::string result;
+  for (size_t i = 0; i < components.size(); ++i) {
+    if (components[i].empty())
+      continue;
+    result += components[i];
+    if (i != components.size() - 1 &&
+        !IsPathSeparator(components[i].back(), syntax))
+      result += GetPreferredPathSeparator(syntax);
+  }
+
+  return result;
+}
+
 void FileSpec::PrependPathComponent(llvm::StringRef component) {
   if (component.empty())
     return;
@@ -1314,17 +1274,10 @@ void FileSpec::PrependPathComponent(llvm::StringRef component) {
     return;
   }
 
-  char sep = GetPreferredPathSeparator(m_syntax);
-  std::string result;
-  if (m_filename.IsEmpty())
-    result = llvm::join_items(sep, component, m_directory.GetStringRef());
-  else if (m_directory.IsEmpty())
-    result = llvm::join_items(sep, component, m_filename.GetStringRef());
-  else
-    result = llvm::join_items(sep, component, m_directory.GetStringRef(),
-                              m_filename.GetStringRef());
-
-  SetFile(result, resolve);
+  std::string result =
+      join_path_components(m_syntax, {component, m_directory.GetStringRef(),
+                                      m_filename.GetStringRef()});
+  SetFile(result, resolve, m_syntax);
 }
 
 void FileSpec::PrependPathComponent(const FileSpec &new_path) {
@@ -1335,23 +1288,12 @@ void FileSpec::AppendPathComponent(llvm::StringRef component) {
   if (component.empty())
     return;
 
-  std::string result;
-  if (!m_directory.IsEmpty()) {
-    result += m_directory.GetStringRef();
-    if (!IsPathSeparator(m_directory.GetStringRef().back(), m_syntax))
-      result += GetPreferredPathSeparator(m_syntax);
-  }
-
-  if (!m_filename.IsEmpty()) {
-    result += m_filename.GetStringRef();
-    if (!IsPathSeparator(m_filename.GetStringRef().back(), m_syntax))
-      result += GetPreferredPathSeparator(m_syntax);
-  }
-
   component = component.drop_while(
       [this](char c) { return IsPathSeparator(c, m_syntax); });
 
-  result += component;
+  std::string result =
+      join_path_components(m_syntax, {m_directory.GetStringRef(),
+                                      m_filename.GetStringRef(), component});
 
   SetFile(result, false, m_syntax);
 }
@@ -1442,3 +1384,46 @@ bool FileSpec::IsRelative() const {
 }
 
 bool FileSpec::IsAbsolute() const { return !FileSpec::IsRelative(); }
+
+void llvm::format_provider<FileSpec>::format(const FileSpec &F,
+                                             raw_ostream &Stream,
+                                             StringRef Style) {
+  assert(
+      (Style.empty() || Style.equals_lower("F") || Style.equals_lower("D")) &&
+      "Invalid FileSpec style!");
+
+  StringRef dir = F.GetDirectory().GetStringRef();
+  StringRef file = F.GetFilename().GetStringRef();
+
+  if (dir.empty() && file.empty()) {
+    Stream << "(empty)";
+    return;
+  }
+
+  if (Style.equals_lower("F")) {
+    Stream << (file.empty() ? "(empty)" : file);
+    return;
+  }
+
+  // Style is either D or empty, either way we need to print the directory.
+  if (!dir.empty()) {
+    // Directory is stored in normalized form, which might be different
+    // than preferred form.  In order to handle this, we need to cut off
+    // the filename, then denormalize, then write the entire denorm'ed
+    // directory.
+    llvm::SmallString<64> denormalized_dir = dir;
+    Denormalize(denormalized_dir, F.GetPathSyntax());
+    Stream << denormalized_dir;
+    Stream << GetPreferredPathSeparator(F.GetPathSyntax());
+  }
+
+  if (Style.equals_lower("D")) {
+    // We only want to print the directory, so now just exit.
+    if (dir.empty())
+      Stream << "(empty)";
+    return;
+  }
+
+  if (!file.empty())
+    Stream << file;
+}

@@ -642,9 +642,11 @@ def skipIfHostIncompatibleWithRemote(func):
                 'i386') and host_arch != target_arch:
             return "skipping because target %s is not compatible with host architecture %s" % (
                 target_arch, host_arch)
-        elif target_platform != host_platform:
+        if target_platform != host_platform:
             return "skipping because target is %s but host is %s" % (
                 target_platform, host_platform)
+        if lldbplatformutil.match_android_device(target_arch):
+            return "skipping because target is android"
         return None
     return skipTestIfFn(is_host_incompatible_with_remote)(func)
 
@@ -689,6 +691,8 @@ def skipUnlessThreadSanitizer(func):
         compiler = os.path.basename(compiler_path)
         if not compiler.startswith("clang"):
             return "Test requires clang as compiler"
+        if lldbplatformutil.getPlatform() == 'windows':
+            return "TSAN tests not compatible with 'windows'"
         # rdar://28659145 - TSAN tests don't look like they're supported on i386
         if self.getArchitecture() == 'i386' and platform.system() == 'Darwin':
             return "TSAN tests not compatible with i386 targets"

@@ -29,7 +29,7 @@
 #include "llvm/Support/ConvertUTF.h"
 
 // Windows includes
-#include <TlHelp32.h>
+#include <tlhelp32.h>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -230,8 +230,9 @@ Error Host::ShellExpandArguments(ProcessLaunchInfo &launch_info) {
 
     int status;
     std::string output;
-    RunShellCommand(expand_command.GetData(), launch_info.GetWorkingDirectory(),
-                    &status, nullptr, &output, 10);
+    std::string command = expand_command.GetString();
+    RunShellCommand(command.c_str(), launch_info.GetWorkingDirectory(), &status,
+                    nullptr, &output, 10);
 
     if (status != 0) {
       error.SetErrorStringWithFormat("lldb-argdumper exited with error %d",

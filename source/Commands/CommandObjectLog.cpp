@@ -48,6 +48,7 @@ static OptionDefinition g_log_options[] = {
   { LLDB_OPT_SET_1, false, "thread-name",'n', OptionParser::eNoArgument,       nullptr, nullptr, 0, eArgTypeNone,     "Prepend all log lines with the thread name for the thread that generates the log line." },
   { LLDB_OPT_SET_1, false, "stack",      'S', OptionParser::eNoArgument,       nullptr, nullptr, 0, eArgTypeNone,     "Append a stack backtrace to each log line." },
   { LLDB_OPT_SET_1, false, "append",     'a', OptionParser::eNoArgument,       nullptr, nullptr, 0, eArgTypeNone,     "Append to the log file instead of overwriting." },
+  { LLDB_OPT_SET_1, false, "file-function",'F',OptionParser::eNoArgument,      nullptr, nullptr, 0, eArgTypeNone,     "Prepend the names of files and function that generate the logs." },
     // clang-format on
 };
 
@@ -88,35 +89,13 @@ public:
 
   Options *GetOptions() override { return &m_options; }
 
-  //    int
-  //    HandleArgumentCompletion (Args &input,
-  //                              int &cursor_index,
-  //                              int &cursor_char_position,
-  //                              OptionElementVector &opt_element_vector,
-  //                              int match_start_point,
-  //                              int max_return_elements,
-  //                              bool &word_complete,
-  //                              StringList &matches)
-  //    {
-  //        std::string completion_str (input.GetArgumentAtIndex(cursor_index));
-  //        completion_str.erase (cursor_char_position);
-  //
-  //        if (cursor_index == 1)
-  //        {
-  //            //
-  //            Log::AutoCompleteChannelName (completion_str.c_str(), matches);
-  //        }
-  //        return matches.GetSize();
-  //    }
-  //
-
   class CommandOptions : public Options {
   public:
     CommandOptions() : Options(), log_file(), log_options(0) {}
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
       const int short_option = m_getopt_table[option_idx].val;
@@ -152,6 +131,9 @@ public:
       case 'a':
         log_options |= LLDB_LOG_OPTION_APPEND;
         break;
+      case 'F':
+        log_options |= LLDB_LOG_OPTION_PREPEND_FILE_FUNCTION;
+        break;
       default:
         error.SetErrorStringWithFormat("unrecognized option '%c'",
                                        short_option);
@@ -186,7 +168,7 @@ protected:
     }
 
     // Store into a std::string since we're about to shift the channel off.
-    std::string channel = args.GetArgumentAtIndex(0);
+    const std::string channel = args[0].ref;
     args.Shift(); // Shift off the channel
     char log_file[PATH_MAX];
     if (m_options.log_file)
@@ -251,7 +233,7 @@ protected:
 
     Log::Callbacks log_callbacks;
 
-    const std::string channel = args.GetArgumentAtIndex(0);
+    const std::string channel = args[0].ref;
     args.Shift(); // Shift off the channel
     if (Log::GetLogChannelCallbacks(ConstString(channel), log_callbacks)) {
       log_callbacks.disable(args.GetConstArgumentVector(),
@@ -350,7 +332,7 @@ protected:
     result.SetStatus(eReturnStatusFailed);
 
     if (args.GetArgumentCount() == 1) {
-      llvm::StringRef sub_command = args.GetArgumentAtIndex(0);
+      auto sub_command = args[0].ref;
 
       if (sub_command.equals_lower("enable")) {
         Timer::SetDisplayDepth(UINT32_MAX);
@@ -367,8 +349,8 @@ protected:
         result.SetStatus(eReturnStatusSuccessFinishResult);
       }
     } else if (args.GetArgumentCount() == 2) {
-      llvm::StringRef sub_command = args.GetArgumentAtIndex(0);
-      llvm::StringRef param = args.GetArgumentAtIndex(1);
+      auto sub_command = args[0].ref;
+      auto param = args[1].ref;
 
       if (sub_command.equals_lower("enable")) {
         uint32_t depth;

@@ -28,6 +28,7 @@
 using namespace lldb;
 using namespace lldb_private;
 using namespace lldb_private::platform_android;
+using namespace std::chrono;
 
 static uint32_t g_initialize_count = 0;
 static const unsigned int g_android_default_cache_size =
@@ -168,7 +169,7 @@ Error PlatformAndroid::ConnectRemote(Args &args) {
     m_remote_platform_sp = PlatformSP(new PlatformAndroidRemoteGDBServer());
 
   int port;
-  std::string scheme, host, path;
+  llvm::StringRef scheme, host, path;
   const char *url = args.GetArgumentAtIndex(0);
   if (!url)
     return Error("URL is null.");
@@ -230,7 +231,7 @@ Error PlatformAndroid::GetFile(const FileSpec &source,
   char cmd[PATH_MAX];
   snprintf(cmd, sizeof(cmd), "cat '%s'", source_file);
 
-  return adb.ShellToFile(cmd, 60000 /* ms */, destination);
+  return adb.ShellToFile(cmd, minutes(1), destination);
 }
 
 Error PlatformAndroid::PutFile(const FileSpec &source,
@@ -288,7 +289,7 @@ uint32_t PlatformAndroid::GetSdkVersion() {
   std::string version_string;
   AdbClient adb(m_device_id);
   Error error =
-      adb.Shell("getprop ro.build.version.sdk", 5000 /* ms */, &version_string);
+      adb.Shell("getprop ro.build.version.sdk", seconds(5), &version_string);
   version_string = llvm::StringRef(version_string).trim().str();
 
   if (error.Fail() || version_string.empty()) {
@@ -327,7 +328,7 @@ Error PlatformAndroid::DownloadSymbolFile(const lldb::ModuleSP &module_sp,
   AdbClient adb(m_device_id);
   std::string tmpdir;
   Error error = adb.Shell("mktemp --directory --tmpdir /data/local/tmp",
-                          5000 /* ms */, &tmpdir);
+                          seconds(5), &tmpdir);
   if (error.Fail() || tmpdir.empty())
     return Error("Failed to generate temporary directory on the device (%s)",
                  error.AsCString());
@@ -338,14 +339,14 @@ Error PlatformAndroid::DownloadSymbolFile(const lldb::ModuleSP &module_sp,
   tmpdir_remover(&tmpdir, [this, &adb](std::string *s) {
     StreamString command;
     command.Printf("rm -rf %s", s->c_str());
-    Error error = adb.Shell(command.GetData(), 5000 /* ms */, nullptr);
+    Error error = adb.Shell(command.GetData(), seconds(5), nullptr);
 
     Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PLATFORM));
     if (log && error.Fail())
       log->Printf("Failed to remove temp directory: %s", error.AsCString());
   });
 
-  FileSpec symfile_platform_filespec(tmpdir.c_str(), false);
+  FileSpec symfile_platform_filespec(tmpdir, false);
   symfile_platform_filespec.AppendPathComponent("symbolized.oat");
 
   // Execute oatdump on the remote device to generate a file with symtab
@@ -353,7 +354,7 @@ Error PlatformAndroid::DownloadSymbolFile(const lldb::ModuleSP &module_sp,
   command.Printf("oatdump --symbolize=%s --output=%s",
                  module_sp->GetPlatformFileSpec().GetCString(false),
                  symfile_platform_filespec.GetCString(false));
-  error = adb.Shell(command.GetData(), 60000 /* ms */, nullptr);
+  error = adb.Shell(command.GetData(), minutes(1), nullptr);
   if (error.Fail())
     return Error("Oatdump failed: %s", error.AsCString());
 

@@ -1290,15 +1290,15 @@ lldb::SBValue SBFrame::EvaluateExpression(const char *expr,
     if (stop_locker.TryLock(&process->GetRunLock())) {
       frame = exe_ctx.GetFramePtr();
       if (frame) {
-        std::unique_ptr<llvm::PrettyStackTraceFormat> PST;
+        std::unique_ptr<llvm::PrettyStackTraceFormat> stack_trace;
         if (target->GetDisplayExpressionsInCrashlogs()) {
           StreamString frame_description;
           frame->DumpUsingSettingsFormat(&frame_description);
-          PST = llvm::make_unique<llvm::PrettyStackTraceFormat>(
+          stack_trace = llvm::make_unique<llvm::PrettyStackTraceFormat>(
               "SBFrame::EvaluateExpression (expr = \"%s\", fetch_dynamic_value "
               "= %u) %s",
               expr, options.GetFetchDynamicValue(),
-              frame_description.GetString().c_str());
+              frame_description.GetData());
         }
 
         exe_results = target->EvaluateExpression(expr, frame, expr_value_sp,

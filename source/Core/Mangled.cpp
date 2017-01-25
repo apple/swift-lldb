@@ -9,9 +9,9 @@
 
 // FreeBSD9-STABLE requires this to know about size_t in cxxabi.h
 #include <cstddef>
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 #include "lldb/Host/windows/windows.h"
-#include <Dbghelp.h>
+#include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")
 #define LLDB_USE_BUILTIN_DEMANGLER
 #elif defined(__FreeBSD__)

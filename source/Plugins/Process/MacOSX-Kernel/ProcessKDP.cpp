@@ -162,7 +162,7 @@ ProcessKDP::ProcessKDP(TargetSP target_sp, ListenerSP listener_sp)
   const uint64_t timeout_seconds =
       GetGlobalPluginProperties()->GetPacketTimeout();
   if (timeout_seconds > 0)
-    m_comm.SetPacketTimeout(timeout_seconds);
+    m_comm.SetPacketTimeout(std::chrono::seconds(timeout_seconds));
 }
 
 //----------------------------------------------------------------------
@@ -221,7 +221,7 @@ bool ProcessKDP::GetHostArchitecture(ArchSpec &arch) {
   return false;
 }
 
-Error ProcessKDP::DoConnectRemote(Stream *strm, const char *remote_url) {
+Error ProcessKDP::DoConnectRemote(Stream *strm, llvm::StringRef remote_url) {
   Error error;
 
   // Don't let any JIT happen when doing KDP as we can't allocate
@@ -229,8 +229,8 @@ Error ProcessKDP::DoConnectRemote(Stream *strm, const char *remote_url) {
   // already be handling exceptions
   SetCanJIT(false);
 
-  if (remote_url == NULL || remote_url[0] == '\0') {
-    error.SetErrorStringWithFormat("invalid connection URL '%s'", remote_url);
+  if (remote_url.empty()) {
+    error.SetErrorStringWithFormat("empty connection URL");
     return error;
   }
 
@@ -360,7 +360,8 @@ Error ProcessKDP::DoConnectRemote(Stream *strm, const char *remote_url) {
     }
   } else {
     if (error.Success())
-      error.SetErrorStringWithFormat("failed to connect to '%s'", remote_url);
+      error.SetErrorStringWithFormat("failed to connect to '%s'",
+                                     remote_url.str().c_str());
   }
   if (error.Fail())
     m_comm.Disconnect();
@@ -479,8 +480,7 @@ Error ProcessKDP::DoResume() {
 
     default:
       // The only valid thread resume states are listed above
-      assert(!"invalid thread resume state");
-      break;
+      llvm_unreachable("invalid thread resume state");
     }
   }
 
@@ -796,7 +796,7 @@ void *ProcessKDP::AsyncThread(void *arg) {
         log->Printf("ProcessKDP::AsyncThread (pid = %" PRIu64
                     ") listener.WaitForEvent (NULL, event_sp)...",
                     pid);
-      if (listener_sp->WaitForEvent(std::chrono::microseconds(0), event_sp)) {
+      if (listener_sp->GetEvent(event_sp, llvm::None)) {
         uint32_t event_type = event_sp->GetType();
         if (log)
           log->Printf("ProcessKDP::AsyncThread (pid = %" PRIu64
@@ -831,7 +831,8 @@ void *ProcessKDP::AsyncThread(void *arg) {
               // Check to see if we are supposed to exit. There is no way to
               // interrupt a running kernel, so all we can do is wait for an
               // exception or detach...
-              if (listener_sp->GetNextEvent(event_sp)) {
+              if (listener_sp->GetEvent(event_sp,
+                                        std::chrono::microseconds(0))) {
                 // We got an event, go through the loop again
                 event_type = event_sp->GetType();
               }
@@ -965,7 +966,7 @@ public:
                 packet.PutBytesAsRawHex8(
                     reply.GetDataStart(), reply.GetByteSize(),
                     endian::InlHostByteOrder(), endian::InlHostByteOrder());
-                result.AppendMessage(packet.GetString().c_str());
+                result.AppendMessage(packet.GetString());
                 result.SetStatus(eReturnStatusSuccessFinishResult);
                 return true;
               } else {

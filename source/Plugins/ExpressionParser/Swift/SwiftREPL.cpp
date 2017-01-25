@@ -110,7 +110,7 @@ lldb::REPLSP SwiftREPL::CreateInstance(Error &err, lldb::LanguageType language,
                                                 // say it is internal
 
               lldb_private::ProcessLaunchInfo launch_info;
-              const char *target_settings_argv0 = target_sp->GetArg0();
+              auto target_settings_argv0 = target_sp->GetArg0();
 
               if (target_sp->GetDisableASLR())
                 launch_info.GetFlags().Set(eLaunchFlagDisableASLR);
@@ -118,7 +118,7 @@ lldb::REPLSP SwiftREPL::CreateInstance(Error &err, lldb::LanguageType language,
               if (target_sp->GetDisableSTDIO())
                 launch_info.GetFlags().Set(eLaunchFlagDisableSTDIO);
 
-              if (target_settings_argv0) {
+              if (!target_settings_argv0.empty()) {
                 launch_info.GetArguments().AppendArgument(
                     target_settings_argv0);
                 launch_info.SetExecutableFile(

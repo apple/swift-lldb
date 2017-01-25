@@ -1697,7 +1697,7 @@ bool ABISysV_arm64::PrepareTrivialCall(Thread &thread, addr_t sp,
 
   if (log) {
     StreamString s;
-    s.Printf("ABISysV_x86_64::PrepareTrivialCall (tid = 0x%" PRIx64
+    s.Printf("ABISysV_arm64::PrepareTrivialCall (tid = 0x%" PRIx64
              ", sp = 0x%" PRIx64 ", func_addr = 0x%" PRIx64
              ", return_addr = 0x%" PRIx64,
              thread.GetID(), (uint64_t)sp, (uint64_t)func_addr,
@@ -1706,7 +1706,7 @@ bool ABISysV_arm64::PrepareTrivialCall(Thread &thread, addr_t sp,
     for (size_t i = 0; i < args.size(); ++i)
       s.Printf(", arg%d = 0x%" PRIx64, static_cast<int>(i + 1), args[i]);
     s.PutCString(")");
-    log->PutCString(s.GetString().c_str());
+    log->PutString(s.GetString());
   }
 
   // x0 - x7 contain first 8 simple args

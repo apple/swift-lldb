@@ -664,6 +664,7 @@ class GdbRemoteTestCaseBase(TestBase):
         "triple",
         "vendor",
         "endian",
+        "elf_abi",
         "ptrsize"
     ]
 

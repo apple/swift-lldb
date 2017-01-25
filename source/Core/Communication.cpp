@@ -112,18 +112,20 @@ bool Communication::HasConnection() const {
   return m_connection_sp.get() != nullptr;
 }
 
-size_t Communication::Read(void *dst, size_t dst_len, uint32_t timeout_usec,
+size_t Communication::Read(void *dst, size_t dst_len,
+                           const Timeout<std::micro> &timeout,
                            ConnectionStatus &status, Error *error_ptr) {
   lldb_private::LogIfAnyCategoriesSet(
       LIBLLDB_LOG_COMMUNICATION,
       "%p Communication::Read (dst = %p, dst_len = %" PRIu64
       ", timeout = %u usec) connection = %p",
-      this, dst, (uint64_t)dst_len, timeout_usec, m_connection_sp.get());
+      this, dst, (uint64_t)dst_len, timeout ? timeout->count() : -1,
+      m_connection_sp.get());
 
   if (m_read_thread_enabled) {
     // We have a dedicated read thread that is getting data for us
     size_t cached_bytes = GetCachedBytes(dst, dst_len);
-    if (cached_bytes > 0 || timeout_usec == 0) {
+    if (cached_bytes > 0 || (timeout && timeout->count() == 0)) {
       status = eConnectionStatusSuccess;
       return cached_bytes;
     }
@@ -139,10 +141,7 @@ size_t Communication::Read(void *dst, size_t dst_len, uint32_t timeout_usec,
     listener_sp->StartListeningForEvents(
         this, eBroadcastBitReadThreadGotBytes | eBroadcastBitReadThreadDidExit);
     EventSP event_sp;
-    std::chrono::microseconds timeout = std::chrono::microseconds(0);
-    if (timeout_usec != UINT32_MAX)
-      timeout = std::chrono::microseconds(timeout_usec);
-    while (listener_sp->WaitForEvent(timeout, event_sp)) {
+    while (listener_sp->GetEvent(event_sp, timeout)) {
       const uint32_t event_type = event_sp->GetType();
       if (event_type & eBroadcastBitReadThreadGotBytes) {
         return GetCachedBytes(dst, dst_len);
@@ -159,15 +158,7 @@ size_t Communication::Read(void *dst, size_t dst_len, uint32_t timeout_usec,
 
   // We aren't using a read thread, just read the data synchronously in this
   // thread.
-  lldb::ConnectionSP connection_sp(m_connection_sp);
-  if (connection_sp) {
-    return connection_sp->Read(dst, dst_len, timeout_usec, status, error_ptr);
-  }
-
-  if (error_ptr)
-    error_ptr->SetErrorString("Invalid connection.");
-  status = eConnectionStatusNoConnection;
-  return 0;
+  return ReadFromConnection(dst, dst_len, timeout, status, error_ptr);
 }
 
 size_t Communication::Write(const void *src, size_t src_len,
@@ -279,14 +270,17 @@ void Communication::AppendBytesToCache(const uint8_t *bytes, size_t len,
 }
 
 size_t Communication::ReadFromConnection(void *dst, size_t dst_len,
-                                         uint32_t timeout_usec,
+                                         const Timeout<std::micro> &timeout,
                                          ConnectionStatus &status,
                                          Error *error_ptr) {
   lldb::ConnectionSP connection_sp(m_connection_sp);
-  return (
-      connection_sp
-          ? connection_sp->Read(dst, dst_len, timeout_usec, status, error_ptr)
-          : 0);
+  if (connection_sp)
+    return connection_sp->Read(dst, dst_len, timeout, status, error_ptr);
+
+  if (error_ptr)
+    error_ptr->SetErrorString("Invalid connection.");
+  status = eConnectionStatusNoConnection;
+  return 0;
 }
 
 bool Communication::ReadThreadIsRunning() { return m_read_thread_enabled; }
@@ -306,7 +300,7 @@ lldb::thread_result_t Communication::ReadThread(lldb::thread_arg_t p) {
   bool done = false;
   while (!done && comm->m_read_thread_enabled) {
     size_t bytes_read = comm->ReadFromConnection(
-        buf, sizeof(buf), 5 * TimeValue::MicroSecPerSec, status, &error);
+        buf, sizeof(buf), std::chrono::seconds(5), status, &error);
     if (bytes_read > 0)
       comm->AppendBytesToCache(buf, bytes_read, true, status);
     else if ((bytes_read == 0) && status == eConnectionStatusEndOfFile) {
@@ -388,7 +382,7 @@ void Communication::SynchronizeWithReadThread() {
 
   // Wait for the synchronization event.
   EventSP event_sp;
-  listener_sp->WaitForEvent(std::chrono::microseconds(0), event_sp);
+  listener_sp->GetEvent(event_sp, llvm::None);
 }
 
 void Communication::SetConnection(Connection *connection) {

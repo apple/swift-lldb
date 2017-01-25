@@ -8,6 +8,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "lldb/Host/posix/MainLoopPosix.h"
+
+#include <errno.h>
+
+#include <vector>
+
 #include "lldb/Core/Error.h"
 #include <algorithm>
 #include <cassert>
