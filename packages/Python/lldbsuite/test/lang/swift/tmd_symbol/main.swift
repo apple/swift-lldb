@@ -10,8 +10,7 @@
 //
 // -----------------------------------------------------------------------------
 func main() {
-  var d: Double = 3.1415
-	print("hello world \(d)") // Set breakpoint here
+  print("hello world \(Double.self)") // Set breakpoint here
 }
 
 main()
