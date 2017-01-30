@@ -1694,61 +1694,9 @@ Error NativeProcessLinux::GetMemoryRegionInfo(lldb::addr_t load_addr,
     return Error("unsupported");
   }
 
-  // If our cache is empty, pull the latest.  There should always be at least
-  // one memory region
-  // if memory region handling is supported.
-  if (m_mem_region_cache.empty()) {
-    error = ProcFileReader::ProcessLineByLine(GetID(), "maps", [&](const std::
-                                                                       string &
-                                                                           line)
-                                                                   -> bool {
-      MemoryRegionInfo info;
-      const Error parse_error =
-          ParseMemoryRegionInfoFromProcMapsLine(line, info);
-      if (parse_error.Success()) {
-        m_mem_region_cache.push_back(info);
-        return true;
-      } else {
-        if (log)
-          log->Printf(
-              "NativeProcessLinux::%s failed to parse proc maps line '%s': %s",
-              __FUNCTION__, line.c_str(), error.AsCString());
-        return false;
-      }
-    });
-
-    // If we had an error, we'll mark unsupported.
-    if (error.Fail()) {
-      m_supports_mem_region = LazyBool::eLazyBoolNo;
-      return error;
-    } else if (m_mem_region_cache.empty()) {
-      // No entries after attempting to read them.  This shouldn't happen if
-      // /proc/{pid}/maps
-      // is supported.  Assume we don't support map entries via procfs.
-      if (log)
-        log->Printf("NativeProcessLinux::%s failed to find any procfs maps "
-                    "entries, assuming no support for memory region metadata "
-                    "retrieval",
-                    __FUNCTION__);
-      m_supports_mem_region = LazyBool::eLazyBoolNo;
-      error.SetErrorString("not supported");
-      return error;
-    }
-
-    if (log)
-      log->Printf("NativeProcessLinux::%s read %" PRIu64
-                  " memory region entries from /proc/%" PRIu64 "/maps",
-                  __FUNCTION__,
-                  static_cast<uint64_t>(m_mem_region_cache.size()), GetID());
-
-    // We support memory retrieval, remember that.
-    m_supports_mem_region = LazyBool::eLazyBoolYes;
-  } else {
-    if (log)
-      log->Printf("NativeProcessLinux::%s reusing %" PRIu64
-                  " cached memory region entries",
-                  __FUNCTION__,
-                  static_cast<uint64_t>(m_mem_region_cache.size()));
+  Error error = PopulateMemoryRegionCache();
+  if (error.Fail()) {
+    return error;
   }
 
   lldb::addr_t prev_base_address = 0;
