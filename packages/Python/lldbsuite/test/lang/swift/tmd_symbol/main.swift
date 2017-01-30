@@ -9,8 +9,13 @@
 // See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 // -----------------------------------------------------------------------------
-func main() {
+
+func generic_print<T>(T t) {
   print("hello world \(Double.self)") // Set breakpoint here
+}
+
+func main() {
+  generic_print(t)
 }
 
 main()
