@@ -10,12 +10,13 @@
 //
 // -----------------------------------------------------------------------------
 
-func generic_print<T>(_: T) {
-  print("hello world \(T.self)") // Set breakpoint here
+func generic_print<T>(t: T) {
+  print("hello world \(t)") // Set breakpoint here
 }
 
 func main() {
-  generic_print(t)
+  let d = Double(3.1415)
+  generic_print(t:d)
 }
 
 main()
