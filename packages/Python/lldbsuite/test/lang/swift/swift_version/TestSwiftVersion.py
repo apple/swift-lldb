@@ -22,15 +22,6 @@ import os.path
 import time
 import unittest2
 
-
-def execute_command(command):
-    # print '%% %s' % (command)
-    (exit_status, output) = commands.getstatusoutput(command)
-    # if output:
-    #     print output
-    # print 'status = %u' % (exit_status)
-    return exit_status
-
 class TestSwiftVersion(TestBase):
 
     mydir = TestBase.compute_mydir(__file__)
@@ -46,12 +37,12 @@ class TestSwiftVersion(TestBase):
         TestBase.setUp(self)
 
     def buildAll(self):
-        execute_command("make everything")
+        lldbutil.execute_command("make everything")
 
     def do_test(self):
         """Test that LLDB can debug different Swift language versions"""
         def cleanup():
-            execute_command("make cleanup")
+            lldbutil.execute_command("make cleanup")
         self.addTearDownHook(cleanup)
 
         exe_name = "main"
@@ -77,13 +68,16 @@ class TestSwiftVersion(TestBase):
           source_spec = lldb.SBFileSpec(source_name)
 
           breakpoint = target.BreakpointCreateBySourceRegex(t['source_regex'], source_spec)
-          self.assertTrue(breakpoint.GetNumLocations() > 0, VALID_BREAKPOINT)
+          self.assertTrue(breakpoint.GetNumLocations() > 0, "Breakpoint set sucessfully with file " + source_name + ", regex " + t['source_regex'])
 
         process = target.LaunchSimple(None, None, os.getcwd())
         self.assertTrue(process, PROCESS_IS_VALID)
 
         for t in tests:
-          self.expect("expr " + t['expr'], DATA_TYPES_DISPLAYED_CORRECTLY, substrs=[t['substr']])
+          thread = process.GetSelectedThread()
+          frame = thread.GetFrameAtIndex(0)
+          val = frame.EvaluateExpression(t['expr'])
+          self.assertTrue(t['substr'] in str(val.GetValue()), "Expression " + t['expr'] + " result " + val.GetValue() + " has substring " + t['substr'])
           process.Continue()
 
 if __name__ == '__main__':
