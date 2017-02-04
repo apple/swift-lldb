@@ -499,7 +499,7 @@ CachedMemberInfo *SwiftASTContext::GetCachedMemberInfo(void *type) {
               if (var_decl->hasStorage() && !var_decl->isStatic()) {
                 MemberInfo member_info(MemberType::Field);
                 swift::Type member_type = swift_can_type->getTypeOfMember(
-                    t_decl->getModuleContext(), var_decl, nullptr);
+                    t_decl->getModuleContext(), var_decl);
                 member_info.clang_type =
                     CompilerType(GetASTContext(), member_type.getPointer());
                 member_info.byte_size =
@@ -881,7 +881,7 @@ public:
       swift::EnumElementDecl *case_decl = enum_case.decl;
       assert(case_decl);
       CompilerType case_type(
-          ast, swift_can_type->getTypeOfMember(module_ctx, case_decl, nullptr)
+          ast, swift_can_type->getTypeOfMember(module_ctx, case_decl)
                    .getPointer());
       case_type = GetFunctionArgumentTuple(case_type.GetFunctionReturnType());
 
