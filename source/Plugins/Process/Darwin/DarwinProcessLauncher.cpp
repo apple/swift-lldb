@@ -1,3 +1,12 @@
+//===-- DarwinProcessLauncher.cpp -------------------------------*- C++ -*-===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+
 //
 //  DarwinProcessLauncher.cpp
 //  lldb
@@ -21,11 +30,11 @@
 // LLDB includes
 #include "lldb/lldb-enumerations.h"
 
-#include "lldb/Core/Error.h"
 #include "lldb/Core/Log.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Target/ProcessLaunchInfo.h"
+#include "lldb/Utility/Error.h"
 #include "lldb/Utility/PseudoTerminal.h"
+#include "lldb/Utility/StreamString.h"
 
 #include "CFBundle.h"
 #include "CFString.h"

@@ -21,8 +21,8 @@
 
 // Other libraries and framework includes
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/Support/Threading.h"
 
-#include "lldb/Core/ConstString.h"
 #include "lldb/Core/Flags.h"
 #include "lldb/Core/RangeMap.h"
 #include "lldb/Core/UniqueCStringMap.h"
@@ -31,6 +31,7 @@
 #include "lldb/Symbol/DebugMacros.h"
 #include "lldb/Symbol/SymbolContext.h"
 #include "lldb/Symbol/SymbolFile.h"
+#include "lldb/Utility/ConstString.h"
 #include "lldb/lldb-private.h"
 
 // Project includes

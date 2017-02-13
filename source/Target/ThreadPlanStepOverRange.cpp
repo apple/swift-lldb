@@ -13,7 +13,6 @@
 // Project includes
 #include "lldb/Target/ThreadPlanStepOverRange.h"
 #include "lldb/Core/Log.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Symbol/Block.h"
 #include "lldb/Symbol/CompileUnit.h"
 #include "lldb/Symbol/Function.h"
@@ -24,6 +23,7 @@
 #include "lldb/Target/Thread.h"
 #include "lldb/Target/ThreadPlanStepOut.h"
 #include "lldb/Target/ThreadPlanStepThrough.h"
+#include "lldb/Utility/Stream.h"
 
 using namespace lldb_private;
 using namespace lldb;
@@ -107,21 +107,22 @@ bool ThreadPlanStepOverRange::IsEquivalentContext(
   // the .o file from the
   // inlined range, so I left that out too...
   if (m_addr_context.comp_unit) {
-    if (m_addr_context.comp_unit == context.comp_unit) {
-      if (m_addr_context.function &&
-          m_addr_context.function == context.function) {
-        // It is okay to return to a different block of a straight function, we
-        // only have to
-        // be more careful if returning from one inlined block to another.
-        if (m_addr_context.block->GetInlinedFunctionInfo() == nullptr &&
-            context.block->GetInlinedFunctionInfo() == nullptr)
-          return true;
-
-        if (m_addr_context.block && m_addr_context.block == context.block)
-          return true;
-      }
+    if (m_addr_context.comp_unit != context.comp_unit)
+      return false;
+    if (m_addr_context.function) {
+      if (m_addr_context.function != context.function)
+        return false;
+      // It is okay to return to a different block of a straight function, we
+      // only have to
+      // be more careful if returning from one inlined block to another.
+      if (m_addr_context.block->GetInlinedFunctionInfo() == nullptr &&
+          context.block->GetInlinedFunctionInfo() == nullptr)
+        return true;
+      return m_addr_context.block == context.block;
     }
-  } else if (m_addr_context.symbol && m_addr_context.symbol == context.symbol) {
+  }
+  // Fall back to symbol if we have no decision from comp_unit/function/block.
+  if (m_addr_context.symbol && m_addr_context.symbol == context.symbol) {
     return true;
   }
   return false;
@@ -422,7 +423,7 @@ bool ThreadPlanStepOverRange::DoWillResume(lldb::StateType resume_state,
                   "Stepping over inlined function \"%s\" in inlined stack: ",
                   name);
               DumpRanges(&s);
-              log->PutCString(s.GetData());
+              log->PutString(s.GetString());
             }
           }
         }

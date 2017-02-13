@@ -14,6 +14,7 @@
 #include "lldb/Core/StreamFile.h"
 #include "lldb/Interpreter/Args.h"
 #include "llvm/Support/ManagedStatic.h"
+#include "llvm/Support/Threading.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -30,7 +31,7 @@ static llvm::ManagedStatic<std::once_flag> g_once_flag;
 void ProcessWindowsLog::Initialize() {
   static ConstString g_name("windows");
 
-  std::call_once(*g_once_flag, []() {
+  llvm::call_once(*g_once_flag, []() {
     Log::Callbacks log_callbacks = {DisableLog, EnableLog, ListLogCategories};
 
     Log::RegisterLogChannel(g_name, log_callbacks);
@@ -101,15 +102,16 @@ void ProcessWindowsLog::DisableLog(const char **args, Stream *feedback_strm) {
     log->GetMask().Reset(flag_bits);
     if (flag_bits == 0) {
       g_log_enabled = false;
-      log->SetStream(lldb::StreamSP());
+      log->SetStream(nullptr);
     }
   }
 
   return;
 }
 
-Log *ProcessWindowsLog::EnableLog(StreamSP &log_stream_sp, uint32_t log_options,
-                                  const char **args, Stream *feedback_strm) {
+Log *ProcessWindowsLog::EnableLog(
+    const std::shared_ptr<llvm::raw_ostream> &log_stream_sp, uint32_t log_options,
+    const char **args, Stream *feedback_strm) {
   // Try see if there already is a log - that way we can reuse its settings.
   // We could reuse the log in toto, but we don't know that the stream is the
   // same.

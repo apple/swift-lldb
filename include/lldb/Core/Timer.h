@@ -20,8 +20,8 @@
 
 // Other libraries and framework includes
 // Project includes
-#include "lldb/Host/TimeValue.h"
 #include "lldb/lldb-private.h"
+#include "llvm/Support/Chrono.h"
 
 namespace lldb_private {
 
@@ -61,69 +61,18 @@ public:
   static void ResetCategoryTimes();
 
 protected:
-  void ChildStarted(const TimeValue &time);
-
-  void ChildStopped(const TimeValue &time);
-
-  uint64_t GetTotalElapsedNanoSeconds();
-
-  uint64_t GetTimerElapsedNanoSeconds();
+  using TimePoint = std::chrono::steady_clock::time_point;
+  void ChildDuration(TimePoint::duration dur) { m_child_duration += dur; }
 
   const char *m_category;
-  TimeValue m_total_start;
-  TimeValue m_timer_start;
-  uint64_t m_total_ticks; // Total running time for this timer including when
-                          // other timers below this are running
-  uint64_t m_timer_ticks; // Ticks for this timer that do not include when other
-                          // timers below this one are running
+  TimePoint m_total_start;
+  TimePoint::duration m_child_duration{0};
 
   static std::atomic<bool> g_quiet;
   static std::atomic<unsigned> g_display_depth;
 
 private:
-  Timer();
   DISALLOW_COPY_AND_ASSIGN(Timer);
-};
-
-class IntervalTimer {
-public:
-  IntervalTimer() : m_start(TimeValue::Now()) {}
-
-  ~IntervalTimer() = default;
-
-  uint64_t GetElapsedNanoSeconds() const { return TimeValue::Now() - m_start; }
-
-  void Reset() { m_start = TimeValue::Now(); }
-
-  int PrintfElapsed(const char *format, ...)
-      __attribute__((format(printf, 2, 3))) {
-    TimeValue now(TimeValue::Now());
-    const uint64_t elapsed_nsec = now - m_start;
-    const char *unit = nullptr;
-    float elapsed_value;
-    if (elapsed_nsec < 1000) {
-      unit = "ns";
-      elapsed_value = (float)elapsed_nsec;
-    } else if (elapsed_nsec < 1000000) {
-      unit = "us";
-      elapsed_value = (float)elapsed_nsec / 1000.0f;
-    } else if (elapsed_nsec < 1000000000) {
-      unit = "ms";
-      elapsed_value = (float)elapsed_nsec / 1000000.0f;
-    } else {
-      unit = "sec";
-      elapsed_value = (float)elapsed_nsec / 1000000000.0f;
-    }
-    int result = printf("%3.2f %s: ", elapsed_value, unit);
-    va_list args;
-    va_start(args, format);
-    result += vprintf(format, args);
-    va_end(args);
-    return result;
-  }
-
-protected:
-  TimeValue m_start;
 };
 
 } // namespace lldb_private

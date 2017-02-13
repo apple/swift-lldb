@@ -18,9 +18,9 @@
 #include "lldb/Core/Event.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/State.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Host/Endian.h"
 #include "lldb/Target/Process.h"
+#include "lldb/Utility/Stream.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -64,7 +64,7 @@ void Event::Dump(Stream *s) const {
                 static_cast<const void *>(this),
                 static_cast<void *>(broadcaster),
                 broadcaster->GetBroadcasterName().GetCString(), m_type,
-                event_name.GetString().c_str());
+                event_name.GetData());
     else
       s->Printf("%p Event: broadcaster = %p (%s), type = 0x%8.8x, data = ",
                 static_cast<const void *>(this),

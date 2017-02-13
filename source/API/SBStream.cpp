@@ -9,10 +9,10 @@
 
 #include "lldb/API/SBStream.h"
 
-#include "lldb/Core/Error.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Core/StreamFile.h"
-#include "lldb/Core/StreamString.h"
+#include "lldb/Utility/Error.h"
+#include "lldb/Utility/Stream.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -63,8 +63,7 @@ void SBStream::RedirectToFile(const char *path, bool append) {
     // See if we have any locally backed data. If so, copy it so we can then
     // redirect it to the file so we don't lose the data
     if (!m_is_file)
-      local_data.swap(
-          static_cast<StreamString *>(m_opaque_ap.get())->GetString());
+      local_data = static_cast<StreamString *>(m_opaque_ap.get())->GetString();
   }
   StreamFile *stream_file = new StreamFile;
   uint32_t open_options = File::eOpenOptionWrite | File::eOpenOptionCanCreate;
@@ -97,8 +96,7 @@ void SBStream::RedirectToFileHandle(FILE *fh, bool transfer_fh_ownership) {
     // See if we have any locally backed data. If so, copy it so we can then
     // redirect it to the file so we don't lose the data
     if (!m_is_file)
-      local_data.swap(
-          static_cast<StreamString *>(m_opaque_ap.get())->GetString());
+      local_data = static_cast<StreamString *>(m_opaque_ap.get())->GetString();
   }
   m_opaque_ap.reset(new StreamFile(fh, transfer_fh_ownership));
 
@@ -119,8 +117,7 @@ void SBStream::RedirectToFileDescriptor(int fd, bool transfer_fh_ownership) {
     // See if we have any locally backed data. If so, copy it so we can then
     // redirect it to the file so we don't lose the data
     if (!m_is_file)
-      local_data.swap(
-          static_cast<StreamString *>(m_opaque_ap.get())->GetString());
+      local_data = static_cast<StreamString *>(m_opaque_ap.get())->GetString();
   }
 
   m_opaque_ap.reset(new StreamFile(::fdopen(fd, "w"), transfer_fh_ownership));
@@ -152,6 +149,6 @@ void SBStream::Clear() {
     if (m_is_file)
       m_opaque_ap.reset();
     else
-      static_cast<StreamString *>(m_opaque_ap.get())->GetString().clear();
+      static_cast<StreamString *>(m_opaque_ap.get())->Clear();
   }
 }

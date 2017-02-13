@@ -17,8 +17,6 @@
 
 #include "Plugins/LanguageRuntime/ObjC/AppleObjCRuntime/AppleObjCRuntime.h"
 #include "lldb/Core/DataBufferHeap.h"
-#include "lldb/Core/Error.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Core/ValueObjectConstResult.h"
 #include "lldb/DataFormatters/FormattersHelpers.h"
@@ -28,6 +26,8 @@
 #include "lldb/Target/Language.h"
 #include "lldb/Target/ObjCLanguageRuntime.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/Error.h"
+#include "lldb/Utility/Stream.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -350,7 +350,7 @@ lldb_private::formatters::NSArrayMSyntheticFrontEnd::GetChildAtIndex(
   object_at_idx += (pyhs_idx * m_ptr_size);
   StreamString idx_name;
   idx_name.Printf("[%" PRIu64 "]", (uint64_t)idx);
-  return CreateValueObjectFromAddress(idx_name.GetData(), object_at_idx,
+  return CreateValueObjectFromAddress(idx_name.GetString(), object_at_idx,
                                       m_exe_ctx_ref, m_id_type);
 }
 
@@ -571,7 +571,7 @@ lldb_private::formatters::NSArrayISyntheticFrontEnd::GetChildAtIndex(
     return lldb::ValueObjectSP();
   StreamString idx_name;
   idx_name.Printf("[%" PRIu64 "]", (uint64_t)idx);
-  return CreateValueObjectFromAddress(idx_name.GetData(), object_at_idx,
+  return CreateValueObjectFromAddress(idx_name.GetString(), object_at_idx,
                                       m_exe_ctx_ref, m_id_type);
 }
 

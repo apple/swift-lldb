@@ -12,7 +12,7 @@
 
 #include "SwiftLanguage.h"
 
-#include "lldb/Core/ConstString.h"
+#include "lldb/Utility/ConstString.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Core/ValueObjectVariable.h"
@@ -1685,7 +1685,7 @@ bool SwiftLanguage::GetFunctionDisplayName(
                               eValueObjectRepresentationStyleSummary,
                       eFormatDefault,
                       ValueObject::PrintableRepresentationSpecialCases::
-                          ePrintableRepresentationSpecialCasesAllow,
+                          eAllow,
                       false);
               }
               if (ss.GetData() && ss.GetSize())

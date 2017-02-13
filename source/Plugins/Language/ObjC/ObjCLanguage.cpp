@@ -15,9 +15,7 @@
 // Project includes
 #include "ObjCLanguage.h"
 
-#include "lldb/Core/ConstString.h"
 #include "lldb/Core/PluginManager.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/DataFormatters/DataVisualization.h"
 #include "lldb/DataFormatters/FormattersHelpers.h"
@@ -25,6 +23,10 @@
 #include "lldb/Symbol/CompilerType.h"
 #include "lldb/Target/ObjCLanguageRuntime.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/ConstString.h"
+#include "lldb/Utility/StreamString.h"
+
+#include "llvm/Support/Threading.h"
 
 #include "CF.h"
 #include "Cocoa.h"
@@ -217,7 +219,7 @@ ConstString ObjCLanguage::MethodName::GetFullNameWithoutCategory(
         strm.PutChar('-');
       strm.Printf("[%s %s]", GetClassName().GetCString(),
                   GetSelector().GetCString());
-      return ConstString(strm.GetString().c_str());
+      return ConstString(strm.GetString());
     }
 
     if (!empty_if_no_category) {
@@ -242,25 +244,25 @@ size_t ObjCLanguage::MethodName::GetFullNames(std::vector<ConstString> &names,
       if (category) {
         strm.Printf("%c[%s %s]", is_class_method ? '+' : '-',
                     GetClassName().GetCString(), GetSelector().GetCString());
-        names.push_back(ConstString(strm.GetString().c_str()));
+        names.emplace_back(strm.GetString());
       }
     } else {
       const ConstString &class_name = GetClassName();
       const ConstString &selector = GetSelector();
       strm.Printf("+[%s %s]", class_name.GetCString(), selector.GetCString());
-      names.push_back(ConstString(strm.GetString().c_str()));
+      names.emplace_back(strm.GetString());
       strm.Clear();
       strm.Printf("-[%s %s]", class_name.GetCString(), selector.GetCString());
-      names.push_back(ConstString(strm.GetString().c_str()));
+      names.emplace_back(strm.GetString());
       strm.Clear();
       if (category) {
         strm.Printf("+[%s(%s) %s]", class_name.GetCString(),
                     category.GetCString(), selector.GetCString());
-        names.push_back(ConstString(strm.GetString().c_str()));
+        names.emplace_back(strm.GetString());
         strm.Clear();
         strm.Printf("-[%s(%s) %s]", class_name.GetCString(),
                     category.GetCString(), selector.GetCString());
-        names.push_back(ConstString(strm.GetString().c_str()));
+        names.emplace_back(strm.GetString());
       }
     }
   }
@@ -865,7 +867,7 @@ lldb::TypeCategoryImplSP ObjCLanguage::GetFormatters() {
   static std::once_flag g_initialize;
   static TypeCategoryImplSP g_category;
 
-  std::call_once(g_initialize, [this]() -> void {
+  llvm::call_once(g_initialize, [this]() -> void {
     DataVisualization::Categories::GetCategory(GetPluginName(), g_category);
     if (g_category) {
       LoadCoreMediaFormatters(g_category);
@@ -912,35 +914,65 @@ ObjCLanguage::GetPossibleFormattersMatches(ValueObject &valobj,
 }
 
 std::unique_ptr<Language::TypeScavenger> ObjCLanguage::GetTypeScavenger() {
-  class ObjCTypeScavenger : public Language::TypeScavenger {
+  class ObjCScavengerResult : public Language::TypeScavenger::Result {
+  public:
+    ObjCScavengerResult(CompilerType type)
+        : Language::TypeScavenger::Result(), m_compiler_type(type) {}
+
+    bool IsValid() override { return m_compiler_type.IsValid(); }
+
+    bool DumpToStream(Stream &stream, bool print_help_if_available) override {
+      if (IsValid()) {
+        m_compiler_type.DumpTypeDescription(&stream);
+        stream.EOL();
+        return true;
+      }
+      return false;
+    }
+
   private:
-    class ObjCScavengerResult : public Language::TypeScavenger::Result {
-    public:
-      ObjCScavengerResult(CompilerType type)
-          : Language::TypeScavenger::Result(), m_compiler_type(type) {}
+    CompilerType m_compiler_type;
+  };
 
-      bool IsValid() override { return m_compiler_type.IsValid(); }
+  class ObjCRuntimeScavenger : public Language::TypeScavenger {
+  protected:
+    bool Find_Impl(ExecutionContextScope *exe_scope, const char *key,
+                   ResultSet &results) override {
+      bool result = false;
 
-      bool DumpToStream(Stream &stream, bool print_help_if_available) override {
-        if (IsValid()) {
-          m_compiler_type.DumpTypeDescription(&stream);
-          stream.EOL();
-          return true;
+      Process *process = exe_scope->CalculateProcess().get();
+      if (process) {
+        const bool create_on_demand = false;
+        auto objc_runtime = process->GetObjCLanguageRuntime(create_on_demand);
+        if (objc_runtime) {
+          auto decl_vendor = objc_runtime->GetDeclVendor();
+          if (decl_vendor) {
+            std::vector<clang::NamedDecl *> decls;
+            ConstString name(key);
+            decl_vendor->FindDecls(name, true, UINT32_MAX, decls);
+            for (auto decl : decls) {
+              if (decl) {
+                if (CompilerType candidate =
+                        ClangASTContext::GetTypeForDecl(decl)) {
+                  result = true;
+                  std::unique_ptr<Language::TypeScavenger::Result> result(
+                      new ObjCScavengerResult(candidate));
+                  results.insert(std::move(result));
+                }
+              }
+            }
+          }
         }
-        return false;
       }
 
-      ~ObjCScavengerResult() override = default;
+      return result;
+    }
 
-    private:
-      CompilerType m_compiler_type;
-    };
+    friend class lldb_private::ObjCLanguage;
+  };
 
+  class ObjCModulesScavenger : public Language::TypeScavenger {
   protected:
-    ObjCTypeScavenger() = default;
-
-    ~ObjCTypeScavenger() override = default;
-
     bool Find_Impl(ExecutionContextScope *exe_scope, const char *key,
                    ResultSet &results) override {
       bool result = false;
@@ -965,40 +997,28 @@ std::unique_ptr<Language::TypeScavenger> ObjCLanguage::GetTypeScavenger() {
         }
       }
 
-      if (!result) {
-        Process *process = exe_scope->CalculateProcess().get();
-        if (process) {
-          const bool create_on_demand = false;
-          auto objc_runtime = process->GetObjCLanguageRuntime(create_on_demand);
-          if (objc_runtime) {
-            auto decl_vendor = objc_runtime->GetDeclVendor();
-            if (decl_vendor) {
-              std::vector<clang::NamedDecl *> decls;
-              ConstString name(key);
-              decl_vendor->FindDecls(name, true, UINT32_MAX, decls);
-              for (auto decl : decls) {
-                if (decl) {
-                  if (CompilerType candidate =
-                          ClangASTContext::GetTypeForDecl(decl)) {
-                    result = true;
-                    std::unique_ptr<Language::TypeScavenger::Result> result(
-                        new ObjCScavengerResult(candidate));
-                    results.insert(std::move(result));
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
       return result;
     }
 
     friend class lldb_private::ObjCLanguage;
   };
+  
+  class ObjCDebugInfoScavenger : public Language::ImageListTypeScavenger {
+  public:
+    virtual CompilerType AdjustForInclusion(CompilerType &candidate) override {
+      LanguageType lang_type(candidate.GetMinimumLanguage());
+      if (!Language::LanguageIsObjC(lang_type))
+        return CompilerType();
+      if (candidate.IsTypedefType())
+        return candidate.GetTypedefedType();
+      return candidate;
+    }
+  };
 
-  return std::unique_ptr<TypeScavenger>(new ObjCTypeScavenger());
+  return std::unique_ptr<TypeScavenger>(
+      new Language::EitherTypeScavenger<ObjCModulesScavenger,
+                                        ObjCRuntimeScavenger,
+                                        ObjCDebugInfoScavenger>());
 }
 
 bool ObjCLanguage::GetFormatterPrefixSuffix(ValueObject &valobj,

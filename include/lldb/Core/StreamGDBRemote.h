@@ -17,7 +17,7 @@
 // Other libraries and framework includes
 // Project includes
 
-#include "lldb/Core/StreamString.h"
+#include "lldb/Utility/StreamString.h"
 
 namespace lldb_private {
 
@@ -42,6 +42,7 @@ public:
   /// @return
   ///     Number of bytes written.
   //------------------------------------------------------------------
+  // TODO: Convert this function to take ArrayRef<uint8_t>
   int PutEscapedBytes(const void *s, size_t src_len);
 };
 

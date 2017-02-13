@@ -22,11 +22,11 @@
 
 // Project includes
 #include "lldb/Core/Debugger.h"
-#include "lldb/Core/Error.h"
 #include "lldb/Host/FileSpec.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Interpreter/OptionValueProperties.h"
+#include "lldb/Utility/Error.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -1355,19 +1355,20 @@ PluginManager::GetPlatformCreateCallbackForPluginName(const ConstString &name) {
   return nullptr;
 }
 
-size_t PluginManager::AutoCompletePlatformName(const char *name,
+size_t PluginManager::AutoCompletePlatformName(llvm::StringRef name,
                                                StringList &matches) {
-  if (name) {
-    std::lock_guard<std::recursive_mutex> guard(GetPlatformInstancesMutex());
-    PlatformInstances &instances = GetPlatformInstances();
-    llvm::StringRef name_sref(name);
+  if (name.empty())
+    return matches.GetSize();
 
-    PlatformInstances::iterator pos, end = instances.end();
-    for (pos = instances.begin(); pos != end; ++pos) {
-      llvm::StringRef plugin_name(pos->name.GetCString());
-      if (plugin_name.startswith(name_sref))
-        matches.AppendString(plugin_name.data());
-    }
+  std::lock_guard<std::recursive_mutex> guard(GetPlatformInstancesMutex());
+  PlatformInstances &instances = GetPlatformInstances();
+  llvm::StringRef name_sref(name);
+
+  PlatformInstances::iterator pos, end = instances.end();
+  for (pos = instances.begin(); pos != end; ++pos) {
+    llvm::StringRef plugin_name(pos->name.GetCString());
+    if (plugin_name.startswith(name_sref))
+      matches.AppendString(plugin_name.data());
   }
   return matches.GetSize();
 }

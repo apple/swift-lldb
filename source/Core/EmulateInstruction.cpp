@@ -1,4 +1,4 @@
-//===-- EmulateInstruction.h ------------------------------------*- C++ -*-===//
+//===-- EmulateInstruction.cpp ----------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -17,17 +17,17 @@
 // Project includes
 #include "lldb/Core/Address.h"
 #include "lldb/Core/DataExtractor.h"
-#include "lldb/Core/Error.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Core/RegisterValue.h"
 #include "lldb/Core/StreamFile.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Host/Endian.h"
 #include "lldb/Symbol/UnwindPlan.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
+#include "lldb/Utility/Error.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -194,8 +194,8 @@ bool EmulateInstruction::WriteMemoryUnsigned(const Context &context,
   StreamString strm(Stream::eBinary, GetAddressByteSize(), GetByteOrder());
   strm.PutMaxHex64(uval, uval_byte_size);
 
-  size_t bytes_written = m_write_mem_callback(this, m_baton, context, addr,
-                                              strm.GetData(), uval_byte_size);
+  size_t bytes_written = m_write_mem_callback(
+      this, m_baton, context, addr, strm.GetString().data(), uval_byte_size);
   return (bytes_written == uval_byte_size);
 }
 

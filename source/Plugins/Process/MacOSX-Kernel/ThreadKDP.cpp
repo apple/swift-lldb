@@ -15,12 +15,12 @@
 #include "lldb/Core/ArchSpec.h"
 #include "lldb/Core/DataExtractor.h"
 #include "lldb/Core/State.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/StopInfo.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Unwind.h"
+#include "lldb/Utility/StreamString.h"
 
 #include "Plugins/Process/Utility/StopInfoMachException.h"
 #include "ProcessKDP.h"
@@ -116,8 +116,7 @@ ThreadKDP::CreateRegisterContextForFrame(StackFrame *frame) {
             new RegisterContextKDP_x86_64(*this, concrete_frame_idx));
         break;
       default:
-        assert(!"Add CPU type support in KDP");
-        break;
+        llvm_unreachable("Add CPU type support in KDP");
       }
     }
   } else {

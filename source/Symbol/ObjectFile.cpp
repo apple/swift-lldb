@@ -15,12 +15,15 @@
 #include "lldb/Core/Module.h"
 #include "lldb/Core/ModuleSpec.h"
 #include "lldb/Core/PluginManager.h"
-#include "lldb/Core/RegularExpression.h"
 #include "lldb/Core/Section.h"
 #include "lldb/Core/Timer.h"
 #include "lldb/Symbol/ObjectContainer.h"
 #include "lldb/Symbol/SymbolFile.h"
 #include "lldb/Target/Process.h"
+#include "lldb/Target/RegisterContext.h"
+#include "lldb/Target/SectionLoadList.h"
+#include "lldb/Target/Target.h"
+#include "lldb/Utility/RegularExpression.h"
 #include "lldb/lldb-private.h"
 
 using namespace lldb;
@@ -590,7 +593,7 @@ bool ObjectFile::SplitArchivePathWithObject(const char *path_with_object,
     std::string obj;
     if (regex_match.GetMatchAtIndex(path_with_object, 1, path) &&
         regex_match.GetMatchAtIndex(path_with_object, 2, obj)) {
-      archive_file.SetFile(path.c_str(), false);
+      archive_file.SetFile(path, false);
       archive_object.SetCString(obj.c_str());
       if (must_exist && !archive_file.Exists())
         return false;
@@ -660,5 +663,42 @@ ConstString ObjectFile::GetNextSyntheticSymbolName() {
   ConstString file_name = GetModule()->GetFileSpec().GetFilename();
   ss.Printf("___lldb_unnamed_symbol%u$$%s", ++m_synthetic_symbol_idx,
             file_name.GetCString());
-  return ConstString(ss.GetData());
+  return ConstString(ss.GetString());
+}
+
+Error ObjectFile::LoadInMemory(Target &target, bool set_pc) {
+  Error error;
+  ProcessSP process = target.CalculateProcess();
+  if (!process)
+    return Error("No Process");
+  if (set_pc && !GetEntryPointAddress().IsValid())
+    return Error("No entry address in object file");
+
+  SectionList *section_list = GetSectionList();
+  if (!section_list)
+      return Error("No section in object file");
+  size_t section_count = section_list->GetNumSections(0);
+  for (size_t i = 0; i < section_count; ++i) {
+    SectionSP section_sp = section_list->GetSectionAtIndex(i);
+    addr_t addr = target.GetSectionLoadList().GetSectionLoadAddress(section_sp);
+    if (addr != LLDB_INVALID_ADDRESS) {
+      DataExtractor section_data;
+      // We can skip sections like bss
+      if (section_sp->GetFileSize() == 0)
+        continue;
+      section_sp->GetSectionData(section_data);
+      lldb::offset_t written = process->WriteMemory(
+          addr, section_data.GetDataStart(), section_data.GetByteSize(), error);
+      if (written != section_data.GetByteSize())
+        return error;
+    }
+  }
+  if (set_pc) {
+    ThreadList &thread_list = process->GetThreadList();
+    ThreadSP curr_thread(thread_list.GetSelectedThread());
+    RegisterContextSP reg_context(curr_thread->GetRegisterContext());
+    Address file_entry = GetEntryPointAddress();
+    reg_context->SetPC(file_entry.GetLoadAddress(&target));
+  }
+  return error;
 }

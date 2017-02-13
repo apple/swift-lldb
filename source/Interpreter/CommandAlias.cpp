@@ -11,11 +11,11 @@
 
 #include "llvm/Support/ErrorHandling.h"
 
-#include "lldb/Core/StreamString.h"
 #include "lldb/Interpreter/CommandInterpreter.h"
 #include "lldb/Interpreter/CommandObject.h"
 #include "lldb/Interpreter/CommandReturnObject.h"
 #include "lldb/Interpreter/Options.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -89,9 +89,10 @@ CommandAlias::CommandAlias(CommandInterpreter &interpreter,
       StreamString translation_and_help;
       GetAliasExpansion(sstr);
 
-      translation_and_help.Printf("(%s)  %s", sstr.GetData(),
-                                  GetUnderlyingCommand()->GetHelp());
-      SetHelp(translation_and_help.GetData());
+      translation_and_help.Printf(
+          "(%s)  %s", sstr.GetData(),
+          GetUnderlyingCommand()->GetHelp().str().c_str());
+      SetHelp(translation_and_help.GetString());
     }
   }
 }
@@ -224,28 +225,28 @@ std::pair<lldb::CommandObjectSP, OptionArgVectorSP> CommandAlias::Desugar() {
 // allow CommandAlias objects to provide their own help, but fallback to the
 // info
 // for the underlying command if no customization has been provided
-void CommandAlias::SetHelp(const char *str) {
+void CommandAlias::SetHelp(llvm::StringRef str) {
   this->CommandObject::SetHelp(str);
   m_did_set_help = true;
 }
 
-void CommandAlias::SetHelpLong(const char *str) {
+void CommandAlias::SetHelpLong(llvm::StringRef str) {
   this->CommandObject::SetHelpLong(str);
   m_did_set_help_long = true;
 }
 
-const char *CommandAlias::GetHelp() {
+llvm::StringRef CommandAlias::GetHelp() {
   if (!m_cmd_help_short.empty() || m_did_set_help)
-    return m_cmd_help_short.c_str();
+    return m_cmd_help_short;
   if (IsValid())
     return m_underlying_command_sp->GetHelp();
-  return nullptr;
+  return llvm::StringRef();
 }
 
-const char *CommandAlias::GetHelpLong() {
+llvm::StringRef CommandAlias::GetHelpLong() {
   if (!m_cmd_help_long.empty() || m_did_set_help_long)
-    return m_cmd_help_long.c_str();
+    return m_cmd_help_long;
   if (IsValid())
     return m_underlying_command_sp->GetHelpLong();
-  return nullptr;
+  return llvm::StringRef();
 }

@@ -19,13 +19,13 @@
 #include "lldb/lldb-enumerations.h"
 #include "lldb/lldb-public.h"
 
-#include "lldb/Core/StreamString.h"
 #include "lldb/DataFormatters/FormatManager.h"
 #include "lldb/Symbol/CompilerType.h"
 #include "lldb/Symbol/SymbolContext.h"
 #include "lldb/Symbol/SymbolFile.h"
 #include "lldb/Symbol/TypeList.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -63,7 +63,7 @@ bool TypeFormatImpl_Format::FormatObject(ValueObject *valobj,
         data.Dump(&reg_sstr, 0, GetFormat(), reg_info->byte_size, 1, UINT32_MAX,
                   LLDB_INVALID_ADDRESS, 0, 0,
                   exe_ctx.GetBestExecutionContextScope());
-        dest.swap(reg_sstr.GetString());
+        dest = reg_sstr.GetString();
       }
     } else {
       CompilerType compiler_type = value.GetCompilerType();
@@ -117,10 +117,7 @@ bool TypeFormatImpl_Format::FormatObject(ValueObject *valobj,
         // return from here, but that's about as severe as we get
         // CompilerType::DumpTypeValue() should always return
         // something, even if that something is an error message
-        if (sstr.GetString().empty())
-          dest.clear();
-        else
-          dest.swap(sstr.GetString());
+        dest = sstr.GetString();
       }
     }
     return !dest.empty();
@@ -198,7 +195,7 @@ bool TypeFormatImpl_EnumType::FormatObject(ValueObject *valobj,
       &sstr, lldb::eFormatEnum, data, 0, data.GetByteSize(), 0, 0,
       exe_ctx.GetBestExecutionContextScope(), valobj->IsBaseClass());
   if (!sstr.GetString().empty())
-    dest.swap(sstr.GetString());
+    dest = sstr.GetString();
   return !dest.empty();
 }
 

@@ -7,6 +7,23 @@
 //
 //===----------------------------------------------------------------------===//
 
+// Project includes
+#include "lldb/Core/Log.h"
+#include "lldb/Core/PluginManager.h"
+#include "lldb/Core/StreamFile.h"
+#include "lldb/Host/Host.h"
+#include "lldb/Host/ThisThread.h"
+#include "lldb/Interpreter/Args.h"
+#include "lldb/Utility/NameMatches.h"
+#include "lldb/Utility/StreamString.h"
+
+// Other libraries and framework includes
+#include "llvm/ADT/SmallString.h"
+#include "llvm/Support/Chrono.h"
+#include "llvm/Support/Path.h"
+#include "llvm/Support/Signals.h"
+#include "llvm/Support/raw_ostream.h"
+
 // C Includes
 // C++ Includes
 #include <cstdarg>
@@ -16,28 +33,12 @@
 #include <mutex>
 #include <string>
 
-// Other libraries and framework includes
-#include "llvm/ADT/SmallString.h"
-#include "llvm/Support/Signals.h"
-#include "llvm/Support/raw_ostream.h"
-
-// Project includes
-#include "lldb/Core/Log.h"
-#include "lldb/Core/PluginManager.h"
-#include "lldb/Core/StreamFile.h"
-#include "lldb/Core/StreamString.h"
-#include "lldb/Host/Host.h"
-#include "lldb/Host/ThisThread.h"
-#include "lldb/Host/TimeValue.h"
-#include "lldb/Interpreter/Args.h"
-#include "lldb/Utility/NameMatches.h"
-
 using namespace lldb;
 using namespace lldb_private;
 
 Log::Log() : m_stream_sp(), m_options(0), m_mask_bits(0) {}
 
-Log::Log(const StreamSP &stream_sp)
+Log::Log(const std::shared_ptr<llvm::raw_ostream> &stream_sp)
     : m_stream_sp(stream_sp), m_options(0), m_mask_bits(0) {}
 
 Log::~Log() = default;
@@ -51,6 +52,7 @@ Flags &Log::GetMask() { return m_mask_bits; }
 const Flags &Log::GetMask() const { return m_mask_bits; }
 
 void Log::PutCString(const char *cstr) { Printf("%s", cstr); }
+void Log::PutString(llvm::StringRef str) { PutCString(str.str().c_str()); }
 
 //----------------------------------------------------------------------
 // Simple variable argument logging with flags.
@@ -68,85 +70,18 @@ void Log::Printf(const char *format, ...) {
 // a valid file handle, we also log to the file.
 //----------------------------------------------------------------------
 void Log::VAPrintf(const char *format, va_list args) {
-  // Make a copy of our stream shared pointer in case someone disables our
-  // log while we are logging and releases the stream
-  StreamSP stream_sp(m_stream_sp);
-  if (stream_sp) {
-    static uint32_t g_sequence_id = 0;
-    StreamString header;
+  std::string message_string;
+  llvm::raw_string_ostream message(message_string);
+  WriteHeader(message, "", "");
 
-    // Add a sequence ID if requested
-    if (m_options.Test(LLDB_LOG_OPTION_PREPEND_SEQUENCE))
-      header.Printf("%u ", ++g_sequence_id);
+  char *text;
+  vasprintf(&text, format, args);
+  message << text;
+  free(text);
 
-    // Timestamp if requested
-    if (m_options.Test(LLDB_LOG_OPTION_PREPEND_TIMESTAMP)) {
-      TimeValue now = TimeValue::Now();
-      header.Printf("%9d.%9.9d ", now.seconds(), now.nanoseconds());
-    }
+  message << "\n";
 
-    // Add the process and thread if requested
-    if (m_options.Test(LLDB_LOG_OPTION_PREPEND_PROC_AND_THREAD))
-      header.Printf("[%4.4x/%4.4" PRIx64 "]: ", getpid(),
-                    Host::GetCurrentThreadID());
-
-    // Add the thread name if requested
-    if (m_options.Test(LLDB_LOG_OPTION_PREPEND_THREAD_NAME)) {
-      llvm::SmallString<32> thread_name;
-      ThisThread::GetName(thread_name);
-      if (!thread_name.empty())
-        header.Printf("%s ", thread_name.c_str());
-    }
-
-    header.PrintfVarArg(format, args);
-    header.PutCString("\n");
-
-    if (m_options.Test(LLDB_LOG_OPTION_BACKTRACE)) {
-      std::string back_trace;
-      llvm::raw_string_ostream stream(back_trace);
-      llvm::sys::PrintStackTrace(stream);
-      stream.flush();
-      header.PutCString(back_trace.c_str());
-    }
-
-    if (m_options.Test(LLDB_LOG_OPTION_THREADSAFE)) {
-      static std::recursive_mutex g_LogThreadedMutex;
-      std::lock_guard<std::recursive_mutex> guard(g_LogThreadedMutex);
-      stream_sp->PutCString(header.GetString().c_str());
-      stream_sp->Flush();
-    } else {
-      stream_sp->PutCString(header.GetString().c_str());
-      stream_sp->Flush();
-    }
-  }
-}
-
-//----------------------------------------------------------------------
-// Print debug strings if and only if the global debug option is set to
-// a non-zero value.
-//----------------------------------------------------------------------
-void Log::Debug(const char *format, ...) {
-  if (!GetOptions().Test(LLDB_LOG_OPTION_DEBUG))
-    return;
-
-  va_list args;
-  va_start(args, format);
-  VAPrintf(format, args);
-  va_end(args);
-}
-
-//----------------------------------------------------------------------
-// Print debug strings if and only if the global debug option is set to
-// a non-zero value.
-//----------------------------------------------------------------------
-void Log::DebugVerbose(const char *format, ...) {
-  if (!GetOptions().AllSet(LLDB_LOG_OPTION_DEBUG | LLDB_LOG_OPTION_VERBOSE))
-    return;
-
-  va_list args;
-  va_start(args, format);
-  VAPrintf(format, args);
-  va_end(args);
+  WriteMessage(message.str());
 }
 
 //----------------------------------------------------------------------
@@ -184,24 +119,6 @@ void Log::VAError(const char *format, va_list args) {
 }
 
 //----------------------------------------------------------------------
-// Printing of errors that ARE fatal. Exit with ERR exit code
-// immediately.
-//----------------------------------------------------------------------
-void Log::FatalError(int err, const char *format, ...) {
-  char *arg_msg = nullptr;
-  va_list args;
-  va_start(args, format);
-  ::vasprintf(&arg_msg, format, args);
-  va_end(args);
-
-  if (arg_msg != nullptr) {
-    Printf("error: %s", arg_msg);
-    ::free(arg_msg);
-  }
-  ::exit(err);
-}
-
-//----------------------------------------------------------------------
 // Printing of warnings that are not fatal only if verbose mode is
 // enabled.
 //----------------------------------------------------------------------
@@ -213,27 +130,6 @@ void Log::Verbose(const char *format, ...) {
   va_start(args, format);
   VAPrintf(format, args);
   va_end(args);
-}
-
-//----------------------------------------------------------------------
-// Printing of warnings that are not fatal only if verbose mode is
-// enabled.
-//----------------------------------------------------------------------
-void Log::WarningVerbose(const char *format, ...) {
-  if (!m_options.Test(LLDB_LOG_OPTION_VERBOSE))
-    return;
-
-  char *arg_msg = nullptr;
-  va_list args;
-  va_start(args, format);
-  ::vasprintf(&arg_msg, format, args);
-  va_end(args);
-
-  if (arg_msg == nullptr)
-    return;
-
-  Printf("warning: %s", arg_msg);
-  free(arg_msg);
 }
 
 //----------------------------------------------------------------------
@@ -292,9 +188,10 @@ bool Log::GetLogChannelCallbacks(const ConstString &channel,
   return false;
 }
 
-bool Log::EnableLogChannel(lldb::StreamSP &log_stream_sp, uint32_t log_options,
-                           const char *channel, const char **categories,
-                           Stream &error_stream) {
+bool Log::EnableLogChannel(
+    const std::shared_ptr<llvm::raw_ostream> &log_stream_sp,
+    uint32_t log_options, const char *channel, const char **categories,
+    Stream &error_stream) {
   Log::Callbacks log_callbacks;
   if (Log::GetLogChannelCallbacks(ConstString(channel), log_callbacks)) {
     log_callbacks.enable(log_stream_sp, log_options, categories, &error_stream);
@@ -316,8 +213,9 @@ bool Log::EnableLogChannel(lldb::StreamSP &log_stream_sp, uint32_t log_options,
   }
 }
 
-void Log::EnableAllLogChannels(StreamSP &log_stream_sp, uint32_t log_options,
-                               const char **categories, Stream *feedback_strm) {
+void Log::EnableAllLogChannels(
+    const std::shared_ptr<llvm::raw_ostream> &log_stream_sp,
+    uint32_t log_options, const char **categories, Stream *feedback_strm) {
   CallbackMap &callback_map = GetCallbackMap();
   CallbackMapIter pos, end = callback_map.end();
 
@@ -394,29 +292,71 @@ void Log::ListAllLogChannels(Stream *strm) {
   }
 }
 
-bool Log::GetVerbose() const {
-  // FIXME: This has to be centralized between the stream and the log...
-  if (m_options.Test(LLDB_LOG_OPTION_VERBOSE))
-    return true;
+bool Log::GetVerbose() const { return m_options.Test(LLDB_LOG_OPTION_VERBOSE); }
 
-  // Make a copy of our stream shared pointer in case someone disables our
-  // log while we are logging and releases the stream
-  StreamSP stream_sp(m_stream_sp);
-  if (stream_sp)
-    return stream_sp->GetVerbose();
-  return false;
+void Log::WriteHeader(llvm::raw_ostream &OS, llvm::StringRef file,
+                      llvm::StringRef function) {
+  static uint32_t g_sequence_id = 0;
+  // Add a sequence ID if requested
+  if (m_options.Test(LLDB_LOG_OPTION_PREPEND_SEQUENCE))
+    OS << ++g_sequence_id << " ";
+
+  // Timestamp if requested
+  if (m_options.Test(LLDB_LOG_OPTION_PREPEND_TIMESTAMP)) {
+    auto now = std::chrono::duration<double>(
+        std::chrono::system_clock::now().time_since_epoch());
+    OS << llvm::formatv("{0:f9} ", now.count());
+  }
+
+  // Add the process and thread if requested
+  if (m_options.Test(LLDB_LOG_OPTION_PREPEND_PROC_AND_THREAD))
+    OS << llvm::formatv("[{0,0+4}/{1,0+4}] ", getpid(),
+                        Host::GetCurrentThreadID());
+
+  // Add the thread name if requested
+  if (m_options.Test(LLDB_LOG_OPTION_PREPEND_THREAD_NAME)) {
+    llvm::SmallString<32> thread_name;
+    ThisThread::GetName(thread_name);
+    if (!thread_name.empty())
+      OS << thread_name;
+  }
+
+  if (m_options.Test(LLDB_LOG_OPTION_BACKTRACE))
+    llvm::sys::PrintStackTrace(OS);
+
+  if (m_options.Test(LLDB_LOG_OPTION_PREPEND_FILE_FUNCTION) &&
+      (!file.empty() || !function.empty())) {
+    file = llvm::sys::path::filename(file).take_front(40);
+    function = function.take_front(40);
+    OS << llvm::formatv("{0,-60:60} ", (file + ":" + function).str());
+  }
 }
 
-//------------------------------------------------------------------
-// Returns true if the debug flag bit is set in this stream.
-//------------------------------------------------------------------
-bool Log::GetDebug() const {
+void Log::WriteMessage(const std::string &message) {
   // Make a copy of our stream shared pointer in case someone disables our
   // log while we are logging and releases the stream
-  StreamSP stream_sp(m_stream_sp);
-  if (stream_sp)
-    return stream_sp->GetDebug();
-  return false;
+  auto stream_sp = m_stream_sp;
+  if (!stream_sp)
+    return;
+
+  if (m_options.Test(LLDB_LOG_OPTION_THREADSAFE)) {
+    static std::recursive_mutex g_LogThreadedMutex;
+    std::lock_guard<std::recursive_mutex> guard(g_LogThreadedMutex);
+    *stream_sp << message;
+    stream_sp->flush();
+  } else {
+    *stream_sp << message;
+    stream_sp->flush();
+  }
+}
+
+void Log::Format(llvm::StringRef file, llvm::StringRef function,
+                 const llvm::formatv_object_base &payload) {
+  std::string message_string;
+  llvm::raw_string_ostream message(message_string);
+  WriteHeader(message, file, function);
+  message << payload << "\n";
+  WriteMessage(message.str());
 }
 
 LogChannelSP LogChannel::FindPlugin(const char *plugin_name) {

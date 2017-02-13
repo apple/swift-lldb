@@ -14,14 +14,14 @@
 #include "LibCxx.h"
 
 #include "lldb/Core/DataBufferHeap.h"
-#include "lldb/Core/Error.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Core/ValueObjectConstResult.h"
 #include "lldb/DataFormatters/FormattersHelpers.h"
 #include "lldb/Host/Endian.h"
 #include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/Error.h"
+#include "lldb/Utility/Stream.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -139,7 +139,7 @@ lldb::ValueObjectSP lldb_private::formatters::
   const bool thread_and_frame_only_if_stopped = true;
   ExecutionContext exe_ctx = val_hash.first->GetExecutionContextRef().Lock(
       thread_and_frame_only_if_stopped);
-  return CreateValueObjectFromData(stream.GetData(), data, exe_ctx,
+  return CreateValueObjectFromData(stream.GetString(), data, exe_ctx,
                                    val_hash.first->GetCompilerType());
 }
 

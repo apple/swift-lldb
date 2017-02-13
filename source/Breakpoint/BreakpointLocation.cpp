@@ -17,7 +17,6 @@
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Expression/DiagnosticManager.h"
 #include "lldb/Expression/ExpressionVariable.h"
@@ -29,6 +28,7 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Target/ThreadSpec.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -224,7 +224,7 @@ bool BreakpointLocation::ConditionSaysStop(ExecutionContext &exe_ctx,
       language = comp_unit->GetLanguage();
 
     m_user_expression_sp.reset(GetTarget().GetUserExpressionForLanguage(
-        condition_text, nullptr, language, Expression::eResultTypeAny,
+        condition_text, llvm::StringRef(), language, Expression::eResultTypeAny,
         EvaluateExpressionOptions(), error));
     if (error.Fail()) {
       if (log)

@@ -10,16 +10,14 @@
 #ifndef liblldb_Core_Logging_h_
 #define liblldb_Core_Logging_h_
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
 // Project includes
 #include "lldb/lldb-private.h"
+// Other libraries and framework includes
+#include "llvm/Support/raw_ostream.h"
 
 //----------------------------------------------------------------------
 // Log Bits specific to logging in lldb
 //----------------------------------------------------------------------
-#define LIBLLDB_LOG_VERBOSE (1u << 0)
 #define LIBLLDB_LOG_PROCESS (1u << 1)
 #define LIBLLDB_LOG_THREAD (1u << 2)
 #define LIBLLDB_LOG_DYNAMIC_LOADER (1u << 3)
@@ -69,12 +67,11 @@ Log *GetLogIfAnyCategoriesSet(uint32_t mask);
 
 uint32_t GetLogMask();
 
-bool IsLogVerbose();
-
 void DisableLog(const char **categories, Stream *feedback_strm);
 
-Log *EnableLog(lldb::StreamSP &log_stream_sp, uint32_t log_options,
-               const char **categories, Stream *feedback_strm);
+Log *EnableLog(const std::shared_ptr<llvm::raw_ostream> &log_stream_sp,
+               uint32_t log_options, const char **categories,
+               Stream *feedback_strm);
 
 void ListLogCategories(Stream *strm);
 

@@ -12,7 +12,7 @@
 
 #if defined(__cplusplus)
 
-#include "lldb/Core/ConstString.h"
+#include "lldb/Utility/ConstString.h"
 #include "lldb/lldb-forward.h"
 #include "llvm/ADT/Triple.h"
 
@@ -283,7 +283,7 @@ public:
   //------------------------------------------------------------------
   const ArchSpec &operator=(const ArchSpec &rhs);
 
-  static size_t AutoComplete(const char *name, StringList &matches);
+  static size_t AutoComplete(llvm::StringRef name, StringList &matches);
 
   //------------------------------------------------------------------
   /// Returns a static string representing the current architecture.

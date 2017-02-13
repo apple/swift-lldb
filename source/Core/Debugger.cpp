@@ -18,6 +18,8 @@
 #include "swift/Basic/Version.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DynamicLibrary.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Threading.h"
 
 // Project includes
 #include "lldb/Breakpoint/Breakpoint.h"
@@ -31,7 +33,6 @@
 #include "lldb/Core/StreamAsynchronousIO.h"
 #include "lldb/Core/StreamCallback.h"
 #include "lldb/Core/StreamFile.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/StructuredData.h"
 #include "lldb/Core/Timer.h"
 #include "lldb/Core/ValueObject.h"
@@ -64,6 +65,7 @@
 #include "lldb/Target/TargetList.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Utility/AnsiTerminal.h"
+#include "lldb/Utility/StreamString.h"
 #include "lldb/lldb-private.h"
 
 using namespace lldb;
@@ -193,7 +195,7 @@ OptionEnumValueElement g_language_enumerators[] = {
   "\\n"
 
 #define DEFAULT_FRAME_FORMAT                                                   \
-  "frame #${frame.index}:{ ${frame.no-debug}${frame.pc}}" MODULE_WITH_FUNC FILE_AND_LINE          \
+  "frame #${frame.index}: ${frame.pc}" MODULE_WITH_FUNC FILE_AND_LINE          \
       IS_OPTIMIZED "\\n"
 
 // Three parts to this disassembly format specification:
@@ -344,11 +346,9 @@ LoadPluginCallbackType Debugger::g_load_plugin_callback = nullptr;
 
 Error Debugger::SetPropertyValue(const ExecutionContext *exe_ctx,
                                  VarSetOperationType op,
-                                 const char *property_path, const char *value) {
-  bool is_load_script =
-      strcmp(property_path, "target.load-script-from-symbol-file") == 0;
-  bool is_escape_non_printables =
-      strcmp(property_path, "escape-non-printables") == 0;
+  llvm::StringRef property_path, llvm::StringRef value) {
+  bool is_load_script = (property_path == "target.load-script-from-symbol-file");
+  bool is_escape_non_printables = (property_path == "escape-non-printables");
   TargetSP target_sp;
   LoadScriptFromSymFile load_script_old_value;
   if (is_load_script && exe_ctx->GetTargetSP()) {
@@ -359,19 +359,18 @@ Error Debugger::SetPropertyValue(const ExecutionContext *exe_ctx,
   Error error(Properties::SetPropertyValue(exe_ctx, op, property_path, value));
   if (error.Success()) {
     // FIXME it would be nice to have "on-change" callbacks for properties
-    if (strcmp(property_path, g_properties[ePropertyPrompt].name) == 0) {
+    if (property_path == g_properties[ePropertyPrompt].name) {
       llvm::StringRef new_prompt = GetPrompt();
       std::string str = lldb_utility::ansi::FormatAnsiTerminalCodes(
           new_prompt, GetUseColor());
       if (str.length())
-        new_prompt = str.c_str();
+        new_prompt = str;
       GetCommandInterpreter().UpdatePrompt(new_prompt);
       EventSP prompt_change_event_sp(
           new Event(CommandInterpreter::eBroadcastBitResetPrompt,
                     new EventDataBytes(new_prompt)));
       GetCommandInterpreter().BroadcastEvent(prompt_change_event_sp);
-    } else if (strcmp(property_path, g_properties[ePropertyUseColor].name) ==
-               0) {
+    } else if (property_path == g_properties[ePropertyUseColor].name) {
       // use-color changed. Ping the prompt so it can reset the ansi terminal
       // codes.
       SetPrompt(GetPrompt());
@@ -388,7 +387,7 @@ Error Debugger::SetPropertyValue(const ExecutionContext *exe_ctx,
               stream_sp->Printf("%s\n", error.AsCString());
             }
             if (feedback_stream.GetSize())
-              stream_sp->Printf("%s", feedback_stream.GetData());
+              stream_sp->PutCString(feedback_stream.GetString());
           }
         }
       }
@@ -434,7 +433,7 @@ void Debugger::SetPrompt(llvm::StringRef p) {
   std::string str =
       lldb_utility::ansi::FormatAnsiTerminalCodes(new_prompt, GetUseColor());
   if (str.length())
-    new_prompt = str.c_str();
+    new_prompt = str;
   GetCommandInterpreter().UpdatePrompt(new_prompt);
 }
 
@@ -833,7 +832,7 @@ void Debugger::Clear() {
   //     static void Debugger::Destroy(lldb::DebuggerSP &debugger_sp);
   //     static void Debugger::Terminate();
   //----------------------------------------------------------------------
-  std::call_once(m_clear_once, [this]() {
+  llvm::call_once(m_clear_once, [this]() {
     ClearIOHandlers();
     StopIOHandlerThread();
     StopEventHandlerThread();
@@ -1347,25 +1346,34 @@ void Debugger::SetLoggingCallback(lldb::LogOutputCallback log_callback,
 bool Debugger::EnableLog(const char *channel, const char **categories,
                          const char *log_file, uint32_t log_options,
                          Stream &error_stream) {
-  StreamSP log_stream_sp;
+  const bool should_close = true;
+  const bool unbuffered = true;
+
+  std::shared_ptr<llvm::raw_ostream> log_stream_sp;
   if (m_log_callback_stream_sp) {
     log_stream_sp = m_log_callback_stream_sp;
     // For now when using the callback mode you always get thread & timestamp.
     log_options |=
         LLDB_LOG_OPTION_PREPEND_TIMESTAMP | LLDB_LOG_OPTION_PREPEND_THREAD_NAME;
   } else if (log_file == nullptr || *log_file == '\0') {
-    log_stream_sp = GetOutputFile();
+    log_stream_sp = std::make_shared<llvm::raw_fd_ostream>(
+        GetOutputFile()->GetFile().GetDescriptor(), !should_close, unbuffered);
   } else {
-    LogStreamMap::iterator pos = m_log_streams.find(log_file);
+    auto pos = m_log_streams.find(log_file);
     if (pos != m_log_streams.end())
       log_stream_sp = pos->second.lock();
     if (!log_stream_sp) {
-      uint32_t options = File::eOpenOptionWrite | File::eOpenOptionCanCreate |
-                         File::eOpenOptionCloseOnExec | File::eOpenOptionAppend;
-      if (!(log_options & LLDB_LOG_OPTION_APPEND))
-        options |= File::eOpenOptionTruncate;
-
-      log_stream_sp.reset(new StreamFile(log_file, options));
+      llvm::sys::fs::OpenFlags flags = llvm::sys::fs::F_Text;
+      if (log_options & LLDB_LOG_OPTION_APPEND)
+        flags |= llvm::sys::fs::F_Append;
+      int FD;
+      if (std::error_code ec =
+              llvm::sys::fs::openFileForWrite(log_file, FD, flags)) {
+        error_stream.Format("Unable to open log file: {0}", ec.message());
+        return false;
+      }
+      log_stream_sp.reset(
+          new llvm::raw_fd_ostream(FD, should_close, unbuffered));
       m_log_streams[log_file] = log_stream_sp;
     }
   }
@@ -1556,7 +1564,7 @@ void Debugger::HandleProcessEvent(const EventSP &event_sp) {
               content_stream.Flush();
 
               // Print it.
-              output_stream_sp->PutCString(content_stream.GetString().c_str());
+              output_stream_sp->PutCString(content_stream.GetString());
             }
           } else {
             error_stream_sp->Printf("Failed to print structured "
@@ -1645,7 +1653,7 @@ void Debugger::DefaultEventHandler() {
   bool done = false;
   while (!done) {
     EventSP event_sp;
-    if (listener_sp->WaitForEvent(std::chrono::microseconds(0), event_sp)) {
+    if (listener_sp->GetEvent(event_sp, llvm::None)) {
       if (event_sp) {
         Broadcaster *broadcaster = event_sp->GetBroadcaster();
         if (broadcaster) {
@@ -1726,7 +1734,7 @@ bool Debugger::StartEventHandlerThread() {
     // to wait an infinite amount of time for it (nullptr timeout as the first
     // parameter)
     lldb::EventSP event_sp;
-    listener_sp->WaitForEvent(std::chrono::microseconds(0), event_sp);
+    listener_sp->GetEvent(event_sp, llvm::None);
   }
   return m_event_handler_thread.IsJoinable();
 }

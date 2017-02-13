@@ -21,7 +21,6 @@
 
 // C++ Includes
 // Other libraries and framework includes
-#include "lldb/Core/Error.h"
 #include "lldb/Core/RegisterValue.h"
 #include "lldb/Core/Scalar.h"
 #include "lldb/Host/Host.h"
@@ -29,6 +28,7 @@
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Target/UnixSignals.h"
+#include "lldb/Utility/Error.h"
 #include "lldb/Utility/PseudoTerminal.h"
 
 #include "FreeBSDThread.h"
@@ -1141,11 +1141,19 @@ ProcessMessage ProcessMonitor::MonitorSIGTRAP(ProcessMonitor *monitor,
 
   case SI_KERNEL:
   case TRAP_BRKPT:
-    if (log)
-      log->Printf(
-          "ProcessMonitor::%s() received breakpoint event, tid = %" PRIu64,
-          __FUNCTION__, tid);
-    message = ProcessMessage::Break(tid);
+    if (monitor->m_process->IsSoftwareStepBreakpoint(tid)) {
+      if (log)
+        log->Printf("ProcessMonitor::%s() received sw single step breakpoint "
+                    "event, tid = %" PRIu64,
+                    __FUNCTION__, tid);
+      message = ProcessMessage::Trace(tid);
+    } else {
+      if (log)
+        log->Printf(
+            "ProcessMonitor::%s() received breakpoint event, tid = %" PRIu64,
+            __FUNCTION__, tid);
+      message = ProcessMessage::Break(tid);
+    }
     break;
   }
 

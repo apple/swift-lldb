@@ -25,21 +25,26 @@ using namespace lldb_private;
 //-------------------------------------------------------------------------
 
 void CommandObjectHelp::GenerateAdditionalHelpAvenuesMessage(
-    Stream *s, const char *command, const char *prefix, const char *subcommand,
+    Stream *s, llvm::StringRef command, llvm::StringRef prefix, llvm::StringRef subcommand,
     bool include_apropos, bool include_type_lookup) {
-  if (s && command && *command) {
-    s->Printf("'%s' is not a known command.\n", command);
-    s->Printf("Try '%shelp' to see a current list of commands.\n",
-              prefix ? prefix : "");
-    if (include_apropos) {
-      s->Printf("Try '%sapropos %s' for a list of related commands.\n",
-                prefix ? prefix : "", subcommand ? subcommand : command);
-    }
-    if (include_type_lookup) {
-      s->Printf("Try '%stype lookup %s' for information on types, methods, "
-                "functions, modules, etc.",
-                prefix ? prefix : "", subcommand ? subcommand : command);
-    }
+  if (!s || command.empty())
+    return;
+
+  std::string command_str = command.str();
+  std::string prefix_str = prefix.str();
+  std::string subcommand_str = subcommand.str();
+  const std::string &lookup_str = !subcommand_str.empty() ? subcommand_str : command_str;
+  s->Printf("'%s' is not a known command.\n", command_str.c_str());
+  s->Printf("Try '%shelp' to see a current list of commands.\n",
+            prefix.str().c_str());
+  if (include_apropos) {
+    s->Printf("Try '%sapropos %s' for a list of related commands.\n",
+      prefix_str.c_str(), lookup_str.c_str());
+  }
+  if (include_type_lookup) {
+    s->Printf("Try '%stype lookup %s' for information on types, methods, "
+              "functions, modules, etc.",
+      prefix_str.c_str(), lookup_str.c_str());
   }
 }
 
@@ -103,11 +108,8 @@ bool CommandObjectHelp::DoExecute(Args &command, CommandReturnObject &result) {
     // Get command object for the first command argument. Only search built-in
     // command dictionary.
     StringList matches;
-    cmd_obj =
-        m_interpreter.GetCommandObject(command.GetArgumentAtIndex(0), &matches);
-    bool is_alias_command =
-        m_interpreter.AliasExists(command.GetArgumentAtIndex(0));
-    std::string alias_name = command.GetArgumentAtIndex(0);
+    auto command_name = command[0].ref;
+    cmd_obj = m_interpreter.GetCommandObject(command_name, &matches);
 
     if (cmd_obj != nullptr) {
       StringList matches;
@@ -148,7 +150,7 @@ bool CommandObjectHelp::DoExecute(Args &command, CommandReturnObject &result) {
             s.Printf("\n\t%s", matches.GetStringAtIndex(match_idx));
           }
           s.Printf("\n");
-          result.AppendError(s.GetData());
+          result.AppendError(s.GetString());
           result.SetStatus(eReturnStatusFailed);
           return false;
         } else if (!sub_cmd_obj) {
@@ -156,7 +158,7 @@ bool CommandObjectHelp::DoExecute(Args &command, CommandReturnObject &result) {
           GenerateAdditionalHelpAvenuesMessage(
               &error_msg_stream, cmd_string.c_str(),
               m_interpreter.GetCommandPrefix(), sub_command.c_str());
-          result.AppendErrorWithFormat("%s", error_msg_stream.GetData());
+          result.AppendError(error_msg_stream.GetString());
           result.SetStatus(eReturnStatusFailed);
           return false;
         } else {
@@ -171,11 +173,11 @@ bool CommandObjectHelp::DoExecute(Args &command, CommandReturnObject &result) {
 
       sub_cmd_obj->GenerateHelpText(result);
 
-      if (is_alias_command) {
+      if (m_interpreter.AliasExists(command_name)) {
         StreamString sstr;
-        m_interpreter.GetAlias(alias_name)->GetAliasExpansion(sstr);
+        m_interpreter.GetAlias(command_name)->GetAliasExpansion(sstr);
         result.GetOutputStream().Printf("\n'%s' is an abbreviation for %s\n",
-                                        alias_name.c_str(), sstr.GetData());
+                                        command[0].c_str(), sstr.GetData());
       }
     } else if (matches.GetSize() > 0) {
       Stream &output_strm = result.GetOutputStream();
@@ -189,17 +191,17 @@ bool CommandObjectHelp::DoExecute(Args &command, CommandReturnObject &result) {
       // Maybe the user is asking for help about a command argument rather than
       // a command.
       const CommandArgumentType arg_type =
-          CommandObject::LookupArgumentName(command.GetArgumentAtIndex(0));
+          CommandObject::LookupArgumentName(command_name);
       if (arg_type != eArgTypeLastArg) {
         Stream &output_strm = result.GetOutputStream();
         CommandObject::GetArgumentHelp(output_strm, arg_type, m_interpreter);
         result.SetStatus(eReturnStatusSuccessFinishNoResult);
       } else {
         StreamString error_msg_stream;
-        GenerateAdditionalHelpAvenuesMessage(&error_msg_stream,
-                                             command.GetArgumentAtIndex(0),
-                                             m_interpreter.GetCommandPrefix());
-        result.AppendErrorWithFormat("%s", error_msg_stream.GetData());
+        GenerateAdditionalHelpAvenuesMessage(&error_msg_stream, command_name,
+                                             m_interpreter.GetCommandPrefix(),
+                                             "");
+        result.AppendError(error_msg_stream.GetString());
         result.SetStatus(eReturnStatusFailed);
       }
     }
@@ -220,8 +222,7 @@ int CommandObjectHelp::HandleCompletion(Args &input, int &cursor_index,
         input, cursor_index, cursor_char_position, match_start_point,
         max_return_elements, word_complete, matches);
   } else {
-    CommandObject *cmd_obj =
-        m_interpreter.GetCommandObject(input.GetArgumentAtIndex(0));
+    CommandObject *cmd_obj = m_interpreter.GetCommandObject(input[0].ref);
 
     // The command that they are getting help on might be ambiguous, in which
     // case we should complete that,

@@ -12,11 +12,9 @@
 
 // Project includes
 #include "lldb/Expression/LLVMUserExpression.h"
-#include "lldb/Core/ConstString.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/StreamFile.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/ValueObjectConstResult.h"
 #include "lldb/Expression/DiagnosticManager.h"
 #include "lldb/Expression/ExpressionSourceCode.h"
@@ -38,17 +36,18 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Target/ThreadPlan.h"
 #include "lldb/Target/ThreadPlanCallUserExpression.h"
+#include "lldb/Utility/ConstString.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace lldb_private;
 
 LLVMUserExpression::LLVMUserExpression(ExecutionContextScope &exe_scope,
-                                       const char *expr,
-                                       const char *expr_prefix,
+                                       llvm::StringRef expr,
+                                       llvm::StringRef prefix,
                                        lldb::LanguageType language,
                                        ResultType desired_type,
                                        const EvaluateExpressionOptions &options)
-    : UserExpression(exe_scope, expr, expr_prefix, language, desired_type,
-                     options),
+    : UserExpression(exe_scope, expr, prefix, language, desired_type, options),
       m_stack_frame_bottom(LLDB_INVALID_ADDRESS),
       m_stack_frame_top(LLDB_INVALID_ADDRESS), m_transformed_text(),
       m_execution_unit_sp(), m_materializer_ap(), m_jit_module_wp(),
@@ -98,7 +97,7 @@ LLVMUserExpression::DoExecute(DiagnosticManager &diagnostic_manager,
       llvm::Function *function = m_execution_unit_sp->GetFunction();
 
       if (!module || !function) {
-        diagnostic_manager.PutCString(
+        diagnostic_manager.PutString(
             eDiagnosticSeverityError,
             "supposed to interpret, but nothing is there");
         return lldb::eExpressionSetupError;
@@ -154,7 +153,7 @@ LLVMUserExpression::DoExecute(DiagnosticManager &diagnostic_manager,
 
       StreamString ss;
       if (!call_plan_sp || !call_plan_sp->ValidatePlan(&ss)) {
-        diagnostic_manager.PutCString(eDiagnosticSeverityError, ss.GetData());
+        diagnostic_manager.PutString(eDiagnosticSeverityError, ss.GetString());
         return lldb::eExpressionSetupError;
       }
 
@@ -199,8 +198,8 @@ LLVMUserExpression::DoExecute(DiagnosticManager &diagnostic_manager,
                                     "Execution was interrupted, reason: %s.",
                                     error_desc);
         else
-          diagnostic_manager.PutCString(eDiagnosticSeverityError,
-                                        "Execution was interrupted.");
+          diagnostic_manager.PutString(eDiagnosticSeverityError,
+                                       "Execution was interrupted.");
 
         if ((execution_result == lldb::eExpressionInterrupted &&
              options.DoesUnwindOnError()) ||
@@ -221,7 +220,7 @@ LLVMUserExpression::DoExecute(DiagnosticManager &diagnostic_manager,
 
         return execution_result;
       } else if (execution_result == lldb::eExpressionStoppedForDebug) {
-        diagnostic_manager.PutCString(
+        diagnostic_manager.PutString(
             eDiagnosticSeverityRemark,
             "Execution was halted at the first instruction of the expression "
             "function because \"debug\" was requested.\n"
@@ -276,7 +275,7 @@ LLVMUserExpression::DoExecute(DiagnosticManager &diagnostic_manager,
       return lldb::eExpressionResultUnavailable;
     }
   } else {
-    diagnostic_manager.PutCString(
+    diagnostic_manager.PutString(
         eDiagnosticSeverityError,
         "Expression can't be run, because there is no JIT compiled function");
     return lldb::eExpressionSetupError;
@@ -331,7 +330,7 @@ bool LLVMUserExpression::PrepareToExecuteJITExpression(
   lldb::StackFrameSP frame;
 
   if (!LockAndCheckContext(exe_ctx, target, process, frame)) {
-    diagnostic_manager.PutCString(
+    diagnostic_manager.PutString(
         eDiagnosticSeverityError,
         "The context has changed before we could JIT the expression!");
     return false;

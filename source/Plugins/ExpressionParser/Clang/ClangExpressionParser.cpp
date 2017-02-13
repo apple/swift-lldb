@@ -37,7 +37,6 @@
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "clang/Rewrite/Frontend/FrontendActions.h"
 #include "clang/Sema/SemaConsumer.h"
-#include "clang/StaticAnalyzer/Frontend/FrontendActions.h"
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
@@ -75,9 +74,7 @@
 #include "lldb/Core/Disassembler.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Core/StreamFile.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/StringList.h"
 #include "lldb/Expression/ExpressionSourceCode.h"
 #include "lldb/Expression/IRDynamicChecks.h"
@@ -94,6 +91,8 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Target/ThreadPlanCallFunction.h"
 #include "lldb/Utility/LLDBAssert.h"
+#include "lldb/Utility/Stream.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace clang;
 using namespace llvm;
@@ -138,7 +137,7 @@ public:
 
   bool hasErrors() { return m_has_errors; }
 
-  const std::string &getErrorString() { return m_error_stream.GetString(); }
+  llvm::StringRef getErrorString() { return m_error_stream.GetString(); }
 };
 
 class ClangDiagnosticManagerAdapter : public clang::DiagnosticConsumer {
@@ -402,16 +401,16 @@ ClangExpressionParser::ClangExpressionParser(ExecutionContextScope *exe_scope,
         lang_rt->GetOverrideExprOptions(m_compiler->getTargetOpts());
 
   if (overridden_target_opts)
-    if (log) {
-      log->Debug(
-          "Using overridden target options for the expression evaluation");
+    if (log && log->GetVerbose()) {
+      LLDB_LOGV(
+          log, "Using overridden target options for the expression evaluation");
 
       auto opts = m_compiler->getTargetOpts();
-      log->Debug("Triple: '%s'", opts.Triple.c_str());
-      log->Debug("CPU: '%s'", opts.CPU.c_str());
-      log->Debug("FPMath: '%s'", opts.FPMath.c_str());
-      log->Debug("ABI: '%s'", opts.ABI.c_str());
-      log->Debug("LinkerVersion: '%s'", opts.LinkerVersion.c_str());
+      LLDB_LOGV(log, "Triple: '{0}'", opts.Triple);
+      LLDB_LOGV(log, "CPU: '{0}'", opts.CPU);
+      LLDB_LOGV(log, "FPMath: '{0}'", opts.FPMath);
+      LLDB_LOGV(log, "ABI: '{0}'", opts.ABI);
+      LLDB_LOGV(log, "LinkerVersion: '{0}'", opts.LinkerVersion);
       StringList::LogDump(log, opts.FeaturesAsWritten, "FeaturesAsWritten");
       StringList::LogDump(log, opts.Features, "Features");
       StringList::LogDump(log, opts.Reciprocals, "Reciprocals");
@@ -675,10 +674,10 @@ unsigned ClangExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
 
   if (m_pp_callbacks && m_pp_callbacks->hasErrors()) {
     num_errors++;
-    diagnostic_manager.PutCString(eDiagnosticSeverityError,
-                                  "while importing modules:");
+    diagnostic_manager.PutString(eDiagnosticSeverityError,
+                                 "while importing modules:");
     diagnostic_manager.AppendMessageToDiagnostic(
-        m_pp_callbacks->getErrorString().c_str());
+        m_pp_callbacks->getErrorString());
   }
 
   if (!num_errors) {

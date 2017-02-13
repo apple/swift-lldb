@@ -22,17 +22,17 @@
 // Project includes
 #include "lldb/Core/ArchSpec.h"
 #include "lldb/Core/Broadcaster.h"
-#include "lldb/Core/ConstString.h"
-#include "lldb/Core/Error.h"
 #include "lldb/Core/LoadedModuleInfoList.h"
 #include "lldb/Core/ModuleSpec.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/StringList.h"
 #include "lldb/Core/StructuredData.h"
 #include "lldb/Core/ThreadSafeValue.h"
 #include "lldb/Host/HostThread.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/Thread.h"
+#include "lldb/Utility/ConstString.h"
+#include "lldb/Utility/Error.h"
+#include "lldb/Utility/StreamString.h"
 #include "lldb/Utility/StringExtractor.h"
 #include "lldb/lldb-private-forward.h"
 
@@ -89,7 +89,7 @@ public:
   Error WillAttachToProcessWithName(const char *process_name,
                                     bool wait_for_launch) override;
 
-  Error DoConnectRemote(Stream *strm, const char *remote_url) override;
+  Error DoConnectRemote(Stream *strm, llvm::StringRef remote_url) override;
 
   Error WillLaunchOrAttach();
 
@@ -379,7 +379,7 @@ protected:
 
   void DidLaunchOrAttach(ArchSpec &process_arch);
 
-  Error ConnectToDebugserver(const char *host_port);
+  Error ConnectToDebugserver(llvm::StringRef host_port);
 
   const char *GetDispatchQueueNameForThread(lldb::addr_t thread_dispatch_qaddr,
                                             std::string &dispatch_queue_name);
@@ -417,6 +417,7 @@ private:
   void HandleStopReply() override;
   void HandleAsyncStructuredDataPacket(llvm::StringRef data) override;
 
+  void SetThreadPc(const lldb::ThreadSP &thread_sp, uint64_t index);
   using ModuleCacheKey = std::pair<std::string, std::string>;
   // KeyInfo for the cached module spec DenseMap.
   // The invariant is that all real keys will have the file and architecture

@@ -23,7 +23,6 @@
 #include "lldb/Breakpoint/BreakpointLocation.h"
 #include "lldb/Core/DataBufferHeap.h"
 #include "lldb/Core/Debugger.h"
-#include "lldb/Core/Error.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/ModuleSpec.h"
@@ -41,7 +40,7 @@
 #include "lldb/Target/Process.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/UnixSignals.h"
-#include "lldb/Utility/Utils.h"
+#include "lldb/Utility/Error.h"
 
 // Define these constants from POSIX mman.h rather than include the file
 // so that they will be correct even when compiled on Linux.
@@ -523,11 +522,11 @@ void Platform::AddClangModuleCompilationOptions(
 
 FileSpec Platform::GetWorkingDirectory() {
   if (IsHost()) {
-    char cwd[PATH_MAX];
-    if (getcwd(cwd, sizeof(cwd)))
-      return FileSpec{cwd, true};
-    else
+    llvm::SmallString<64> cwd;
+    if (llvm::sys::fs::current_path(cwd))
       return FileSpec{};
+    else
+      return FileSpec(cwd, true);
   } else {
     if (!m_working_dir)
       m_working_dir = GetRemoteWorkingDirectory();
@@ -573,7 +572,7 @@ RecurseCopy_Callback(void *baton, FileSpec::FileType file_type,
     FileSpec recurse_dst;
     recurse_dst.GetDirectory().SetCString(dst_dir.GetPath().c_str());
     RecurseCopyBaton rc_baton2 = {recurse_dst, rc_baton->platform_ptr, Error()};
-    FileSpec::EnumerateDirectory(src_dir_path.c_str(), true, true, true,
+    FileSpec::EnumerateDirectory(src_dir_path, true, true, true,
                                  RecurseCopy_Callback, &rc_baton2);
     if (rc_baton2.error.Fail()) {
       rc_baton->error.SetErrorString(rc_baton2.error.AsCString());
@@ -708,7 +707,7 @@ Error Platform::Install(const FileSpec &src, const FileSpec &dst) {
         recurse_dst.GetDirectory().SetCString(fixed_dst.GetCString());
         std::string src_dir_path(src.GetPath());
         RecurseCopyBaton baton = {recurse_dst, this, Error()};
-        FileSpec::EnumerateDirectory(src_dir_path.c_str(), true, true, true,
+        FileSpec::EnumerateDirectory(src_dir_path, true, true, true,
                                      RecurseCopy_Callback, &baton);
         return baton.error;
       }
@@ -748,14 +747,12 @@ Error Platform::Install(const FileSpec &src, const FileSpec &dst) {
 bool Platform::SetWorkingDirectory(const FileSpec &file_spec) {
   if (IsHost()) {
     Log *log = GetLogIfAnyCategoriesSet(LIBLLDB_LOG_PLATFORM);
-    if (log)
-      log->Printf("Platform::SetWorkingDirectory('%s')",
-                  file_spec.GetCString());
-    if (file_spec) {
-      if (::chdir(file_spec.GetCString()) == 0)
-        return true;
+    LLDB_LOG(log, "{0}", file_spec);
+    if (std::error_code ec = llvm::sys::fs::set_current_path(file_spec.GetPath())) {
+      LLDB_LOG(log, "error: {0}", ec.message());
+      return false;
     }
-    return false;
+    return true;
   } else {
     m_working_dir.Clear();
     return SetRemoteWorkingDirectory(file_spec);
@@ -1758,8 +1755,8 @@ Error Platform::UnloadImage(lldb_private::Process *process,
   return Error("UnloadImage is not supported on the current platform");
 }
 
-lldb::ProcessSP Platform::ConnectProcess(const char *connect_url,
-                                         const char *plugin_name,
+lldb::ProcessSP Platform::ConnectProcess(llvm::StringRef connect_url,
+                                         llvm::StringRef plugin_name,
                                          lldb_private::Debugger &debugger,
                                          lldb_private::Target *target,
                                          lldb_private::Error &error) {
@@ -1767,8 +1764,8 @@ lldb::ProcessSP Platform::ConnectProcess(const char *connect_url,
 
   if (!target) {
     TargetSP new_target_sp;
-    error = debugger.GetTargetList().CreateTarget(
-        debugger, nullptr, nullptr, false, nullptr, new_target_sp);
+    error = debugger.GetTargetList().CreateTarget(debugger, "", "", false,
+                                                  nullptr, new_target_sp);
     target = new_target_sp.get();
   }
 
@@ -1876,9 +1873,8 @@ size_t Platform::GetSoftwareBreakpointTrapOpcode(Target &target,
   } break;
 
   default:
-    assert(
-        !"Unhandled architecture in Platform::GetSoftwareBreakpointTrapOpcode");
-    break;
+    llvm_unreachable(
+        "Unhandled architecture in Platform::GetSoftwareBreakpointTrapOpcode");
   }
 
   assert(bp_site);

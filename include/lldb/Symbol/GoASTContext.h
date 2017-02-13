@@ -20,9 +20,9 @@
 
 // Other libraries and framework includes
 // Project includes
-#include "lldb/Core/ConstString.h"
 #include "lldb/Symbol/CompilerType.h"
 #include "lldb/Symbol/TypeSystem.h"
+#include "lldb/Utility/ConstString.h"
 
 namespace lldb_private {
 
@@ -437,7 +437,7 @@ class GoASTContextForExpr : public GoASTContext {
 public:
   GoASTContextForExpr(lldb::TargetSP target) : m_target_wp(target) {}
   UserExpression *
-  GetUserExpression(const char *expr, const char *expr_prefix,
+  GetUserExpression(llvm::StringRef expr, llvm::StringRef prefix,
                     lldb::LanguageType language,
                     Expression::ResultType desired_type,
                     const EvaluateExpressionOptions &options) override;

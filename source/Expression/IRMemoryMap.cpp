@@ -10,12 +10,12 @@
 #include "lldb/Expression/IRMemoryMap.h"
 #include "lldb/Core/DataBufferHeap.h"
 #include "lldb/Core/DataExtractor.h"
-#include "lldb/Core/Error.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Scalar.h"
 #include "lldb/Target/MemoryRegionInfo.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/Error.h"
 #include "lldb/Utility/LLDBAssert.h"
 
 using namespace lldb_private;
@@ -126,7 +126,7 @@ lldb::addr_t IRMemoryMap::FindSpace(size_t size) {
         err = process_sp->GetMemoryRegionInfo(
             region_info.GetRange().GetRangeEnd(), region_info);
         if (err.Fail()) {
-          lldbassert(!"GetMemoryRegionInfo() succeeded, then failed");
+          lldbassert(0 && "GetMemoryRegionInfo() succeeded, then failed");
           ret = LLDB_INVALID_ADDRESS;
           break;
         }

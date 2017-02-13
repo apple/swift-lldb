@@ -72,7 +72,7 @@
 #include "Plugins/ExpressionParser/Swift/SwiftUserExpression.h"
 #include "lldb/Core/ArchSpec.h"
 #include "lldb/Core/Debugger.h"
-#include "lldb/Core/Error.h"
+#include "lldb/Utility/Error.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/ModuleSpec.h"
@@ -356,7 +356,7 @@ CachedMemberInfo *SwiftASTContext::GetCachedMemberInfo(void *type) {
           StreamString tuple_name_strm;
           tuple_name_strm.Printf(
               "%u", (uint32_t)member_infos_sp->member_infos.size());
-          member_info.name.SetCString(tuple_name_strm.GetString().c_str());
+          member_info.name.SetCString(tuple_name_strm.GetString().data());
         }
 
         field_type_infos.push_back(
@@ -1731,8 +1731,8 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
             platform_sp->GetOSVersion(major, minor, update,
                                       target->GetProcessSP().get())) {
           StreamString full_triple_name;
-          full_triple_name.GetString() =
-              std::move(target->GetArchitecture().GetTriple().str());
+          full_triple_name.PutCString(
+              target->GetArchitecture().GetTriple().str());
           if (major != UINT32_MAX) {
             full_triple_name.Printf("%u", major);
             if (minor != UINT32_MAX) {
@@ -1741,7 +1741,7 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
                 full_triple_name.Printf(".%u", update);
             }
           }
-          swift_ast_sp->SetTriple(full_triple_name.GetString().c_str());
+          swift_ast_sp->SetTriple(full_triple_name.GetString().data());
           set_triple = true;
         }
 
@@ -2375,9 +2375,9 @@ static ConstString GetSDKDirectory(SDKType sdk_type, uint32_t least_major,
     sdk_path.Printf(
         "%sDeveloper/Platforms/MacOSX.platform/Developer/SDKs/MacOSX%u.%u.sdk",
         xcode_contents_path.c_str(), major, minor);
-    fspec.SetFile(sdk_path.GetString().c_str(), false);
+    fspec.SetFile(sdk_path.GetString(), false);
     if (fspec.Exists()) {
-      ConstString path(sdk_path.GetString().c_str());
+      ConstString path(sdk_path.GetString());
       // Cache results
       g_sdk_cache[major_minor] = path;
       return path;
@@ -2387,9 +2387,9 @@ static ConstString GetSDKDirectory(SDKType sdk_type, uint32_t least_major,
       sdk_path.Printf("%sDeveloper/Platforms/MacOSX.platform/Developer/SDKs/"
                       "MacOSX%u.%u.sdk",
                       xcode_contents_path.c_str(), least_major, least_minor);
-      fspec.SetFile(sdk_path.GetString().c_str(), false);
+      fspec.SetFile(sdk_path.GetString(), false);
       if (fspec.Exists()) {
-        ConstString path(sdk_path.GetString().c_str());
+        ConstString path(sdk_path.GetString());
         // Cache results
         g_sdk_cache[major_minor] = path;
         return path;
@@ -2965,8 +2965,9 @@ public:
             size_t start_pos = 0;
             do {
               if (match_pos > start_pos)
-                fixed_description.GetString().append(diagnostic.description,
-                                                     start_pos, match_pos);
+                fixed_description.Printf(
+                    "%s", diagnostic.description.substr(start_pos, match_pos)
+                              .c_str());
               fixed_description.Printf("%s:%u:",
                                        diagnostic.bufferName.str().c_str(),
                                        diagnostic.line - first_line +
@@ -2978,12 +2979,15 @@ public:
 
             // Append any last remainging text
             if (start_pos < diagnostic.description.size())
-              fixed_description.GetString().append(
-                  diagnostic.description, start_pos,
-                  diagnostic.description.size() - start_pos);
+              fixed_description.Printf(
+                  "%s",
+                  diagnostic.description.substr(start_pos,
+                                                diagnostic.description.size() -
+                                                    start_pos)
+                      .c_str());
 
             SwiftDiagnostic *new_diagnostic =
-                new SwiftDiagnostic(fixed_description.GetString().c_str(),
+                new SwiftDiagnostic(fixed_description.GetString().data(),
                                     severity, origin, bufferID);
             for (auto fixit : diagnostic.fixits)
               new_diagnostic->AddFixIt(fixit);
@@ -3392,16 +3396,16 @@ SwiftASTContext::GetModule(const ConstString &module_basename, Error &error) {
         error.SetErrorStringWithFormat(
             "failed to get module '%s' from AST context:\n%s",
             module_basename.GetCString(),
-            diagnostic_manager.GetString().c_str());
+            diagnostic_manager.GetString().data());
 #ifdef LLDB_CONFIGURATION_DEBUG
         printf("error in SwiftASTContext::GetModule(%s): '%s'",
                module_basename.GetCString(),
-               diagnostic_manager.GetString().c_str());
+               diagnostic_manager.GetString().data());
 #endif
         if (log)
           log->Printf("((SwiftASTContext*)%p)->GetModule('%s') -- error: %s",
                       this, module_basename.GetCString(),
-                      diagnostic_manager.GetString().c_str());
+                      diagnostic_manager.GetString().data());
       } else if (module) {
         if (log)
           log->Printf("((SwiftASTContext*)%p)->GetModule('%s') -- found %s",
@@ -4869,7 +4873,7 @@ void SwiftASTContext::PrintDiagnostics(DiagnosticManager &diagnostic_manager,
           ->PrintDiagnostics(fatal_diagnostics, bufferID, first_line, last_line,
                              line_offset);
     if (fatal_diagnostics.Diagnostics().size())
-      m_fatal_errors.SetErrorString(fatal_diagnostics.GetString().c_str());
+      m_fatal_errors.SetErrorString(fatal_diagnostics.GetString().data());
     else
       m_fatal_errors.SetErrorString("Unknown fatal error occurred.");
 
@@ -7543,7 +7547,7 @@ static int64_t GetInstanceVariableOffset_Symbol(ExecutionContext *exe_ctx,
 
         StreamString symbol_name;
         symbol_name.Printf("%s", buffer.c_str());
-        ConstString ivar_const_str(symbol_name.GetString().c_str());
+        ConstString ivar_const_str(symbol_name.GetString());
 
         lldb::addr_t ivar_offset_ptr =
             target->FindLoadAddrForNameInSymbolsAndPersistentVariables(
@@ -9054,14 +9058,14 @@ SwiftASTContextForExpressions::SwiftASTContextForExpressions(Target &target)
       m_persistent_state_up(new SwiftPersistentExpressionState) {}
 
 UserExpression *SwiftASTContextForExpressions::GetUserExpression(
-    const char *expr, const char *expr_prefix, lldb::LanguageType language,
+    llvm::StringRef expr, llvm::StringRef prefix, lldb::LanguageType language,
     Expression::ResultType desired_type,
     const EvaluateExpressionOptions &options) {
   TargetSP target_sp = m_target_wp.lock();
   if (!target_sp)
     return nullptr;
 
-  return new SwiftUserExpression(*target_sp.get(), expr, expr_prefix, language,
+  return new SwiftUserExpression(*target_sp.get(), expr, prefix, language,
                                  desired_type, options);
 }
 

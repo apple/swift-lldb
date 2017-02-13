@@ -445,7 +445,7 @@ void IRExecutionUnit::GetRunnableInfo(Error &error, lldb::addr_t &func_addr,
 
     m_failed_lookups.clear();
 
-    error.SetErrorString(ss.GetData());
+    error.SetErrorString(ss.GetString());
 
     return;
   }
@@ -788,22 +788,9 @@ void IRExecutionUnit::CollectCandidateCPlusPlusNames(
       }
     }
 
-    // Maybe we're looking for a const symbol but the debug info told us it was
-    // const...
-    if (!strncmp(name.GetCString(), "_ZN", 3) &&
-        strncmp(name.GetCString(), "_ZNK", 4)) {
-      std::string fixed_scratch("_ZNK");
-      fixed_scratch.append(name.GetCString() + 3);
-      CPP_specs.push_back(ConstString(fixed_scratch.c_str()));
-    }
-
-    // Maybe we're looking for a static symbol but we thought it was global...
-    if (!strncmp(name.GetCString(), "_Z", 2) &&
-        strncmp(name.GetCString(), "_ZL", 3)) {
-      std::string fixed_scratch("_ZL");
-      fixed_scratch.append(name.GetCString() + 2);
-      CPP_specs.push_back(ConstString(fixed_scratch.c_str()));
-    }
+    std::set<ConstString> alternates;
+    CPlusPlusLanguage::FindAlternateFunctionManglings(name, alternates);
+    CPP_specs.insert(CPP_specs.end(), alternates.begin(), alternates.end());
   }
 }
 

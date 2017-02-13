@@ -21,4 +21,19 @@ add_lldb_library(lldbExpression
 
   DEPENDS
   ${tablegen_deps}
+
+  LINK_LIBS
+    lldbCore
+    lldbHost
+    lldbInterpreter
+    lldbSymbol
+    lldbTarget
+    lldbUtility
+    lldbPluginExpressionParserClang
+    lldbPluginExpressionParserSwift
+
+  LINK_COMPONENTS
+    Core
+    ExecutionEngine
+    Support
   )

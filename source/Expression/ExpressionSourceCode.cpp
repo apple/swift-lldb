@@ -15,7 +15,6 @@
 #include "Plugins/ExpressionParser/Clang/ClangPersistentVariables.h"
 #include "Plugins/ExpressionParser/Clang/ClangUserExpression.h"
 #include "Plugins/ExpressionParser/Swift/SwiftASTManipulator.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Host/FileSystem.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Symbol/Block.h"
@@ -28,6 +27,7 @@
 #include "lldb/Target/Platform.h"
 #include "lldb/Target/StackFrame.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/StreamString.h"
 
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/FileSystem.h"
@@ -196,7 +196,7 @@ static void AddLocalVariableDecls(const lldb::VariableListSP &var_list_sp,
 }
 
 bool ExpressionSourceCode::SaveExpressionTextToTempFile(
-    const char *text, const EvaluateExpressionOptions &options,
+    llvm::StringRef text, const EvaluateExpressionOptions &options,
     std::string &expr_source_path) {
   bool success = false;
 
@@ -218,8 +218,7 @@ bool ExpressionSourceCode::SaveExpressionTextToTempFile(
   if (HostInfo::GetLLDBPath(lldb::ePathTypeLLDBTempSystemDir,
                             tmpdir_file_spec)) {
     strm.Printf("%s%u", file_prefix, expr_number);
-    tmpdir_file_spec.GetFilename().SetCStringWithLength(
-        strm.GetString().c_str(), strm.GetString().size());
+    tmpdir_file_spec.GetFilename().SetString(strm.GetString());
     expr_source_path = std::move(tmpdir_file_spec.GetPath());
   } else {
     strm.Printf("/tmp/%s%u", file_prefix, expr_number);
@@ -239,10 +238,9 @@ bool ExpressionSourceCode::SaveExpressionTextToTempFile(
   int temp_fd = mkstemp(&expr_source_path[0]);
   if (temp_fd != -1) {
     lldb_private::File file(temp_fd, true);
-    const size_t text_len = strlen(text);
-    size_t bytes_written = text_len;
-    if (file.Write(text, bytes_written).Success()) {
-      if (bytes_written == text_len) {
+    size_t bytes_written = text.size();
+    if (file.Write(text.data(), bytes_written).Success()) {
+      if (bytes_written == text.size()) {
         // Make sure we have a newline in the file at the end
         bytes_written = 1;
         file.Write("\n", bytes_written);
@@ -251,7 +249,7 @@ bool ExpressionSourceCode::SaveExpressionTextToTempFile(
       }
     }
     if (!success)
-      FileSystem::Unlink(FileSpec(expr_source_path.c_str(), true));
+      FileSystem::Unlink(FileSpec(expr_source_path, true));
   }
   if (!success)
     expr_source_path.clear();
@@ -261,9 +259,7 @@ bool ExpressionSourceCode::SaveExpressionTextToTempFile(
 bool ExpressionSourceCode::GetText(
     std::string &text, lldb::LanguageType wrapping_language,
     uint32_t language_flags, const EvaluateExpressionOptions &options,
-    const Expression::SwiftGenericInfo &generic_info, ExecutionContext &exe_ctx,
-    uint32_t &first_body_line) const {
-  first_body_line = 0;
+    const Expression::SwiftGenericInfo &generic_info, ExecutionContext &exe_ctx) const {
 
   const char *target_specific_defines = "typedef signed char BOOL;\n";
   std::string module_macros;
@@ -363,7 +359,7 @@ bool ExpressionSourceCode::GetText(
       } else {
         pound_body.Printf("#line %u \"%s\"\n%s", pound_line, pound_file, body);
       }
-      body = pound_body.GetString().c_str();
+      body = pound_body.GetString().data();
     }
 
     switch (wrapping_language) {
@@ -452,8 +448,7 @@ bool ExpressionSourceCode::GetText(
       break;
     case lldb::eLanguageTypeSwift: {
       SwiftASTManipulator::WrapExpression(wrap_stream, m_body.c_str(),
-                                          language_flags, options, generic_info,
-                                          first_body_line);
+                                          language_flags, options, generic_info);
     }
     }
 

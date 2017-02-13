@@ -10,19 +10,12 @@
 #ifndef liblldb_Module_h_
 #define liblldb_Module_h_
 
-// C Includes
-// C++ Includes
-#include <atomic>
-#include <mutex>
-#include <string>
-#include <vector>
+#include "lldb/Symbol/SymbolContextScope.h"
 
-// Other libraries and framework includes
 // Project includes
 #include "lldb/Core/ArchSpec.h"
 #include "lldb/Core/UUID.h"
 #include "lldb/Host/FileSpec.h"
-#include "lldb/Host/TimeValue.h"
 #include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Symbol/SwiftASTContext.h"
 #include "lldb/Symbol/SymbolContextScope.h"
@@ -30,8 +23,17 @@
 #include "lldb/Target/PathMappingList.h"
 #include "lldb/lldb-forward.h"
 
+// Other libraries and framework includes
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Chrono.h"
+
+// C Includes
+// C++ Includes
+#include <atomic>
+#include <mutex>
+#include <string>
+#include <vector>
 
 namespace lldb_private {
 
@@ -94,10 +96,11 @@ public:
   ///     module within a module (.a files and modules that contain
   ///     multiple architectures).
   //------------------------------------------------------------------
-  Module(const FileSpec &file_spec, const ArchSpec &arch,
-         const ConstString *object_name = nullptr,
-         lldb::offset_t object_offset = 0,
-         const TimeValue *object_mod_time_ptr = nullptr);
+  Module(
+      const FileSpec &file_spec, const ArchSpec &arch,
+      const ConstString *object_name = nullptr,
+      lldb::offset_t object_offset = 0,
+      const llvm::sys::TimePoint<> &object_mod_time = llvm::sys::TimePoint<>());
 
   Module(const ModuleSpec &module_spec);
 
@@ -559,13 +562,15 @@ public:
 
   void SetSymbolFileFileSpec(const FileSpec &file);
 
-  const TimeValue &GetModificationTime() const { return m_mod_time; }
+  const llvm::sys::TimePoint<> &GetModificationTime() const {
+    return m_mod_time;
+  }
 
-  const TimeValue &GetObjectModificationTime() const {
+  const llvm::sys::TimePoint<> &GetObjectModificationTime() const {
     return m_object_mod_time;
   }
 
-  void SetObjectModificationTime(const TimeValue &mod_time) {
+  void SetObjectModificationTime(const llvm::sys::TimePoint<> &mod_time) {
     m_mod_time = mod_time;
   }
 
@@ -976,6 +981,20 @@ public:
   bool RemapSourceFile(llvm::StringRef path, std::string &new_path) const;
   bool RemapSourceFile(const char *, std::string &) const = delete;
 
+  //------------------------------------------------------------------
+  /// Loads this module to memory.
+  ///
+  /// Loads the bits needed to create an executable image to the memory.
+  /// It is useful with bare-metal targets where target does not have the
+  /// ability to start a process itself.
+  ///
+  /// @param[in] target
+  ///     Target where to load the module.
+  ///
+  /// @return
+  //------------------------------------------------------------------
+  Error LoadInMemory(Target &target, bool set_pc);
+
   void ClearModuleDependentCaches();
 
   void SetTypeSystemMap(const TypeSystemMap &type_system_map) {
@@ -1051,8 +1070,10 @@ protected:
   //------------------------------------------------------------------
   mutable std::recursive_mutex m_mutex; ///< A mutex to keep this object happy
                                         ///in multi-threaded environments.
-  TimeValue m_mod_time; ///< The modification time for this module when it was
-                        ///created.
+
+  /// The modification time for this module when it was created.
+  llvm::sys::TimePoint<> m_mod_time;
+
   ArchSpec m_arch;      ///< The architecture for this module.
   UUID m_uuid; ///< Each module is assumed to have a unique identifier to help
                ///match it up to debug symbols.
@@ -1070,7 +1091,7 @@ protected:
                              ///selected, or empty of the module is represented
                              ///by \a m_file.
   uint64_t m_object_offset;
-  TimeValue m_object_mod_time;
+  llvm::sys::TimePoint<> m_object_mod_time;
   lldb::ObjectFileSP m_objfile_sp; ///< A shared pointer to the object file
                                    ///parser for this module as it may or may
                                    ///not be shared with the SymbolFile
@@ -1091,9 +1112,9 @@ protected:
                                      ///is used by the ObjectFile and and
                                      ///ObjectFile instances for the debug info
 
-  std::atomic<bool> m_did_load_objfile;
-  std::atomic<bool> m_did_load_symbol_vendor;
-  std::atomic<bool> m_did_parse_uuid;
+  std::atomic<bool> m_did_load_objfile{false};
+  std::atomic<bool> m_did_load_symbol_vendor{false};
+  std::atomic<bool> m_did_parse_uuid{false};
   mutable bool m_file_has_changed : 1,
       m_first_file_changed_log : 1; /// See if the module was modified after it
                                     /// was initially opened.

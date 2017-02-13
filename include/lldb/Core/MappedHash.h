@@ -23,7 +23,7 @@
 // Other libraries and framework includes
 // Project includes
 #include "lldb/Core/DataExtractor.h"
-#include "lldb/Core/Stream.h"
+#include "lldb/Utility/Stream.h"
 
 class MappedHash {
 public:
@@ -52,8 +52,7 @@ public:
     default:
       break;
     }
-    assert(!"Invalid hash function index");
-    return 0;
+    llvm_unreachable("Invalid hash function index");
   }
 
   static const uint32_t HASH_MAGIC = 0x48415348u;

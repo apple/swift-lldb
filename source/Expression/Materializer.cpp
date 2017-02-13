@@ -409,7 +409,7 @@ public:
       }
     }
 
-    log->PutCString(dump_stream.GetData());
+    log->PutString(dump_stream.GetString());
   }
 
   void Wipe(IRMemoryMap &map, lldb::addr_t process_address) override {}
@@ -781,7 +781,7 @@ public:
       }
     }
 
-    log->PutCString(dump_stream.GetData());
+    log->PutString(dump_stream.GetString());
   }
 
   void Wipe(IRMemoryMap &map, lldb::addr_t process_address) override {
@@ -1065,7 +1065,7 @@ public:
       }
     }
 
-    log->PutCString(dump_stream.GetData());
+    log->PutString(dump_stream.GetString());
   }
 
   void Wipe(IRMemoryMap &map, lldb::addr_t process_address) override {
@@ -1203,7 +1203,7 @@ public:
       }
     }
 
-    log->PutCString(dump_stream.GetData());
+    log->PutString(dump_stream.GetString());
   }
 
   void Wipe(IRMemoryMap &map, lldb::addr_t process_address) override {}
@@ -1379,7 +1379,7 @@ public:
       }
     }
 
-    log->PutCString(dump_stream.GetData());
+    log->PutString(dump_stream.GetString());
   }
 
   void Wipe(IRMemoryMap &map, lldb::addr_t process_address) override {}

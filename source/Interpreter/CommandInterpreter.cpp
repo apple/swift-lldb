@@ -45,9 +45,9 @@
 #include "lldb/Core/Log.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Core/State.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Core/StreamFile.h"
 #include "lldb/Core/Timer.h"
+#include "lldb/Utility/Stream.h"
 
 #ifndef LLDB_DISABLE_LIBEDIT
 #include "lldb/Host/Editline.h"
@@ -357,8 +357,8 @@ void CommandInterpreter::Initialize() {
     StreamString defaultshell;
     defaultshell.Printf("--shell=%s --",
                         HostInfo::GetDefaultShell().GetPath().c_str());
-    AddAlias("r", cmd_obj_sp, defaultshell.GetData());
-    AddAlias("run", cmd_obj_sp, defaultshell.GetData());
+    AddAlias("r", cmd_obj_sp, defaultshell.GetString());
+    AddAlias("run", cmd_obj_sp, defaultshell.GetString());
 #endif
 #endif
   }
@@ -1111,9 +1111,10 @@ bool CommandInterpreter::RemoveUser(llvm::StringRef alias_name) {
 
 void CommandInterpreter::GetHelp(CommandReturnObject &result,
                                  uint32_t cmd_types) {
-  const char *help_prologue = GetDebugger().GetIOHandlerHelpPrologue();
-  if (help_prologue != NULL) {
-    OutputFormattedHelpText(result.GetOutputStream(), NULL, help_prologue);
+  llvm::StringRef help_prologue(GetDebugger().GetIOHandlerHelpPrologue());
+  if (!help_prologue.empty()) {
+    OutputFormattedHelpText(result.GetOutputStream(), llvm::StringRef(),
+                            help_prologue);
   }
 
   CommandObject::CommandMap::const_iterator pos;
@@ -1128,8 +1129,8 @@ void CommandInterpreter::GetHelp(CommandReturnObject &result,
           (pos->first.compare(0, 1, "_") == 0))
         continue;
 
-      OutputFormattedHelpText(result.GetOutputStream(), pos->first.c_str(),
-                              "--", pos->second->GetHelp(), max_len);
+      OutputFormattedHelpText(result.GetOutputStream(), pos->first, "--",
+                              pos->second->GetHelp(), max_len);
     }
     result.AppendMessage("");
   }
@@ -1145,8 +1146,7 @@ void CommandInterpreter::GetHelp(CommandReturnObject &result,
 
     for (auto alias_pos = m_alias_dict.begin(); alias_pos != m_alias_dict.end();
          ++alias_pos) {
-      OutputFormattedHelpText(result.GetOutputStream(),
-                              alias_pos->first.c_str(), "--",
+      OutputFormattedHelpText(result.GetOutputStream(), alias_pos->first, "--",
                               alias_pos->second->GetHelp(), max_len);
     }
     result.AppendMessage("");
@@ -1158,8 +1158,8 @@ void CommandInterpreter::GetHelp(CommandReturnObject &result,
     result.AppendMessage("");
     max_len = FindLongestCommandWord(m_user_dict);
     for (pos = m_user_dict.begin(); pos != m_user_dict.end(); ++pos) {
-      OutputFormattedHelpText(result.GetOutputStream(), pos->first.c_str(),
-                              "--", pos->second->GetHelp(), max_len);
+      OutputFormattedHelpText(result.GetOutputStream(), pos->first, "--",
+                              pos->second->GetHelp(), max_len);
     }
     result.AppendMessage("");
   }
@@ -1334,7 +1334,7 @@ CommandObject *CommandInterpreter::BuildAliasResult(
   result_str.Printf("%s", alias_cmd_obj->GetCommandName().str().c_str());
 
   if (!option_arg_vector_sp.get()) {
-    alias_result = result_str.GetData();
+    alias_result = result_str.GetString();
     return alias_cmd_obj;
   }
   OptionArgVector *option_arg_vector = option_arg_vector_sp.get();
@@ -1375,7 +1375,7 @@ CommandObject *CommandInterpreter::BuildAliasResult(
     }
   }
 
-  alias_result = result_str.GetData();
+  alias_result = result_str.GetString();
   return alias_cmd_obj;
 }
 
@@ -1425,7 +1425,7 @@ Error CommandInterpreter::PreprocessCommand(std::string &command) {
           options.SetIgnoreBreakpoints(true);
           options.SetKeepInMemory(false);
           options.SetTryAllThreads(true);
-          options.SetTimeoutUsec(0);
+          options.SetTimeout(llvm::None);
 
           ExpressionResults expr_result = target->EvaluateExpression(
               expr_str.c_str(), exe_ctx.GetFramePtr(), expr_result_valobj_sp,
@@ -1444,8 +1444,7 @@ Error CommandInterpreter::PreprocessCommand(std::string &command) {
               scalar.GetValue(&value_strm, show_type);
               size_t value_string_size = value_strm.GetSize();
               if (value_string_size) {
-                command.insert(start_backtick, value_strm.GetData(),
-                               value_string_size);
+                command.insert(start_backtick, value_strm.GetString());
                 pos = start_backtick + value_string_size;
                 continue;
               } else {
@@ -1534,7 +1533,7 @@ bool CommandInterpreter::HandleCommand(const char *command_line,
   std::string original_command_string(command_line);
 
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_COMMANDS));
-  llvm::PrettyStackTraceFormat PST("HandleCommand(command = \"%s\")",
+  llvm::PrettyStackTraceFormat stack_trace("HandleCommand(command = \"%s\")",
                                    command_line);
 
   if (log)
@@ -1567,17 +1566,18 @@ bool CommandInterpreter::HandleCommand(const char *command_line,
     else if (command_string[non_space] == m_comment_char)
       comment_command = true;
     else if (command_string[non_space] == CommandHistory::g_repeat_char) {
-      const char *history_string =
-          m_command_history.FindString(command_string.c_str() + non_space);
-      if (history_string == nullptr) {
+      llvm::StringRef search_str(command_string);
+      search_str = search_str.drop_front(non_space);
+      if (auto hist_str = m_command_history.FindString(search_str)) {
+        add_to_history = false;
+        command_string = *hist_str;
+        original_command_string = *hist_str;
+      } else {
         result.AppendErrorWithFormat("Could not find entry: %s in history",
                                      command_string.c_str());
         result.SetStatus(eReturnStatusFailed);
         return false;
       }
-      add_to_history = false;
-      command_string = history_string;
-      original_command_string = history_string;
     }
   }
 
@@ -1658,7 +1658,7 @@ bool CommandInterpreter::HandleCommand(const char *command_line,
       if (repeat_command != nullptr)
         m_repeat_command.assign(repeat_command);
       else
-        m_repeat_command.assign(original_command_string.c_str());
+        m_repeat_command.assign(original_command_string);
 
       m_command_history.AppendString(original_command_string);
     }
@@ -1797,10 +1797,9 @@ int CommandInterpreter::HandleCompletion(
     if (first_arg[0] == m_comment_char)
       return 0;
     else if (first_arg[0] == CommandHistory::g_repeat_char) {
-      const char *history_string = m_command_history.FindString(first_arg);
-      if (history_string != nullptr) {
+      if (auto hist_str = m_command_history.FindString(first_arg)) {
         matches.Clear();
-        matches.InsertStringAtIndex(0, history_string);
+        matches.InsertStringAtIndex(0, *hist_str);
         return -2;
       } else
         return 0;
@@ -1862,9 +1861,8 @@ int CommandInterpreter::HandleCompletion(
     // put an empty string in element 0.
     std::string command_partial_str;
     if (cursor_index >= 0)
-      command_partial_str.assign(parsed_line.GetArgumentAtIndex(cursor_index),
-                                 parsed_line.GetArgumentAtIndex(cursor_index) +
-                                     cursor_char_position);
+      command_partial_str =
+          parsed_line[cursor_index].ref.take_front(cursor_char_position);
 
     std::string common_prefix;
     matches.LongestCommonPrefix(common_prefix);
@@ -1875,7 +1873,7 @@ int CommandInterpreter::HandleCompletion(
     // Only do this if the completer told us this was a complete word,
     // however...
     if (num_command_matches == 1 && word_complete) {
-      char quote_char = parsed_line.GetArgumentQuoteCharAtIndex(cursor_index);
+      char quote_char = parsed_line[cursor_index].quote;
       common_prefix =
           Args::EscapeLLDBCommandArgument(common_prefix, quote_char);
       if (quote_char != '\0')
@@ -1898,7 +1896,7 @@ void CommandInterpreter::UpdatePrompt(llvm::StringRef new_prompt) {
     m_command_io_handler_sp->SetPrompt(new_prompt);
 }
 
-bool CommandInterpreter::Confirm(const char *message, bool default_answer) {
+bool CommandInterpreter::Confirm(llvm::StringRef message, bool default_answer) {
   // Check AutoConfirm first:
   if (m_debugger.GetAutoConfirm())
     return default_answer;
@@ -2148,7 +2146,7 @@ void CommandInterpreter::SourceInitFile(bool in_cwd,
     }
 
     if (!init_file && !m_skip_lldbinit_files)
-      init_file.SetFile(init_file_path.c_str(), false);
+      init_file.SetFile(init_file_path, false);
   }
 
   // If the file exists, tell HandleCommand to 'source' it; this will do the
@@ -2247,25 +2245,25 @@ void CommandInterpreter::HandleCommands(const StringList &commands,
 
     if (options.GetPrintResults()) {
       if (tmp_result.Succeeded())
-        result.AppendMessageWithFormat("%s", tmp_result.GetOutputData());
+        result.AppendMessage(tmp_result.GetOutputData());
     }
 
     if (!success || !tmp_result.Succeeded()) {
-      const char *error_msg = tmp_result.GetErrorData();
-      if (error_msg == nullptr || error_msg[0] == '\0')
+      llvm::StringRef error_msg = tmp_result.GetErrorData();
+      if (error_msg.empty())
         error_msg = "<unknown error>.\n";
       if (options.GetStopOnError()) {
         result.AppendErrorWithFormat(
             "Aborting reading of commands after command #%" PRIu64
             ": '%s' failed with %s",
-            (uint64_t)idx, cmd, error_msg);
+            (uint64_t)idx, cmd, error_msg.str().c_str());
         result.SetStatus(eReturnStatusFailed);
         m_debugger.SetAsyncExecution(old_async_execution);
         return;
       } else if (options.GetPrintResults()) {
-        result.AppendMessageWithFormat("Command #%" PRIu64
-                                       " '%s' failed with %s",
-                                       (uint64_t)idx + 1, cmd, error_msg);
+        result.AppendMessageWithFormat(
+            "Command #%" PRIu64 " '%s' failed with %s", (uint64_t)idx + 1, cmd,
+            error_msg.str().c_str());
       }
     }
 
@@ -2481,15 +2479,14 @@ void CommandInterpreter::HandleCommandsFromFile(
 }
 
 ScriptInterpreter *CommandInterpreter::GetScriptInterpreter(bool can_create) {
-  if (m_script_interpreter_sp)
-    return m_script_interpreter_sp.get();
-
-  if (!can_create)
-    return nullptr;
-
-  lldb::ScriptLanguage script_lang = GetDebugger().GetScriptLanguage();
-  m_script_interpreter_sp =
-      PluginManager::GetScriptInterpreterForLanguage(script_lang, *this);
+  std::lock_guard<std::mutex> locker(m_script_interpreter_mutex);
+  if (!m_script_interpreter_sp) {
+    if (!can_create)
+      return nullptr;
+    lldb::ScriptLanguage script_lang = GetDebugger().GetScriptLanguage();
+    m_script_interpreter_sp =
+        PluginManager::GetScriptInterpreterForLanguage(script_lang, *this);
+  }
   return m_script_interpreter_sp.get();
 }
 
@@ -2500,98 +2497,97 @@ void CommandInterpreter::SetSynchronous(bool value) {
 }
 
 void CommandInterpreter::OutputFormattedHelpText(Stream &strm,
-                                                 const char *prefix,
-                                                 const char *help_text) {
+                                                 llvm::StringRef prefix,
+                                                 llvm::StringRef help_text) {
   const uint32_t max_columns = m_debugger.GetTerminalWidth();
-  if (prefix == NULL)
-    prefix = "";
 
-  size_t prefix_width = strlen(prefix);
-  size_t line_width_max = max_columns - prefix_width;
-  const char *help_text_end = help_text + strlen(help_text);
-  const char *line_start = help_text;
+  size_t line_width_max = max_columns - prefix.size();
   if (line_width_max < 16)
-    line_width_max = help_text_end - help_text + prefix_width;
+    line_width_max = help_text.size() + prefix.size();
 
-  strm.IndentMore(prefix_width);
-  while (line_start < help_text_end) {
-    // Break each line at the first newline or last space/tab before
-    // the maximum number of characters that fit on a line.  Lines with no
-    // natural break are left unbroken to wrap.
-    const char *line_end = help_text_end;
-    const char *line_scan = line_start;
-    const char *line_scan_end = help_text_end;
-    while (line_scan < line_scan_end) {
-      char next = *line_scan;
-      if (next == '\t' || next == ' ') {
-        line_end = line_scan;
-        line_scan_end = line_start + line_width_max;
-      } else if (next == '\n' || next == '\0') {
-        line_end = line_scan;
-        break;
-      }
-      ++line_scan;
-    }
-
+  strm.IndentMore(prefix.size());
+  bool prefixed_yet = false;
+  while (!help_text.empty()) {
     // Prefix the first line, indent subsequent lines to line up
-    if (line_start == help_text)
-      strm.Write(prefix, prefix_width);
-    else
+    if (!prefixed_yet) {
+      strm << prefix;
+      prefixed_yet = true;
+    } else
       strm.Indent();
-    strm.Write(line_start, line_end - line_start);
+
+    // Never print more than the maximum on one line.
+    llvm::StringRef this_line = help_text.substr(0, line_width_max);
+
+    // Always break on an explicit newline.
+    std::size_t first_newline = this_line.find_first_of("\n");
+
+    // Don't break on space/tab unless the text is too long to fit on one line.
+    std::size_t last_space = llvm::StringRef::npos;
+    if (this_line.size() != help_text.size())
+      last_space = this_line.find_last_of(" \t");
+
+    // Break at whichever condition triggered first.
+    this_line = this_line.substr(0, std::min(first_newline, last_space));
+    strm.PutCString(this_line);
     strm.EOL();
 
-    // When a line breaks at whitespace consume it before continuing
-    line_start = line_end;
-    char next = *line_start;
-    if (next == '\n')
-      ++line_start;
-    else
-      while (next == ' ' || next == '\t')
-        next = *(++line_start);
+    // Remove whitespace / newlines after breaking.
+    help_text = help_text.drop_front(this_line.size()).ltrim();
   }
-  strm.IndentLess(prefix_width);
+  strm.IndentLess(prefix.size());
 }
 
 void CommandInterpreter::OutputFormattedHelpText(Stream &strm,
-                                                 const char *word_text,
-                                                 const char *separator,
-                                                 const char *help_text,
+                                                 llvm::StringRef word_text,
+                                                 llvm::StringRef separator,
+                                                 llvm::StringRef help_text,
                                                  size_t max_word_len) {
   StreamString prefix_stream;
-  prefix_stream.Printf("  %-*s %s ", (int)max_word_len, word_text, separator);
-  OutputFormattedHelpText(strm, prefix_stream.GetData(), help_text);
+  prefix_stream.Printf("  %-*s %*s ", (int)max_word_len, word_text.data(),
+                       (int)separator.size(), separator.data());
+  OutputFormattedHelpText(strm, prefix_stream.GetString(), help_text);
 }
 
-void CommandInterpreter::OutputHelpText(Stream &strm, const char *word_text,
-                                        const char *separator,
-                                        const char *help_text,
+LLVM_ATTRIBUTE_ALWAYS_INLINE
+static size_t nextWordLength(llvm::StringRef S) {
+  size_t pos = S.find_first_of(' ');
+  if (pos == llvm::StringRef::npos)
+    return S.size();
+  return pos;
+}
+
+void CommandInterpreter::OutputHelpText(Stream &strm, llvm::StringRef word_text,
+                                        llvm::StringRef separator,
+                                        llvm::StringRef help_text,
                                         uint32_t max_word_len) {
-  int indent_size = max_word_len + strlen(separator) + 2;
+  int indent_size = max_word_len + separator.size() + 2;
 
   strm.IndentMore(indent_size);
 
   StreamString text_strm;
-  text_strm.Printf("%-*s %s %s", max_word_len, word_text, separator, help_text);
+  text_strm.Printf("%-*s ", (int)max_word_len, word_text.data());
+  text_strm << separator << " " << help_text;
 
   const uint32_t max_columns = m_debugger.GetTerminalWidth();
 
-  size_t len = text_strm.GetSize();
-  const char *text = text_strm.GetData();
+  llvm::StringRef text = text_strm.GetString();
 
   uint32_t chars_left = max_columns;
 
-  for (uint32_t i = 0; i < len; i++) {
-    if ((text[i] == ' ' && ::strchr((text + i + 1), ' ') &&
-         chars_left < static_cast<uint32_t>(::strchr((text + i + 1), ' ') -
-                                            (text + i))) ||
-        text[i] == '\n') {
-      chars_left = max_columns - indent_size;
+  while (!text.empty()) {
+    if (text.front() == '\n' ||
+        (text.front() == ' ' && nextWordLength(text.ltrim(' ')) < chars_left)) {
       strm.EOL();
       strm.Indent();
+      chars_left = max_columns - indent_size;
+      if (text.front() == '\n')
+        text = text.drop_front();
+      else
+        text = text.ltrim(' ');
     } else {
-      strm.PutChar(text[i]);
-      chars_left--;
+      strm.PutChar(text.front());
+      --chars_left;
+      text = text.drop_front();
     }
   }
 
@@ -2600,19 +2596,19 @@ void CommandInterpreter::OutputHelpText(Stream &strm, const char *word_text,
 }
 
 void CommandInterpreter::FindCommandsForApropos(
-    const char *search_word, StringList &commands_found,
+    llvm::StringRef search_word, StringList &commands_found,
     StringList &commands_help, CommandObject::CommandMap &command_map) {
   CommandObject::CommandMap::const_iterator pos;
 
   for (pos = command_map.begin(); pos != command_map.end(); ++pos) {
-    const char *command_name = pos->first.c_str();
+    llvm::StringRef command_name = pos->first;
     CommandObject *cmd_obj = pos->second.get();
 
     const bool search_short_help = true;
     const bool search_long_help = false;
     const bool search_syntax = false;
     const bool search_options = false;
-    if (strcasestr(command_name, search_word) ||
+    if (command_name.contains_lower(search_word) ||
         cmd_obj->HelpTextContainsWord(search_word, search_short_help,
                                       search_long_help, search_syntax,
                                       search_options)) {
@@ -2628,7 +2624,7 @@ void CommandInterpreter::FindCommandsForApropos(
   }
 }
 
-void CommandInterpreter::FindCommandsForApropos(const char *search_word,
+void CommandInterpreter::FindCommandsForApropos(llvm::StringRef search_word,
                                                 StringList &commands_found,
                                                 StringList &commands_help,
                                                 bool search_builtin_commands,
@@ -2720,15 +2716,15 @@ void CommandInterpreter::IOHandlerInputComplete(IOHandler &io_handler,
     GetProcessOutput();
 
     if (!result.GetImmediateOutputStream()) {
-      const char *output = result.GetOutputData();
-      if (output && output[0])
+      llvm::StringRef output = result.GetOutputData();
+      if (!output.empty())
         io_handler.GetOutputStreamFile()->PutCString(output);
     }
 
     // Now emit the command error text from the command we just executed
     if (!result.GetImmediateErrorStream()) {
-      const char *error = result.GetErrorData();
-      if (error && error[0])
+      llvm::StringRef error = result.GetErrorData();
+      if (!error.empty())
         io_handler.GetErrorStreamFile()->PutCString(error);
     }
   }
@@ -2934,7 +2930,7 @@ CommandInterpreter::ResolveCommandImpl(std::string &command_line,
     ExtractCommand(scratch_command, next_word, suffix, quote_char);
     if (cmd_obj == nullptr) {
       std::string full_name;
-      bool is_alias = GetAliasFullName(next_word.c_str(), full_name);
+      bool is_alias = GetAliasFullName(next_word, full_name);
       cmd_obj = GetCommandObject(next_word, &matches);
       bool is_real_command =
           (is_alias == false) ||
@@ -2942,8 +2938,8 @@ CommandInterpreter::ResolveCommandImpl(std::string &command_line,
       if (!is_real_command) {
         matches.Clear();
         std::string alias_result;
-        cmd_obj = BuildAliasResult(full_name.c_str(), scratch_command,
-                                   alias_result, result);
+        cmd_obj =
+            BuildAliasResult(full_name, scratch_command, alias_result, result);
         revised_command_line.Printf("%s", alias_result.c_str());
         if (cmd_obj) {
           wants_raw_input = cmd_obj->WantsRawCommandString();
@@ -3006,7 +3002,7 @@ CommandInterpreter::ResolveCommandImpl(std::string &command_line,
         for (uint32_t i = 0; i < num_matches; ++i) {
           error_msg.Printf("\t%s\n", matches.GetStringAtIndex(i));
         }
-        result.AppendRawError(error_msg.GetString().c_str());
+        result.AppendRawError(error_msg.GetString());
       } else {
         // We didn't have only one match, otherwise we wouldn't get here.
         assert(num_matches == 0);
@@ -3042,18 +3038,16 @@ CommandInterpreter::ResolveCommandImpl(std::string &command_line,
               std::string gdb_format_option("--gdb-format=");
               gdb_format_option += (suffix.c_str() + 1);
 
-              bool inserted = false;
-              std::string &cmd = revised_command_line.GetString();
+              std::string cmd = revised_command_line.GetString();
               size_t arg_terminator_idx = FindArgumentTerminator(cmd);
               if (arg_terminator_idx != std::string::npos) {
                 // Insert the gdb format option before the "--" that terminates
                 // options
                 gdb_format_option.append(1, ' ');
                 cmd.insert(arg_terminator_idx, gdb_format_option);
-                inserted = true;
-              }
-
-              if (!inserted)
+                revised_command_line.Clear();
+                revised_command_line.PutCString(cmd);
+              } else
                 revised_command_line.Printf(" %s", gdb_format_option.c_str());
 
               if (wants_raw_input &&
@@ -3085,7 +3079,7 @@ CommandInterpreter::ResolveCommandImpl(std::string &command_line,
     revised_command_line.Printf(" %s", scratch_command.c_str());
 
   if (cmd_obj != NULL)
-    command_line = revised_command_line.GetData();
+    command_line = revised_command_line.GetString();
 
   return cmd_obj;
 }

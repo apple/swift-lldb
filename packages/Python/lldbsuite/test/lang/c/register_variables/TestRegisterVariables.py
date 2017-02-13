@@ -100,10 +100,10 @@ class RegisterVariableTestCase(TestBase):
 
     @expectedFailureAll(compiler="clang", compiler_version=['<', '3.5'])
     @expectedFailureAll(compiler="clang", archs=["i386"])
-    @expectedFailureAll(
-        compiler="gcc", compiler_version=[
-            '>=', '4.8.2'], archs=[
-            "i386", "x86_64"])
+    @expectedFailureAll(compiler="gcc", compiler_version=[
+            '>=', '4.8.2'], archs=["i386"])
+    @expectedFailureAll(compiler="gcc", compiler_version=[
+            '<', '4.9'], archs=["x86_64"])
     @expectedFailureAll(oslist=["linux"], bugnumber="bugs.swift.org/SR-2140")
     @expectedFailureAll(oslist=["macosx"], bugnumber="rdar://28983120")
     def test_and_run_command(self):

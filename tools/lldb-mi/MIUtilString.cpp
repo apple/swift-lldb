@@ -8,6 +8,7 @@
 //===----------------------------------------------------------------------===//
 
 // Third party headers
+#include <cstdlib>
 #include <inttypes.h> // for PRIx8
 #include <limits.h>   // for ULONG_MAX
 #include <memory>     // std::unique_ptr
@@ -156,7 +157,7 @@ CMIUtilString CMIUtilString::FormatPriv(const CMIUtilString &vrFormat,
 // Return:  CMIUtilString - Number of splits found in the string data.
 // Throws:  None.
 //--
-CMIUtilString CMIUtilString::Format(const CMIUtilString vFormating, ...) {
+CMIUtilString CMIUtilString::Format(const char *vFormating, ...) {
   va_list args;
   va_start(args, vFormating);
   CMIUtilString strResult = CMIUtilString::FormatPriv(vFormating, args);

@@ -1,4 +1,4 @@
-//===-- OptionValueFileSpecList.cpp -----------------------------*- C++ -*-===//
+//===-- OptionValueFileSpecLIst.cpp -----------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -13,9 +13,9 @@
 // C++ Includes
 // Other libraries and framework includes
 // Project includes
-#include "lldb/Core/Stream.h"
 #include "lldb/Host/StringConvert.h"
 #include "lldb/Interpreter/Args.h"
+#include "lldb/Utility/Stream.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -41,7 +41,7 @@ void OptionValueFileSpecList::DumpValue(const ExecutionContext *exe_ctx,
 Error OptionValueFileSpecList::SetValueFromString(llvm::StringRef value,
                                                   VarSetOperationType op) {
   Error error;
-  Args args(value.str().c_str());
+  Args args(value.str());
   const size_t argc = args.GetArgumentCount();
 
   switch (op) {

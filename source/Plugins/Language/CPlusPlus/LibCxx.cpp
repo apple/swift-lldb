@@ -15,9 +15,7 @@
 // Project includes
 #include "lldb/Core/DataBufferHeap.h"
 #include "lldb/Core/Debugger.h"
-#include "lldb/Core/Error.h"
 #include "lldb/Core/FormatEntity.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Core/ValueObjectConstResult.h"
 #include "lldb/DataFormatters/FormattersHelpers.h"
@@ -27,7 +25,9 @@
 #include "lldb/Host/Endian.h"
 #include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/Error.h"
 #include "lldb/Utility/ProcessStructReader.h"
+#include "lldb/Utility/Stream.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -59,7 +59,8 @@ bool lldb_private::formatters::LibcxxSmartPointerSummaryProvider(
       if (pointee_sp->DumpPrintableRepresentation(
               stream, ValueObject::eValueObjectRepresentationStyleSummary,
               lldb::eFormatInvalid,
-              ValueObject::ePrintableRepresentationSpecialCasesDisable, false))
+              ValueObject::PrintableRepresentationSpecialCases::eDisable,
+              false))
         print_pointee = true;
     }
     if (!print_pointee)
@@ -152,8 +153,8 @@ lldb_private::formatters::LibcxxVectorBoolSyntheticFrontEnd::GetChildAtIndex(
   StreamString name;
   name.Printf("[%" PRIu64 "]", (uint64_t)idx);
   ValueObjectSP retval_sp(CreateValueObjectFromData(
-      name.GetData(), DataExtractor(buffer_sp, process_sp->GetByteOrder(),
-                                    process_sp->GetAddressByteSize()),
+      name.GetString(), DataExtractor(buffer_sp, process_sp->GetByteOrder(),
+                                      process_sp->GetAddressByteSize()),
       m_exe_ctx_ref, m_bool_type));
   if (retval_sp)
     m_children[idx] = retval_sp;
@@ -279,7 +280,7 @@ bool lldb_private::formatters::LibCxxMapIteratorSyntheticFrontEnd::Update() {
   // die and free their memory
   m_pair_ptr = valobj_sp
                    ->GetValueForExpressionPath(
-                       ".__i_.__ptr_->__value_", nullptr, nullptr, nullptr,
+                       ".__i_.__ptr_->__value_", nullptr, nullptr,
                        ValueObject::GetValueForExpressionPathOptions()
                            .DontCheckDotVsArrowSyntax()
                            .SetSyntheticChildrenTraversal(
@@ -287,16 +288,18 @@ bool lldb_private::formatters::LibCxxMapIteratorSyntheticFrontEnd::Update() {
                                    SyntheticChildrenTraversal::None),
                        nullptr)
                    .get();
-  
+
   if (!m_pair_ptr) {
-    m_pair_ptr = valobj_sp->GetValueForExpressionPath(".__i_.__ptr_", nullptr, nullptr, nullptr,
-                                                      ValueObject::GetValueForExpressionPathOptions()
-                                                      .DontCheckDotVsArrowSyntax()
-                                                      .SetSyntheticChildrenTraversal(
-                                                                                     ValueObject::GetValueForExpressionPathOptions::
-                                                                                     SyntheticChildrenTraversal::None),
-                                                      nullptr)
-    .get();
+    m_pair_ptr = valobj_sp
+                     ->GetValueForExpressionPath(
+                         ".__i_.__ptr_", nullptr, nullptr,
+                         ValueObject::GetValueForExpressionPathOptions()
+                             .DontCheckDotVsArrowSyntax()
+                             .SetSyntheticChildrenTraversal(
+                                 ValueObject::GetValueForExpressionPathOptions::
+                                     SyntheticChildrenTraversal::None),
+                         nullptr)
+                     .get();
     if (m_pair_ptr) {
       auto __i_(valobj_sp->GetChildMemberWithName(g___i_, true));
       lldb::TemplateArgumentKind kind;

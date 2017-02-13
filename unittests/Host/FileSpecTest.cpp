@@ -109,19 +109,200 @@ TEST(FileSpecTest, CopyByAppendingPathComponent) {
   EXPECT_STREQ("bar", fs.GetFilename().GetCString());
 }
 
-TEST(FileSpecTest, Equal) {
+TEST(FileSpecTest, PrependPathComponent) {
+  FileSpec fs_posix("foo", false, FileSpec::ePathSyntaxPosix);
+  fs_posix.PrependPathComponent("/bar");
+  EXPECT_STREQ("/bar/foo", fs_posix.GetCString());
+
+  FileSpec fs_posix_2("foo/bar", false, FileSpec::ePathSyntaxPosix);
+  fs_posix_2.PrependPathComponent("/baz");
+  EXPECT_STREQ("/baz/foo/bar", fs_posix_2.GetCString());
+
+  FileSpec fs_windows("baz", false, FileSpec::ePathSyntaxWindows);
+  fs_windows.PrependPathComponent("F:\\bar");
+  EXPECT_STREQ("F:\\bar\\baz", fs_windows.GetCString());
+
+  FileSpec fs_posix_root("bar", false, FileSpec::ePathSyntaxPosix);
+  fs_posix_root.PrependPathComponent("/");
+  EXPECT_STREQ("/bar", fs_posix_root.GetCString());
+
+  FileSpec fs_windows_root("bar", false, FileSpec::ePathSyntaxWindows);
+  fs_windows_root.PrependPathComponent("F:\\");
+  EXPECT_STREQ("F:\\bar", fs_windows_root.GetCString());
+}
+
+static void Compare(const FileSpec &one, const FileSpec &two, bool full_match,
+                    bool remove_backup_dots, bool result) {
+  EXPECT_EQ(result, FileSpec::Equal(one, two, full_match, remove_backup_dots))
+      << "File one: " << one.GetCString() << "\nFile two: " << two.GetCString()
+      << "\nFull match: " << full_match
+      << "\nRemove backup dots: " << remove_backup_dots;
+}
+
+TEST(FileSpecTest, EqualSeparator) {
   FileSpec backward("C:\\foo\\bar", false, FileSpec::ePathSyntaxWindows);
   FileSpec forward("C:/foo/bar", false, FileSpec::ePathSyntaxWindows);
   EXPECT_EQ(forward, backward);
 
   const bool full_match = true;
   const bool remove_backup_dots = true;
-  EXPECT_TRUE(
-      FileSpec::Equal(forward, backward, full_match, remove_backup_dots));
-  EXPECT_TRUE(
-      FileSpec::Equal(forward, backward, full_match, !remove_backup_dots));
-  EXPECT_TRUE(
-      FileSpec::Equal(forward, backward, !full_match, remove_backup_dots));
-  EXPECT_TRUE(
-      FileSpec::Equal(forward, backward, !full_match, !remove_backup_dots));
+  const bool match = true;
+  Compare(forward, backward, full_match, remove_backup_dots, match);
+  Compare(forward, backward, full_match, !remove_backup_dots, match);
+  Compare(forward, backward, !full_match, remove_backup_dots, match);
+  Compare(forward, backward, !full_match, !remove_backup_dots, match);
+}
+
+TEST(FileSpecTest, EqualDotsWindows) {
+  const bool full_match = true;
+  const bool remove_backup_dots = true;
+  const bool match = true;
+  std::pair<const char *, const char *> tests[] = {
+      {R"(C:\foo\bar\baz)", R"(C:\foo\foo\..\bar\baz)"},
+      {R"(C:\bar\baz)", R"(C:\foo\..\bar\baz)"},
+      {R"(C:\bar\baz)", R"(C:/foo/../bar/baz)"},
+      {R"(C:/bar/baz)", R"(C:\foo\..\bar\baz)"},
+      {R"(C:\bar)", R"(C:\foo\..\bar)"},
+      {R"(C:\foo\bar)", R"(C:\foo\.\bar)"},
+  };
+
+  for(const auto &test: tests) {
+    FileSpec one(test.first, false, FileSpec::ePathSyntaxWindows);
+    FileSpec two(test.second, false, FileSpec::ePathSyntaxWindows);
+    EXPECT_NE(one, two);
+    Compare(one, two, full_match, remove_backup_dots, match);
+    Compare(one, two, full_match, !remove_backup_dots, !match);
+    Compare(one, two, !full_match, remove_backup_dots, match);
+    Compare(one, two, !full_match, !remove_backup_dots, !match);
+  }
+
+}
+
+TEST(FileSpecTest, EqualDotsPosix) {
+  const bool full_match = true;
+  const bool remove_backup_dots = true;
+  const bool match = true;
+  std::pair<const char *, const char *> tests[] = {
+      {R"(/foo/bar/baz)", R"(/foo/foo/../bar/baz)"},
+      {R"(/bar/baz)", R"(/foo/../bar/baz)"},
+      {R"(/bar)", R"(/foo/../bar)"},
+      {R"(/foo/bar)", R"(/foo/./bar)"},
+  };
+
+  for(const auto &test: tests) {
+    FileSpec one(test.first, false, FileSpec::ePathSyntaxPosix);
+    FileSpec two(test.second, false, FileSpec::ePathSyntaxPosix);
+    EXPECT_NE(one, two);
+    Compare(one, two, full_match, remove_backup_dots, match);
+    Compare(one, two, full_match, !remove_backup_dots, !match);
+    Compare(one, two, !full_match, remove_backup_dots, match);
+    Compare(one, two, !full_match, !remove_backup_dots, !match);
+  }
+
+}
+
+TEST(FileSpecTest, EqualDotsPosixRoot) {
+  const bool full_match = true;
+  const bool remove_backup_dots = true;
+  const bool match = true;
+  std::pair<const char *, const char *> tests[] = {
+      {R"(/)", R"(/..)"}, {R"(/)", R"(/.)"}, {R"(/)", R"(/foo/..)"},
+  };
+
+  for(const auto &test: tests) {
+    FileSpec one(test.first, false, FileSpec::ePathSyntaxPosix);
+    FileSpec two(test.second, false, FileSpec::ePathSyntaxPosix);
+    EXPECT_NE(one, two);
+    Compare(one, two, full_match, remove_backup_dots, match);
+    Compare(one, two, full_match, !remove_backup_dots, !match);
+    Compare(one, two, !full_match, remove_backup_dots, !match);
+    Compare(one, two, !full_match, !remove_backup_dots, !match);
+  }
+}
+
+TEST(FileSpecTest, GetNormalizedPath) {
+  std::pair<const char *, const char *> posix_tests[] = {
+      {"/foo/.././bar", "/bar"},
+      {"/foo/./../bar", "/bar"},
+      {"/foo/../bar", "/bar"},
+      {"/foo/./bar", "/foo/bar"},
+      {"/foo/..", "/"},
+      {"/foo/.", "/foo"},
+      {"/foo//bar", "/foo/bar"},
+      {"/foo//bar/baz", "/foo/bar/baz"},
+      {"/foo//bar/./baz", "/foo/bar/baz"},
+      {"/./foo", "/foo"},
+      {"/", "/"},
+      {"//", "//"},
+      {"//net", "//net"},
+      {"/..", "/"},
+      {"/.", "/"},
+      {"..", ".."},
+      {".", "."},
+      {"../..", "../.."},
+      {"foo/..", "."},
+      {"foo/../bar", "bar"},
+      {"../foo/..", ".."},
+      {"./foo", "foo"},
+  };
+  for (auto test : posix_tests) {
+    EXPECT_EQ(test.second,
+              FileSpec(test.first, false, FileSpec::ePathSyntaxPosix)
+                  .GetNormalizedPath()
+                  .GetPath());
+  }
+
+  std::pair<const char *, const char *> windows_tests[] = {
+      {R"(c:\bar\..\bar)", R"(c:\bar)"},
+      {R"(c:\bar\.\bar)", R"(c:\bar\bar)"},
+      {R"(c:\bar\..)", R"(c:\)"},
+      {R"(c:\bar\.)", R"(c:\bar)"},
+      {R"(c:\.\bar)", R"(c:\bar)"},
+      {R"(\)", R"(\)"},
+      //      {R"(\\)", R"(\\)"},
+      //      {R"(\\net)", R"(\\net)"},
+      {R"(c:\..)", R"(c:\)"},
+      {R"(c:\.)", R"(c:\)"},
+      {R"(\..)", R"(\)"},
+      //      {R"(c:..)", R"(c:..)"},
+      {R"(..)", R"(..)"},
+      {R"(.)", R"(.)"},
+      {R"(c:..\..)", R"(c:..\..)"},
+      {R"(..\..)", R"(..\..)"},
+      {R"(foo\..)", R"(.)"},
+      {R"(foo\..\bar)", R"(bar)"},
+      {R"(..\foo\..)", R"(..)"},
+      {R"(.\foo)", R"(foo)"},
+  };
+  for (auto test : windows_tests) {
+    EXPECT_EQ(test.second,
+              FileSpec(test.first, false, FileSpec::ePathSyntaxWindows)
+                  .GetNormalizedPath()
+                  .GetPath())
+        << "Original path: " << test.first;
+  }
+}
+
+TEST(FileSpecTest, FormatFileSpec) {
+  auto win = FileSpec::ePathSyntaxWindows;
+
+  FileSpec F;
+  EXPECT_EQ("(empty)", llvm::formatv("{0}", F).str());
+  EXPECT_EQ("(empty)", llvm::formatv("{0:D}", F).str());
+  EXPECT_EQ("(empty)", llvm::formatv("{0:F}", F).str());
+
+  F = FileSpec("C:\\foo\\bar.txt", false, win);
+  EXPECT_EQ("C:\\foo\\bar.txt", llvm::formatv("{0}", F).str());
+  EXPECT_EQ("C:\\foo\\", llvm::formatv("{0:D}", F).str());
+  EXPECT_EQ("bar.txt", llvm::formatv("{0:F}", F).str());
+
+  F = FileSpec("foo\\bar.txt", false, win);
+  EXPECT_EQ("foo\\bar.txt", llvm::formatv("{0}", F).str());
+  EXPECT_EQ("foo\\", llvm::formatv("{0:D}", F).str());
+  EXPECT_EQ("bar.txt", llvm::formatv("{0:F}", F).str());
+
+  F = FileSpec("foo", false, win);
+  EXPECT_EQ("foo", llvm::formatv("{0}", F).str());
+  EXPECT_EQ("foo", llvm::formatv("{0:F}", F).str());
+  EXPECT_EQ("(empty)", llvm::formatv("{0:D}", F).str());
 }

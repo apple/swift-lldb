@@ -1,31 +1,17 @@
-function(lldb_link_common_libs name targetkind)
-  if (NOT LLDB_USED_LIBS)
-    return()
-  endif()
-
-  if(${targetkind} MATCHES "SHARED")
-    set(LINK_KEYWORD PRIVATE)
-  endif()
-
-  if(${targetkind} MATCHES "SHARED" OR ${targetkind} MATCHES "EXE")
-    if (LLDB_LINKER_SUPPORTS_GROUPS)
-      target_link_libraries(${name} ${LINK_KEYWORD}
-                            -Wl,--start-group ${LLDB_USED_LIBS} -Wl,--end-group)
-    else()
-      target_link_libraries(${name} ${LINK_KEYWORD} ${LLDB_USED_LIBS})
-    endif()
-  endif()
-endfunction(lldb_link_common_libs)
-
 function(add_lldb_library name)
   # only supported parameters to this macro are the optional
   # MODULE;SHARED;STATIC library type and source files
   cmake_parse_arguments(PARAM
-    "MODULE;SHARED;STATIC;OBJECT"
+    "MODULE;SHARED;STATIC;OBJECT;PLUGIN"
     ""
-    "DEPENDS"
+    "DEPENDS;LINK_LIBS;LINK_COMPONENTS"
     ${ARGN})
   llvm_process_sources(srcs ${PARAM_UNPARSED_ARGUMENTS})
+  list(APPEND LLVM_LINK_COMPONENTS ${PARAM_LINK_COMPONENTS})
+
+  if(PARAM_PLUGIN)
+    set_property(GLOBAL APPEND PROPERTY LLDB_PLUGINS ${name})
+  endif()
 
   if (MSVC_IDE OR XCODE)
     string(REGEX MATCHALL "/[^/]+" split_path ${CMAKE_CURRENT_SOURCE_DIR})
@@ -49,32 +35,28 @@ function(add_lldb_library name)
   endif()
 
   #PIC not needed on Win
-  if (NOT MSVC)
+  if (NOT WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
   endif()
 
   if (PARAM_OBJECT)
     add_library(${name} ${libkind} ${srcs})
   else()
-    if (PARAM_SHARED)
-      if (LLDB_LINKER_SUPPORTS_GROUPS)
-        llvm_add_library(${name} ${libkind} ${srcs} LINK_LIBS
-                                -Wl,--start-group ${LLDB_USED_LIBS} -Wl,--end-group
-                                -Wl,--start-group ${SWIFT_ALL_LIBS} -Wl,--end-group
-                                -Wl,--start-group ${CLANG_ALL_LIBS} -Wl,--end-group
-                                DEPENDS ${PARAM_DEPENDS}
-          )
-      else()
-        llvm_add_library(${name} ${libkind} ${srcs} LINK_LIBS
-                                ${LLDB_USED_LIBS} ${SWIFT_ALL_LIBS} ${CLANG_ALL_LIBS}
-                                DEPENDS ${PARAM_DEPENDS}
-          )
-      endif()
-    else()
-        llvm_add_library(${name} ${libkind} ${srcs} DEPENDS ${PARAM_DEPENDS})
+    # start swift mod
+    if (PARAM_SHARED AND LLDB_LINKER_SUPPORTS_GROUPS)
+      set(start_group -Wl,--start-group)
+      set(end_group -Wl,--end-group)
     endif()
+    # end swift mod
+    llvm_add_library(${name} ${libkind} ${srcs} LINK_LIBS
+    # start swift mod
+                                ${start_group}
+                                ${PARAM_LINK_LIBS}
+                                ${end_group}
+    # end swift mod
+                                DEPENDS ${PARAM_DEPENDS})
 
-    if (${name} STREQUAL "liblldb")
+    if (NOT LLVM_INSTALL_TOOLCHAIN_ONLY OR ${name} STREQUAL "liblldb")
       if (PARAM_SHARED)
         set(out_dir lib${LLVM_LIBDIR_SUFFIX})
         if(${name} STREQUAL "liblldb" AND LLDB_BUILD_FRAMEWORK)
@@ -113,8 +95,17 @@ function(add_lldb_library name)
 endfunction(add_lldb_library)
 
 function(add_lldb_executable name)
-  cmake_parse_arguments(ARG "INCLUDE_IN_FRAMEWORK;GENERATE_INSTALL" "" "" ${ARGN})
-  add_llvm_executable(${name} DISABLE_LLVM_LINK_LLVM_DYLIB ${ARG_UNPARSED_ARGUMENTS})
+  cmake_parse_arguments(ARG
+    "INCLUDE_IN_FRAMEWORK;GENERATE_INSTALL"
+    ""
+    "LINK_LIBS;LINK_COMPONENTS"
+    ${ARGN}
+    )
+
+  list(APPEND LLVM_LINK_COMPONENTS ${ARG_LINK_COMPONENTS})
+  add_llvm_executable(${name} ${ARG_UNPARSED_ARGUMENTS})
+
+  target_link_libraries(${name} ${ARG_LINK_LIBS})
   set_target_properties(${name} PROPERTIES
     FOLDER "lldb executables")
 
@@ -154,10 +145,6 @@ function(add_lldb_executable name)
                                 -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
     endif()
   endif()
-
-  # Might need the following in an else clause for above to cover non-Apple
-  # set(rpath_prefix "$ORIGIN")
-  # set_target_properties(${name} PROPERTIES INSTALL_RPATH "${rpath_prefix}/../lib")
 
   if(ARG_INCLUDE_IN_FRAMEWORK AND LLDB_BUILD_FRAMEWORK)
     add_llvm_tool_symlink(${name} ${name} ALWAYS_GENERATE SKIP_INSTALL

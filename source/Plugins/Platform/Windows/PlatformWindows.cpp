@@ -22,12 +22,12 @@
 #include "lldb/Breakpoint/BreakpointLocation.h"
 #include "lldb/Breakpoint/BreakpointSite.h"
 #include "lldb/Core/Debugger.h"
-#include "lldb/Core/Error.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/ModuleSpec.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Target/Process.h"
+#include "lldb/Utility/Error.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -265,7 +265,7 @@ Error PlatformWindows::ResolveExecutable(
           error.SetErrorStringWithFormat(
               "'%s' doesn't contain any '%s' platform architectures: %s",
               resolved_module_spec.GetFileSpec().GetPath().c_str(),
-              GetPluginName().GetCString(), arch_names.GetString().c_str());
+              GetPluginName().GetCString(), arch_names.GetData());
         } else {
           error.SetErrorStringWithFormat(
               "'%s' is not readable",
@@ -474,8 +474,8 @@ lldb::ProcessSP PlatformWindows::Attach(ProcessAttachInfo &attach_info,
     FileSpec emptyFileSpec;
     ArchSpec emptyArchSpec;
 
-    error = debugger.GetTargetList().CreateTarget(
-        debugger, nullptr, nullptr, false, nullptr, new_target_sp);
+    error = debugger.GetTargetList().CreateTarget(debugger, "", "", false,
+                                                  nullptr, new_target_sp);
     target = new_target_sp.get();
   }
 
@@ -603,5 +603,5 @@ ConstString PlatformWindows::GetFullNameForDylib(ConstString basename) {
 
   StreamString stream;
   stream.Printf("%s.dll", basename.GetCString());
-  return ConstString(stream.GetData());
+  return ConstString(stream.GetString());
 }

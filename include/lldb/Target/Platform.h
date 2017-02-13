@@ -22,11 +22,11 @@
 // Other libraries and framework includes
 // Project includes
 #include "lldb/Core/ArchSpec.h"
-#include "lldb/Core/ConstString.h"
 #include "lldb/Core/PluginInterface.h"
 #include "lldb/Core/UserSettingsController.h"
 #include "lldb/Host/FileSpec.h"
 #include "lldb/Interpreter/Options.h"
+#include "lldb/Utility/ConstString.h"
 #include "lldb/lldb-private-forward.h"
 #include "lldb/lldb-public.h"
 
@@ -413,8 +413,8 @@ public:
                                // target, else use existing one
                Error &error);
 
-  virtual lldb::ProcessSP ConnectProcess(const char *connect_url,
-                                         const char *plugin_name,
+  virtual lldb::ProcessSP ConnectProcess(llvm::StringRef connect_url,
+                                         llvm::StringRef plugin_name,
                                          lldb_private::Debugger &debugger,
                                          lldb_private::Target *target,
                                          lldb_private::Error &error);

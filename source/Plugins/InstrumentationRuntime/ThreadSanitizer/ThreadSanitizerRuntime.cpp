@@ -15,8 +15,6 @@
 #include "lldb/Core/Module.h"
 #include "lldb/Core/PluginInterface.h"
 #include "lldb/Core/PluginManager.h"
-#include "lldb/Core/RegularExpression.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Core/StreamFile.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Expression/UserExpression.h"
@@ -30,6 +28,8 @@
 #include "lldb/Target/StopInfo.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
+#include "lldb/Utility/RegularExpression.h"
+#include "lldb/Utility/Stream.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -59,7 +59,7 @@ lldb::InstrumentationRuntimeType ThreadSanitizerRuntime::GetTypeStatic() {
 
 ThreadSanitizerRuntime::~ThreadSanitizerRuntime() { Deactivate(); }
 
-#define RETRIEVE_REPORT_DATA_FUNCTION_TIMEOUT_USEC 2 * 1000 * 1000
+static constexpr std::chrono::seconds g_retrieve_data_function_timeout(2);
 
 const char *thread_sanitizer_retrieve_report_data_prefix = R"(
 extern "C"
@@ -206,7 +206,8 @@ CreateStackTrace(ValueObjectSP o,
   StructuredData::Array *trace = new StructuredData::Array();
   ValueObjectSP trace_value_object =
       o->GetValueForExpressionPath(trace_item_name.c_str());
-  for (int j = 0; j < 8; j++) {
+  size_t count = trace_value_object->GetNumChildren();
+  for (size_t j = 0; j < count; j++) {
     addr_t trace_addr =
         trace_value_object->GetChildAtIndex(j, true)->GetValueAsUnsigned(0);
     if (trace_addr == 0)
@@ -308,7 +309,7 @@ ThreadSanitizerRuntime::RetrieveReportData(ExecutionContextRef exe_ctx_ref) {
   options.SetTryAllThreads(true);
   options.SetStopOthers(true);
   options.SetIgnoreBreakpoints(true);
-  options.SetTimeoutUsec(RETRIEVE_REPORT_DATA_FUNCTION_TIMEOUT_USEC);
+  options.SetTimeout(g_retrieve_data_function_timeout);
   options.SetPrefix(thread_sanitizer_retrieve_report_data_prefix);
   options.SetAutoApplyFixIts(false);
   options.SetLanguage(eLanguageTypeObjC_plus_plus);
@@ -817,7 +818,7 @@ bool ThreadSanitizerRuntime::NotifyBreakpointHit(
       thread_sp->SetStopInfo(
           InstrumentationRuntimeStopInfo::
               CreateStopReasonWithInstrumentationData(
-                  *thread_sp, stop_reason_description.c_str(), report));
+                  *thread_sp, stop_reason_description, report));
 
     StreamFileSP stream_sp(
         process_sp->GetTarget().GetDebugger().GetOutputFile());

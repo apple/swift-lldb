@@ -17,7 +17,7 @@
 
 // Other libraries and framework includes
 // Project includes
-#include "lldb/Core/Error.h"
+#include "lldb/Utility/Error.h"
 #include "lldb/lldb-private.h"
 
 namespace llvm {
@@ -192,7 +192,7 @@ public:
                                    llvm::StringRef &variable_name,
                                    llvm::StringRef &variable_format);
 
-  static size_t AutoComplete(const char *s, int match_start_point,
+  static size_t AutoComplete(llvm::StringRef s, int match_start_point,
                              int max_return_elements, bool &word_complete,
                              StringList &matches);
 

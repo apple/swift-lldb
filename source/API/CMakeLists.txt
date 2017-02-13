@@ -21,6 +21,8 @@ if (LLDB_BUILD_FRAMEWORK AND NOT APPLE)
   message(FATAL_ERROR "LLDB.framework cannot be generated unless targeting Apple platforms.")
 endif()
 
+get_property(LLDB_ALL_PLUGINS GLOBAL PROPERTY LLDB_PLUGINS)
+
 add_lldb_library(liblldb SHARED
   SBAddress.cpp
   SBAttachInfo.cpp
@@ -85,6 +87,23 @@ add_lldb_library(liblldb SHARED
   SBUnixSignals.cpp
   SystemInitializerFull.cpp
   ${LLDB_WRAP_PYTHON}
+
+  LINK_LIBS
+    lldbBase
+    lldbBreakpoint
+    lldbCore
+    lldbDataFormatters
+    lldbExpression
+    lldbHost
+    lldbInitialization
+    lldbInterpreter
+    lldbSymbol
+    lldbTarget
+    lldbUtility
+    ${LLDB_ALL_PLUGINS}
+    ${SWIFT_ALL_LIBS}
+  LINK_COMPONENTS
+    Support
   )
 
 if (LLVM_ENABLE_WERROR)
@@ -112,12 +131,12 @@ if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
     # If we're not exporting all symbols, we'll want to explicitly set
     # the exported symbols here.  This prevents 'log enable --stack ...'
     # from working on some systems but limits the liblldb size.
-    MESSAGE("-- Symbols (liblldb): only exporting symbols in lldb namespace")
+    MESSAGE("-- Symbols (liblldb): exporting all symbols from the lldb namespace")
     add_llvm_symbol_exports(liblldb ${CMAKE_CURRENT_SOURCE_DIR}/liblldb.exports)
   else()
     # Don't use an explicit export.  Instead, tell the linker to
     # export all symbols.
-    MESSAGE("-- Symbols (liblldb): exporting symbols from lldb and lldb_private namespace")
+    MESSAGE("-- Symbols (liblldb): exporting all symbols from the lldb and lldb_private namespaces")
     add_llvm_symbol_exports(liblldb ${CMAKE_CURRENT_SOURCE_DIR}/liblldb-private.exports)
   endif()
 endif()

@@ -13,6 +13,7 @@
 #include "lldb/Expression/Expression.h"
 #include "lldb/lldb-enumerations.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/StringRef.h"
 
 #include <string>
 
@@ -44,10 +45,10 @@ public:
                uint32_t language_flags,
                const EvaluateExpressionOptions &options,
                const Expression::SwiftGenericInfo &generic_info,
-               ExecutionContext &exe_ctx, uint32_t &first_body_line) const;
+               ExecutionContext &exe_ctx) const;
 
   static bool
-  SaveExpressionTextToTempFile(const char *text,
+  SaveExpressionTextToTempFile(llvm::StringRef text,
                                const EvaluateExpressionOptions &options,
                                std::string &expr_source_path);
   // Given a string returned by GetText, find the beginning and end of the body

@@ -13,8 +13,8 @@
 // C++ Includes
 // Other libraries and framework includes
 // Project includes
-#include "lldb/Core/Error.h"
-#include "lldb/Core/StreamString.h"
+#include "lldb/Utility/Error.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -69,7 +69,7 @@ void CommandReturnObject::AppendMessageWithFormat(const char *format, ...) {
   sstrm.PrintfVarArg(format, args);
   va_end(args);
 
-  GetOutputStream().Printf("%s", sstrm.GetData());
+  GetOutputStream() << sstrm.GetString();
 }
 
 void CommandReturnObject::AppendWarningWithFormat(const char *format, ...) {
@@ -81,33 +81,34 @@ void CommandReturnObject::AppendWarningWithFormat(const char *format, ...) {
   sstrm.PrintfVarArg(format, args);
   va_end(args);
 
-  GetErrorStream().Printf("warning: %s", sstrm.GetData());
+  GetErrorStream() << "warning: " << sstrm.GetString();
 }
 
-void CommandReturnObject::AppendMessage(const char *in_string) {
-  if (!in_string)
+void CommandReturnObject::AppendMessage(llvm::StringRef in_string) {
+  if (in_string.empty())
     return;
-  GetOutputStream().Printf("%s\n", in_string);
+  GetOutputStream() << in_string << "\n";
 }
 
-void CommandReturnObject::AppendWarning(const char *in_string) {
-  if (!in_string || *in_string == '\0')
+void CommandReturnObject::AppendWarning(llvm::StringRef in_string) {
+  if (in_string.empty())
     return;
-  GetErrorStream().Printf("warning: %s\n", in_string);
+  GetErrorStream() << "warning: " << in_string << "\n";
 }
 
 // Similar to AppendWarning, but do not prepend 'warning: ' to message, and
 // don't append "\n" to the end of it.
 
-void CommandReturnObject::AppendRawWarning(const char *in_string) {
-  if (in_string && in_string[0])
-    GetErrorStream().PutCString(in_string);
+void CommandReturnObject::AppendRawWarning(llvm::StringRef in_string) {
+  if (in_string.empty())
+    return;
+  GetErrorStream() << in_string;
 }
 
-void CommandReturnObject::AppendError(const char *in_string) {
-  if (!in_string || *in_string == '\0')
+void CommandReturnObject::AppendError(llvm::StringRef in_string) {
+  if (in_string.empty())
     return;
-  GetErrorStream().Printf("error: %s\n", in_string);
+  GetErrorStream() << "error: " << in_string << "\n";
 }
 
 void CommandReturnObject::SetError(const Error &error,
@@ -118,19 +119,21 @@ void CommandReturnObject::SetError(const Error &error,
   SetError(error_cstr);
 }
 
-void CommandReturnObject::SetError(const char *error_cstr) {
-  if (error_cstr) {
-    AppendError(error_cstr);
-    SetStatus(eReturnStatusFailed);
-  }
+void CommandReturnObject::SetError(llvm::StringRef error_str) {
+  if (error_str.empty())
+    return;
+
+  AppendError(error_str);
+  SetStatus(eReturnStatusFailed);
 }
 
 // Similar to AppendError, but do not prepend 'Error: ' to message, and
 // don't append "\n" to the end of it.
 
-void CommandReturnObject::AppendRawError(const char *in_string) {
-  if (in_string && in_string[0])
-    GetErrorStream().PutCString(in_string);
+void CommandReturnObject::AppendRawError(llvm::StringRef in_string) {
+  if (in_string.empty())
+    return;
+  GetErrorStream() << in_string;
 }
 
 void CommandReturnObject::SetStatus(ReturnStatus status) { m_status = status; }

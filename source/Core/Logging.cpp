@@ -1,4 +1,4 @@
-//===-- lldb-log.cpp --------------------------------------------*- C++ -*-===//
+//===-- Logging.cpp ---------------------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -42,11 +42,6 @@ uint32_t lldb_private::GetLogMask() {
   if (log)
     return log->GetMask().Get();
   return 0;
-}
-
-bool lldb_private::IsLogVerbose() {
-  uint32_t mask = GetLogMask();
-  return (mask & LIBLLDB_LOG_VERBOSE);
 }
 
 Log *lldb_private::GetLogIfAllCategoriesSet(uint32_t mask) {
@@ -130,8 +125,6 @@ void lldb_private::DisableLog(const char **categories, Stream *feedback_strm) {
           flag_bits &= ~LIBLLDB_LOG_THREAD;
         else if (0 == ::strcasecmp(arg, "target"))
           flag_bits &= ~LIBLLDB_LOG_TARGET;
-        else if (0 == ::strcasecmp(arg, "verbose"))
-          flag_bits &= ~LIBLLDB_LOG_VERBOSE;
         else if (0 == ::strncasecmp(arg, "watch", 5))
           flag_bits &= ~LIBLLDB_LOG_WATCHPOINTS;
         else if (0 == ::strncasecmp(arg, "temp", 4))
@@ -174,14 +167,15 @@ void lldb_private::DisableLog(const char **categories, Stream *feedback_strm) {
     }
     log->GetMask().Reset(flag_bits);
     if (flag_bits == 0) {
-      log->SetStream(lldb::StreamSP());
+      log->SetStream(nullptr);
       g_log_enabled = false;
     }
   }
 }
 
-Log *lldb_private::EnableLog(StreamSP &log_stream_sp, uint32_t log_options,
-                             const char **categories, Stream *feedback_strm) {
+Log *lldb_private::EnableLog(
+    const std::shared_ptr<llvm::raw_ostream> &log_stream_sp,
+    uint32_t log_options, const char **categories, Stream *feedback_strm) {
   // Try see if there already is a log - that way we can reuse its settings.
   // We could reuse the log in toto, but we don't know that the stream is the
   // same.
@@ -257,8 +251,6 @@ Log *lldb_private::EnableLog(StreamSP &log_stream_sp, uint32_t log_options,
         flag_bits |= LIBLLDB_LOG_TYPES;
       else if (0 == ::strncasecmp(arg, "unwind", 6))
         flag_bits |= LIBLLDB_LOG_UNWIND;
-      else if (0 == ::strcasecmp(arg, "verbose"))
-        flag_bits |= LIBLLDB_LOG_VERBOSE;
       else if (0 == ::strncasecmp(arg, "watch", 5))
         flag_bits |= LIBLLDB_LOG_WATCHPOINTS;
       else if (0 == ::strcasecmp(arg, "jit"))
