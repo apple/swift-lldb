@@ -433,7 +433,7 @@ CachedMemberInfo *SwiftASTContext::GetCachedMemberInfo(void *type) {
           }
 
           for (auto decl : nominal_decl->getMembers()) {
-            if (decl->getKind() == swift::DeclKind::Var) {
+            if (swift::isa<swift::VarDecl>(decl)) {
               swift::VarDecl *var_decl = llvm::cast<swift::VarDecl>(decl);
               if (var_decl->hasStorage() && !var_decl->isStatic()) {
                 MemberInfo member_info(MemberType::Field);
@@ -494,12 +494,12 @@ CachedMemberInfo *SwiftASTContext::GetCachedMemberInfo(void *type) {
 
           for (auto decl : t_decl->getMembers()) {
             // Find ivars that aren't properties
-            if (decl->getKind() == swift::DeclKind::Var) {
+            if (swift::isa<swift::VarDecl>(decl)) {
               swift::VarDecl *var_decl = llvm::cast<swift::VarDecl>(decl);
               if (var_decl->hasStorage() && !var_decl->isStatic()) {
                 MemberInfo member_info(MemberType::Field);
                 swift::Type member_type = swift_can_type->getTypeOfMember(
-                    t_decl->getModuleContext(), var_decl, nullptr);
+                    t_decl->getModuleContext(), var_decl);
                 member_info.clang_type =
                     CompilerType(GetASTContext(), member_type.getPointer());
                 member_info.byte_size =
@@ -881,11 +881,12 @@ public:
       swift::EnumElementDecl *case_decl = enum_case.decl;
       assert(case_decl);
       CompilerType case_type(
-          ast, swift_can_type->getTypeOfMember(module_ctx, case_decl, nullptr)
+          ast, swift_can_type->getTypeOfMember(module_ctx, case_decl)
                    .getPointer());
       case_type = GetFunctionArgumentTuple(case_type.GetFunctionReturnType());
 
-      const bool is_indirect = case_decl->isIndirect();
+      const bool is_indirect = case_decl->isIndirect() 
+          || case_decl->getParentEnum()->isIndirect();
 
       if (log)
         log->Printf("case_name = %s, type = %s, is_indirect = %s",
@@ -4012,13 +4013,7 @@ ConstString SwiftASTContext::GetMangledTypeName(swift::TypeBase *type_base) {
 
   swift::Type swift_type(type_base);
 
-  bool has_archetypes = false;
-
-  swift_type.visit([&has_archetypes](swift::Type part_type) -> void {
-    if (part_type->getKind() == swift::TypeKind::Archetype) {
-      has_archetypes = true;
-    }
-  });
+  bool has_archetypes = swift_type->hasArchetype();
 
   if (!has_archetypes) {
     swift::Mangle::Mangler mangler(true);
