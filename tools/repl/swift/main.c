@@ -27,7 +27,7 @@ int REPL_MAIN() {
 int main() {
 #ifdef __APPLE__
   // Force loading of libswiftCore.dylib, which is not linked at build time.
-  dlopen("libswiftCore.dylib", RTLD_NOW);
+  dlopen("@rpath/libswiftCore.dylib", RTLD_LAZY);
 #endif
   
 #ifdef __APPLE__
