@@ -142,8 +142,6 @@ public:
 
   bool GetEnableAutoImportClangModules() const;
 
-  bool GetUseAllCompilerFlags() const;
-
   bool GetEnableAutoApplyFixIts() const;
 
   bool GetEnableNotifyAboutFixIts() const;

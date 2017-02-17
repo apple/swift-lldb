@@ -1255,6 +1255,56 @@ static std::string &GetDefaultResourceDir() {
   return s_resource_dir;
 }
 
+static bool HasASTData(Module &module) {
+  if (SymbolVendor *sym_vendor = module.GetSymbolVendor()) {
+    // We could do more validation here, but the validation requires that
+    // this mutate a CompilerInstance, which is not appropriate for this
+    // function.  Instead, we let the caller do the rest of the validation.
+    return !(sym_vendor->GetASTData(eLanguageTypeSwift).empty());
+  }
+
+  return true;
+}
+
+// Swift uses Clang to import the C/Objective-C portions of Swift modules.
+// Clang needs a set of compiler flags, and these are serialized into the ASTs
+// for Swift frameworks.  The compiler flags for different frameworks might
+// conflict, so LLDB has to pick one.
+// This is not ideal, because of course those flags might change the layout of
+// structs (imagine -Dchar=int).
+// The job of this function is to identify the module that will be used for
+// these flags.  All other modules will be ignored.
+static lldb::ModuleSP GetModuleForCanonicalCompilerFlags(Target &target) {
+  ModuleSP candidate_sp(target.GetExecutableModule());
+
+  // If we're debugging a testsuite, then treat the main test bundle as the
+  // executable.
+  if (candidate_sp && PlatformDarwin::IsUnitTestExecutable(*candidate_sp)) {
+    ModuleSP unit_test_module =
+        PlatformDarwin::GetUnitTestModule(target.GetImages());
+
+    if (unit_test_module) {
+      candidate_sp = unit_test_module;
+    }
+  }
+
+  if (!candidate_sp || !HasASTData(*candidate_sp)) {
+    for (size_t mi = 0, me = target.GetImages().GetSize(); mi != me; ++mi) {
+      ModuleSP module_sp = target.GetImages().GetModuleAtIndex(mi);
+      if (HasASTData(*module_sp)) {
+        candidate_sp = module_sp;
+        break;
+      }
+    }
+  }
+
+  if (!candidate_sp || !HasASTData(*candidate_sp)) {
+    return lldb::ModuleSP();
+  } else {
+    return candidate_sp;
+  }
+}
+
 lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
                                                    Module *module,
                                                    Target *target,
@@ -1671,48 +1721,38 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
           break;
       }
 
-      // First, prime the compiler with the options from the main executable:
-      bool read_options_from_ast = false;
-      ModuleSP exe_module_sp(target->GetExecutableModule());
+      ModuleSP exe_module_sp(GetModuleForCanonicalCompilerFlags(*target));
 
-      // If we're debugging a testsuite, then treat the main test bundle as the
-      // executable.
-      if (exe_module_sp &&
-          PlatformDarwin::IsUnitTestExecutable(*exe_module_sp)) {
-        ModuleSP unit_test_module =
-            PlatformDarwin::GetUnitTestModule(target->GetImages());
-
-        if (unit_test_module) {
-          exe_module_sp = unit_test_module;
-        }
-      }
+      Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_TYPES));
 
       if (exe_module_sp) {
+        if (log) {
+          log->Printf("Reading primary AST data from module %s.",
+                      exe_module_sp->GetFileSpec().GetFilename().AsCString(
+                          "<anonymous>"));
+        }
+        // The following sequence is safe because GetModuleForCanonicalCompilerFlags()
+        // wouldn't have returned anything otherwise.
         SymbolVendor *sym_vendor = exe_module_sp->GetSymbolVendor();
-        if (sym_vendor) {
-          // Retrieve the Swift ASTs from the symbol vendor.
-          auto ast_datas = sym_vendor->GetASTData(eLanguageTypeSwift);
-          if (!ast_datas.empty()) {
-            // We only initialize the compiler invocation with the first
-            // AST since it initializes some data that must remain static,
-            // like the SDK path and the triple for the produced output.
-            auto ast_data_sp = ast_datas.front();
-            llvm::StringRef section_data_ref(
-                (const char *)ast_data_sp->GetBytes(),
-                ast_data_sp->GetByteSize());
-            swift::serialization::Status result =
-                swift_ast_sp->GetCompilerInvocation().loadFromSerializedAST(
-                    section_data_ref);
-            if (result == swift::serialization::Status::Valid) {
-              read_options_from_ast = true;
-            } else {
-              Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_TYPES));
-              if (log)
-                log->Printf("Attempt to load compiler options from Serialized "
-                            "AST failed: %d (%zu AST data blobs total).",
-                            result, ast_datas.size());
-            }
-          }
+        auto ast_datas = sym_vendor->GetASTData(eLanguageTypeSwift);
+        // We only initialize the compiler invocation with the first
+        // AST since it initializes some data that must remain static,
+        // like the SDK path and the triple for the produced output.
+        auto ast_data_sp = ast_datas.front();
+        llvm::StringRef section_data_ref((const char *)ast_data_sp->GetBytes(),
+                                         ast_data_sp->GetByteSize());
+        swift::serialization::Status result =
+            swift_ast_sp->GetCompilerInvocation().loadFromSerializedAST(
+                section_data_ref);
+        if (result != swift::serialization::Status::Valid) {
+          if (log)
+            log->Printf("Attempt to load compiler options from Serialized "
+                        "AST failed: %d (%zu AST data blobs total).",
+                        result, ast_datas.size());
+        }
+      } else {
+        if (log) {
+          log->PutCString("Couldn't find a module with serialized AST data.");
         }
       }
 
@@ -1761,43 +1801,8 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
         }
       }
 
-      const bool use_all_compiler_flags =
-          !read_options_from_ast || target->GetUseAllCompilerFlags();
-
       std::function<void(ModuleSP &&)> process_one_module =
-          [target, &swift_ast_sp,
-           use_all_compiler_flags](ModuleSP &&module_sp) {
-            const FileSpec &module_file = module_sp->GetFileSpec();
-
-            std::string module_path = module_file.GetPath();
-
-            // Add the containing framework to the framework search path.  Don't
-            // do that if this is the executable module, since it might be
-            // buried in some framework that we don't care about.
-            if (use_all_compiler_flags &&
-                target->GetExecutableModulePointer() != module_sp.get()) {
-              size_t framework_offset = module_path.rfind(".framework/");
-
-              if (framework_offset != std::string::npos) {
-                while (framework_offset &&
-                       (module_path[framework_offset] != '/'))
-                  framework_offset--;
-
-                if (module_path[framework_offset] == '/') {
-                  // framework_offset now points to the '/';
-
-                  std::string parent_path =
-                      module_path.substr(0, framework_offset);
-
-                  if (strncmp(parent_path.c_str(), "/System/Library",
-                              strlen("/System/Library")) &&
-                      !IsDeviceSupport(parent_path.c_str())) {
-                    swift_ast_sp->AddFrameworkSearchPath(parent_path.c_str());
-                  }
-                }
-              }
-            }
-
+          [target, &exe_module_sp, &swift_ast_sp](ModuleSP &&module_sp) {
             SymbolVendor *sym_vendor = module_sp->GetSymbolVendor();
 
             if (sym_vendor) {
@@ -1811,8 +1816,7 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
                         sym_file->GetTypeSystemForLanguage(
                             lldb::eLanguageTypeSwift));
                 if (ast_context) {
-                  if (use_all_compiler_flags ||
-                      target->GetExecutableModulePointer() == module_sp.get()) {
+                  if (exe_module_sp == module_sp) {
                     for (size_t msi = 0,
                                 mse = ast_context->GetNumModuleSearchPaths();
                          msi < mse; ++msi) {
@@ -1877,8 +1881,6 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
         compiler_invocation.parseArgs(extra_args_ref,
                                       swift_ast_sp->GetDiagnosticEngine());
       }
-
-      Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_TYPES));
 
       // This needs to happen once all the import paths are set, or otherwise no
       // modules will be found.

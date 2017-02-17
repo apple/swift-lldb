@@ -3423,9 +3423,6 @@ static PropertyDefinition g_properties[] = {
     {"auto-import-clang-modules", OptionValue::eTypeBoolean, false, true,
      nullptr, nullptr,
      "Automatically load Clang modules referred to by the program."},
-    {"use-all-compiler-flags", OptionValue::eTypeBoolean, false, false, nullptr,
-     nullptr, "Try to use compiler flags for all modules when setting up the "
-              "Swift expression parser, not just the main executable."},
     {"auto-apply-fixits", OptionValue::eTypeBoolean, false, true, nullptr,
      nullptr, "Automatically apply fix-it hints to expressions."},
     {"notify-about-fixits", OptionValue::eTypeBoolean, false, true, nullptr,
@@ -3560,7 +3557,6 @@ enum {
   ePropertySwiftFrameworkSearchPaths,
   ePropertySwiftModuleSearchPaths,
   ePropertyAutoImportClangModules,
-  ePropertyUseAllCompilerFlags,
   ePropertyAutoApplyFixIts,
   ePropertyNotifyAboutFixIts,
   ePropertySaveObjects,
@@ -4006,12 +4002,6 @@ bool TargetProperties::GetEnableAutoImportClangModules() const {
   const uint32_t idx = ePropertyAutoImportClangModules;
   return m_collection_sp->GetPropertyAtIndexAsBoolean(
       nullptr, idx, g_properties[idx].default_uint_value != 0);
-}
-
-bool TargetProperties::GetUseAllCompilerFlags() const {
-  const uint32_t idx = ePropertyUseAllCompilerFlags;
-  return m_collection_sp->GetPropertyAtIndexAsBoolean(
-      NULL, idx, g_properties[idx].default_uint_value != 0);
 }
 
 bool TargetProperties::GetEnableAutoApplyFixIts() const {
