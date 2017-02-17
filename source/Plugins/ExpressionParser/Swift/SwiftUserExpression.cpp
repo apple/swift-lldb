@@ -700,7 +700,9 @@ lldb::ExpressionVariableSP SwiftUserExpression::GetResultAfterDematerialization(
 
 SwiftUserExpression::ResultDelegate::ResultDelegate(
     SwiftUserExpression &user_expression, bool is_error)
-    : m_user_expression(user_expression), m_is_error(is_error) {}
+    : m_is_error(is_error) {
+  (void)user_expression;
+}
 
 ConstString SwiftUserExpression::ResultDelegate::GetName() {
   return m_persistent_state->GetNextPersistentVariableName(m_is_error);
@@ -721,8 +723,9 @@ lldb::ExpressionVariableSP &SwiftUserExpression::ResultDelegate::GetVariable() {
 }
 
 SwiftUserExpression::PersistentVariableDelegate::PersistentVariableDelegate(
-    SwiftUserExpression &user_expression)
-    : m_user_expression(user_expression) {}
+    SwiftUserExpression &user_expression) {
+  (void)user_expression;
+}
 
 ConstString SwiftUserExpression::PersistentVariableDelegate::GetName() {
   return ConstString();
