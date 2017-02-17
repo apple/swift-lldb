@@ -1077,7 +1077,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   const bool playground = m_options.GetPlaygroundTransformEnabled();
 
   if (!m_swift_ast_context) {
-    diagnostic_manager.PutCString(
+    diagnostic_manager.PutString(
         eDiagnosticSeverityError,
         "No AST context to parse into.  Please parse with a target.\n");
     return 1;
@@ -1086,14 +1086,14 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   // Lazily get the clang importer if we can to make sure it exists in case we
   // need it
   if (!m_swift_ast_context->GetClangImporter()) {
-    diagnostic_manager.PutCString(
+    diagnostic_manager.PutString(
         eDiagnosticSeverityError,
         "Swift expressions require OS X 10.10 / iOS 8 SDKs or later.\n");
     return 1;
   }
 
   if (m_swift_ast_context->HasFatalErrors()) {
-    diagnostic_manager.PutCString(eDiagnosticSeverityError,
+    diagnostic_manager.PutString(eDiagnosticSeverityError,
                                   "The AST context is in a fatal error state.");
     return 1;
   }
@@ -1101,14 +1101,14 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   swift::ASTContext *ast_context = m_swift_ast_context->GetASTContext();
 
   if (!ast_context) {
-    diagnostic_manager.PutCString(
+    diagnostic_manager.PutString(
         eDiagnosticSeverityError,
         "Couldn't initialize the AST context.  Please check your settings.");
     return 1;
   }
 
   if (m_swift_ast_context->HasFatalErrors()) {
-    diagnostic_manager.PutCString(eDiagnosticSeverityError,
+    diagnostic_manager.PutString(eDiagnosticSeverityError,
                                   "The AST context is in a fatal error state.");
     return 1;
   }
@@ -1279,7 +1279,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   //    }
 
   if (!done) {
-    diagnostic_manager.PutCString(
+    diagnostic_manager.PutString(
         eDiagnosticSeverityError,
         "Parse did not consume the whole expression.");
     return 1;
@@ -1429,7 +1429,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     code_manipulator->FixupResultAfterTypeChecking(error);
 
     if (!error.Success()) {
-      diagnostic_manager.PutCString(eDiagnosticSeverityError,
+      diagnostic_manager.PutString(eDiagnosticSeverityError,
                                     error.AsCString());
       return 1;
     }
@@ -1781,7 +1781,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   }
 
   if (!m_module) {
-    diagnostic_manager.PutCString(
+    diagnostic_manager.PutString(
         eDiagnosticSeverityError,
         "Couldn't IRGen expression, no additional error");
     return 1;

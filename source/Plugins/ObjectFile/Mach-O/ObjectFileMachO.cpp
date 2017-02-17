@@ -667,8 +667,12 @@ public:
         // x0-x29 + fp + lr + sp + pc (== 33 64-bit registers) plus cpsr (1
         // 32-bit register)
         if (count >= (33 * 2) + 1) {
-          for (uint32_t i = 0; i < 33; ++i)
+          for (uint32_t i = 0; i < 29; ++i)
             gpr.x[i] = data.GetU64(&offset);
+          gpr.fp = data.GetU64(&offset);
+          gpr.lr = data.GetU64(&offset);
+          gpr.sp = data.GetU64(&offset);
+          gpr.pc = data.GetU64(&offset);
           gpr.cpsr = data.GetU32(&offset);
           SetError(GPRRegSet, Read, 0);
         }
@@ -5356,7 +5360,7 @@ uint32_t ObjectFileMachO::GetDependentModules(FileSpecList &files) {
           FileSpec file_spec(path, true);
           // Remove any redundant parts of the path (like "../foo") since
           // LC_RPATH values often contain "..".
-          file_spec.NormalizePath();
+          file_spec = file_spec.GetNormalizedPath();
           if (file_spec.Exists() && files.AppendIfUnique(file_spec)) {
             count++;
             break;
@@ -6253,7 +6257,8 @@ bool ObjectFileMachO::SaveCore(const lldb::ProcessSP &process_sp,
             const size_t LC_THREAD_data_size = LC_THREAD_data.GetSize();
             buffer.PutHex32(LC_THREAD);
             buffer.PutHex32(8 + LC_THREAD_data_size); // cmd + cmdsize + data
-            buffer.Write(LC_THREAD_data.GetData(), LC_THREAD_data_size);
+            buffer.Write(LC_THREAD_data.GetString().data(),
+                         LC_THREAD_data_size);
           }
 
           // Write out all of the segment load commands

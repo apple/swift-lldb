@@ -113,4 +113,3 @@ class TestInterruptThreadNames(TestBase):
 
         return False
 
-

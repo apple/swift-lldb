@@ -218,7 +218,7 @@ void RegisterContextLLDB::InitializeZerothFrame() {
       StreamString active_row_strm;
       active_row->Dump(active_row_strm, m_full_unwind_plan_sp.get(), &m_thread,
                        m_start_pc.GetLoadAddress(exe_ctx.GetTargetPtr()));
-      UnwindLogMsg("%s", active_row_strm.GetString().c_str());
+      UnwindLogMsg("%s", active_row_strm.GetData());
     }
   }
 
@@ -564,7 +564,7 @@ void RegisterContextLLDB::InitializeNonZerothFrame() {
       StreamString active_row_strm;
       active_row->Dump(active_row_strm, m_fast_unwind_plan_sp.get(), &m_thread,
                        m_start_pc.GetLoadAddress(exe_ctx.GetTargetPtr()));
-      UnwindLogMsg("active row: %s", active_row_strm.GetString().c_str());
+      UnwindLogMsg("active row: %s", active_row_strm.GetData());
     }
   } else {
     m_full_unwind_plan_sp = GetFullUnwindPlanForFrame();
@@ -577,7 +577,7 @@ void RegisterContextLLDB::InitializeNonZerothFrame() {
         active_row->Dump(active_row_strm, m_full_unwind_plan_sp.get(),
                          &m_thread,
                          m_start_pc.GetLoadAddress(exe_ctx.GetTargetPtr()));
-        UnwindLogMsg("active row: %s", active_row_strm.GetString().c_str());
+        UnwindLogMsg("active row: %s", active_row_strm.GetData());
       }
     }
   }
@@ -1053,8 +1053,7 @@ bool RegisterContextLLDB::ReadRegisterValueFromRegisterLocation(
   case UnwindLLDB::RegisterLocation::eRegisterNotSaved:
     break;
   case UnwindLLDB::RegisterLocation::eRegisterSavedAtHostMemoryLocation:
-    assert("FIXME debugger inferior function call unwind");
-    break;
+    llvm_unreachable("FIXME debugger inferior function call unwind");
   case UnwindLLDB::RegisterLocation::eRegisterSavedAtMemoryLocation: {
     Error error(ReadRegisterValueFromMemory(
         reg_info, regloc.location.target_memory_location, reg_info->byte_size,
@@ -1062,8 +1061,7 @@ bool RegisterContextLLDB::ReadRegisterValueFromRegisterLocation(
     success = error.Success();
   } break;
   default:
-    assert("Unknown RegisterLocation type.");
-    break;
+    llvm_unreachable("Unknown RegisterLocation type.");
   }
   return success;
 }
@@ -1097,8 +1095,7 @@ bool RegisterContextLLDB::WriteRegisterValueToRegisterLocation(
   case UnwindLLDB::RegisterLocation::eRegisterNotSaved:
     break;
   case UnwindLLDB::RegisterLocation::eRegisterSavedAtHostMemoryLocation:
-    assert("FIXME debugger inferior function call unwind");
-    break;
+    llvm_unreachable("FIXME debugger inferior function call unwind");
   case UnwindLLDB::RegisterLocation::eRegisterSavedAtMemoryLocation: {
     Error error(WriteRegisterValueToMemory(
         reg_info, regloc.location.target_memory_location, reg_info->byte_size,
@@ -1106,8 +1103,7 @@ bool RegisterContextLLDB::WriteRegisterValueToRegisterLocation(
     success = error.Success();
   } break;
   default:
-    assert("Unknown RegisterLocation type.");
-    break;
+    llvm_unreachable("Unknown RegisterLocation type.");
   }
   return success;
 }

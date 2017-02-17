@@ -58,11 +58,8 @@ using namespace lldb_private;
 const ThreadPropertiesSP &Thread::GetGlobalProperties() {
   // NOTE: intentional leak so we don't crash if global destructor chain gets
   // called as other threads still use the result of this function
-  static ThreadPropertiesSP *g_settings_sp_ptr = nullptr;
-  static std::once_flag g_once_flag;
-  std::call_once(g_once_flag, []() {
-    g_settings_sp_ptr = new ThreadPropertiesSP(new ThreadProperties(true));
-  });
+  static ThreadPropertiesSP *g_settings_sp_ptr =
+      new ThreadPropertiesSP(new ThreadProperties(true));
   return *g_settings_sp_ptr;
 }
 
@@ -1761,8 +1758,7 @@ Error Thread::JumpToLine(const FileSpec &file, uint32_t line,
       StreamString sstr;
       DumpAddressList(sstr, outside_function, target);
       return Error("%s:%i has multiple candidate locations:\n%s",
-                   file.GetFilename().AsCString(), line,
-                   sstr.GetString().c_str());
+                   file.GetFilename().AsCString(), line, sstr.GetData());
     }
   }
 

@@ -125,7 +125,7 @@ void IOHandlerStack::PrintAsync(Stream *stream, const char *s, size_t len) {
   }
 }
 
-IOHandlerConfirm::IOHandlerConfirm(Debugger &debugger, const char *prompt,
+IOHandlerConfirm::IOHandlerConfirm(Debugger &debugger, llvm::StringRef prompt,
                                    bool default_response)
     : IOHandlerEditline(
           debugger, IOHandler::Type::Confirm,
@@ -1826,7 +1826,7 @@ public:
           // Just a timeout from using halfdelay(), check for events
           EventSP event_sp;
           while (listener_sp->PeekAtNextEvent()) {
-            listener_sp->GetNextEvent(event_sp);
+            listener_sp->GetEvent(event_sp, std::chrono::seconds(0));
 
             if (event_sp) {
               Broadcaster *broadcaster = event_sp->GetBroadcaster();
@@ -1884,8 +1884,10 @@ protected:
 using namespace curses;
 
 struct Row {
-  ValueObjectSP valobj;
+  ValueObjectManager value;
   Row *parent;
+  // The process stop ID when the children were calculated.
+  uint32_t children_stop_id;
   int row_idx;
   int x;
   int y;
@@ -1895,8 +1897,8 @@ struct Row {
   std::vector<Row> children;
 
   Row(const ValueObjectSP &v, Row *p)
-      : valobj(v), parent(p), row_idx(0), x(1), y(1),
-        might_have_children(v ? v->MightHaveChildren() : false),
+      : value(v, lldb::eDynamicDontRunTarget, true), parent(p), row_idx(0),
+        x(1), y(1), might_have_children(v ? v->MightHaveChildren() : false),
         expanded(false), calculated_children(false), children() {}
 
   size_t GetDepth() const {
@@ -1907,8 +1909,19 @@ struct Row {
 
   void Expand() {
     expanded = true;
+  }
+
+  std::vector<Row> &GetChildren() {
+    ProcessSP process_sp = value.GetProcessSP();
+    auto stop_id = process_sp->GetStopID();
+    if (process_sp && stop_id != children_stop_id) {
+      children_stop_id = stop_id;
+      calculated_children = false;
+    }
     if (!calculated_children) {
+      children.clear();
       calculated_children = true;
+      ValueObjectSP valobj = value.GetSP();
       if (valobj) {
         const size_t num_children = valobj->GetNumChildren();
         for (size_t i = 0; i < num_children; ++i) {
@@ -1916,9 +1929,14 @@ struct Row {
         }
       }
     }
+    return children;
   }
 
-  void Unexpand() { expanded = false; }
+  void Unexpand() {
+    expanded = false;
+    calculated_children = false;
+    children.clear();
+  }
 
   void DrawTree(Window &window) {
     if (parent)
@@ -1951,7 +1969,7 @@ struct Row {
     if (parent)
       parent->DrawTreeForChild(window, this, reverse_depth + 1);
 
-    if (&children.back() == child) {
+    if (&GetChildren().back() == child) {
       // Last child
       if (reverse_depth == 0) {
         window.PutChar(ACS_LLCORNER);
@@ -2401,7 +2419,7 @@ public:
         if (FormatEntity::Format(m_format, strm, &sc, &exe_ctx, nullptr,
                                  nullptr, false, false)) {
           int right_pad = 1;
-          window.PutCStringTruncated(strm.GetString().c_str(), right_pad);
+          window.PutCStringTruncated(strm.GetString().str().c_str(), right_pad);
         }
       }
     }
@@ -2460,7 +2478,7 @@ public:
       if (FormatEntity::Format(m_format, strm, nullptr, &exe_ctx, nullptr,
                                nullptr, false, false)) {
         int right_pad = 1;
-        window.PutCStringTruncated(strm.GetString().c_str(), right_pad);
+        window.PutCStringTruncated(strm.GetString().str().c_str(), right_pad);
       }
     }
   }
@@ -2550,7 +2568,7 @@ public:
       if (FormatEntity::Format(m_format, strm, nullptr, &exe_ctx, nullptr,
                                nullptr, false, false)) {
         int right_pad = 1;
-        window.PutCStringTruncated(strm.GetString().c_str(), right_pad);
+        window.PutCStringTruncated(strm.GetString().str().c_str(), right_pad);
       }
     }
   }
@@ -2599,12 +2617,12 @@ protected:
 class ValueObjectListDelegate : public WindowDelegate {
 public:
   ValueObjectListDelegate()
-      : m_valobj_list(), m_rows(), m_selected_row(nullptr),
+      : m_rows(), m_selected_row(nullptr),
         m_selected_row_idx(0), m_first_visible_row(0), m_num_rows(0),
         m_max_x(0), m_max_y(0) {}
 
   ValueObjectListDelegate(ValueObjectList &valobj_list)
-      : m_valobj_list(valobj_list), m_rows(), m_selected_row(nullptr),
+      : m_rows(), m_selected_row(nullptr),
         m_selected_row_idx(0), m_first_visible_row(0), m_num_rows(0),
         m_max_x(0), m_max_y(0) {
     SetValues(valobj_list);
@@ -2618,10 +2636,8 @@ public:
     m_first_visible_row = 0;
     m_num_rows = 0;
     m_rows.clear();
-    m_valobj_list = valobj_list;
-    const size_t num_values = m_valobj_list.GetSize();
-    for (size_t i = 0; i < num_values; ++i)
-      m_rows.push_back(Row(m_valobj_list.GetValueObjectAtIndex(i), nullptr));
+    for (auto &valobj_sp : valobj_list.GetObjects())
+      m_rows.push_back(Row(valobj_sp, nullptr));
   }
 
   bool WindowDelegateDraw(Window &window, bool force) override {
@@ -2712,8 +2728,11 @@ public:
     case 'B':
     case 'f':
       // Change the format for the currently selected item
-      if (m_selected_row)
-        m_selected_row->valobj->SetFormat(FormatForChar(c));
+      if (m_selected_row) {
+        auto valobj_sp = m_selected_row->value.GetSP();
+        if (valobj_sp)
+          valobj_sp->SetFormat(FormatForChar(c));
+      }
       return eKeyHandled;
 
     case 't':
@@ -2791,7 +2810,6 @@ public:
   }
 
 protected:
-  ValueObjectList m_valobj_list;
   std::vector<Row> m_rows;
   Row *m_selected_row;
   uint32_t m_selected_row_idx;
@@ -2838,7 +2856,7 @@ protected:
 
   bool DisplayRowObject(Window &window, Row &row, DisplayOptions &options,
                         bool highlight, bool last_child) {
-    ValueObject *valobj = row.valobj.get();
+    ValueObject *valobj = row.value.GetSP().get();
 
     if (valobj == nullptr)
       return false;
@@ -2920,18 +2938,19 @@ protected:
         ++m_num_rows;
       }
 
-      if (row.expanded && !row.children.empty()) {
-        DisplayRows(window, row.children, options);
+      auto &children = row.GetChildren();
+      if (row.expanded && !children.empty()) {
+        DisplayRows(window, children, options);
       }
     }
   }
 
-  int CalculateTotalNumberRows(const std::vector<Row> &rows) {
+  int CalculateTotalNumberRows(std::vector<Row> &rows) {
     int row_count = 0;
-    for (const auto &row : rows) {
+    for (auto &row : rows) {
       ++row_count;
       if (row.expanded)
-        row_count += CalculateTotalNumberRows(row.children);
+        row_count += CalculateTotalNumberRows(row.GetChildren());
     }
     return row_count;
   }
@@ -2942,8 +2961,9 @@ protected:
         return &row;
       else {
         --row_index;
-        if (row.expanded && !row.children.empty()) {
-          Row *result = GetRowForRowIndexImpl(row.children, row_index);
+        auto &children = row.GetChildren();
+        if (row.expanded && !children.empty()) {
+          Row *result = GetRowForRowIndexImpl(children, row_index);
           if (result)
             return result;
         }
@@ -3291,7 +3311,7 @@ HelpDialogDelegate::HelpDialogDelegate(const char *text,
       StreamString key_description;
       key_description.Printf("%10s - %s", CursesKeyToCString(key->ch),
                              key->description);
-      m_text.AppendString(std::move(key_description.GetString()));
+      m_text.AppendString(key_description.GetString());
     }
   }
 }
@@ -3576,8 +3596,8 @@ public:
               thread_menu_title.Printf(" %s", queue_name);
           }
           menu.AddSubmenu(
-              MenuSP(new Menu(thread_menu_title.GetString().c_str(), nullptr,
-                              menu_char, thread_sp->GetID())));
+              MenuSP(new Menu(thread_menu_title.GetString().str().c_str(),
+                              nullptr, menu_char, thread_sp->GetID())));
         }
       } else if (submenus.size() > 7) {
         // Remove the separator and any other thread submenu items
@@ -3736,7 +3756,7 @@ public:
         if (thread && FormatEntity::Format(m_format, strm, nullptr, &exe_ctx,
                                            nullptr, nullptr, false, false)) {
           window.MoveCursor(40, 0);
-          window.PutCStringTruncated(strm.GetString().c_str(), 1);
+          window.PutCStringTruncated(strm.GetString().str().c_str(), 1);
         }
 
         window.MoveCursor(60, 0);
@@ -3965,7 +3985,7 @@ public:
       window.AttributeOn(A_REVERSE);
       window.MoveCursor(1, 1);
       window.PutChar(' ');
-      window.PutCStringTruncated(m_title.GetString().c_str(), 1);
+      window.PutCStringTruncated(m_title.GetString().str().c_str(), 1);
       int x = window.GetCursorX();
       if (x < window_width - 1) {
         window.Printf("%*s", window_width - x - 1, "");
@@ -4187,7 +4207,7 @@ public:
             strm.Printf("%s", mnemonic);
 
           int right_pad = 1;
-          window.PutCStringTruncated(strm.GetString().c_str(), right_pad);
+          window.PutCStringTruncated(strm.GetData(), right_pad);
 
           if (is_pc_line && frame_sp &&
               frame_sp->GetConcreteFrameIndex() == 0) {

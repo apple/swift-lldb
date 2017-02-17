@@ -368,8 +368,8 @@ void SBDebugger::HandleCommand(const char *command) {
       if (process_sp) {
         EventSP event_sp;
         ListenerSP lldb_listener_sp = m_opaque_sp->GetListener();
-        while (lldb_listener_sp->GetNextEventForBroadcaster(process_sp.get(),
-                                                            event_sp)) {
+        while (lldb_listener_sp->GetEventForBroadcaster(
+            process_sp.get(), event_sp, std::chrono::seconds(0))) {
           SBEvent event(event_sp);
           HandleProcessEvent(process, event, GetOutputFileHandle(),
                              GetErrorFileHandle());
@@ -603,8 +603,7 @@ SBTarget SBDebugger::CreateTarget(const char *filename) {
     Error error;
     const bool add_dependent_modules = true;
     error = m_opaque_sp->GetTargetList().CreateTarget(
-        *m_opaque_sp, filename, nullptr, add_dependent_modules, nullptr,
-        target_sp);
+        *m_opaque_sp, filename, "", add_dependent_modules, nullptr, target_sp);
 
     if (error.Success()) {
       m_opaque_sp->GetTargetList().SetSelectedTarget(target_sp.get());

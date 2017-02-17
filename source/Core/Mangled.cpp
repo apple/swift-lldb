@@ -9,9 +9,9 @@
 
 // FreeBSD9-STABLE requires this to know about size_t in cxxabi.h
 #include <cstddef>
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 #include "lldb/Host/windows/windows.h"
-#include <Dbghelp.h>
+#include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")
 #define LLDB_USE_BUILTIN_DEMANGLER
 #elif defined(__FreeBSD__)
@@ -25,7 +25,7 @@
 #ifdef LLDB_USE_BUILTIN_DEMANGLER
 // Provide a fast-path demangler implemented in FastDemangle.cpp until it can
 // replace the existing C++ demangler with a complete implementation
-#include "lldb/Core/CxaDemangle.h"
+#include "llvm/Demangle/Demangle.h"
 #include "lldb/Core/FastDemangle.h"
 #else
 #include <cxxabi.h>
@@ -335,7 +335,8 @@ Mangled::GetDemangledName(lldb::LanguageType language) const {
         // when necessary
         demangled_name = FastDemangle(mangled_name, m_mangled.GetLength());
         if (!demangled_name)
-          demangled_name = __cxa_demangle(mangled_name, NULL, NULL, NULL);
+          demangled_name =
+              llvm::itaniumDemangle(mangled_name, NULL, NULL, NULL);
 #else
         demangled_name = abi::__cxa_demangle(mangled_name, NULL, NULL, NULL);
 #endif

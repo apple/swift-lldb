@@ -24,7 +24,6 @@ class StaticVariableTestCase(TestBase):
         self.line = line_number('main.cpp', '// Set break point at this line.')
 
     @expectedFailureAll(oslist=["windows"], bugnumber="llvm.org/pr24764")
-    @expectedFailureAll(compiler="clang", bugnumber="rdar://problem/30100567")
     def test_with_run_command(self):
         """Test that file and class static variables display correctly."""
         self.build()
@@ -45,7 +44,7 @@ class StaticVariableTestCase(TestBase):
         self.expect(
             'target variable A::g_points',
             VARIABLES_DISPLAYED_CORRECTLY,
-            patterns=['\(PointType \[[1-9]*\]\) A::g_points = {.*}'])
+            patterns=['\(PointType \[[1-9]*\]\) A::g_points = {'])
         self.expect('target variable g_points', VARIABLES_DISPLAYED_CORRECTLY,
                     substrs=['(PointType [2]) g_points'])
 

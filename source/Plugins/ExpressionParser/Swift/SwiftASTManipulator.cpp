@@ -160,13 +160,13 @@ $builtin_logger_initialize()
   if (pound_file && pound_line) {
     fixed_text.Printf("#sourceLocation(file: \"%s\", line: %u)\n%s\n",
                       pound_file, pound_line, orig_text);
-    text = fixed_text.GetString().c_str();
+    text = fixed_text.GetData();
   } else if (generate_debug_info) {
     if (ExpressionSourceCode::SaveExpressionTextToTempFile(orig_text, options,
                                                            expr_source_path)) {
       fixed_text.Printf("#sourceLocation(file: \"%s\", line: 1)\n%s\n",
                         expr_source_path.c_str(), orig_text);
-      text = fixed_text.GetString().c_str();
+      text = fixed_text.GetData();
     }
   }
 

@@ -9,12 +9,9 @@
 
 #include "lldb/Interpreter/OptionValueFileSpec.h"
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-// Project includes
 #include "lldb/Core/State.h"
 #include "lldb/DataFormatters/FormatManager.h"
+#include "lldb/Host/FileSystem.h"
 #include "lldb/Interpreter/Args.h"
 #include "lldb/Interpreter/CommandCompletions.h"
 #include "lldb/Interpreter/CommandInterpreter.h"
@@ -80,9 +77,9 @@ Error OptionValueFileSpec::SetValueFromString(llvm::StringRef value,
       // or whitespace.
       value = value.trim("\"' \t");
       m_value_was_set = true;
-      m_current_value.SetFile(value.str().c_str(), m_resolve);
+      m_current_value.SetFile(value.str(), m_resolve);
       m_data_sp.reset();
-      m_data_mod_time.Clear();
+      m_data_mod_time = llvm::sys::TimePoint<>();
       NotifyValueChanged();
     } else {
       error.SetErrorString("invalid value string");
@@ -104,11 +101,9 @@ lldb::OptionValueSP OptionValueFileSpec::DeepCopy() const {
   return OptionValueSP(new OptionValueFileSpec(*this));
 }
 
-size_t OptionValueFileSpec::AutoComplete(CommandInterpreter &interpreter,
-                                         const char *s, int match_start_point,
-                                         int max_return_elements,
-                                         bool &word_complete,
-                                         StringList &matches) {
+size_t OptionValueFileSpec::AutoComplete(
+    CommandInterpreter &interpreter, llvm::StringRef s, int match_start_point,
+    int max_return_elements, bool &word_complete, StringList &matches) {
   word_complete = false;
   matches.Clear();
   CommandCompletions::InvokeCommonCompletionCallbacks(
@@ -120,7 +115,7 @@ size_t OptionValueFileSpec::AutoComplete(CommandInterpreter &interpreter,
 const lldb::DataBufferSP &
 OptionValueFileSpec::GetFileContents(bool null_terminate) {
   if (m_current_value) {
-    const TimeValue file_mod_time = m_current_value.GetModificationTime();
+    const auto file_mod_time = FileSystem::GetModificationTime(m_current_value);
     if (m_data_sp && m_data_mod_time == file_mod_time)
       return m_data_sp;
     if (null_terminate)

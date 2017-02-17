@@ -9,11 +9,6 @@
 
 #include "CommandObjectTarget.h"
 
-// C Includes
-// C++ Includes
-#include <cerrno>
-
-// Other libraries and framework includes
 // Project includes
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/IOHandler.h"
@@ -54,6 +49,10 @@
 #include "lldb/Target/StackFrame.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Target/ThreadSpec.h"
+
+// C Includes
+// C++ Includes
+#include <cerrno>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -131,6 +130,25 @@ static uint32_t DumpTargetList(TargetList &target_list,
     }
   }
   return num_targets;
+}
+
+// TODO: Remove this once llvm can pretty-print time points
+static void DumpTimePoint(llvm::sys::TimePoint<> tp, Stream &s, uint32_t width) {
+#ifndef LLDB_DISABLE_POSIX
+  char time_buf[32];
+  time_t time = llvm::sys::toTimeT(tp);
+  char *time_cstr = ::ctime_r(&time, time_buf);
+  if (time_cstr) {
+    char *newline = ::strpbrk(time_cstr, "\n\r");
+    if (newline)
+      *newline = '\0';
+    if (width > 0)
+      s.Printf("%-*s", width, time_cstr);
+    else
+      s.PutCString(time_cstr);
+  } else if (width > 0)
+    s.Printf("%-*s", width, "");
+#endif
 }
 
 #pragma mark CommandObjectTargetCreate
@@ -260,7 +278,7 @@ protected:
       Debugger &debugger = m_interpreter.GetDebugger();
 
       TargetSP target_sp;
-      const char *arch_cstr = m_arch_option.GetArchitectureName();
+      llvm::StringRef arch_cstr = m_arch_option.GetArchitectureName();
       const bool get_dependent_files =
           m_add_dependents.GetOptionValue().GetCurrentValue();
       Error error(debugger.GetTargetList().CreateTarget(
@@ -359,7 +377,7 @@ protected:
             target_sp->GetExecutableSearchPaths().Append(core_file_dir);
 
             ProcessSP process_sp(target_sp->CreateProcess(
-                m_interpreter.GetDebugger().GetListener(), nullptr,
+                m_interpreter.GetDebugger().GetListener(), llvm::StringRef(),
                 &core_file));
 
             if (process_sp) {
@@ -1280,7 +1298,7 @@ static void DumpModuleArchitecture(Stream &strm, Module *module,
     if (width)
       strm.Printf("%-*s", width, arch_str.c_str());
     else
-      strm.PutCString(arch_str.c_str());
+      strm.PutCString(arch_str);
   }
 }
 
@@ -1976,7 +1994,7 @@ public:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
       const int short_option = m_getopt_table[option_idx].val;
@@ -1989,8 +2007,8 @@ public:
 
       case 's':
         m_sort_order = (SortOrder)Args::StringToOptionEnum(
-            llvm::StringRef::withNullAsEmpty(option_arg),
-            GetDefinitions()[option_idx].enum_values, eSortOrderNone, error);
+            option_arg, GetDefinitions()[option_idx].enum_values,
+            eSortOrderNone, error);
         break;
 
       default:
@@ -2460,20 +2478,20 @@ protected:
                   result.AppendErrorWithFormat(
                       "Unable to create the executable or symbol file with "
                       "UUID %s with path %s and symbol file %s",
-                      strm.GetString().c_str(),
+                      strm.GetData(),
                       module_spec.GetFileSpec().GetPath().c_str(),
                       module_spec.GetSymbolFileSpec().GetPath().c_str());
                 } else {
                   result.AppendErrorWithFormat(
                       "Unable to create the executable or symbol file with "
                       "UUID %s with path %s",
-                      strm.GetString().c_str(),
+                      strm.GetData(),
                       module_spec.GetFileSpec().GetPath().c_str());
                 }
               } else {
                 result.AppendErrorWithFormat("Unable to create the executable "
                                              "or symbol file with UUID %s",
-                                             strm.GetString().c_str());
+                                             strm.GetData());
               }
               result.SetStatus(eReturnStatusFailed);
               return false;
@@ -2483,7 +2501,7 @@ protected:
             module_spec.GetUUID().Dump(&strm);
             result.AppendErrorWithFormat(
                 "Unable to locate the executable or symbol file with UUID %s",
-                strm.GetString().c_str());
+                strm.GetData());
             result.SetStatus(eReturnStatusFailed);
             return false;
           }
@@ -2817,7 +2835,7 @@ public:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
 
@@ -2829,8 +2847,7 @@ public:
                                               LLDB_INVALID_ADDRESS, &error);
       } else {
         unsigned long width = 0;
-        if (option_arg)
-          width = strtoul(option_arg, nullptr, 0);
+        option_arg.getAsInteger(0, width);
         m_format_array.push_back(std::make_pair(short_option, width));
       }
       return error;
@@ -3123,7 +3140,7 @@ protected:
       } break;
 
       case 'm':
-        module->GetModificationTime().Dump(&strm, width);
+        DumpTimePoint(module->GetModificationTime(), strm, width);
         break;
 
       case 'p':
@@ -3181,7 +3198,7 @@ public:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
 
@@ -3195,7 +3212,7 @@ public:
                                        LLDB_INVALID_ADDRESS, &error);
         if (m_addr == LLDB_INVALID_ADDRESS)
           error.SetErrorStringWithFormat("invalid address string '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
       }
 
@@ -3481,7 +3498,7 @@ public:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
 
@@ -3495,10 +3512,9 @@ public:
       } break;
 
       case 'o':
-        m_offset = StringConvert::ToUInt64(option_arg, LLDB_INVALID_ADDRESS);
-        if (m_offset == LLDB_INVALID_ADDRESS)
+        if (option_arg.getAsInteger(0, m_offset))
           error.SetErrorStringWithFormat("invalid offset string '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 's':
@@ -3516,10 +3532,9 @@ public:
         break;
 
       case 'l':
-        m_line_number = StringConvert::ToUInt32(option_arg, UINT32_MAX);
-        if (m_line_number == UINT32_MAX)
+        if (option_arg.getAsInteger(0, m_line_number))
           error.SetErrorStringWithFormat("invalid line number string '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         else if (m_line_number == 0)
           error.SetErrorString("zero is an invalid line number");
         m_type = eLookupTypeFileLine;
@@ -4224,7 +4239,7 @@ protected:
             error_strm.PutCString(
                 "unable to find debug symbols for the current frame");
           }
-          result.AppendError(error_strm.GetData());
+          result.AppendError(error_strm.GetString());
         }
       } else {
         result.AppendError("one or more symbol file paths must be specified, "
@@ -4360,11 +4375,10 @@ public:
       return llvm::makeArrayRef(g_target_stop_hook_add_options);
     }
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
       const int short_option = m_getopt_table[option_idx].val;
-      bool success;
 
       switch (short_option) {
       case 'c':
@@ -4373,20 +4387,18 @@ public:
         break;
 
       case 'e':
-        m_line_end = StringConvert::ToUInt32(option_arg, UINT_MAX, 0, &success);
-        if (!success) {
+        if (option_arg.getAsInteger(0, m_line_end)) {
           error.SetErrorStringWithFormat("invalid end line number: \"%s\"",
-                                         option_arg);
+                                         option_arg.str().c_str());
           break;
         }
         m_sym_ctx_specified = true;
         break;
 
       case 'l':
-        m_line_start = StringConvert::ToUInt32(option_arg, 0, 0, &success);
-        if (!success) {
+        if (option_arg.getAsInteger(0, m_line_start)) {
           error.SetErrorStringWithFormat("invalid start line number: \"%s\"",
-                                         option_arg);
+                                         option_arg.str().c_str());
           break;
         }
         m_sym_ctx_specified = true;
@@ -4413,11 +4425,9 @@ public:
         break;
 
       case 't':
-        m_thread_id =
-            StringConvert::ToUInt64(option_arg, LLDB_INVALID_THREAD_ID, 0);
-        if (m_thread_id == LLDB_INVALID_THREAD_ID)
+        if (option_arg.getAsInteger(0, m_thread_id))
           error.SetErrorStringWithFormat("invalid thread id string '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         m_thread_specified = true;
         break;
 
@@ -4432,10 +4442,9 @@ public:
         break;
 
       case 'x':
-        m_thread_index = StringConvert::ToUInt32(option_arg, UINT32_MAX, 0);
-        if (m_thread_id == UINT32_MAX)
+        if (option_arg.getAsInteger(0, m_thread_index))
           error.SetErrorStringWithFormat("invalid thread index string '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         m_thread_specified = true;
         break;
 

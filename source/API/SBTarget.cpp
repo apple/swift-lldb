@@ -189,7 +189,7 @@ SBProcess SBTarget::LoadCore(const char *core_file) {
   if (target_sp) {
     FileSpec filespec(core_file, true);
     ProcessSP process_sp(target_sp->CreateProcess(
-        target_sp->GetDebugger().GetListener(), NULL, &filespec));
+        target_sp->GetDebugger().GetListener(), "", &filespec));
     if (process_sp) {
       process_sp->LoadCore();
       sb_process.SetSP(process_sp);
@@ -2157,11 +2157,11 @@ lldb::SBValue SBTarget::EvaluateExpression(const char *expr,
       StreamString frame_description;
       if (frame)
         frame->DumpUsingSettingsFormat(&frame_description);
-      llvm::PrettyStackTraceFormat PST(
+      llvm::PrettyStackTraceFormat stack_trace(
           "SBTarget::EvaluateExpression (expr = \"%s\", fetch_dynamic_value = "
           "%u) %s",
           expr, options.GetFetchDynamicValue(),
-          frame_description.GetString().c_str());
+          frame_description.GetString().str().c_str());
 #endif
       exe_results =
           target->EvaluateExpression(expr, frame, expr_value_sp, options.ref());

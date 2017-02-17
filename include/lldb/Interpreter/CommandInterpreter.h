@@ -12,6 +12,7 @@
 
 // C Includes
 // C++ Includes
+#include <mutex>
 // Other libraries and framework includes
 // Project includes
 #include "lldb/Core/Broadcaster.h"
@@ -336,24 +337,21 @@ public:
 
   void GetAliasHelp(const char *alias_name, StreamString &help_string);
 
-  void OutputFormattedHelpText(Stream &strm, const char *prefix,
-                               const char *help_text);
+  void OutputFormattedHelpText(Stream &strm, llvm::StringRef prefix,
+                               llvm::StringRef help_text);
 
-  void OutputFormattedHelpText(Stream &stream, const char *command_word,
-                               const char *separator, const char *help_text,
-                               size_t max_word_len);
+  void OutputFormattedHelpText(Stream &stream, llvm::StringRef command_word,
+                               llvm::StringRef separator,
+                               llvm::StringRef help_text, size_t max_word_len);
 
   // this mimics OutputFormattedHelpText but it does perform a much simpler
   // formatting, basically ensuring line alignment. This is only good if you
-  // have
-  // some complicated layout for your help text and want as little help as
-  // reasonable
-  // in properly displaying it. Most of the times, you simply want to type some
-  // text
-  // and have it printed in a reasonable way on screen. If so, use
-  // OutputFormattedHelpText
-  void OutputHelpText(Stream &stream, const char *command_word,
-                      const char *separator, const char *help_text,
+  // have some complicated layout for your help text and want as little help as
+  // reasonable in properly displaying it. Most of the times, you simply want
+  // to type some text and have it printed in a reasonable way on screen. If
+  // so, use OutputFormattedHelpText
+  void OutputHelpText(Stream &stream, llvm::StringRef command_word,
+                      llvm::StringRef separator, llvm::StringRef help_text,
                       uint32_t max_word_len);
 
   Debugger &GetDebugger() { return m_debugger; }
@@ -370,9 +368,8 @@ public:
   const char *ProcessEmbeddedScriptCommands(const char *arg);
 
   void UpdatePrompt(llvm::StringRef prompt);
-  void UpdatePrompt(const char *) = delete;
 
-  bool Confirm(const char *message, bool default_answer);
+  bool Confirm(llvm::StringRef message, bool default_answer);
 
   void LoadCommandDictionary();
 
@@ -411,7 +408,7 @@ public:
 
   bool GetSynchronous();
 
-  void FindCommandsForApropos(const char *word, StringList &commands_found,
+  void FindCommandsForApropos(llvm::StringRef word, StringList &commands_found,
                               StringList &commands_help,
                               bool search_builtin_commands,
                               bool search_user_commands,
@@ -521,7 +518,7 @@ private:
   CommandObject *ResolveCommandImpl(std::string &command_line,
                                     CommandReturnObject &result);
 
-  void FindCommandsForApropos(const char *word, StringList &commands_found,
+  void FindCommandsForApropos(llvm::StringRef word, StringList &commands_found,
                               StringList &commands_help,
                               CommandObject::CommandMap &command_map);
 
@@ -542,6 +539,7 @@ private:
   std::string m_repeat_command; // Stores the command that will be executed for
                                 // an empty command string.
   lldb::ScriptInterpreterSP m_script_interpreter_sp;
+  std::mutex m_script_interpreter_mutex;
   lldb::IOHandlerSP m_command_io_handler_sp;
   char m_comment_char;
   bool m_batch_command_mode;

@@ -317,7 +317,7 @@ Error PlatformLinux::ResolveExecutable(
           error.SetErrorStringWithFormat(
               "'%s' doesn't contain any '%s' platform architectures: %s",
               resolved_module_spec.GetFileSpec().GetPath().c_str(),
-              GetPluginName().GetCString(), arch_names.GetString().c_str());
+              GetPluginName().GetCString(), arch_names.GetData());
         } else {
           error.SetErrorStringWithFormat(
               "'%s' is not readable",
@@ -565,8 +565,8 @@ PlatformLinux::DebugProcess(ProcessLaunchInfo &launch_info, Debugger &debugger,
       log->Printf("PlatformLinux::%s creating new target", __FUNCTION__);
 
     TargetSP new_target_sp;
-    error = debugger.GetTargetList().CreateTarget(
-        debugger, nullptr, nullptr, false, nullptr, new_target_sp);
+    error = debugger.GetTargetList().CreateTarget(debugger, "", "", false,
+                                                  nullptr, new_target_sp);
     if (error.Fail()) {
       if (log)
         log->Printf("PlatformLinux::%s failed to create new target: %s",
@@ -633,7 +633,7 @@ PlatformLinux::DebugProcess(ProcessLaunchInfo &launch_info, Debugger &debugger,
     const FileAction *file_action;
     while ((file_action = launch_info.GetFileActionAtIndex(i++)) != nullptr) {
       file_action->Dump(stream);
-      log->PutCString(stream.GetString().c_str());
+      log->PutCString(stream.GetData());
       stream.Clear();
     }
   }
@@ -644,7 +644,7 @@ PlatformLinux::DebugProcess(ProcessLaunchInfo &launch_info, Debugger &debugger,
     // Handle the hijacking of process events.
     if (listener_sp) {
       const StateType state = process_sp->WaitForProcessToStop(
-          std::chrono::microseconds(0), NULL, false, listener_sp);
+          llvm::None, NULL, false, listener_sp);
 
       if (state == eStateStopped) {
         if (log)
@@ -713,5 +713,5 @@ ConstString PlatformLinux::GetFullNameForDylib(ConstString basename) {
 
   StreamString stream;
   stream.Printf("lib%s.so", basename.GetCString());
-  return ConstString(stream.GetData());
+  return ConstString(stream.GetString());
 }

@@ -33,13 +33,9 @@ class ObjCNewSyntaxTestCase(TestBase):
         compiler_version=[
             '<',
             '7.0.0'])
-    @expectedFailureAll(
-        oslist=['macosx'],
-        debug_info=['gmodules'],
-        bugnumber='rdar://27792848')
-    @unittest2.skipIf(platform.system() != "Darwin" or StrictVersion(
-        '12.0.0') > platform.release(), "Only supported on Darwin 12.0.0+")
+    @skipIf(macos_version=["<", "10.12"])
     @expectedFailureAll(archs=["i[3-6]86"])
+    @expectedFailureAll(debug_info="gmodules", bugnumber="swift.org/SR-3181")
     def test_expr(self):
         self.build()
         exe = os.path.join(os.getcwd(), "a.out")

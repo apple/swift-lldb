@@ -58,13 +58,13 @@ const char *FindSchemeByProtocol(const Socket::SocketProtocol protocol) {
 }
 
 Error Acceptor::Listen(int backlog) {
-  return m_listener_socket_up->Listen(StringRef(m_name.c_str()), backlog);
+  return m_listener_socket_up->Listen(StringRef(m_name), backlog);
 }
 
 Error Acceptor::Accept(const bool child_processes_inherit, Connection *&conn) {
   Socket *conn_socket = nullptr;
   auto error = m_listener_socket_up->Accept(
-      StringRef(m_name.c_str()), child_processes_inherit, conn_socket);
+      StringRef(m_name), child_processes_inherit, conn_socket);
   if (error.Success())
     conn = new ConnectionFileDescriptor(conn_socket);
 
@@ -88,12 +88,12 @@ std::unique_ptr<Acceptor> Acceptor::Create(StringRef name,
 
   Socket::SocketProtocol socket_protocol = Socket::ProtocolUnixDomain;
   int port;
-  std::string scheme, host, path;
+  StringRef scheme, host, path;
   // Try to match socket name as URL - e.g., tcp://localhost:5555
-  if (UriParser::Parse(name.str(), scheme, host, port, path)) {
-    if (!FindProtocolByScheme(scheme.c_str(), socket_protocol))
+  if (UriParser::Parse(name, scheme, host, port, path)) {
+    if (!FindProtocolByScheme(scheme.str().c_str(), socket_protocol))
       error.SetErrorStringWithFormat("Unknown protocol scheme \"%s\"",
-                                     scheme.c_str());
+                                     scheme.str().c_str());
     else
       name = name.drop_front(scheme.size() + strlen("://"));
   } else {

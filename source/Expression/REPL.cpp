@@ -296,9 +296,9 @@ void REPL::IOHandlerInputComplete(IOHandler &io_handler, std::string &code) {
       expr_options.SetPoundLine(m_repl_source_path.c_str(),
                                 m_code.GetSize() + 1);
       if (m_command_options.timeout > 0)
-        expr_options.SetTimeoutUsec(m_command_options.timeout);
+        expr_options.SetTimeout(std::chrono::microseconds(m_command_options.timeout));
       else
-        expr_options.SetTimeoutUsec(0);
+        expr_options.SetTimeout(llvm::None);
 
       expr_options.SetLanguage(GetLanguage());
 
@@ -433,7 +433,7 @@ void REPL::IOHandlerInputComplete(IOHandler &io_handler, std::string &code) {
 
             // Now set the default file and line to the REPL source file
             m_target.GetSourceManager().SetDefaultFileAndLine(
-                FileSpec(m_repl_source_path.c_str(), false), new_default_line);
+                FileSpec(m_repl_source_path, false), new_default_line);
           }
           static_cast<IOHandlerEditline &>(io_handler)
               .SetBaseLineNumber(m_code.GetSize() + 1);

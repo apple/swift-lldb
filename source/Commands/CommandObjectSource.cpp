@@ -59,30 +59,27 @@ class CommandObjectSourceInfo : public CommandObjectParsed {
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
       const int short_option = GetDefinitions()[option_idx].short_option;
       switch (short_option) {
       case 'l':
-        start_line = StringConvert::ToUInt32(option_arg, 0);
-        if (start_line == 0)
+        if (option_arg.getAsInteger(0, start_line))
           error.SetErrorStringWithFormat("invalid line number: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 'e':
-        end_line = StringConvert::ToUInt32(option_arg, 0);
-        if (end_line == 0)
+        if (option_arg.getAsInteger(0, end_line))
           error.SetErrorStringWithFormat("invalid line number: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 'c':
-        num_lines = StringConvert::ToUInt32(option_arg, 0);
-        if (num_lines == 0)
+        if (option_arg.getAsInteger(0, num_lines))
           error.SetErrorStringWithFormat("invalid line count: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 'f':
@@ -609,7 +606,7 @@ protected:
     m_module_list.Clear();
     if (!m_options.modules.empty()) {
       for (size_t i = 0, e = m_options.modules.size(); i < e; ++i) {
-        FileSpec module_file_spec(m_options.modules[i].c_str(), false);
+        FileSpec module_file_spec(m_options.modules[i], false);
         if (module_file_spec) {
           ModuleSpec module_spec(module_file_spec);
           if (target->GetImages().FindModules(module_spec, m_module_list) == 0)
@@ -686,23 +683,21 @@ class CommandObjectSourceList : public CommandObjectParsed {
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
       const int short_option = GetDefinitions()[option_idx].short_option;
       switch (short_option) {
       case 'l':
-        start_line = StringConvert::ToUInt32(option_arg, 0);
-        if (start_line == 0)
+        if (option_arg.getAsInteger(0, start_line))
           error.SetErrorStringWithFormat("invalid line number: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 'c':
-        num_lines = StringConvert::ToUInt32(option_arg, 0);
-        if (num_lines == 0)
+        if (option_arg.getAsInteger(0, num_lines))
           error.SetErrorStringWithFormat("invalid line count: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 'f':
@@ -779,24 +774,20 @@ public:
   const char *GetRepeatCommand(Args &current_command_args,
                                uint32_t index) override {
     // This is kind of gross, but the command hasn't been parsed yet so we can't
-    // look at the option
-    // values for this invocation...  I have to scan the arguments directly.
-    size_t num_args = current_command_args.GetArgumentCount();
-    bool is_reverse = false;
-    for (size_t i = 0; i < num_args; i++) {
-      const char *arg = current_command_args.GetArgumentAtIndex(i);
-      if (arg && (strcmp(arg, "-r") == 0 || strcmp(arg, "--reverse") == 0)) {
-        is_reverse = true;
-      }
-    }
-    if (is_reverse) {
-      if (m_reverse_name.empty()) {
-        m_reverse_name = m_cmd_name;
-        m_reverse_name.append(" -r");
-      }
-      return m_reverse_name.c_str();
-    } else
+    // look at the option values for this invocation...  I have to scan the
+    // arguments directly.
+    auto iter =
+        llvm::find_if(current_command_args, [](const Args::ArgEntry &e) {
+          return e.ref == "-r" || e.ref == "--reverse";
+        });
+    if (iter == current_command_args.end())
       return m_cmd_name.c_str();
+
+    if (m_reverse_name.empty()) {
+      m_reverse_name = m_cmd_name;
+      m_reverse_name.append(" -r");
+    }
+    return m_reverse_name.c_str();
   }
 
 protected:
@@ -944,7 +935,7 @@ protected:
     if (num_modules > 0) {
       ModuleList matching_modules;
       for (size_t i = 0; i < num_modules; ++i) {
-        FileSpec module_file_spec(m_options.modules[i].c_str(), false);
+        FileSpec module_file_spec(m_options.modules[i], false);
         if (module_file_spec) {
           ModuleSpec module_spec(module_file_spec);
           matching_modules.Clear();
@@ -969,7 +960,7 @@ protected:
     if (num_modules > 0) {
       ModuleList matching_modules;
       for (size_t i = 0; i < num_modules; ++i) {
-        FileSpec module_file_spec(m_options.modules[i].c_str(), false);
+        FileSpec module_file_spec(m_options.modules[i], false);
         if (module_file_spec) {
           ModuleSpec module_spec(module_file_spec);
           matching_modules.Clear();

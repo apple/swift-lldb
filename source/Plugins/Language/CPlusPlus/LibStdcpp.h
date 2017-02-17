@@ -1,5 +1,4 @@
-//===-- LibStdCpp.h ---------------------------------------------------*- C++
-//-*-===//
+//===-- LibStdcpp.h ---------------------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -31,9 +30,17 @@ bool LibStdcppSmartPointerSummaryProvider(
     const TypeSummaryOptions
         &options); // libstdc++ std::shared_ptr<> and std::weak_ptr<>
 
+bool LibStdcppUniquePointerSummaryProvider(
+    ValueObject &valobj, Stream &stream,
+    const TypeSummaryOptions &options); // libstdc++ std::unique_ptr<>
+
 SyntheticChildrenFrontEnd *
 LibstdcppMapIteratorSyntheticFrontEndCreator(CXXSyntheticChildren *,
                                              lldb::ValueObjectSP);
+
+SyntheticChildrenFrontEnd *
+LibStdcppTupleSyntheticFrontEndCreator(CXXSyntheticChildren *,
+                                       lldb::ValueObjectSP);
 
 SyntheticChildrenFrontEnd *
 LibStdcppVectorIteratorSyntheticFrontEndCreator(CXXSyntheticChildren *,
@@ -42,6 +49,11 @@ LibStdcppVectorIteratorSyntheticFrontEndCreator(CXXSyntheticChildren *,
 SyntheticChildrenFrontEnd *
 LibStdcppSharedPtrSyntheticFrontEndCreator(CXXSyntheticChildren *,
                                            lldb::ValueObjectSP);
+
+SyntheticChildrenFrontEnd *
+LibStdcppUniquePtrSyntheticFrontEndCreator(CXXSyntheticChildren *,
+                                           lldb::ValueObjectSP);
+
 } // namespace formatters
 } // namespace lldb_private
 

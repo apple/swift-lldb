@@ -34,7 +34,6 @@
 #include "lldb/Host/Host.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Host/StringConvert.h"
-#include "lldb/Host/TimeValue.h"
 #include "lldb/Host/common/NativeProcessProtocol.h"
 #include "lldb/Host/common/NativeRegisterContext.h"
 #include "lldb/Host/common/NativeThreadProtocol.h"
@@ -668,7 +667,7 @@ GDBRemoteCommunicationServerLLGS::SendStopReplyPacketForThread(
 
     if (::strcspn(thread_name.c_str(), "$#+-;:") == thread_name_len) {
       response.PutCString("name:");
-      response.PutCString(thread_name.c_str());
+      response.PutCString(thread_name);
     } else {
       // The thread name contains special chars, send as hex bytes.
       response.PutCString("hexname:");
@@ -927,8 +926,8 @@ void GDBRemoteCommunicationServerLLGS::DataAvailableCallback() {
   bool done = false;
   Error error;
   while (true) {
-    const PacketResult result =
-        GetPacketAndSendResponse(0, error, interrupt, done);
+    const PacketResult result = GetPacketAndSendResponse(
+        std::chrono::microseconds(0), error, interrupt, done);
     if (result == PacketResult::ErrorReplyTimeout)
       break; // No more packets in the queue
 
@@ -1022,8 +1021,8 @@ void GDBRemoteCommunicationServerLLGS::SendProcessOutput() {
   ConnectionStatus status;
   Error error;
   while (true) {
-    size_t bytes_read =
-        m_stdio_communication.Read(buffer, sizeof buffer, 0, status, &error);
+    size_t bytes_read = m_stdio_communication.Read(
+        buffer, sizeof buffer, std::chrono::microseconds(0), status, &error);
     switch (status) {
     case eConnectionStatusSuccess:
       SendONotification(buffer, bytes_read);

@@ -402,7 +402,7 @@ DynamicLoaderDarwinKernel::CheckForKernelImageAtAddress(lldb::addr_t addr,
   const uint32_t magicks[] = { llvm::MachO::MH_MAGIC_64, llvm::MachO::MH_MAGIC, llvm::MachO::MH_CIGAM, llvm::MachO::MH_CIGAM_64};
 
   bool found_matching_pattern = false;
-  for (int i = 0; i < llvm::array_lengthof (magicks); i++)
+  for (size_t i = 0; i < llvm::array_lengthof (magicks); i++)
     if (::memcmp (magicbuf, &magicks[i], sizeof (magicbuf)) == 0)
         found_matching_pattern = true;
 
@@ -437,8 +437,14 @@ DynamicLoaderDarwinKernel::CheckForKernelImageAtAddress(lldb::addr_t addr,
       return UUID();
 
     ObjectFile *exe_objfile = memory_module_sp->GetObjectFile();
-    if (exe_objfile == NULL)
+    if (exe_objfile == NULL) {
+      if (log)
+        log->Printf("DynamicLoaderDarwinKernel::CheckForKernelImageAtAddress "
+                    "found a binary at 0x%" PRIx64
+                    " but could not create an object file from memory",
+                    addr);
       return UUID();
+    }
 
     if (exe_objfile->GetType() == ObjectFile::eTypeExecutable &&
         exe_objfile->GetStrata() == ObjectFile::eStrataKernel) {
@@ -447,10 +453,19 @@ DynamicLoaderDarwinKernel::CheckForKernelImageAtAddress(lldb::addr_t addr,
               kernel_arch)) {
         process->GetTarget().SetArchitecture(kernel_arch);
       }
-      if (log)
-        log->Printf("DynamicLoaderDarwinKernel::CheckForKernelImageAtAddress: "
-                    "kernel binary image found at 0x%" PRIx64,
-                    addr);
+      if (log) {
+        std::string uuid_str;
+        if (memory_module_sp->GetUUID().IsValid()) {
+          uuid_str = "with UUID ";
+          uuid_str += memory_module_sp->GetUUID().GetAsString();
+        } else {
+          uuid_str = "and no LC_UUID found in load commands ";
+        }
+        log->Printf(
+            "DynamicLoaderDarwinKernel::CheckForKernelImageAtAddress: "
+            "kernel binary image found at 0x%" PRIx64 " with arch '%s' %s",
+            addr, kernel_arch.GetTriple().str().c_str(), uuid_str.c_str());
+      }
       return memory_module_sp->GetUUID();
     }
   }

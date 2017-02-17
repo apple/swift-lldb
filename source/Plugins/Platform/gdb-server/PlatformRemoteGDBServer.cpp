@@ -147,7 +147,7 @@ Error PlatformRemoteGDBServer::ResolveExecutable(
         error.SetErrorStringWithFormat(
             "'%s' doesn't contain any '%s' platform architectures: %s",
             resolved_module_spec.GetFileSpec().GetPath().c_str(),
-            GetPluginName().GetCString(), arch_names.GetString().c_str());
+            GetPluginName().GetCString(), arch_names.GetData());
       } else {
         error.SetErrorStringWithFormat(
             "'%s' is not readable",
@@ -185,7 +185,7 @@ bool PlatformRemoteGDBServer::GetModuleSpec(const FileSpec &module_file_spec,
     log->Printf(
         "PlatformRemoteGDBServer::%s - got module info for (%s:%s) : %s",
         __FUNCTION__, module_path.c_str(), arch.GetTriple().getTriple().c_str(),
-        stream.GetString().c_str());
+        stream.GetData());
   }
 
   return true;
@@ -309,9 +309,12 @@ Error PlatformRemoteGDBServer::ConnectRemote(Args &args) {
       const char *url = args.GetArgumentAtIndex(0);
       if (!url)
         return Error("URL is null.");
-      if (!UriParser::Parse(url, m_platform_scheme, m_platform_hostname, port,
-                            path))
+      llvm::StringRef scheme, hostname, pathname;
+      if (!UriParser::Parse(url, scheme, hostname, port, pathname))
         return Error("Invalid URL: %s", url);
+      m_platform_scheme = scheme;
+      m_platform_hostname = hostname;
+      path = pathname;
 
       const ConnectionStatus status = m_gdb_client.Connect(url, &error);
       if (status == eConnectionStatusSuccess) {
@@ -445,7 +448,7 @@ Error PlatformRemoteGDBServer::LaunchProcess(ProcessLaunchInfo &launch_info) {
   {
     // Scope for the scoped timeout object
     process_gdb_remote::GDBRemoteCommunication::ScopedTimeout timeout(
-        m_gdb_client, 5);
+        m_gdb_client, std::chrono::seconds(5));
     arg_packet_err = m_gdb_client.SendArgumentsPacket(launch_info);
   }
 
@@ -502,8 +505,8 @@ lldb::ProcessSP PlatformRemoteGDBServer::DebugProcess(
         if (target == NULL) {
           TargetSP new_target_sp;
 
-          error = debugger.GetTargetList().CreateTarget(
-              debugger, NULL, NULL, false, NULL, new_target_sp);
+          error = debugger.GetTargetList().CreateTarget(debugger, "", "", false,
+                                                        NULL, new_target_sp);
           target = new_target_sp.get();
         } else
           error.Clear();
@@ -589,8 +592,8 @@ lldb::ProcessSP PlatformRemoteGDBServer::Attach(
         if (target == NULL) {
           TargetSP new_target_sp;
 
-          error = debugger.GetTargetList().CreateTarget(
-              debugger, NULL, NULL, false, NULL, new_target_sp);
+          error = debugger.GetTargetList().CreateTarget(debugger, "", "", false,
+                                                        NULL, new_target_sp);
           target = new_target_sp.get();
         } else
           error.Clear();
@@ -849,7 +852,7 @@ std::string PlatformRemoteGDBServer::MakeUrl(const char *scheme,
 }
 
 lldb::ProcessSP PlatformRemoteGDBServer::ConnectProcess(
-    const char *connect_url, const char *plugin_name,
+    llvm::StringRef connect_url, llvm::StringRef plugin_name,
     lldb_private::Debugger &debugger, lldb_private::Target *target,
     lldb_private::Error &error) {
   if (!IsRemote() || !IsConnected()) {
@@ -866,8 +869,7 @@ size_t PlatformRemoteGDBServer::ConnectToWaitingProcesses(Debugger &debugger,
   GetPendingGdbServerList(connection_urls);
 
   for (size_t i = 0; i < connection_urls.size(); ++i) {
-    ConnectProcess(connection_urls[i].c_str(), nullptr, debugger, nullptr,
-                   error);
+    ConnectProcess(connection_urls[i].c_str(), "", debugger, nullptr, error);
     if (error.Fail())
       return i; // We already connected to i process succsessfully
   }

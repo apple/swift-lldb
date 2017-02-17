@@ -10,20 +10,19 @@
 #ifndef liblldb_Log_h_
 #define liblldb_Log_h_
 
-// C Includes
-#include <signal.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdio.h>
-
-// C++ Includes
-// Other libraries and framework includes
 // Project includes
 #include "lldb/Core/ConstString.h"
 #include "lldb/Core/Flags.h"
 #include "lldb/Core/Logging.h"
 #include "lldb/Core/PluginInterface.h"
 #include "lldb/lldb-private.h"
+
+// Other libraries and framework includes
+#include "llvm/Support/FormatVariadic.h"
+// C++ Includes
+#include <cstdarg>
+#include <cstdint>
+// C Includes
 
 //----------------------------------------------------------------------
 // Logging Options
@@ -37,13 +36,14 @@
 #define LLDB_LOG_OPTION_PREPEND_THREAD_NAME (1U << 6)
 #define LLDB_LOG_OPTION_BACKTRACE (1U << 7)
 #define LLDB_LOG_OPTION_APPEND (1U << 8)
+#define LLDB_LOG_OPTION_PREPEND_FILE_FUNCTION (1U << 9)
 
 //----------------------------------------------------------------------
 // Logging Functions
 //----------------------------------------------------------------------
 namespace lldb_private {
 
-class Log {
+class Log final {
 public:
   //------------------------------------------------------------------
   // Callback definitions for abstracted plug-in log access.
@@ -102,41 +102,34 @@ public:
 
   Log(const lldb::StreamSP &stream_sp);
 
-  virtual ~Log();
+  ~Log();
 
-  virtual void PutCString(const char *cstr);
+  void PutCString(const char *cstr);
+  void PutString(llvm::StringRef str);
+
+  template <typename... Args>
+  void Format(llvm::StringRef file, llvm::StringRef function,
+              const char *format, Args &&... args) {
+    Format(file, function, llvm::formatv(format, std::forward<Args>(args)...));
+  }
 
   // CLEANUP: Add llvm::raw_ostream &Stream() function.
-  virtual void Printf(const char *format, ...)
-      __attribute__((format(printf, 2, 3)));
+  void Printf(const char *format, ...) __attribute__((format(printf, 2, 3)));
 
-  virtual void VAPrintf(const char *format, va_list args);
+  void VAPrintf(const char *format, va_list args);
 
-  virtual void LogIf(uint32_t mask, const char *fmt, ...)
+  void LogIf(uint32_t mask, const char *fmt, ...)
       __attribute__((format(printf, 3, 4)));
 
-  virtual void Debug(const char *fmt, ...)
-      __attribute__((format(printf, 2, 3)));
+  void Debug(const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
-  virtual void DebugVerbose(const char *fmt, ...)
-      __attribute__((format(printf, 2, 3)));
+  void Error(const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
-  virtual void Error(const char *fmt, ...)
-      __attribute__((format(printf, 2, 3)));
+  void VAError(const char *format, va_list args);
 
-  virtual void VAError(const char *format, va_list args);
+  void Verbose(const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
-  virtual void FatalError(int err, const char *fmt, ...)
-      __attribute__((format(printf, 3, 4)));
-
-  virtual void Verbose(const char *fmt, ...)
-      __attribute__((format(printf, 2, 3)));
-
-  virtual void Warning(const char *fmt, ...)
-      __attribute__((format(printf, 2, 3)));
-
-  virtual void WarningVerbose(const char *fmt, ...)
-      __attribute__((format(printf, 2, 3)));
+  void Warning(const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
   Flags &GetOptions();
 
@@ -162,6 +155,13 @@ protected:
 
 private:
   DISALLOW_COPY_AND_ASSIGN(Log);
+
+  void WriteHeader(llvm::raw_ostream &OS, llvm::StringRef file,
+                   llvm::StringRef function);
+  void WriteMessage(const std::string &message);
+
+  void Format(llvm::StringRef file, llvm::StringRef function,
+              const llvm::formatv_object_base &payload);
 };
 
 class LogChannel : public PluginInterface {
@@ -192,5 +192,12 @@ private:
 };
 
 } // namespace lldb_private
+
+#define LLDB_LOG(log, ...)                                                     \
+  do {                                                                         \
+    ::lldb_private::Log *log_private = (log);                                  \
+    if (log_private)                                                           \
+      log_private->Format(__FILE__, __FUNCTION__, __VA_ARGS__);                \
+  } while (0)
 
 #endif // liblldb_Log_h_
