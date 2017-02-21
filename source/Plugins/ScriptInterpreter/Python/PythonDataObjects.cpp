@@ -17,10 +17,10 @@
 #include "PythonDataObjects.h"
 #include "ScriptInterpreterPython.h"
 
-#include "lldb/Core/Stream.h"
 #include "lldb/Host/File.h"
 #include "lldb/Host/FileSystem.h"
 #include "lldb/Interpreter/ScriptInterpreter.h"
+#include "lldb/Utility/Stream.h"
 
 #include "llvm/Support/ConvertUTF.h"
 
@@ -1021,7 +1021,7 @@ uint32_t PythonFile::GetOptionsFromMode(llvm::StringRef mode) {
   if (mode.empty())
     return 0;
 
-  return llvm::StringSwitch<uint32_t>(mode.str().c_str())
+  return llvm::StringSwitch<uint32_t>(mode.str())
       .Case("r", File::eOpenOptionRead)
       .Case("w", File::eOpenOptionWrite)
       .Case("a", File::eOpenOptionWrite | File::eOpenOptionAppend |

@@ -16,11 +16,10 @@
 #include "lldb/Breakpoint/BreakpointLocation.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Symbol/CompileUnit.h"
 #include "lldb/Symbol/Function.h"
-#include "lldb/Symbol/ObjectFile.h"
 #include "lldb/Symbol/SymbolVendor.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -85,7 +84,7 @@ BreakpointResolver *BreakpointResolverFileLine::CreateFromStructuredData(
     return nullptr;
   }
 
-  FileSpec file_spec(filename.c_str(), false);
+  FileSpec file_spec(filename, false);
 
   return new BreakpointResolverFileLine(bkpt, file_spec, line_no, offset,
                                         check_inlines, skip_prologue,

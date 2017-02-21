@@ -24,7 +24,8 @@ class ExitDuringStepTestCase(TestBase):
         self.build(dictionary=self.getBuildFlags())
         self.exit_during_step_base(
             "thread step-inst -m all-threads",
-            'stop reason = instruction step')
+            'stop reason = instruction step',
+            True)
 
     @skipIfFreeBSD  # llvm.org/pr21411: test is hanging
     @expectedFailureAll(compiler="clang", bugnumber="rdar://problem/30100284")
@@ -33,7 +34,8 @@ class ExitDuringStepTestCase(TestBase):
         self.build(dictionary=self.getBuildFlags())
         self.exit_during_step_base(
             "thread step-over -m all-threads",
-            'stop reason = step over')
+            'stop reason = step over',
+            False)
 
     @skipIfFreeBSD  # llvm.org/pr21411: test is hanging
     @expectedFailureAll(compiler="clang", bugnumber="rdar://problem/30100284")
@@ -42,7 +44,8 @@ class ExitDuringStepTestCase(TestBase):
         self.build(dictionary=self.getBuildFlags())
         self.exit_during_step_base(
             "thread step-in -m all-threads",
-            'stop reason = step in')
+            'stop reason = step in',
+            False)
 
     def setUp(self):
         # Call super's setUp().
@@ -51,7 +54,7 @@ class ExitDuringStepTestCase(TestBase):
         self.breakpoint = line_number('main.cpp', '// Set breakpoint here')
         self.continuepoint = line_number('main.cpp', '// Continue from here')
 
-    def exit_during_step_base(self, step_cmd, step_stop_reason):
+    def exit_during_step_base(self, step_cmd, step_stop_reason, by_instruction):
         """Test thread exit during step handling."""
         exe = os.path.join(os.getcwd(), "a.out")
         self.runCmd("file " + exe, CURRENT_EXECUTABLE_SET)
@@ -113,6 +116,9 @@ class ExitDuringStepTestCase(TestBase):
             frame = stepping_thread.GetFrameAtIndex(0)
 
             current_line = frame.GetLineEntry().GetLine()
+
+            if by_instruction and current_line == 0:
+                continue
 
             self.assertGreaterEqual(
                 current_line,

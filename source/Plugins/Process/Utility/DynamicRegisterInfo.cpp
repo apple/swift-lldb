@@ -14,11 +14,11 @@
 // Other libraries and framework includes
 // Project includes
 #include "lldb/Core/ArchSpec.h"
-#include "lldb/Core/RegularExpression.h"
 #include "lldb/Core/StreamFile.h"
 #include "lldb/Core/StructuredData.h"
 #include "lldb/DataFormatters/FormatManager.h"
 #include "lldb/Host/StringConvert.h"
+#include "lldb/Utility/RegularExpression.h"
 #include "lldb/Utility/StringExtractor.h"
 
 using namespace lldb;
@@ -167,7 +167,7 @@ DynamicRegisterInfo::SetRegisterInfo(const StructuredData::Dictionary &dict,
                       reg_info.byte_offset =
                           containing_reg_info->byte_offset + msbyte;
                     } else {
-                      assert(!"Invalid byte order");
+                      llvm_unreachable("Invalid byte order");
                     }
                   } else {
                     if (msbit > max_bit)

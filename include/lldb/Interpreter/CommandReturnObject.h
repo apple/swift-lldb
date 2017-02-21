@@ -16,9 +16,14 @@
 // Project includes
 #include "lldb/Core/STLUtils.h"
 #include "lldb/Core/StreamFile.h"
-#include "lldb/Core/StreamString.h"
-#include "lldb/Core/StreamTee.h"
+#include "lldb/Utility/StreamString.h"
+#include "lldb/Utility/StreamTee.h"
 #include "lldb/lldb-private.h"
+
+#include "llvm/ADT/StringRef.h"
+#include "llvm/Support/FormatVariadic.h"
+
+#include <memory>
 
 namespace lldb_private {
 
@@ -28,19 +33,18 @@ public:
 
   ~CommandReturnObject();
 
-  const char *GetOutputData() {
+  llvm::StringRef GetOutputData() {
     lldb::StreamSP stream_sp(m_out_stream.GetStreamAtIndex(eStreamStringIndex));
     if (stream_sp)
-      return static_cast<StreamString *>(stream_sp.get())->GetData();
-    return "";
+      return static_pointer_cast<StreamString>(stream_sp)->GetString();
+    return llvm::StringRef();
   }
 
-  const char *GetErrorData() {
+  llvm::StringRef GetErrorData() {
     lldb::StreamSP stream_sp(m_err_stream.GetStreamAtIndex(eStreamStringIndex));
     if (stream_sp)
-      return static_cast<StreamString *>(stream_sp.get())->GetData();
-    else
-      return "";
+      return static_pointer_cast<StreamString>(stream_sp)->GetString();
+    return llvm::StringRef();
   }
 
   Stream &GetOutputStream() {
@@ -91,28 +95,43 @@ public:
 
   void Clear();
 
-  void AppendMessage(const char *in_string);
+  void AppendMessage(llvm::StringRef in_string);
 
   void AppendMessageWithFormat(const char *format, ...)
       __attribute__((format(printf, 2, 3)));
 
-  void AppendRawWarning(const char *in_string);
+  void AppendRawWarning(llvm::StringRef in_string);
 
-  void AppendWarning(const char *in_string);
+  void AppendWarning(llvm::StringRef in_string);
 
   void AppendWarningWithFormat(const char *format, ...)
       __attribute__((format(printf, 2, 3)));
 
-  void AppendError(const char *in_string);
+  void AppendError(llvm::StringRef in_string);
 
-  void AppendRawError(const char *in_string);
+  void AppendRawError(llvm::StringRef in_string);
 
   void AppendErrorWithFormat(const char *format, ...)
       __attribute__((format(printf, 2, 3)));
 
+  template <typename... Args>
+  void AppendMessageWithFormatv(const char *format, Args &&... args) {
+    AppendMessage(llvm::formatv(format, std::forward<Args>(args)...).str());
+  }
+
+  template <typename... Args>
+  void AppendWarningWithFormatv(const char *format, Args &&... args) {
+    AppendWarning(llvm::formatv(format, std::forward<Args>(args)...).str());
+  }
+
+  template <typename... Args>
+  void AppendErrorWithFormatv(const char *format, Args &&... args) {
+    AppendError(llvm::formatv(format, std::forward<Args>(args)...).str());
+  }
+
   void SetError(const Error &error, const char *fallback_error_cstr = nullptr);
 
-  void SetError(const char *error_cstr);
+  void SetError(llvm::StringRef error_cstr);
 
   lldb::ReturnStatus GetStatus();
 

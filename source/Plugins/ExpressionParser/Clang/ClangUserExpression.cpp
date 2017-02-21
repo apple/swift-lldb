@@ -25,12 +25,10 @@
 #include "ClangModulesDeclVendor.h"
 #include "ClangPersistentVariables.h"
 
-#include "lldb/Core/ConstString.h"
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/StreamFile.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/ValueObjectConstResult.h"
 #include "lldb/Expression/ExpressionSourceCode.h"
 #include "lldb/Expression/IRExecutionUnit.h"
@@ -51,6 +49,8 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Target/ThreadPlan.h"
 #include "lldb/Target/ThreadPlanCallUserExpression.h"
+#include "lldb/Utility/ConstString.h"
+#include "lldb/Utility/StreamString.h"
 
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclObjC.h"
@@ -58,10 +58,10 @@
 using namespace lldb_private;
 
 ClangUserExpression::ClangUserExpression(
-    ExecutionContextScope &exe_scope, const char *expr, const char *expr_prefix,
-    lldb::LanguageType language, ResultType desired_type,
-    const EvaluateExpressionOptions &options)
-    : LLVMUserExpression(exe_scope, expr, expr_prefix, language, desired_type,
+    ExecutionContextScope &exe_scope, llvm::StringRef expr,
+    llvm::StringRef prefix, lldb::LanguageType language,
+    ResultType desired_type, const EvaluateExpressionOptions &options)
+    : LLVMUserExpression(exe_scope, expr, prefix, language, desired_type,
                          options),
       m_type_system_helper(*m_target_wp.lock().get(),
                            options.GetExecutionPolicy() ==
@@ -98,6 +98,12 @@ void ClangUserExpression::ScanContext(ExecutionContext &exe_ctx, Error &err) {
       log->Printf("  [CUE::SC] Null target");
     return;
   }
+  
+  if (!(m_allow_cxx || m_allow_objc)) {
+    if (log)
+      log->Printf("  [CUE::SC] Settings inhibit C++ and Objective-C");
+    return;
+  }
 
   StackFrame *frame = exe_ctx.GetFramePtr();
   if (frame == NULL) {
@@ -112,12 +118,6 @@ void ClangUserExpression::ScanContext(ExecutionContext &exe_ctx, Error &err) {
   if (!sym_ctx.function) {
     if (log)
       log->Printf("  [CUE::SC] Null function");
-    return;
-  }
-
-  if (!(m_allow_cxx || m_allow_objc)) {
-    if (log)
-      log->Printf("  [CUE::SC] Settings inhibit C++ and Objective-C");
     return;
   }
 
@@ -334,21 +334,21 @@ bool ClangUserExpression::Parse(DiagnosticManager &diagnostic_manager,
                 lldb::eLanguageTypeC)) {
       m_result_delegate.RegisterPersistentState(persistent_state);
     } else {
-      diagnostic_manager.PutCString(
+      diagnostic_manager.PutString(
           eDiagnosticSeverityError,
           "couldn't start parsing (no persistent data)");
       return false;
     }
   } else {
-    diagnostic_manager.PutCString(eDiagnosticSeverityError,
-                                  "error: couldn't start parsing (no target)");
+    diagnostic_manager.PutString(eDiagnosticSeverityError,
+                                 "error: couldn't start parsing (no target)");
     return false;
   }
 
   ScanContext(exe_ctx, err);
 
   if (!err.Success()) {
-    diagnostic_manager.PutCString(eDiagnosticSeverityWarning, err.AsCString());
+    diagnostic_manager.PutString(eDiagnosticSeverityWarning, err.AsCString());
   }
 
   ////////////////////////////////////
@@ -407,13 +407,10 @@ bool ClangUserExpression::Parse(DiagnosticManager &diagnostic_manager,
     else
       lang_type = lldb::eLanguageTypeC;
 
-    m_options.SetLanguage(lang_type);
-    uint32_t first_body_line = 0;
 
     if (!source_code->GetText(m_transformed_text, lang_type, m_language_flags,
-                              m_options, m_swift_generic_info, exe_ctx,
-                              first_body_line)) {
-      diagnostic_manager.PutCString(eDiagnosticSeverityError,
+                              m_options, m_swift_generic_info, exe_ctx)) {
+      diagnostic_manager.PutString(eDiagnosticSeverityError,
                                     "couldn't construct expression body");
       return false;
     }
@@ -429,7 +426,7 @@ bool ClangUserExpression::Parse(DiagnosticManager &diagnostic_manager,
   Target *target = exe_ctx.GetTargetPtr();
 
   if (!target) {
-    diagnostic_manager.PutCString(eDiagnosticSeverityError, "invalid target");
+    diagnostic_manager.PutString(eDiagnosticSeverityError, "invalid target");
     return false;
   }
 
@@ -456,7 +453,7 @@ bool ClangUserExpression::Parse(DiagnosticManager &diagnostic_manager,
   OnExit on_exit([this]() { ResetDeclMap(); });
 
   if (!DeclMap()->WillParse(exe_ctx, m_materializer_ap.get())) {
-    diagnostic_manager.PutCString(
+    diagnostic_manager.PutString(
         eDiagnosticSeverityError,
         "current process state is unsuitable for expression parsing");
 
@@ -520,10 +517,10 @@ bool ClangUserExpression::Parse(DiagnosticManager &diagnostic_manager,
     if (!jit_error.Success()) {
       const char *error_cstr = jit_error.AsCString();
       if (error_cstr && error_cstr[0])
-        diagnostic_manager.PutCString(eDiagnosticSeverityError, error_cstr);
+        diagnostic_manager.PutString(eDiagnosticSeverityError, error_cstr);
       else
-        diagnostic_manager.PutCString(eDiagnosticSeverityError,
-                                      "expression can't be interpreted or run");
+        diagnostic_manager.PutString(eDiagnosticSeverityError,
+                                     "expression can't be interpreted or run");
       return false;
     }
   }
@@ -539,8 +536,8 @@ bool ClangUserExpression::Parse(DiagnosticManager &diagnostic_manager,
                                   "couldn't run static initializers: %s\n",
                                   error_cstr);
       else
-        diagnostic_manager.PutCString(eDiagnosticSeverityError,
-                                      "couldn't run static initializers\n");
+        diagnostic_manager.PutString(eDiagnosticSeverityError,
+                                     "couldn't run static initializers\n");
       return false;
     }
   }
@@ -582,7 +579,7 @@ bool ClangUserExpression::Parse(DiagnosticManager &diagnostic_manager,
       limit_end_line = limit_start_line +
                        std::count(m_expr_text.begin(), m_expr_text.end(), '\n');
     }
-    m_execution_unit_sp->CreateJITModule(jit_module_name.GetString().c_str(),
+    m_execution_unit_sp->CreateJITModule(jit_module_name.GetString().data(),
                                          limit_file ? &limit_file_spec : NULL,
                                          limit_start_line, limit_end_line);
   }
@@ -615,7 +612,7 @@ bool ClangUserExpression::AddArguments(ExecutionContext &exe_ctx,
     } else if (m_language_flags & eLanguageFlagInObjectiveCMethod) {
       object_name.SetCString("self");
     } else {
-      diagnostic_manager.PutCString(
+      diagnostic_manager.PutString(
           eDiagnosticSeverityError,
           "need object pointer but don't know the language");
       return false;

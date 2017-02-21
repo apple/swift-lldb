@@ -158,6 +158,7 @@ def _decorateTest(mode,
                   archs=None, triple=None,
                   debug_info=None,
                   swig_version=None, py_version=None,
+                  macos_version=None,
                   remote=None):
     def fn(self):
         skip_for_os = _match_decorator_property(
@@ -188,6 +189,11 @@ def _decorateTest(mode,
         skip_for_py_version = (
             py_version is None) or _check_expected_version(
             py_version[0], py_version[1], sys.version_info)
+        skip_for_macos_version = (macos_version is None) or (
+            _check_expected_version(
+                macos_version[0],
+                macos_version[1],
+                platform.mac_ver()[0]))
 
         # For the test to be skipped, all specified (e.g. not None) parameters must be True.
         # An unspecified parameter means "any", so those are marked skip by default.  And we skip
@@ -200,6 +206,7 @@ def _decorateTest(mode,
                       (triple, skip_for_triple, "target triple"),
                       (swig_version, skip_for_swig_version, "swig version"),
                       (py_version, skip_for_py_version, "python version"),
+                      (macos_version, skip_for_macos_version, "macOS version"),
                       (remote, skip_for_remote, "platform locality (remote/local)")]
         reasons = []
         final_skip_result = True
@@ -243,6 +250,7 @@ def expectedFailureAll(bugnumber=None,
                        archs=None, triple=None,
                        debug_info=None,
                        swig_version=None, py_version=None,
+                       macos_version=None,
                        remote=None):
     return _decorateTest(DecorateMode.Xfail,
                          bugnumber=bugnumber,
@@ -251,6 +259,7 @@ def expectedFailureAll(bugnumber=None,
                          archs=archs, triple=triple,
                          debug_info=debug_info,
                          swig_version=swig_version, py_version=py_version,
+                         macos_version=None,
                          remote=remote)
 
 
@@ -266,6 +275,7 @@ def skipIf(bugnumber=None,
            archs=None, triple=None,
            debug_info=None,
            swig_version=None, py_version=None,
+           macos_version=None,
            remote=None):
     return _decorateTest(DecorateMode.Skip,
                          bugnumber=bugnumber,
@@ -274,6 +284,7 @@ def skipIf(bugnumber=None,
                          archs=archs, triple=triple,
                          debug_info=debug_info,
                          swig_version=swig_version, py_version=py_version,
+                         macos_version=macos_version,
                          remote=remote)
 
 
@@ -632,9 +643,11 @@ def skipIfHostIncompatibleWithRemote(func):
                 'i386') and host_arch != target_arch:
             return "skipping because target %s is not compatible with host architecture %s" % (
                 target_arch, host_arch)
-        elif target_platform != host_platform:
+        if target_platform != host_platform:
             return "skipping because target is %s but host is %s" % (
                 target_platform, host_platform)
+        if lldbplatformutil.match_android_device(target_arch):
+            return "skipping because target is android"
         return None
     return skipTestIfFn(is_host_incompatible_with_remote)(func)
 
@@ -679,6 +692,8 @@ def skipUnlessThreadSanitizer(func):
         compiler = os.path.basename(compiler_path)
         if not compiler.startswith("clang"):
             return "Test requires clang as compiler"
+        if lldbplatformutil.getPlatform() == 'windows':
+            return "TSAN tests not compatible with 'windows'"
         # rdar://28659145 - TSAN tests don't look like they're supported on i386
         if self.getArchitecture() == 'i386' and platform.system() == 'Darwin':
             return "TSAN tests not compatible with i386 targets"
@@ -699,6 +714,8 @@ def skipUnlessAddressSanitizer(func):
         compiler_path = self.getCompiler()
         compiler = os.path.basename(compiler_path)
         f = tempfile.NamedTemporaryFile()
+        if lldbplatformutil.getPlatform() == 'windows':
+            return "ASAN tests not compatible with 'windows'"
         cmd = "echo 'int main() {}' | %s -x c -o %s -" % (compiler_path, f.name)
         if os.popen(cmd).close() is not None:
             return None  # The compiler cannot compile at all, let's *not* skip the test

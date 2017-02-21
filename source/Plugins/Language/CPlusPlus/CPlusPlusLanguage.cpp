@@ -10,27 +10,30 @@
 #include "CPlusPlusLanguage.h"
 
 // C Includes
-// C++ Includes
 #include <cctype>
 #include <cstring>
+
+// C++ Includes
 #include <functional>
+#include <memory>
 #include <mutex>
+#include <set>
 
 // Other libraries and framework includes
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Threading.h"
 
 // Project includes
-#include "lldb/Core/ConstString.h"
+#include "lldb/Core/FastDemangle.h"
+#include "lldb/Core/Log.h"
 #include "lldb/Core/PluginManager.h"
-#include "lldb/Core/RegularExpression.h"
 #include "lldb/Core/UniqueCStringMap.h"
 #include "lldb/DataFormatters/CXXFunctionPointer.h"
 #include "lldb/DataFormatters/DataVisualization.h"
 #include "lldb/DataFormatters/FormattersHelpers.h"
 #include "lldb/DataFormatters/VectorType.h"
-#include "lldb/Symbol/SymbolFile.h"
-#include "lldb/Symbol/TypeList.h"
-#include "lldb/Target/Target.h"
+#include "lldb/Utility/ConstString.h"
+#include "lldb/Utility/RegularExpression.h"
 
 #include "BlockPointer.h"
 #include "CxxStringTypes.h"
@@ -443,6 +446,101 @@ CPlusPlusLanguage::FindEquivalentNames(ConstString type_name,
   return count;
 }
 
+/// Given a mangled function `mangled`, replace all the primitive function type
+/// arguments of `search` with type `replace`.
+static ConstString SubsPrimitiveParmItanium(llvm::StringRef mangled,
+                                            llvm::StringRef search,
+                                            llvm::StringRef replace) {
+  Log *log = GetLogIfAllCategoriesSet(LIBLLDB_LOG_LANGUAGE);
+
+  const size_t max_len =
+      mangled.size() + mangled.count(search) * replace.size() + 1;
+
+  // Make a temporary buffer to fix up the mangled parameter types and copy the
+  // original there
+  std::string output_buf;
+  output_buf.reserve(max_len);
+  output_buf.insert(0, mangled.str());
+  ptrdiff_t replaced_offset = 0;
+
+  auto swap_parms_hook = [&](const char *parsee) {
+    if (!parsee || !*parsee)
+      return;
+
+    // Check whether we've found a substitutee
+    llvm::StringRef s(parsee);
+    if (s.startswith(search)) {
+      // account for the case where a replacement is of a different length to
+      // the original
+      replaced_offset += replace.size() - search.size();
+
+      ptrdiff_t replace_idx = (mangled.size() - s.size()) + replaced_offset;
+      output_buf.erase(replace_idx, search.size());
+      output_buf.insert(replace_idx, replace.str());
+    }
+  };
+
+  // FastDemangle will call our hook for each instance of a primitive type,
+  // allowing us to perform substitution
+  const char *const demangled =
+      FastDemangle(mangled.str().c_str(), mangled.size(), swap_parms_hook);
+
+  if (log)
+    log->Printf("substituted mangling for %s:{%s} %s:{%s}\n",
+                mangled.str().c_str(), demangled, output_buf.c_str(),
+                FastDemangle(output_buf.c_str()));
+
+  return output_buf == mangled ? ConstString() : ConstString(output_buf);
+}
+
+uint32_t CPlusPlusLanguage::FindAlternateFunctionManglings(
+    const ConstString mangled_name, std::set<ConstString> &alternates) {
+  const auto start_size = alternates.size();
+  /// Get a basic set of alternative manglings for the given symbol `name`, by
+  /// making a few basic possible substitutions on basic types, storage duration
+  /// and `const`ness for the given symbol. The output parameter `alternates`
+  /// is filled with a best-guess, non-exhaustive set of different manglings
+  /// for the given name.
+
+  // Maybe we're looking for a const symbol but the debug info told us it was
+  // non-const...
+  if (!strncmp(mangled_name.GetCString(), "_ZN", 3) &&
+      strncmp(mangled_name.GetCString(), "_ZNK", 4)) {
+    std::string fixed_scratch("_ZNK");
+    fixed_scratch.append(mangled_name.GetCString() + 3);
+    alternates.insert(ConstString(fixed_scratch));
+  }
+
+  // Maybe we're looking for a static symbol but we thought it was global...
+  if (!strncmp(mangled_name.GetCString(), "_Z", 2) &&
+      strncmp(mangled_name.GetCString(), "_ZL", 3)) {
+    std::string fixed_scratch("_ZL");
+    fixed_scratch.append(mangled_name.GetCString() + 2);
+    alternates.insert(ConstString(fixed_scratch));
+  }
+
+  // `char` is implementation defined as either `signed` or `unsigned`.  As a
+  // result a char parameter has 3 possible manglings: 'c'-char, 'a'-signed
+  // char, 'h'-unsigned char.  If we're looking for symbols with a signed char
+  // parameter, try finding matches which have the general case 'c'.
+  if (ConstString char_fixup =
+          SubsPrimitiveParmItanium(mangled_name.GetStringRef(), "a", "c"))
+    alternates.insert(char_fixup);
+
+  // long long parameter mangling 'x', may actually just be a long 'l' argument
+  if (ConstString long_fixup =
+          SubsPrimitiveParmItanium(mangled_name.GetStringRef(), "x", "l"))
+    alternates.insert(long_fixup);
+
+  // unsigned long long parameter mangling 'y', may actually just be unsigned
+  // long 'm' argument
+  if (ConstString ulong_fixup =
+          SubsPrimitiveParmItanium(mangled_name.GetStringRef(), "y", "m"))
+    alternates.insert(ulong_fixup);
+
+  return alternates.size() - start_size;
+}
+
 static void LoadLibCxxFormatters(lldb::TypeCategoryImplSP cpp_category_sp) {
   if (!cpp_category_sp)
     return;
@@ -806,6 +904,11 @@ static void LoadLibStdcppFormatters(lldb::TypeCategoryImplSP cpp_category_sp) {
 
   AddCXXSynthetic(
       cpp_category_sp,
+      lldb_private::formatters::LibStdcppUniquePtrSyntheticFrontEndCreator,
+      "std::unique_ptr synthetic children",
+      ConstString("^std::unique_ptr<.+>(( )?&)?$"), stl_synth_flags, true);
+  AddCXXSynthetic(
+      cpp_category_sp,
       lldb_private::formatters::LibStdcppSharedPtrSyntheticFrontEndCreator,
       "std::shared_ptr synthetic children",
       ConstString("^std::shared_ptr<.+>(( )?&)?$"), stl_synth_flags, true);
@@ -814,7 +917,17 @@ static void LoadLibStdcppFormatters(lldb::TypeCategoryImplSP cpp_category_sp) {
       lldb_private::formatters::LibStdcppSharedPtrSyntheticFrontEndCreator,
       "std::weak_ptr synthetic children",
       ConstString("^std::weak_ptr<.+>(( )?&)?$"), stl_synth_flags, true);
+  AddCXXSynthetic(
+      cpp_category_sp,
+      lldb_private::formatters::LibStdcppTupleSyntheticFrontEndCreator,
+      "std::tuple synthetic children", ConstString("^std::tuple<.+>(( )?&)?$"),
+      stl_synth_flags, true);
 
+  AddCXXSummary(cpp_category_sp,
+                lldb_private::formatters::LibStdcppUniquePointerSummaryProvider,
+                "libstdc++ std::unique_ptr summary provider",
+                ConstString("^std::unique_ptr<.+>(( )?&)?$"), stl_summary_flags,
+                true);
   AddCXXSummary(cpp_category_sp,
                 lldb_private::formatters::LibStdcppSmartPointerSummaryProvider,
                 "libstdc++ std::shared_ptr summary provider",
@@ -907,75 +1020,19 @@ static void LoadSystemFormatters(lldb::TypeCategoryImplSP cpp_category_sp) {
 }
 
 std::unique_ptr<Language::TypeScavenger> CPlusPlusLanguage::GetTypeScavenger() {
-  class CPlusPlusTypeScavenger : public Language::TypeScavenger {
-  private:
-    class CPlusPlusTypeScavengerResult : public Language::TypeScavenger::Result {
-    public:
-      CPlusPlusTypeScavengerResult(CompilerType type)
-      : Language::TypeScavenger::Result(), m_compiler_type(type) {}
-      
-      bool IsValid() override { return m_compiler_type.IsValid(); }
-      
-      bool DumpToStream(Stream &stream, bool print_help_if_available) override {
-        if (IsValid()) {
-          m_compiler_type.DumpTypeDescription(&stream);
-          stream.EOL();
-          return true;
-        }
-        return false;
-      }
-      
-      ~CPlusPlusTypeScavengerResult() override = default;
-      
-    private:
-      CompilerType m_compiler_type;
-    };
-    
-  protected:
-    CPlusPlusTypeScavenger() = default;
-    
-    ~CPlusPlusTypeScavenger() override = default;
-    
-    bool Find_Impl(ExecutionContextScope *exe_scope, const char *key,
-                   ResultSet &results) override {
-      bool result = false;
-      
-      Target *target = exe_scope->CalculateTarget().get();
-      if (target) {
-        const auto &images(target->GetImages());
-        SymbolContext null_sc;
-        ConstString cs_key(key);
-        llvm::DenseSet<SymbolFile*> searched_sym_files;
-        TypeList matches;
-        images.FindTypes(null_sc,
-                         cs_key,
-                         false,
-                         UINT32_MAX,
-                         searched_sym_files,
-                         matches);
-        for (const auto& match : matches.Types()) {
-          if (match.get()) {
-            CompilerType compiler_type(match->GetFullCompilerType());
-            LanguageType lang_type(compiler_type.GetMinimumLanguage());
-            // other plugins will find types for other languages - here we only do C and C++
-            if (!Language::LanguageIsC(lang_type) && !Language::LanguageIsCPlusPlus(lang_type))
-              continue;
-            if (compiler_type.IsTypedefType())
-              compiler_type = compiler_type.GetTypedefedType();
-            std::unique_ptr<Language::TypeScavenger::Result> scavengeresult(
-                                                                    new CPlusPlusTypeScavengerResult(compiler_type));
-            results.insert(std::move(scavengeresult));
-            result = true;
-          }
-        }
-      }
-      
-      return result;
+  class CPlusPlusTypeScavenger : public Language::ImageListTypeScavenger {
+  public:
+    virtual CompilerType AdjustForInclusion(CompilerType &candidate) override {
+      LanguageType lang_type(candidate.GetMinimumLanguage());
+      if (!Language::LanguageIsC(lang_type) &&
+          !Language::LanguageIsCPlusPlus(lang_type))
+        return CompilerType();
+      if (candidate.IsTypedefType())
+        return candidate.GetTypedefedType();
+      return candidate;
     }
-    
-    friend class lldb_private::CPlusPlusLanguage;
   };
-  
+
   return std::unique_ptr<TypeScavenger>(new CPlusPlusTypeScavenger());
 }
 
@@ -983,7 +1040,7 @@ lldb::TypeCategoryImplSP CPlusPlusLanguage::GetFormatters() {
   static std::once_flag g_initialize;
   static TypeCategoryImplSP g_category;
 
-  std::call_once(g_initialize, [this]() -> void {
+  llvm::call_once(g_initialize, [this]() -> void {
     DataVisualization::Categories::GetCategory(GetPluginName(), g_category);
     if (g_category) {
       LoadLibCxxFormatters(g_category);
@@ -1000,7 +1057,7 @@ CPlusPlusLanguage::GetHardcodedSummaries() {
   static ConstString g_vectortypes("VectorTypes");
   static HardcodedFormatters::HardcodedSummaryFinder g_formatters;
 
-  std::call_once(g_initialize, []() -> void {
+  llvm::call_once(g_initialize, []() -> void {
     g_formatters.push_back(
         [](lldb_private::ValueObject &valobj, lldb::DynamicValueType,
            FormatManager &) -> TypeSummaryImpl::SharedPointer {
@@ -1064,7 +1121,7 @@ CPlusPlusLanguage::GetHardcodedSynthetics() {
   static ConstString g_vectortypes("VectorTypes");
   static HardcodedFormatters::HardcodedSyntheticFinder g_formatters;
 
-  std::call_once(g_initialize, []() -> void {
+  llvm::call_once(g_initialize, []() -> void {
     g_formatters.push_back([](lldb_private::ValueObject &valobj,
                               lldb::DynamicValueType, FormatManager &fmt_mgr)
                                -> SyntheticChildren::SharedPointer {

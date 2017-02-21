@@ -14,14 +14,14 @@
 #include "LibCxx.h"
 
 #include "lldb/Core/DataBufferHeap.h"
-#include "lldb/Core/Error.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Core/ValueObjectConstResult.h"
 #include "lldb/DataFormatters/FormattersHelpers.h"
 #include "lldb/Host/Endian.h"
 #include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/Error.h"
+#include "lldb/Utility/Stream.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -298,8 +298,9 @@ lldb_private::formatters::LibcxxStdListSyntheticFrontEnd::GetChildAtIndex(
 
   StreamString name;
   name.Printf("[%" PRIu64 "]", (uint64_t)idx);
-  return CreateValueObjectFromData(
-      name.GetData(), data, m_backend.GetExecutionContextRef(), m_element_type);
+  return CreateValueObjectFromData(name.GetString(), data,
+                                   m_backend.GetExecutionContextRef(),
+                                   m_element_type);
 }
 
 bool lldb_private::formatters::LibcxxStdListSyntheticFrontEnd::Update() {

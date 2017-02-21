@@ -8,19 +8,19 @@
 //===----------------------------------------------------------------------===//
 
 #include "lldb/Expression/IRInterpreter.h"
-#include "lldb/Core/ConstString.h"
 #include "lldb/Core/DataExtractor.h"
-#include "lldb/Core/Error.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/ModuleSpec.h"
 #include "lldb/Core/Scalar.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Expression/DiagnosticManager.h"
 #include "lldb/Expression/IRExecutionUnit.h"
 #include "lldb/Expression/IRMemoryMap.h"
 #include "lldb/Host/Endian.h"
+#include "lldb/Utility/ConstString.h"
+#include "lldb/Utility/Error.h"
+#include "lldb/Utility/StreamString.h"
 
 #include "lldb/Target/ABI.h"
 #include "lldb/Target/ExecutionContext.h"
@@ -1602,25 +1602,23 @@ bool IRInterpreter::Interpret(llvm::Module &module, llvm::Function &function,
           lldb::addr_t addr = tmp_op.ULongLong();
           size_t dataSize = 0;
 
-          if (execution_unit.GetAllocSize(addr, dataSize)) {
-            // Create the required buffer
-            rawArgs[i].size = dataSize;
-            rawArgs[i].data_ap.reset(new uint8_t[dataSize + 1]);
+          bool Success = execution_unit.GetAllocSize(addr, dataSize);
+          (void)Success;
+          assert(Success &&
+                 "unable to locate host data for transfer to device");
+          // Create the required buffer
+          rawArgs[i].size = dataSize;
+          rawArgs[i].data_ap.reset(new uint8_t[dataSize + 1]);
 
-            // Read string from host memory
-            execution_unit.ReadMemory(rawArgs[i].data_ap.get(), addr, dataSize,
-                                      error);
-            if (error.Fail()) {
-              assert(!"we have failed to read the string from memory");
-              return false;
-            }
-            // Add null terminator
-            rawArgs[i].data_ap[dataSize] = '\0';
-            rawArgs[i].type = lldb_private::ABI::CallArgument::HostPointer;
-          } else {
-            assert(!"unable to locate host data for transfer to device");
-            return false;
-          }
+          // Read string from host memory
+          execution_unit.ReadMemory(rawArgs[i].data_ap.get(), addr, dataSize,
+                                    error);
+          assert(!error.Fail() &&
+                 "we have failed to read the string from memory");
+
+          // Add null terminator
+          rawArgs[i].data_ap[dataSize] = '\0';
+          rawArgs[i].type = lldb_private::ABI::CallArgument::HostPointer;
         } else /* if ( arg_ty->isPointerTy() ) */
         {
           rawArgs[i].type = lldb_private::ABI::CallArgument::TargetValue;

@@ -13,9 +13,9 @@
 // Project includes
 #include "LibCxx.h"
 
-#include "lldb/Core/ConstString.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/DataFormatters/FormattersHelpers.h"
+#include "lldb/Utility/ConstString.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -93,7 +93,7 @@ lldb_private::formatters::LibcxxStdVectorSyntheticFrontEnd::GetChildAtIndex(
   offset = offset + m_start->GetValueAsUnsigned(0);
   StreamString name;
   name.Printf("[%" PRIu64 "]", (uint64_t)idx);
-  return CreateValueObjectFromAddress(name.GetData(), offset,
+  return CreateValueObjectFromAddress(name.GetString(), offset,
                                       m_backend.GetExecutionContextRef(),
                                       m_element_type);
 }

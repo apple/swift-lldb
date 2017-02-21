@@ -20,12 +20,14 @@
 #include "Plugins/Process/gdb-remote/GDBRemoteCommunicationClient.h"
 #include "lldb/Core/DataBuffer.h"
 #include "lldb/Core/ModuleSpec.h"
+#include "lldb/Core/StructuredData.h"
 
 #include "llvm/ADT/ArrayRef.h"
 
 using namespace lldb_private::process_gdb_remote;
 using namespace lldb_private;
 using namespace lldb;
+using namespace llvm;
 
 namespace {
 
@@ -45,8 +47,7 @@ void Handle_QThreadSuffixSupported(MockServer &server, bool supported) {
     ASSERT_EQ(PacketResult::Success, server.SendUnimplementedResponse(nullptr));
 }
 
-void HandlePacket(MockServer &server, llvm::StringRef expected,
-                  llvm::StringRef response) {
+void HandlePacket(MockServer &server, StringRef expected, StringRef response) {
   StringExtractorGDBRemote request;
   ASSERT_EQ(PacketResult::Success, server.GetPacket(request));
   ASSERT_EQ(expected, request.GetStringRef());
@@ -198,14 +199,22 @@ TEST_F(GDBRemoteCommunicationClientTest, GetModulesInfo) {
 
   FileSpec file_specs[] = {
       FileSpec("/foo/bar.so", false, FileSpec::ePathSyntaxPosix),
-      FileSpec("/foo/baz.so", false, FileSpec::ePathSyntaxPosix)};
+      FileSpec("/foo/baz.so", false, FileSpec::ePathSyntaxPosix),
+
+      // This is a bit dodgy but we currently depend on GetModulesInfo not
+      // performing denormalization. It can go away once the users
+      // (DynamicLoaderPOSIXDYLD, at least) correctly set the path syntax for
+      // the FileSpecs they create.
+      FileSpec("/foo/baw.so", false, FileSpec::ePathSyntaxWindows),
+  };
   std::future<llvm::Optional<std::vector<ModuleSpec>>> async_result =
       std::async(std::launch::async,
                  [&] { return client.GetModulesInfo(file_specs, triple); });
   HandlePacket(
       server, "jModulesInfo:["
               R"({"file":"/foo/bar.so","triple":"i386-pc-linux"},)"
-              R"({"file":"/foo/baz.so","triple":"i386-pc-linux"}])",
+              R"({"file":"/foo/baz.so","triple":"i386-pc-linux"},)"
+              R"({"file":"/foo/baw.so","triple":"i386-pc-linux"}])",
       R"([{"uuid":"404142434445464748494a4b4c4d4e4f","triple":"i386-pc-linux",)"
       R"("file_path":"/foo/bar.so","file_offset":0,"file_size":1234}]])");
 
@@ -259,4 +268,49 @@ TEST_F(GDBRemoteCommunicationClientTest, GetModulesInfoInvalidResponse) {
 
     ASSERT_FALSE(async_result.get().hasValue()) << "response was: " << response;
   }
+}
+
+TEST_F(GDBRemoteCommunicationClientTest, TestPacketSpeedJSON) {
+  TestClient client;
+  MockServer server;
+  Connect(client, server);
+  if (HasFailure())
+    return;
+
+  std::thread server_thread([&server] {
+    for (;;) {
+      StringExtractorGDBRemote request;
+      PacketResult result = server.GetPacket(request);
+      if (result == PacketResult::ErrorDisconnected)
+        return;
+      ASSERT_EQ(PacketResult::Success, result);
+      StringRef ref = request.GetStringRef();
+      ASSERT_TRUE(ref.consume_front("qSpeedTest:response_size:"));
+      int size;
+      ASSERT_FALSE(ref.consumeInteger(10, size)) << "ref: " << ref;
+      std::string response(size, 'X');
+      ASSERT_EQ(PacketResult::Success, server.SendPacket(response));
+    }
+  });
+
+  StreamString ss;
+  client.TestPacketSpeed(10, 32, 32, 4096, true, ss);
+  client.Disconnect();
+  server_thread.join();
+
+  GTEST_LOG_(INFO) << "Formatted output: " << ss.GetData();
+  auto object_sp = StructuredData::ParseJSON(ss.GetString());
+  ASSERT_TRUE(bool(object_sp));
+  auto dict_sp = object_sp->GetAsDictionary();
+  ASSERT_TRUE(bool(dict_sp));
+
+  object_sp = dict_sp->GetValueForKey("packet_speeds");
+  ASSERT_TRUE(bool(object_sp));
+  dict_sp = object_sp->GetAsDictionary();
+  ASSERT_TRUE(bool(dict_sp));
+
+  int num_packets;
+  ASSERT_TRUE(dict_sp->GetValueForKeyAsInteger("num_packets", num_packets))
+      << ss.GetString();
+  ASSERT_EQ(10, num_packets);
 }

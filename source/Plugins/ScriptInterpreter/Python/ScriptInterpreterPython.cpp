@@ -142,14 +142,9 @@ public:
 
   ~InitializePythonRAII() {
     if (m_was_already_initialized) {
-      Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_SCRIPT |
-                                                      LIBLLDB_LOG_VERBOSE));
-
-      if (log) {
-        log->Printf("Releasing PyGILState. Returning to state = %slocked\n",
-                    m_was_already_initialized == PyGILState_UNLOCKED ? "un"
-                                                                     : "");
-      }
+      Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_SCRIPT));
+      LLDB_LOGV(log, "Releasing PyGILState. Returning to state = {0}locked",
+                m_was_already_initialized == PyGILState_UNLOCKED ? "un" : "");
       PyGILState_Release(m_gil_state);
     } else {
       // We initialized the threads in this function, just unlock the GIL.
@@ -174,15 +169,12 @@ private:
 
   void InitializeThreadsPrivate() {
     if (PyEval_ThreadsInitialized()) {
-      Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_SCRIPT |
-                                                      LIBLLDB_LOG_VERBOSE));
+      Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_SCRIPT));
 
       m_was_already_initialized = true;
       m_gil_state = PyGILState_Ensure();
-      if (log) {
-        log->Printf("Ensured PyGILState. Previous state = %slocked\n",
-                    m_gil_state == PyGILState_UNLOCKED ? "un" : "");
-      }
+      LLDB_LOGV(log, "Ensured PyGILState. Previous state = {0}locked\n",
+                m_gil_state == PyGILState_UNLOCKED ? "un" : "");
       return;
     }
 
@@ -212,12 +204,10 @@ ScriptInterpreterPython::Locker::Locker(ScriptInterpreterPython *py_interpreter,
 }
 
 bool ScriptInterpreterPython::Locker::DoAcquireLock() {
-  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_SCRIPT |
-                                                  LIBLLDB_LOG_VERBOSE));
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_SCRIPT));
   m_GILState = PyGILState_Ensure();
-  if (log)
-    log->Printf("Ensured PyGILState. Previous state = %slocked\n",
-                m_GILState == PyGILState_UNLOCKED ? "un" : "");
+  LLDB_LOGV(log, "Ensured PyGILState. Previous state = {0}locked",
+            m_GILState == PyGILState_UNLOCKED ? "un" : "");
 
   // we need to save the thread state when we first start the command
   // because we might decide to interrupt it while some action is taking
@@ -239,11 +229,9 @@ bool ScriptInterpreterPython::Locker::DoInitSession(uint16_t on_entry_flags,
 }
 
 bool ScriptInterpreterPython::Locker::DoFreeLock() {
-  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_SCRIPT |
-                                                  LIBLLDB_LOG_VERBOSE));
-  if (log)
-    log->Printf("Releasing PyGILState. Returning to state = %slocked\n",
-                m_GILState == PyGILState_UNLOCKED ? "un" : "");
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_SCRIPT));
+  LLDB_LOGV(log, "Releasing PyGILState. Returning to state = {0}locked",
+            m_GILState == PyGILState_UNLOCKED ? "un" : "");
   PyGILState_Release(m_GILState);
   m_python_interpreter->DecrementLockCount();
   return true;
@@ -340,7 +328,7 @@ ScriptInterpreterPython::~ScriptInterpreterPython() {
 void ScriptInterpreterPython::Initialize() {
   static std::once_flag g_once_flag;
 
-  std::call_once(g_once_flag, []() {
+  llvm::call_once(g_once_flag, []() {
     PluginManager::RegisterPlugin(GetPluginNameStatic(),
                                   GetPluginDescriptionStatic(),
                                   lldb::eScriptLanguagePython, CreateInstance);
@@ -1438,7 +1426,7 @@ bool ScriptInterpreterPython::GenerateTypeSynthClass(StringList &user_input,
   // Create the function name & definition string.
 
   sstr.Printf("class %s:", auto_generated_class_name.c_str());
-  auto_generated_class.AppendString(sstr.GetData());
+  auto_generated_class.AppendString(sstr.GetString());
 
   // Wrap everything up inside the class, increasing the indentation.
   // we don't need to play any fancy indentation tricks here because there is no
@@ -1446,7 +1434,7 @@ bool ScriptInterpreterPython::GenerateTypeSynthClass(StringList &user_input,
   for (int i = 0; i < num_lines; ++i) {
     sstr.Clear();
     sstr.Printf("     %s", user_input.GetStringAtIndex(i));
-    auto_generated_class.AppendString(sstr.GetData());
+    auto_generated_class.AppendString(sstr.GetString());
   }
 
   // Verify that the results are valid Python.
@@ -1599,12 +1587,7 @@ StructuredData::ArraySP ScriptInterpreterPython::OSPlugin_ThreadsInfo(
 // as the underlying typedef for uint* types, size_t, off_t and other values
 // change.
 
-template <typename T> const char *GetPythonValueFormatString(T t) {
-  assert(!"Unhandled type passed to GetPythonValueFormatString(T), make a "
-          "specialization of GetPythonValueFormatString() to support this "
-          "type.");
-  return nullptr;
-}
+template <typename T> const char *GetPythonValueFormatString(T t);
 template <> const char *GetPythonValueFormatString(char *) { return "s"; }
 template <> const char *GetPythonValueFormatString(char) { return "b"; }
 template <> const char *GetPythonValueFormatString(unsigned char) {
@@ -2873,7 +2856,7 @@ bool ScriptInterpreterPython::GetDocumentationForItem(const char *item,
     StreamString str_stream;
     str_stream.Printf(
         "Function %s was not found. Containing module might be missing.", item);
-    dest.assign(str_stream.GetData());
+    dest = str_stream.GetString();
     return false;
   }
 }

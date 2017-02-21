@@ -101,6 +101,18 @@ public:
       uint32_t timeout_sec)
       override; // Timeout in seconds to wait for shell program to finish
 
+  lldb_private::Error ResolveExecutable(const lldb_private::ModuleSpec &module_spec,
+      lldb::ModuleSP &module_sp,
+      const lldb_private::FileSpecList *module_search_paths_ptr) override;
+
+  lldb_private::Error GetFileWithUUID(const lldb_private::FileSpec &platform_file, const lldb_private::UUID *uuid,
+                        lldb_private::FileSpec &local_file) override;
+
+  bool GetProcessInfo(lldb::pid_t pid, lldb_private::ProcessInstanceInfo &proc_info) override;
+
+  uint32_t FindProcesses(const lldb_private::ProcessInstanceInfoMatch &match_info,
+                         lldb_private::ProcessInstanceInfoList &process_infos) override;
+
   lldb_private::Error MakeDirectory(const lldb_private::FileSpec &file_spec,
                                     uint32_t mode) override;
 
@@ -156,14 +168,16 @@ public:
   lldb_private::Error UnloadImage(lldb_private::Process *process,
                                   uint32_t image_token) override;
 
-  lldb::ProcessSP ConnectProcess(const char *connect_url,
-                                 const char *plugin_name,
+  lldb::ProcessSP ConnectProcess(llvm::StringRef connect_url,
+                                 llvm::StringRef plugin_name,
                                  lldb_private::Debugger &debugger,
                                  lldb_private::Target *target,
                                  lldb_private::Error &error) override;
 
   size_t ConnectToWaitingProcesses(lldb_private::Debugger &debugger,
                                    lldb_private::Error &error) override;
+
+  lldb_private::ConstString GetFullNameForDylib(lldb_private::ConstString basename) override;
 
 protected:
   std::unique_ptr<lldb_private::OptionGroupPlatformRSync>

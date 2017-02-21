@@ -59,30 +59,27 @@ class CommandObjectSourceInfo : public CommandObjectParsed {
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
       const int short_option = GetDefinitions()[option_idx].short_option;
       switch (short_option) {
       case 'l':
-        start_line = StringConvert::ToUInt32(option_arg, 0);
-        if (start_line == 0)
+        if (option_arg.getAsInteger(0, start_line))
           error.SetErrorStringWithFormat("invalid line number: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 'e':
-        end_line = StringConvert::ToUInt32(option_arg, 0);
-        if (end_line == 0)
+        if (option_arg.getAsInteger(0, end_line))
           error.SetErrorStringWithFormat("invalid line number: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 'c':
-        num_lines = StringConvert::ToUInt32(option_arg, 0);
-        if (num_lines == 0)
+        if (option_arg.getAsInteger(0, num_lines))
           error.SetErrorStringWithFormat("invalid line count: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 'f':
@@ -609,7 +606,7 @@ protected:
     m_module_list.Clear();
     if (!m_options.modules.empty()) {
       for (size_t i = 0, e = m_options.modules.size(); i < e; ++i) {
-        FileSpec module_file_spec(m_options.modules[i].c_str(), false);
+        FileSpec module_file_spec(m_options.modules[i], false);
         if (module_file_spec) {
           ModuleSpec module_spec(module_file_spec);
           if (target->GetImages().FindModules(module_spec, m_module_list) == 0)
@@ -686,23 +683,21 @@ class CommandObjectSourceList : public CommandObjectParsed {
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *execution_context) override {
       Error error;
       const int short_option = GetDefinitions()[option_idx].short_option;
       switch (short_option) {
       case 'l':
-        start_line = StringConvert::ToUInt32(option_arg, 0);
-        if (start_line == 0)
+        if (option_arg.getAsInteger(0, start_line))
           error.SetErrorStringWithFormat("invalid line number: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 'c':
-        num_lines = StringConvert::ToUInt32(option_arg, 0);
-        if (num_lines == 0)
+        if (option_arg.getAsInteger(0, num_lines))
           error.SetErrorStringWithFormat("invalid line count: '%s'",
-                                         option_arg);
+                                         option_arg.str().c_str());
         break;
 
       case 'f':
@@ -779,24 +774,20 @@ public:
   const char *GetRepeatCommand(Args &current_command_args,
                                uint32_t index) override {
     // This is kind of gross, but the command hasn't been parsed yet so we can't
-    // look at the option
-    // values for this invocation...  I have to scan the arguments directly.
-    size_t num_args = current_command_args.GetArgumentCount();
-    bool is_reverse = false;
-    for (size_t i = 0; i < num_args; i++) {
-      const char *arg = current_command_args.GetArgumentAtIndex(i);
-      if (arg && (strcmp(arg, "-r") == 0 || strcmp(arg, "--reverse") == 0)) {
-        is_reverse = true;
-      }
-    }
-    if (is_reverse) {
-      if (m_reverse_name.empty()) {
-        m_reverse_name = m_cmd_name;
-        m_reverse_name.append(" -r");
-      }
-      return m_reverse_name.c_str();
-    } else
+    // look at the option values for this invocation...  I have to scan the
+    // arguments directly.
+    auto iter =
+        llvm::find_if(current_command_args, [](const Args::ArgEntry &e) {
+          return e.ref == "-r" || e.ref == "--reverse";
+        });
+    if (iter == current_command_args.end())
       return m_cmd_name.c_str();
+
+    if (m_reverse_name.empty()) {
+      m_reverse_name = m_cmd_name;
+      m_reverse_name.append(" -r");
+    }
+    return m_reverse_name.c_str();
   }
 
 protected:
@@ -944,7 +935,7 @@ protected:
     if (num_modules > 0) {
       ModuleList matching_modules;
       for (size_t i = 0; i < num_modules; ++i) {
-        FileSpec module_file_spec(m_options.modules[i].c_str(), false);
+        FileSpec module_file_spec(m_options.modules[i], false);
         if (module_file_spec) {
           ModuleSpec module_spec(module_file_spec);
           matching_modules.Clear();
@@ -969,7 +960,7 @@ protected:
     if (num_modules > 0) {
       ModuleList matching_modules;
       for (size_t i = 0; i < num_modules; ++i) {
-        FileSpec module_file_spec(m_options.modules[i].c_str(), false);
+        FileSpec module_file_spec(m_options.modules[i], false);
         if (module_file_spec) {
           ModuleSpec module_spec(module_file_spec);
           matching_modules.Clear();
@@ -1225,36 +1216,23 @@ protected:
       SymbolContextList sc_list;
       size_t num_matches = 0;
 
-      for (size_t i = 0; i < 2; ++i) {
-        if (m_options.modules.size() > 0) {
-          ModuleList matching_modules;
-          for (size_t i = 0, e = m_options.modules.size(); i < e; ++i) {
-            FileSpec module_file_spec(m_options.modules[i].c_str(), false);
-            if (module_file_spec) {
-              ModuleSpec module_spec(module_file_spec);
-              matching_modules.Clear();
-              target->GetImages().FindModules(module_spec, matching_modules);
-              num_matches += matching_modules.ResolveSymbolContextForFilePath(
-                  filename,
-                  check_inlines ? 1 : 0, // For inlines set line to 1 to make
-                                         // sure we get a match
-                  check_inlines, eSymbolContextModule | eSymbolContextCompUnit,
-                  sc_list);
-            }
+      if (!m_options.modules.empty()) {
+        ModuleList matching_modules;
+        for (size_t i = 0, e = m_options.modules.size(); i < e; ++i) {
+          FileSpec module_file_spec(m_options.modules[i], false);
+          if (module_file_spec) {
+            ModuleSpec module_spec(module_file_spec);
+            matching_modules.Clear();
+            target->GetImages().FindModules(module_spec, matching_modules);
+            num_matches += matching_modules.ResolveSymbolContextForFilePath(
+                filename, 0, check_inlines,
+                eSymbolContextModule | eSymbolContextCompUnit, sc_list);
           }
-        } else {
-          num_matches = target->GetImages().ResolveSymbolContextForFilePath(
-              filename,
-              check_inlines
-                  ? 1
-                  : 0, // For inlines set line to 1 to make sure we get a match
-              check_inlines,
-              eSymbolContextModule | eSymbolContextCompUnit, sc_list);
         }
-        if (num_matches > 0)
-          break;
-        else
-          check_inlines = true;
+      } else {
+        num_matches = target->GetImages().ResolveSymbolContextForFilePath(
+            filename, 0, check_inlines,
+            eSymbolContextModule | eSymbolContextCompUnit, sc_list);
       }
 
       if (num_matches == 0) {
@@ -1263,50 +1241,21 @@ protected:
         result.SetStatus(eReturnStatusFailed);
         return false;
       }
-      SymbolContext best_sc;
-      SymbolContext sc;
-      FileSpec source_spec;
-      if (num_matches == 1) {
-        sc_list.GetContextAtIndex(0, best_sc);
-      } else {
+
+      if (num_matches > 1) {
         bool got_multiple = false;
+        FileSpec *test_cu_spec = nullptr;
 
         for (unsigned i = 0; i < num_matches; i++) {
+          SymbolContext sc;
           sc_list.GetContextAtIndex(i, sc);
-          if (best_sc.comp_unit == NULL) {
-            // First entry, just set the best_sc
-            best_sc = sc;
-          } else {
-            // Second or higher entry
-            if (sc.line_entry.file) {
-              // We picked up an inline entry, see if it matches the inline
-              // entry in "best_sc" or the compile unit in "best_sc"
-              if (best_sc.line_entry.file) {
-                if (best_sc.line_entry.file != sc.line_entry.file)
-                  got_multiple = true;
-              } else if (*best_sc.comp_unit != sc.line_entry.file) {
+          if (sc.comp_unit) {
+            if (test_cu_spec) {
+              if (test_cu_spec != static_cast<FileSpec *>(sc.comp_unit))
                 got_multiple = true;
-              }
-            } else {
-              if (best_sc.line_entry.file) {
-                // The best match so far was an inline entry...
-                if (best_sc.line_entry.file == *sc.comp_unit) {
-                  // best_sc was an inline entry, but we found a compile unit
-                  // that actually matches, use the current sc as the best match
-                  best_sc = sc;
-                } else if (best_sc.line_entry.file != *sc.comp_unit) {
-                  got_multiple = true;
-                }
-              } else {
-                // The best match so far has a valid compile unit. Complain if
-                // the compile units are the same file, or if the compile unit
-                // in the best match doesn't match the inline entry in "sc"
-                if (*(static_cast<FileSpec *>(best_sc.comp_unit)) !=
-                    *(static_cast<FileSpec *>(sc.comp_unit))) {
-                  got_multiple = true;
-                }
-              }
-            }
+              break;
+            } else
+              test_cu_spec = sc.comp_unit;
           }
         }
         if (got_multiple) {
@@ -1318,30 +1267,32 @@ protected:
         }
       }
 
-      sc = best_sc;
-      if (sc.comp_unit) {
-        if (m_options.show_bp_locs) {
-          const bool show_inlines = true;
-          m_breakpoint_locations.Reset(*sc.comp_unit, 0, show_inlines);
-          SearchFilterForUnconstrainedSearches target_search_filter(
-              target->shared_from_this());
-          target_search_filter.Search(m_breakpoint_locations);
-        } else
-          m_breakpoint_locations.Clear();
+      SymbolContext sc;
+      if (sc_list.GetContextAtIndex(0, sc)) {
+        if (sc.comp_unit) {
+          if (m_options.show_bp_locs) {
+            const bool show_inlines = true;
+            m_breakpoint_locations.Reset(*sc.comp_unit, 0, show_inlines);
+            SearchFilterForUnconstrainedSearches target_search_filter(
+                target->shared_from_this());
+            target_search_filter.Search(m_breakpoint_locations);
+          } else
+            m_breakpoint_locations.Clear();
 
-        if (m_options.num_lines == 0)
-          m_options.num_lines = 10;
-        const uint32_t column = 0;
-        target->GetSourceManager().DisplaySourceLinesWithLineNumbers(
-            sc.comp_unit, m_options.start_line, 0, m_options.num_lines,
-            column, "", &result.GetOutputStream(), GetBreakpointLocations());
+          if (m_options.num_lines == 0)
+            m_options.num_lines = 10;
+          const uint32_t column = 0;
+          target->GetSourceManager().DisplaySourceLinesWithLineNumbers(
+              sc.comp_unit, m_options.start_line, 0, m_options.num_lines,
+              column, "", &result.GetOutputStream(), GetBreakpointLocations());
 
-        result.SetStatus(eReturnStatusSuccessFinishResult);
-      } else {
-        result.AppendErrorWithFormat("No comp unit found for: \"%s.\"\n",
-                                     m_options.file_name.c_str());
-        result.SetStatus(eReturnStatusFailed);
-        return false;
+          result.SetStatus(eReturnStatusSuccessFinishResult);
+        } else {
+          result.AppendErrorWithFormat("No comp unit found for: \"%s.\"\n",
+                                       m_options.file_name.c_str());
+          result.SetStatus(eReturnStatusFailed);
+          return false;
+        }
       }
     }
     return result.Succeeded();

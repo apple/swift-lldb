@@ -9,9 +9,9 @@
 
 // FreeBSD9-STABLE requires this to know about size_t in cxxabi.h
 #include <cstddef>
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 #include "lldb/Host/windows/windows.h"
-#include <Dbghelp.h>
+#include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")
 #define LLDB_USE_BUILTIN_DEMANGLER
 #elif defined(__FreeBSD__)
@@ -36,14 +36,13 @@
 
 #include "Plugins/Language/CPlusPlus/CPlusPlusLanguage.h"
 #include "Plugins/Language/ObjC/ObjCLanguage.h"
-#include "lldb/Core/ConstString.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Logging.h"
 #include "lldb/Core/Mangled.h"
-#include "lldb/Core/RegularExpression.h"
-#include "lldb/Core/Stream.h"
-#include "lldb/Core/ThreadSafeDenseMap.h"
 #include "lldb/Core/Timer.h"
+#include "lldb/Utility/ConstString.h"
+#include "lldb/Utility/RegularExpression.h"
+#include "lldb/Utility/Stream.h"
 #include "lldb/Target/SwiftLanguageRuntime.h"
 #include <ctype.h>
 #include <functional>

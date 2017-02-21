@@ -1227,6 +1227,13 @@ class Base(unittest2.TestCase):
     # (enables reading of the current test configuration)
     # ====================================================
 
+    def isMIPS(self):
+        """Returns true if the architecture is MIPS."""
+        arch = self.getArchitecture()
+        if re.match("mips", arch):
+            return True
+        return False
+
     def getArchitecture(self):
         """Returns the architecture in effect the test suite is running with."""
         module = builder_module()
@@ -2201,6 +2208,8 @@ class TestBase(Base):
             with recording(self, trace) as sbuf:
                 print("looking at:", output, file=sbuf)
 
+        if output is None:
+            output = ""
         # The heading says either "Expecting" or "Not expecting".
         heading = "Expecting" if matching else "Not expecting"
 

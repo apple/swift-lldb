@@ -21,7 +21,6 @@
 // Project includes
 #include "lldb/Expression/IRDynamicChecks.h"
 
-#include "lldb/Core/ConstString.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Expression/UtilityFunction.h"
 #include "lldb/Target/ExecutionContext.h"
@@ -29,6 +28,7 @@
 #include "lldb/Target/Process.h"
 #include "lldb/Target/StackFrame.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/ConstString.h"
 
 using namespace llvm;
 using namespace lldb_private;
@@ -562,7 +562,7 @@ IRDynamicChecks::~IRDynamicChecks() = default;
 bool IRDynamicChecks::runOnModule(llvm::Module &M) {
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
-  llvm::Function *function = M.getFunction(StringRef(m_func_name.c_str()));
+  llvm::Function *function = M.getFunction(StringRef(m_func_name));
 
   if (!function) {
     if (log)

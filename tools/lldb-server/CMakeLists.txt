@@ -23,7 +23,71 @@ endif ()
 
 include_directories(../../source)
 
-include(../../cmake/LLDBDependencies.cmake)
+# start swift mod
+set(SWIFT_ALL_LIBS
+    swiftBasic
+    swiftAST
+    swiftIDE
+    swiftIRGen
+    swiftFrontend
+    swiftSerialization
+    swiftClangImporter
+    swiftMarkup
+    swiftParse
+    swiftSema
+    swiftSIL
+    swiftSILGen
+    swiftSILOptimizer
+    swiftASTSectionImporter
+    swiftRemoteAST
+    swiftLLVMPasses
+    swiftOption
+    )
+# end swift mod
+
+set(LLDB_SYSTEM_LIBS)
+if (NOT LLDB_DISABLE_LIBEDIT)
+  list(APPEND LLDB_SYSTEM_LIBS edit)
+endif()
+if (NOT LLDB_DISABLE_CURSES)
+  list(APPEND LLDB_SYSTEM_LIBS ${CURSES_LIBRARIES})
+  if(LLVM_ENABLE_TERMINFO AND HAVE_TERMINFO)
+    list(APPEND LLDB_SYSTEM_LIBS ${TERMINFO_LIBS})
+  endif()
+endif()
+
+if (NOT HAVE_CXX_ATOMICS64_WITHOUT_LIB )
+    list(APPEND LLDB_SYSTEM_LIBS atomic)
+endif()
+
+# On FreeBSD/NetBSD backtrace() is provided by libexecinfo, not libc.
+if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD" OR CMAKE_SYSTEM_NAME MATCHES "NetBSD")
+  list(APPEND LLDB_SYSTEM_LIBS execinfo)
+endif()
+
+if (NOT LLDB_DISABLE_PYTHON AND NOT LLVM_BUILD_STATIC)
+  list(APPEND LLDB_SYSTEM_LIBS ${PYTHON_LIBRARIES})
+endif()
+
+list(APPEND LLDB_SYSTEM_LIBS ${system_libs})
+
+if (LLVM_BUILD_STATIC)
+  if (NOT LLDB_DISABLE_PYTHON)
+    list(APPEND LLDB_SYSTEM_LIBS python2.7 util)
+  endif()
+  if (NOT LLDB_DISABLE_CURSES)
+    list(APPEND LLDB_SYSTEM_LIBS gpm)
+  endif()
+endif()
+
+# start swift mod
+if(LLDB_BUILT_STANDALONE)
+  # this needs to be linked statially
+  list(APPEND LLDB_SYSTEM_LIBS ${PATH_TO_CMARK_BUILD}/src/libcmark.a)
+else()
+  list(APPEND LLDB_SYSTEM_LIBS libcmark_static)
+endif()
+# end swift mod
 
 add_lldb_tool(lldb-server INCLUDE_IN_FRAMEWORK
     Acceptor.cpp
@@ -31,31 +95,19 @@ add_lldb_tool(lldb-server INCLUDE_IN_FRAMEWORK
     lldb-platform.cpp
     lldb-server.cpp
     LLDBServerUtilities.cpp
+
+    LINK_LIBS
+      lldbBase
+      lldbCore
+      lldbHost
+      lldbInitialization
+      lldbInterpreter
+      ${EXTRA_LLDB_LIBS}
+      ${LLDB_SYSTEM_LIBS}
+      ${SWIFT_ALL_LIBS}
+
+    LINK_COMPONENTS
+      Support
 )
 
-if (BUILD_SHARED_LIBS )
-  target_link_libraries(lldb-server liblldb)
-  target_link_libraries(lldb-server ${LLDB_SYSTEM_LIBS})
-else()
-  # The Darwin linker doesn't understand --start-group/--end-group.
-  if (LLDB_LINKER_SUPPORTS_GROUPS)
-    target_link_libraries(lldb-server
-                          -Wl,--start-group ${LLDB_USED_LIBS} -Wl,--end-group)
-    target_link_libraries(lldb-server
-                          -Wl,--start-group ${SWIFT_ALL_LIBS} -Wl,--end-group)
-    target_link_libraries(lldb-server
-                          -Wl,--start-group ${CLANG_ALL_LIBS} -Wl,--end-group)
-    target_link_libraries(lldb-server
-                          -Wl,--start-group ${LLVM_ALL_LIBS} -Wl,--end-group)
-  else()
-    target_link_libraries(lldb-server ${LLDB_USED_LIBS})
-    target_link_libraries(lldb-server ${SWIFT_ALL_LIBS})
-    target_link_libraries(lldb-server ${CLANG_ALL_LIBS})
-    target_link_libraries(lldb-server ${LLVM_ALL_LIBS})
-  endif()
-  llvm_config(lldb-server ${LLVM_LINK_COMPONENTS})
-
-  target_link_libraries(lldb-server ${LLDB_SYSTEM_LIBS})
-endif()
-
-set_target_properties(lldb-server PROPERTIES VERSION ${LLDB_VERSION})
+target_link_libraries(lldb-server ${LLDB_SYSTEM_LIBS})

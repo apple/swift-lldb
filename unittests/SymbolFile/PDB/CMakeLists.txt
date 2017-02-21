@@ -1,12 +1,22 @@
 add_lldb_unittest(SymbolFilePDBTests
   SymbolFilePDBTests.cpp
+
+  LINK_LIBS
+    lldbCore
+    lldbHost
+    lldbSymbol
+    lldbPluginObjectFilePECOFF
+    lldbPluginSymbolFileDWARF
+    lldbPluginSymbolFilePDB
+  LINK_COMPONENTS
+    Support
+    DebugInfoPDB
   )
 
 set(test_inputs
    test-pdb.exe
    test-pdb.pdb
-   test-dwarf.exe
    test-pdb-types.exe
    test-pdb-types.pdb)
 
-add_unittest_inputs(SymbolFilePDBTests "${test_inputs}")  
+add_unittest_inputs(SymbolFilePDBTests "${test_inputs}")

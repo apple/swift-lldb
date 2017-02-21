@@ -20,13 +20,13 @@
 #include "lldb/lldb-public.h"
 
 #include "lldb/Core/Debugger.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/DataFormatters/ValueObjectPrinter.h"
 #include "lldb/Interpreter/CommandInterpreter.h"
 #include "lldb/Symbol/CompilerType.h"
 #include "lldb/Target/StackFrame.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -98,7 +98,7 @@ bool StringSummaryFormat::FormatObject(ValueObject *valobj, std::string &retval,
   if (IsOneLiner()) {
     ValueObjectPrinter printer(valobj, &s, DumpValueObjectOptions());
     printer.PrintChildrenOneLiner(HideNames(valobj));
-    retval.assign(s.GetData());
+    retval = s.GetString();
     return true;
   } else {
     if (FormatEntity::Format(m_format, s, &sc, &exe_ctx,
@@ -141,7 +141,7 @@ bool CXXFunctionSummaryFormat::FormatObject(ValueObject *valobj,
   StreamString stream;
   if (!m_impl || m_impl(*valobj, stream, options) == false)
     return false;
-  dest.assign(stream.GetData());
+  dest = stream.GetString();
   return true;
 }
 
@@ -207,10 +207,10 @@ std::string ScriptSummaryFormat::GetDescription() {
     if (m_function_name.empty()) {
       sstr.PutCString("no backing script");
     } else {
-      sstr.PutCString(m_function_name.c_str());
+      sstr.PutCString(m_function_name);
     }
   } else {
-    sstr.PutCString(m_python_script.c_str());
+    sstr.PutCString(m_python_script);
   }
   return sstr.GetString();
 }

@@ -44,10 +44,10 @@
 using namespace lldb_private;
 
 SwiftUserExpression::SwiftUserExpression(
-    ExecutionContextScope &exe_scope, const char *expr, const char *expr_prefix,
-    lldb::LanguageType language, ResultType desired_type,
-    const EvaluateExpressionOptions &options)
-    : LLVMUserExpression(exe_scope, expr, expr_prefix, language, desired_type,
+    ExecutionContextScope &exe_scope, llvm::StringRef expr,
+    llvm::StringRef prefix, lldb::LanguageType language,
+    ResultType desired_type, const EvaluateExpressionOptions &options)
+    : LLVMUserExpression(exe_scope, expr, prefix, language, desired_type,
                          options),
       m_type_system_helper(*m_target_wp.lock().get()),
       m_result_delegate(*this, false), m_error_delegate(*this, true),
@@ -417,13 +417,13 @@ bool SwiftUserExpression::Parse(DiagnosticManager &diagnostic_manager,
       m_result_delegate.RegisterPersistentState(persistent_state);
       m_error_delegate.RegisterPersistentState(persistent_state);
     } else {
-      diagnostic_manager.PutCString(
+      diagnostic_manager.PutString(
           eDiagnosticSeverityError,
           "couldn't start parsing (no persistent data)");
       return false;
     }
   } else {
-    diagnostic_manager.PutCString(eDiagnosticSeverityError,
+    diagnostic_manager.PutString(eDiagnosticSeverityError,
                                   "couldn't start parsing (no target)");
     return false;
   }
@@ -449,12 +449,10 @@ bool SwiftUserExpression::Parse(DiagnosticManager &diagnostic_manager,
   const lldb::LanguageType lang_type = lldb::eLanguageTypeSwift;
 
   m_options.SetLanguage(lang_type);
-  uint32_t first_body_line = 0;
 
   if (!source_code->GetText(m_transformed_text, lang_type, m_language_flags,
-                            m_options, m_swift_generic_info, exe_ctx,
-                            first_body_line)) {
-    diagnostic_manager.PutCString(eDiagnosticSeverityError,
+                            m_options, m_swift_generic_info, exe_ctx)) {
+    diagnostic_manager.PutString(eDiagnosticSeverityError,
                                   "couldn't construct expression body");
     return false;
   }
@@ -469,7 +467,7 @@ bool SwiftUserExpression::Parse(DiagnosticManager &diagnostic_manager,
   Target *target = exe_ctx.GetTargetPtr();
 
   if (!target) {
-    diagnostic_manager.PutCString(eDiagnosticSeverityError, "invalid target\n");
+    diagnostic_manager.PutString(eDiagnosticSeverityError, "invalid target\n");
     return false;
   }
 
@@ -514,8 +512,7 @@ bool SwiftUserExpression::Parse(DiagnosticManager &diagnostic_manager,
       new SwiftExpressionParser(exe_scope, *this, m_options));
 
   unsigned num_errors = parser->Parse(
-      diagnostic_manager, first_body_line,
-      first_body_line + source_code->GetNumBodyLines(), line_offset);
+      diagnostic_manager, 0, source_code->GetNumBodyLines(), line_offset);
 
   if (num_errors) {
     // Calculate the fixed expression string at this point:
@@ -589,7 +586,7 @@ bool SwiftUserExpression::Parse(DiagnosticManager &diagnostic_manager,
       limit_end_line = limit_start_line +
                        std::count(m_expr_text.begin(), m_expr_text.end(), '\n');
     }
-    m_execution_unit_sp->CreateJITModule(jit_module_name.GetString().c_str(),
+    m_execution_unit_sp->CreateJITModule(jit_module_name.GetString().data(),
                                          limit_file ? &limit_file_spec : NULL,
                                          limit_start_line, limit_end_line);
   }
@@ -601,9 +598,9 @@ bool SwiftUserExpression::Parse(DiagnosticManager &diagnostic_manager,
   } else {
     const char *error_cstr = jit_error.AsCString();
     if (error_cstr && error_cstr[0])
-      diagnostic_manager.PutCString(eDiagnosticSeverityError, error_cstr);
+      diagnostic_manager.PutString(eDiagnosticSeverityError, error_cstr);
     else
-      diagnostic_manager.PutCString(eDiagnosticSeverityError,
+      diagnostic_manager.PutString(eDiagnosticSeverityError,
                                     "expression can't be interpreted or run\n");
     return false;
   }

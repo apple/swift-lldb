@@ -19,7 +19,6 @@
 #include "lldb/Breakpoint/Watchpoint.h"
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/Log.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Expression/UserExpression.h"
 #include "lldb/Target/Process.h"
@@ -28,6 +27,7 @@
 #include "lldb/Target/Thread.h"
 #include "lldb/Target/ThreadPlan.h"
 #include "lldb/Target/UnixSignals.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -216,7 +216,7 @@ public:
 
           strm.Printf("breakpoint ");
           bp_site_sp->GetDescription(&strm, eDescriptionLevelBrief);
-          m_description.swap(strm.GetString());
+          m_description = strm.GetString();
         } else {
           StreamString strm;
           if (m_break_id != LLDB_INVALID_BREAK_ID) {
@@ -249,7 +249,7 @@ public:
                         " which has been deleted - was at 0x%" PRIx64,
                         m_value, m_address);
 
-          m_description.swap(strm.GetString());
+          m_description = strm.GetString();
         }
       }
     }
@@ -610,7 +610,7 @@ public:
     if (m_description.empty()) {
       StreamString strm;
       strm.Printf("watchpoint %" PRIi64, m_value);
-      m_description.swap(strm.GetString());
+      m_description = strm.GetString();
     }
     return m_description.c_str();
   }
@@ -692,7 +692,13 @@ protected:
             if (process_sp->GetWatchpointSupportInfo(num, wp_triggers_after)
                     .Success()) {
               if (!wp_triggers_after) {
-                process_sp->DisableWatchpoint(wp_sp.get(), false);
+                // We need to preserve the watch_index before watchpoint 
+                // is disable. Since Watchpoint::SetEnabled will clear the
+                // watch index.
+                // This will fix TestWatchpointIter failure
+                Watchpoint *wp = wp_sp.get();
+                uint32_t watch_index = wp->GetHardwareIndex();
+                process_sp->DisableWatchpoint(wp, false);
                 StopInfoSP stored_stop_info_sp = thread_sp->GetStopInfo();
                 assert(stored_stop_info_sp.get() == this);
 
@@ -710,7 +716,8 @@ protected:
                 process_sp->GetThreadList().SetSelectedThreadByID(
                     thread_sp->GetID());
                 thread_sp->SetStopInfo(stored_stop_info_sp);
-                process_sp->EnableWatchpoint(wp_sp.get(), false);
+                process_sp->EnableWatchpoint(wp, false);
+                wp->SetHardwareIndex(watch_index);
               }
             }
           }
@@ -764,8 +771,8 @@ protected:
 
         if (m_should_stop && wp_sp->GetConditionText() != nullptr) {
           // We need to make sure the user sees any parse errors in their
-          // condition, so we'll hook the
-          // constructor errors up to the debugger's Async I/O.
+          // condition, so we'll hook the constructor errors up to the
+          // debugger's Async I/O.
           ExpressionResults result_code;
           EvaluateExpressionOptions expr_options;
           expr_options.SetUnwindOnError(true);
@@ -773,8 +780,8 @@ protected:
           ValueObjectSP result_value_sp;
           Error error;
           result_code = UserExpression::Evaluate(
-              exe_ctx, expr_options, wp_sp->GetConditionText(), nullptr,
-              result_value_sp, error);
+              exe_ctx, expr_options, wp_sp->GetConditionText(),
+              llvm::StringRef(), result_value_sp, error);
 
           if (result_code == eExpressionCompleted) {
             if (result_value_sp) {
@@ -784,8 +791,7 @@ protected:
                   // We have been vetoed.  This takes precedence over querying
                   // the watchpoint whether it should stop (aka ignore count and
                   // friends).  See also StopInfoWatchpoint::ShouldStop() as
-                  // well
-                  // as Process::ProcessEventData::DoOnRemoval().
+                  // well as Process::ProcessEventData::DoOnRemoval().
                   m_should_stop = false;
                 } else
                   m_should_stop = true;
@@ -951,7 +957,7 @@ public:
           strm.Printf("signal %s", signal_name);
         else
           strm.Printf("signal %" PRIi64, m_value);
-        m_description.swap(strm.GetString());
+        m_description = strm.GetString();
       }
     }
     return m_description.c_str();
@@ -1024,7 +1030,7 @@ public:
     if (m_description.empty()) {
       StreamString strm;
       m_plan_sp->GetDescription(&strm, eDescriptionLevelBrief);
-      m_description.swap(strm.GetString());
+      m_description = strm.GetString();
     }
     return m_description.c_str();
   }

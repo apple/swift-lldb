@@ -19,8 +19,6 @@
 #include "lldb/Core/Address.h"
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/Module.h"
-#include "lldb/Core/Stream.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Core/ValueObjectVariable.h"
 #include "lldb/DataFormatters/DataVisualization.h"
@@ -45,6 +43,8 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Utility/AnsiTerminal.h"
+#include "lldb/Utility/Stream.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -614,7 +614,6 @@ static ValueObjectSP ExpandIndexedExpression(ValueObject *valobj, size_t index,
   if (log)
     log->Printf("[ExpandIndexedExpression] name to deref: %s",
                 ptr_deref_buffer.c_str());
-  const char *first_unparsed;
   ValueObject::GetValueForExpressionPathOptions options;
   ValueObject::ExpressionPathEndResultType final_value_type;
   ValueObject::ExpressionPathScanEndReason reason_to_stop;
@@ -622,20 +621,18 @@ static ValueObjectSP ExpandIndexedExpression(ValueObject *valobj, size_t index,
       (deref_pointer ? ValueObject::eExpressionPathAftermathDereference
                      : ValueObject::eExpressionPathAftermathNothing);
   ValueObjectSP item = valobj->GetValueForExpressionPath(
-      ptr_deref_buffer.c_str(), &first_unparsed, &reason_to_stop,
-      &final_value_type, options, &what_next);
+      ptr_deref_buffer.c_str(), &reason_to_stop, &final_value_type, options,
+      &what_next);
   if (!item) {
     if (log)
-      log->Printf("[ExpandIndexedExpression] ERROR: unparsed portion = %s, why "
-                  "stopping = %d,"
+      log->Printf("[ExpandIndexedExpression] ERROR: why stopping = %d,"
                   " final_value_type %d",
-                  first_unparsed, reason_to_stop, final_value_type);
+                  reason_to_stop, final_value_type);
   } else {
     if (log)
-      log->Printf("[ExpandIndexedExpression] ALL RIGHT: unparsed portion = %s, "
-                  "why stopping = %d,"
+      log->Printf("[ExpandIndexedExpression] ALL RIGHT: why stopping = %d,"
                   " final_value_type %d",
-                  first_unparsed, reason_to_stop, final_value_type);
+                  reason_to_stop, final_value_type);
   }
   return item;
 }
@@ -724,7 +721,6 @@ static bool DumpValue(Stream &s, const SymbolContext *sc,
   int64_t index_lower = -1;
   int64_t index_higher = -1;
   bool is_array_range = false;
-  const char *first_unparsed;
   bool was_plain_var = false;
   bool was_var_format = false;
   bool was_var_indexed = false;
@@ -762,25 +758,23 @@ static bool DumpValue(Stream &s, const SymbolContext *sc,
       log->Printf("[Debugger::FormatPrompt] symbol to expand: %s",
                   expr_path.c_str());
 
-    target = valobj
-                 ->GetValueForExpressionPath(expr_path.c_str(), &first_unparsed,
-                                             &reason_to_stop, &final_value_type,
-                                             options, &what_next)
-                 .get();
+    target =
+        valobj
+            ->GetValueForExpressionPath(expr_path.c_str(), &reason_to_stop,
+                                        &final_value_type, options, &what_next)
+            .get();
 
     if (!target) {
       if (log)
-        log->Printf("[Debugger::FormatPrompt] ERROR: unparsed portion = %s, "
-                    "why stopping = %d,"
+        log->Printf("[Debugger::FormatPrompt] ERROR: why stopping = %d,"
                     " final_value_type %d",
-                    first_unparsed, reason_to_stop, final_value_type);
+                    reason_to_stop, final_value_type);
       return false;
     } else {
       if (log)
-        log->Printf("[Debugger::FormatPrompt] ALL RIGHT: unparsed portion = "
-                    "%s, why stopping = %d,"
+        log->Printf("[Debugger::FormatPrompt] ALL RIGHT: why stopping = %d,"
                     " final_value_type %d",
-                    first_unparsed, reason_to_stop, final_value_type);
+                    reason_to_stop, final_value_type);
       target = target
                    ->GetQualifiedRepresentationIfAvailable(
                        target->GetDynamicValueType(), true)
@@ -829,7 +823,7 @@ static bool DumpValue(Stream &s, const SymbolContext *sc,
     bitfield_name.Printf("%s:%d", target->GetTypeName().AsCString(),
                          target->GetBitfieldBitSize());
     lldb::TypeNameSpecifierImplSP type_sp(
-        new TypeNameSpecifierImpl(bitfield_name.GetData(), false));
+        new TypeNameSpecifierImpl(bitfield_name.GetString(), false));
     if (val_obj_display ==
             ValueObject::eValueObjectRepresentationStyleSummary &&
         !DataVisualization::GetSummaryForType(type_sp))
@@ -866,7 +860,7 @@ static bool DumpValue(Stream &s, const SymbolContext *sc,
 
       // should not happen
       if (success)
-        s << str_temp.GetData();
+        s << str_temp.GetString();
       return true;
     } else {
       if (was_plain_var) // if ${var}
@@ -876,7 +870,7 @@ static bool DumpValue(Stream &s, const SymbolContext *sc,
       {
         target->DumpPrintableRepresentation(
             s, val_obj_display, custom_format,
-            ValueObject::ePrintableRepresentationSpecialCasesDisable);
+            ValueObject::PrintableRepresentationSpecialCases::eDisable);
       }
       return true;
     }
@@ -1108,7 +1102,7 @@ bool FormatEntity::Format(const Entry &entry, Stream &s,
     return true; // Only return true if all items succeeded
 
   case Entry::Type::String:
-    s.PutCString(entry.string.c_str());
+    s.PutCString(entry.string);
     return true;
 
   case Entry::Type::Scope: {
@@ -1513,7 +1507,7 @@ bool FormatEntity::Format(const Entry &entry, Stream &s,
           sc, exe_ctx, Language::FunctionNameRepresentation::eName, ss);
     }
     if (language_plugin_handled) {
-      s.PutCString(ss.GetData());
+      s << ss.GetString();
       return true;
     } else {
       const char *name = nullptr;
@@ -1555,7 +1549,7 @@ bool FormatEntity::Format(const Entry &entry, Stream &s,
           ss);
     }
     if (language_plugin_handled) {
-      s.PutCString(ss.GetData());
+      s << ss.GetString();
       return true;
     } else {
       ConstString name;
@@ -1584,7 +1578,7 @@ bool FormatEntity::Format(const Entry &entry, Stream &s,
           sc, exe_ctx, Language::FunctionNameRepresentation::eNameWithArgs, ss);
     }
     if (language_plugin_handled) {
-      s.PutCString(ss.GetData());
+      s << ss.GetString();
       return true;
     } else {
       // Print the function name with arguments in it
@@ -1668,7 +1662,7 @@ bool FormatEntity::Format(const Entry &entry, Stream &s,
               ValueObjectSP var_value_sp(
                   ValueObjectVariable::Create(exe_scope, var_sp));
               StreamString ss;
-              const char *var_representation = nullptr;
+              llvm::StringRef var_representation;
               const char *var_name = var_value_sp->GetName().GetCString();
               if (var_value_sp->GetCompilerType().IsValid()) {
                 if (var_value_sp && exe_scope->CalculateTarget())
@@ -1687,24 +1681,23 @@ bool FormatEntity::Format(const Entry &entry, Stream &s,
                       "");
                   format.FormatObject(var_value_sp.get(), buffer,
                                       TypeSummaryOptions());
-                  var_representation = buffer.c_str();
+                  var_representation = buffer;
                 } else
                   var_value_sp->DumpPrintableRepresentation(
                       ss, ValueObject::ValueObjectRepresentationStyle::
                               eValueObjectRepresentationStyleSummary,
                       eFormatDefault,
-                      ValueObject::PrintableRepresentationSpecialCases::
-                          ePrintableRepresentationSpecialCasesAllow,
+                      ValueObject::PrintableRepresentationSpecialCases::eAllow,
                       false);
               }
 
-              if (ss.GetData() && ss.GetSize())
-                var_representation = ss.GetData();
+              if (!ss.GetString().empty())
+                var_representation = ss.GetString();
               if (arg_idx > 0)
                 s.PutCString(", ");
               if (var_value_sp->GetError().Success()) {
-                if (var_representation)
-                  s.Printf("%s=%s", var_name, var_representation);
+                if (!var_representation.empty())
+                  s.Printf("%s=%s", var_name, var_representation.str().c_str());
                 else
                   s.Printf("%s=%s at %s", var_name,
                            var_value_sp->GetTypeName().GetCString(),
@@ -1895,8 +1888,7 @@ static Error ParseEntry(const llvm::StringRef &format_str,
                               "access one of its children: ",
                               entry_def->name);
             DumpCommaSeparatedChildEntryNames(error_strm, entry_def);
-            error.SetErrorStringWithFormat("%s",
-                                           error_strm.GetString().c_str());
+            error.SetErrorStringWithFormat("%s", error_strm.GetData());
           } else if (sep_char == ':') {
             // Any value whose separator is a with a ':' means this value has a
             // string argument
@@ -1933,7 +1925,7 @@ static Error ParseEntry(const llvm::StringRef &format_str,
     error_strm.Printf("invalid member '%s' in '%s'. Valid members are: ",
                       key.str().c_str(), parent->name);
   DumpCommaSeparatedChildEntryNames(error_strm, parent);
-  error.SetErrorStringWithFormat("%s", error_strm.GetString().c_str());
+  error.SetErrorStringWithFormat("%s", error_strm.GetData());
   return error;
 }
 
@@ -2335,60 +2327,69 @@ static void AddMatches(const FormatEntity::Entry::Definition *def,
   }
 }
 
-size_t FormatEntity::AutoComplete(const char *s, int match_start_point,
+size_t FormatEntity::AutoComplete(llvm::StringRef str, int match_start_point,
                                   int max_return_elements, bool &word_complete,
                                   StringList &matches) {
   word_complete = false;
-  llvm::StringRef str(s + match_start_point);
+  str = str.drop_front(match_start_point);
   matches.Clear();
 
   const size_t dollar_pos = str.rfind('$');
-  if (dollar_pos != llvm::StringRef::npos) {
-    // Hitting TAB after $ at the end of the string add a "{"
-    if (dollar_pos == str.size() - 1) {
-      std::string match = str.str();
-      match.append("{");
-      matches.AppendString(std::move(match));
-    } else if (str[dollar_pos + 1] == '{') {
-      const size_t close_pos = str.find('}', dollar_pos + 2);
-      if (close_pos == llvm::StringRef::npos) {
-        const size_t format_pos = str.find('%', dollar_pos + 2);
-        if (format_pos == llvm::StringRef::npos) {
-          llvm::StringRef partial_variable(str.substr(dollar_pos + 2));
-          if (partial_variable.empty()) {
-            // Suggest all top level entites as we are just past "${"
-            AddMatches(&g_root, str, llvm::StringRef(), matches);
-          } else {
-            // We have a partially specified variable, find it
-            llvm::StringRef remainder;
-            const FormatEntity::Entry::Definition *entry_def =
-                FindEntry(partial_variable, &g_root, remainder);
-            if (entry_def) {
-              const size_t n = entry_def->num_children;
+  if (dollar_pos == llvm::StringRef::npos)
+    return 0;
 
-              if (remainder.empty()) {
-                // Exact match
-                if (n > 0) {
-                  // "${thread.info" <TAB>
-                  matches.AppendString(MakeMatch(str, "."));
-                } else {
-                  // "${thread.id" <TAB>
-                  matches.AppendString(MakeMatch(str, "}"));
-                  word_complete = true;
-                }
-              } else if (remainder.equals(".")) {
-                // "${thread." <TAB>
-                AddMatches(entry_def, str, llvm::StringRef(), matches);
-              } else {
-                // We have a partial match
-                // "${thre" <TAB>
-                AddMatches(entry_def, str, remainder, matches);
-              }
-            }
-          }
-        }
-      }
+  // Hitting TAB after $ at the end of the string add a "{"
+  if (dollar_pos == str.size() - 1) {
+    std::string match = str.str();
+    match.append("{");
+    matches.AppendString(match);
+    return 1;
+  }
+
+  if (str[dollar_pos + 1] != '{')
+    return 0;
+
+  const size_t close_pos = str.find('}', dollar_pos + 2);
+  if (close_pos != llvm::StringRef::npos)
+    return 0;
+
+  const size_t format_pos = str.find('%', dollar_pos + 2);
+  if (format_pos != llvm::StringRef::npos)
+    return 0;
+
+  llvm::StringRef partial_variable(str.substr(dollar_pos + 2));
+  if (partial_variable.empty()) {
+    // Suggest all top level entites as we are just past "${"
+    AddMatches(&g_root, str, llvm::StringRef(), matches);
+    return matches.GetSize();
+  }
+
+  // We have a partially specified variable, find it
+  llvm::StringRef remainder;
+  const FormatEntity::Entry::Definition *entry_def =
+      FindEntry(partial_variable, &g_root, remainder);
+  if (!entry_def)
+    return 0;
+
+  const size_t n = entry_def->num_children;
+
+  if (remainder.empty()) {
+    // Exact match
+    if (n > 0) {
+      // "${thread.info" <TAB>
+      matches.AppendString(MakeMatch(str, "."));
+    } else {
+      // "${thread.id" <TAB>
+      matches.AppendString(MakeMatch(str, "}"));
+      word_complete = true;
     }
+  } else if (remainder.equals(".")) {
+    // "${thread." <TAB>
+    AddMatches(entry_def, str, llvm::StringRef(), matches);
+  } else {
+    // We have a partial match
+    // "${thre" <TAB>
+    AddMatches(entry_def, str, remainder, matches);
   }
   return matches.GetSize();
 }

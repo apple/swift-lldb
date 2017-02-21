@@ -24,7 +24,6 @@
 #include "Plugins/Language/ObjC/ObjCLanguage.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/Value.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Interpreter/Args.h"
@@ -39,6 +38,7 @@
 #include "lldb/Symbol/TypeMap.h"
 #include "lldb/Target/Language.h"
 #include "lldb/Utility/LLDBAssert.h"
+#include "lldb/Utility/StreamString.h"
 
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclObjC.h"
@@ -1474,7 +1474,7 @@ TypeSP DWARFASTParserClang::ParseTypeFromDWARF(const SymbolContext &sc,
                         }
 
                         if (add_method) {
-                          llvm::PrettyStackTraceFormat PST(
+                          llvm::PrettyStackTraceFormat stack_trace(
                               "SymbolFileDWARF::ParseType() is adding a method "
                               "%s to class %s in DIE 0x%8.8" PRIx64 " from %s",
                               type_name_cstr,
@@ -2599,7 +2599,7 @@ Function *DWARFASTParserClang::ParseFunctionFromDWARF(const SymbolContext &sc,
         if (type_quals & clang::Qualifiers::Const)
           sstr << " const";
 
-        func_name.SetValue(ConstString(sstr.GetData()), false);
+        func_name.SetValue(ConstString(sstr.GetString()), false);
       } else
         func_name.SetValue(ConstString(name), false);
 
@@ -2648,7 +2648,7 @@ bool DWARFASTParserClang::ParseChildMembers(
 
   // Get the parent byte size so we can verify any members will fit
   const uint64_t parent_byte_size =
-      parent_die.GetAttributeValueAsUnsigned(DW_AT_byte_size, UINT64_MAX) * 8;
+      parent_die.GetAttributeValueAsUnsigned(DW_AT_byte_size, UINT64_MAX);
   const uint64_t parent_bit_size =
       parent_byte_size == UINT64_MAX ? UINT64_MAX : parent_byte_size * 8;
 
@@ -2813,7 +2813,7 @@ bool DWARFASTParserClang::ParseChildMembers(
 
             ss.Printf("set%c%s:", toupper(prop_name[0]), &prop_name[1]);
 
-            fixed_setter.SetCString(ss.GetData());
+            fixed_setter.SetString(ss.GetString());
             prop_setter_name = fixed_setter.GetCString();
           }
         }

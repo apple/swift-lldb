@@ -7,8 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "lldb/API/SBMemoryRegionInfoList.h"
 #include "lldb/API/SBMemoryRegionInfo.h"
+#include "lldb/API/SBMemoryRegionInfoList.h"
 #include "lldb/API/SBStream.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Target/MemoryRegionInfo.h"

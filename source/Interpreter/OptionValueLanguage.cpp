@@ -1,4 +1,4 @@
-//===-- OptionValueFormat.cpp -----------------------------------*- C++ -*-===//
+//===-- OptionValueLanguage.cpp ---------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -13,10 +13,10 @@
 // C++ Includes
 // Other libraries and framework includes
 // Project includes
-#include "lldb/Core/Stream.h"
 #include "lldb/DataFormatters/FormatManager.h"
 #include "lldb/Interpreter/Args.h"
 #include "lldb/Target/Language.h"
+#include "lldb/Utility/Stream.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -61,7 +61,7 @@ Error OptionValueLanguage::SetValueFromString(llvm::StringRef value,
         error_strm.Printf("%s%s%s", "    ",
                           Language::GetNameForLanguageType(language), "\n");
       }
-      error.SetErrorString(error_strm.GetData());
+      error.SetErrorString(error_strm.GetString());
     }
   } break;
 

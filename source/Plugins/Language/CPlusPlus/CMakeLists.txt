@@ -1,4 +1,4 @@
-add_lldb_library(lldbPluginCPlusPlusLanguage
+add_lldb_library(lldbPluginCPlusPlusLanguage PLUGIN
   BlockPointer.cpp
   CPlusPlusLanguage.cpp
   CxxStringTypes.cpp
@@ -10,4 +10,16 @@ add_lldb_library(lldbPluginCPlusPlusLanguage
   LibCxxUnorderedMap.cpp
   LibCxxVector.cpp
   LibStdcpp.cpp
+  LibStdcppTuple.cpp
+  LibStdcppUniquePointer.cpp
+
+  LINK_LIBS
+    lldbCore
+    lldbDataFormatters
+    lldbHost
+    lldbSymbol
+    lldbTarget
+    lldbUtility
+  LINK_COMPONENTS
+    Support
 )

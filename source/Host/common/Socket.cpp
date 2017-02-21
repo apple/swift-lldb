@@ -10,14 +10,13 @@
 #include "lldb/Host/Socket.h"
 
 #include "lldb/Core/Log.h"
-#include "lldb/Core/RegularExpression.h"
 #include "lldb/Host/Config.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Host/SocketAddress.h"
 #include "lldb/Host/StringConvert.h"
-#include "lldb/Host/TimeValue.h"
 #include "lldb/Host/common/TCPSocket.h"
 #include "lldb/Host/common/UDPSocket.h"
+#include "lldb/Utility/RegularExpression.h"
 
 #ifndef LLDB_DISABLE_POSIX
 #include "lldb/Host/posix/DomainSocket.h"
@@ -34,18 +33,15 @@
 #include "lldb/Host/linux/AbstractSocket.h"
 #endif
 
-#ifdef __ANDROID_NDK__
+#ifdef __ANDROID__
 #include <arpa/inet.h>
 #include <asm-generic/errno-base.h>
-#include <bits/error_constants.h>
 #include <errno.h>
 #include <linux/tcp.h>
-#if defined(ANDROID_ARM_BUILD_STATIC) || defined(ANDROID_MIPS_BUILD_STATIC)
 #include <fcntl.h>
 #include <sys/syscall.h>
 #include <unistd.h>
-#endif // ANDROID_ARM_BUILD_STATIC || ANDROID_MIPS_BUILD_STATIC
-#endif // __ANDROID_NDK__
+#endif // __ANDROID__
 
 using namespace lldb;
 using namespace lldb_private;
@@ -426,9 +422,13 @@ NativeSocket Socket::AcceptSocket(NativeSocket sockfd, struct sockaddr *addr,
                                   socklen_t *addrlen,
                                   bool child_processes_inherit, Error &error) {
   error.Clear();
-#if defined(ANDROID_ARM_BUILD_STATIC) || defined(ANDROID_MIPS_BUILD_STATIC)
-  // Temporary workaround for statically linking Android lldb-server with the
-  // latest API.
+#if defined(ANDROID_USE_ACCEPT_WORKAROUND)
+  // Hack:
+  // This enables static linking lldb-server to an API 21 libc, but still having
+  // it run on older devices. It is necessary because API 21 libc's
+  // implementation of accept() uses the accept4 syscall(), which is not
+  // available in older kernels. Using an older libc would fix this issue, but
+  // introduce other ones, as the old libraries were quite buggy.
   int fd = syscall(__NR_accept, sockfd, addr, addrlen);
   if (fd >= 0 && !child_processes_inherit) {
     int flags = ::fcntl(fd, F_GETFD);

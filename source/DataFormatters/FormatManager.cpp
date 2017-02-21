@@ -1,5 +1,4 @@
-//===-- FormatManager.cpp -------------------------------------------*- C++
-//-*-===//
+//===-- FormatManager.cpp ----------------------------------------*- C++-*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -184,7 +183,7 @@ void FormatManager::GetPossibleMatches(
   if (valobj.GetBitfieldBitSize() > 0) {
     StreamString sstring;
     sstring.Printf("%s:%d", type_name.AsCString(), valobj.GetBitfieldBitSize());
-    ConstString bitfieldname = ConstString(sstring.GetData());
+    ConstString bitfieldname(sstring.GetString());
     entries.push_back(
         {bitfieldname, 0, did_strip_ptr, did_strip_ref, did_strip_typedef});
     reason |= lldb_private::eFormatterChoiceCriterionStrippedBitField;
@@ -666,11 +665,9 @@ FormatManager::GetFormat(ValueObject &valobj,
       if (log) {
         log->Printf(
             "[FormatManager::GetFormat] Cache search success. Returning.");
-        if (log->GetDebug())
-          log->Printf("[FormatManager::GetFormat] Cache hits: %" PRIu64
-                      " - Cache Misses: %" PRIu64,
-                      m_format_cache.GetCacheHits(),
-                      m_format_cache.GetCacheMisses());
+        LLDB_LOGV(log, "Cache hits: {0} - Cache Misses: {1}",
+                  m_format_cache.GetCacheHits(),
+                  m_format_cache.GetCacheMisses());
       }
       return retval;
     }
@@ -711,10 +708,8 @@ FormatManager::GetFormat(ValueObject &valobj,
                   match_data.GetTypeForCache().AsCString("<invalid>"));
     m_format_cache.SetFormat(match_data.GetTypeForCache(), retval);
   }
-  if (log && log->GetDebug())
-    log->Printf("[FormatManager::GetFormat] Cache hits: %" PRIu64
-                " - Cache Misses: %" PRIu64,
-                m_format_cache.GetCacheHits(), m_format_cache.GetCacheMisses());
+  LLDB_LOGV(log, "Cache hits: {0} - Cache Misses: {1}",
+            m_format_cache.GetCacheHits(), m_format_cache.GetCacheMisses());
   return retval;
 }
 
@@ -748,11 +743,9 @@ FormatManager::GetSummaryFormat(ValueObject &valobj,
       if (log) {
         log->Printf("[FormatManager::GetSummaryFormat] Cache search success. "
                     "Returning.");
-        if (log->GetDebug())
-          log->Printf("[FormatManager::GetSummaryFormat] Cache hits: %" PRIu64
-                      " - Cache Misses: %" PRIu64,
-                      m_format_cache.GetCacheHits(),
-                      m_format_cache.GetCacheMisses());
+        LLDB_LOGV(log, "Cache hits: {0} - Cache Misses: {1}",
+                  m_format_cache.GetCacheHits(),
+                  m_format_cache.GetCacheMisses());
       }
       return retval;
     }
@@ -793,10 +786,8 @@ FormatManager::GetSummaryFormat(ValueObject &valobj,
                   match_data.GetTypeForCache().AsCString("<invalid>"));
     m_format_cache.SetSummary(match_data.GetTypeForCache(), retval);
   }
-  if (log && log->GetDebug())
-    log->Printf("[FormatManager::GetSummaryFormat] Cache hits: %" PRIu64
-                " - Cache Misses: %" PRIu64,
-                m_format_cache.GetCacheHits(), m_format_cache.GetCacheMisses());
+  LLDB_LOGV(log, "Cache hits: {0} - Cache Misses: {1}",
+            m_format_cache.GetCacheHits(), m_format_cache.GetCacheMisses());
   return retval;
 }
 
@@ -831,11 +822,9 @@ FormatManager::GetSyntheticChildren(ValueObject &valobj,
       if (log) {
         log->Printf("[FormatManager::GetSyntheticChildren] Cache search "
                     "success. Returning.");
-        if (log->GetDebug())
-          log->Printf(
-              "[FormatManager::GetSyntheticChildren] Cache hits: %" PRIu64
-              " - Cache Misses: %" PRIu64,
-              m_format_cache.GetCacheHits(), m_format_cache.GetCacheMisses());
+        LLDB_LOGV(log, "Cache hits: {0} - Cache Misses: {1}",
+                  m_format_cache.GetCacheHits(),
+                  m_format_cache.GetCacheMisses());
       }
       return retval;
     }
@@ -877,10 +866,8 @@ FormatManager::GetSyntheticChildren(ValueObject &valobj,
           match_data.GetTypeForCache().AsCString("<invalid>"));
     m_format_cache.SetSynthetic(match_data.GetTypeForCache(), retval);
   }
-  if (log && log->GetDebug())
-    log->Printf("[FormatManager::GetSyntheticChildren] Cache hits: %" PRIu64
-                " - Cache Misses: %" PRIu64,
-                m_format_cache.GetCacheHits(), m_format_cache.GetCacheMisses());
+  LLDB_LOGV(log, "Cache hits: {0} - Cache Misses: {1}",
+            m_format_cache.GetCacheHits(), m_format_cache.GetCacheMisses());
   return retval;
 }
 #endif
@@ -901,11 +888,9 @@ FormatManager::GetValidator(ValueObject &valobj,
       if (log) {
         log->Printf(
             "[FormatManager::GetValidator] Cache search success. Returning.");
-        if (log->GetDebug())
-          log->Printf("[FormatManager::GetValidator] Cache hits: %" PRIu64
-                      " - Cache Misses: %" PRIu64,
-                      m_format_cache.GetCacheHits(),
-                      m_format_cache.GetCacheMisses());
+        LLDB_LOGV(log, "Cache hits: {0} - Cache Misses: {1}",
+                  m_format_cache.GetCacheHits(),
+                  m_format_cache.GetCacheMisses());
       }
       return retval;
     }
@@ -946,10 +931,8 @@ FormatManager::GetValidator(ValueObject &valobj,
                   match_data.GetTypeForCache().AsCString("<invalid>"));
     m_format_cache.SetValidator(match_data.GetTypeForCache(), retval);
   }
-  if (log && log->GetDebug())
-    log->Printf("[FormatManager::GetValidator] Cache hits: %" PRIu64
-                " - Cache Misses: %" PRIu64,
-                m_format_cache.GetCacheHits(), m_format_cache.GetCacheMisses());
+  LLDB_LOGV(log, "Cache hits: {0} - Cache Misses: {1}",
+            m_format_cache.GetCacheHits(), m_format_cache.GetCacheMisses());
   return retval;
 }
 

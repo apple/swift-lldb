@@ -31,9 +31,9 @@
 // Project includes
 #include "Plugins/ExpressionParser/Clang/ClangPersistentVariables.h"
 #include "lldb/Core/ClangForward.h"
-#include "lldb/Core/ConstString.h"
 #include "lldb/Symbol/CompilerType.h"
 #include "lldb/Symbol/TypeSystem.h"
+#include "lldb/Utility/ConstString.h"
 #include "lldb/lldb-enumerations.h"
 
 class DWARFASTParserClang;
@@ -1037,7 +1037,7 @@ public:
   ~ClangASTContextForExpressions() override = default;
 
   UserExpression *
-  GetUserExpression(const char *expr, const char *expr_prefix,
+  GetUserExpression(llvm::StringRef expr, llvm::StringRef prefix,
                     lldb::LanguageType language,
                     Expression::ResultType desired_type,
                     const EvaluateExpressionOptions &options) override;

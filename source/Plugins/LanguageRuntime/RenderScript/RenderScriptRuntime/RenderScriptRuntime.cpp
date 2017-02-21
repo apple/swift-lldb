@@ -14,14 +14,12 @@
 
 // Project includes
 #include "RenderScriptRuntime.h"
+#include "RenderScriptScriptGroup.h"
 
 #include "lldb/Breakpoint/StoppointCallbackContext.h"
-#include "lldb/Core/ConstString.h"
 #include "lldb/Core/Debugger.h"
-#include "lldb/Core/Error.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/PluginManager.h"
-#include "lldb/Core/RegularExpression.h"
 #include "lldb/Core/ValueObjectVariable.h"
 #include "lldb/DataFormatters/DumpValueObjectOptions.h"
 #include "lldb/Expression/UserExpression.h"
@@ -31,13 +29,18 @@
 #include "lldb/Interpreter/CommandObjectMultiword.h"
 #include "lldb/Interpreter/CommandReturnObject.h"
 #include "lldb/Interpreter/Options.h"
+#include "lldb/Symbol/Function.h"
 #include "lldb/Symbol/Symbol.h"
 #include "lldb/Symbol/Type.h"
 #include "lldb/Symbol/VariableList.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/RegisterContext.h"
+#include "lldb/Target/SectionLoadList.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
+#include "lldb/Utility/ConstString.h"
+#include "lldb/Utility/Error.h"
+#include "lldb/Utility/RegularExpression.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -475,6 +478,26 @@ bool ParseCoordinate(llvm::StringRef coord_s, RSCoordinate &coord) {
   return get_index(0, coord.x) && get_index(1, coord.y) &&
          get_index(2, coord.z);
 }
+
+bool SkipPrologue(lldb::ModuleSP &module, Address &addr) {
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_LANGUAGE));
+  SymbolContext sc;
+  uint32_t resolved_flags =
+      module->ResolveSymbolContextForAddress(addr, eSymbolContextFunction, sc);
+  if (resolved_flags & eSymbolContextFunction) {
+    if (sc.function) {
+      const uint32_t offset = sc.function->GetPrologueByteSize();
+      ConstString name = sc.GetFunctionName();
+      if (offset)
+        addr.Slide(offset);
+      if (log)
+        log->Printf("%s: Prologue offset for %s is %" PRIu32, __FUNCTION__,
+                    name.AsCString(), offset);
+    }
+    return true;
+  } else
+    return false;
+}
 } // anonymous namespace
 
 // The ScriptDetails class collects data associated with a single script
@@ -860,6 +883,10 @@ RSReduceBreakpointResolver::SearchCallback(lldb_private::SearchFilter &filter,
         auto address = symbol->GetAddress();
         if (filter.AddressPasses(address)) {
           bool new_bp;
+          if (!SkipPrologue(module, address)) {
+            if (log)
+              log->Printf("%s: Error trying to skip prologue", __FUNCTION__);
+          }
           m_breakpoint->AddLocation(address, &new_bp);
           if (log)
             log->Printf("%s: %s reduction breakpoint on %s in %s", __FUNCTION__,
@@ -869,6 +896,80 @@ RSReduceBreakpointResolver::SearchCallback(lldb_private::SearchFilter &filter,
       }
     }
   }
+  return eCallbackReturnContinue;
+}
+
+Searcher::CallbackReturn RSScriptGroupBreakpointResolver::SearchCallback(
+    SearchFilter &filter, SymbolContext &context, Address *addr,
+    bool containing) {
+
+  if (!m_breakpoint)
+    return eCallbackReturnContinue;
+
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_BREAKPOINTS));
+  ModuleSP &module = context.module_sp;
+
+  if (!module || !IsRenderScriptScriptModule(module))
+    return Searcher::eCallbackReturnContinue;
+
+  std::vector<std::string> names;
+  m_breakpoint->GetNames(names);
+  if (names.empty())
+    return eCallbackReturnContinue;
+
+  for (auto &name : names) {
+    const RSScriptGroupDescriptorSP sg = FindScriptGroup(ConstString(name));
+    if (!sg) {
+      if (log)
+        log->Printf("%s: could not find script group for %s", __FUNCTION__,
+                    name.c_str());
+      continue;
+    }
+
+    if (log)
+      log->Printf("%s: Found ScriptGroup for %s", __FUNCTION__, name.c_str());
+
+    for (const RSScriptGroupDescriptor::Kernel &k : sg->m_kernels) {
+      if (log) {
+        log->Printf("%s: Adding breakpoint for %s", __FUNCTION__,
+                    k.m_name.AsCString());
+        log->Printf("%s: Kernel address 0x%" PRIx64, __FUNCTION__, k.m_addr);
+      }
+
+      const lldb_private::Symbol *sym =
+          module->FindFirstSymbolWithNameAndType(k.m_name, eSymbolTypeCode);
+      if (!sym) {
+        if (log)
+          log->Printf("%s: Unable to find symbol for %s", __FUNCTION__,
+                      k.m_name.AsCString());
+        continue;
+      }
+
+      if (log) {
+        log->Printf("%s: Found symbol name is %s", __FUNCTION__,
+                    sym->GetName().AsCString());
+      }
+
+      auto address = sym->GetAddress();
+      if (!SkipPrologue(module, address)) {
+        if (log)
+          log->Printf("%s: Error trying to skip prologue", __FUNCTION__);
+      }
+
+      bool new_bp;
+      m_breakpoint->AddLocation(address, &new_bp);
+
+      if (log)
+        log->Printf("%s: Placed %sbreakpoint on %s", __FUNCTION__,
+                    new_bp ? "new " : "", k.m_name.AsCString());
+
+      // exit after placing the first breakpoint if we do not intend to stop
+      // on all kernels making up this script group
+      if (!m_stop_on_all)
+        break;
+    }
+  }
+
   return eCallbackReturnContinue;
 }
 
@@ -1006,7 +1107,15 @@ const RenderScriptRuntime::HookDefn RenderScriptRuntime::s_runtimeHookDefns[] =
          "10AllocationE",
          0, RenderScriptRuntime::eModuleKindDriver,
          &lldb_private::RenderScriptRuntime::CaptureAllocationDestroy},
-};
+
+        // renderscript script groups
+        {"rsdDebugHintScriptGroup2", "_ZN7android12renderscript21debugHintScrip"
+                                     "tGroup2EPKcjPKPFvPK24RsExpandKernelDriver"
+                                     "InfojjjEj",
+         "_ZN7android12renderscript21debugHintScriptGroup2EPKcjPKPFvPK24RsExpan"
+         "dKernelDriverInfojjjEj",
+         0, RenderScriptRuntime::eModuleKindImpl,
+         &lldb_private::RenderScriptRuntime::CaptureDebugHintScriptGroup2}};
 
 const size_t RenderScriptRuntime::s_runtimeHookCount =
     sizeof(s_runtimeHookDefns) / sizeof(s_runtimeHookDefns[0]);
@@ -1036,6 +1145,154 @@ void RenderScriptRuntime::HookCallback(RuntimeHook *hook,
 
   if (hook->defn->grabber) {
     (this->*(hook->defn->grabber))(hook, exe_ctx);
+  }
+}
+
+void RenderScriptRuntime::CaptureDebugHintScriptGroup2(
+    RuntimeHook *hook_info, ExecutionContext &context) {
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_LANGUAGE));
+
+  enum {
+    eGroupName = 0,
+    eGroupNameSize,
+    eKernel,
+    eKernelCount,
+  };
+
+  std::array<ArgItem, 4> args{{
+      {ArgItem::ePointer, 0}, // const char         *groupName
+      {ArgItem::eInt32, 0},   // const uint32_t      groupNameSize
+      {ArgItem::ePointer, 0}, // const ExpandFuncTy *kernel
+      {ArgItem::eInt32, 0},   // const uint32_t      kernelCount
+  }};
+
+  if (!GetArgs(context, args.data(), args.size())) {
+    if (log)
+      log->Printf("%s - Error while reading the function parameters",
+                  __FUNCTION__);
+    return;
+  } else if (log) {
+    log->Printf("%s - groupName    : 0x%" PRIx64, __FUNCTION__,
+                addr_t(args[eGroupName]));
+    log->Printf("%s - groupNameSize: %" PRIu64, __FUNCTION__,
+                uint64_t(args[eGroupNameSize]));
+    log->Printf("%s - kernel       : 0x%" PRIx64, __FUNCTION__,
+                addr_t(args[eKernel]));
+    log->Printf("%s - kernelCount  : %" PRIu64, __FUNCTION__,
+                uint64_t(args[eKernelCount]));
+  }
+
+  // parse script group name
+  ConstString group_name;
+  {
+    Error err;
+    const uint64_t len = uint64_t(args[eGroupNameSize]);
+    std::unique_ptr<char[]> buffer(new char[uint32_t(len + 1)]);
+    m_process->ReadMemory(addr_t(args[eGroupName]), buffer.get(), len, err);
+    buffer.get()[len] = '\0';
+    if (!err.Success()) {
+      if (log)
+        log->Printf("Error reading scriptgroup name from target");
+      return;
+    } else {
+      if (log)
+        log->Printf("Extracted scriptgroup name %s", buffer.get());
+    }
+    // write back the script group name
+    group_name.SetCString(buffer.get());
+  }
+
+  // create or access existing script group
+  RSScriptGroupDescriptorSP group;
+  {
+    // search for existing script group
+    for (auto sg : m_scriptGroups) {
+      if (sg->m_name == group_name) {
+        group = sg;
+        break;
+      }
+    }
+    if (!group) {
+      group.reset(new RSScriptGroupDescriptor);
+      group->m_name = group_name;
+      m_scriptGroups.push_back(group);
+    } else {
+      // already have this script group
+      if (log)
+        log->Printf("Attempt to add duplicate script group %s",
+                    group_name.AsCString());
+      return;
+    }
+  }
+  assert(group);
+
+  const uint32_t target_ptr_size = m_process->GetAddressByteSize();
+  std::vector<addr_t> kernels;
+  // parse kernel addresses in script group
+  for (uint64_t i = 0; i < uint64_t(args[eKernelCount]); ++i) {
+    RSScriptGroupDescriptor::Kernel kernel;
+    // extract script group kernel addresses from the target
+    const addr_t ptr_addr = addr_t(args[eKernel]) + i * target_ptr_size;
+    uint64_t kernel_addr = 0;
+    Error err;
+    size_t read =
+        m_process->ReadMemory(ptr_addr, &kernel_addr, target_ptr_size, err);
+    if (!err.Success() || read != target_ptr_size) {
+      if (log)
+        log->Printf("Error parsing kernel address %" PRIu64 " in script group",
+                    i);
+      return;
+    }
+    if (log)
+      log->Printf("Extracted scriptgroup kernel address - 0x%" PRIx64,
+                  kernel_addr);
+    kernel.m_addr = kernel_addr;
+
+    // try to resolve the associated kernel name
+    if (!ResolveKernelName(kernel.m_addr, kernel.m_name)) {
+      if (log)
+        log->Printf("Parsed scriptgroup kernel %" PRIu64 " - 0x%" PRIx64, i,
+                    kernel_addr);
+      return;
+    }
+
+    // try to find the non '.expand' function
+    {
+      const llvm::StringRef expand(".expand");
+      const llvm::StringRef name_ref = kernel.m_name.GetStringRef();
+      if (name_ref.endswith(expand)) {
+        const ConstString base_kernel(name_ref.drop_back(expand.size()));
+        // verify this function is a valid kernel
+        if (IsKnownKernel(base_kernel)) {
+          kernel.m_name = base_kernel;
+          if (log)
+            log->Printf("%s - found non expand version '%s'", __FUNCTION__,
+                        base_kernel.GetCString());
+        }
+      }
+    }
+    // add to a list of script group kernels we know about
+    group->m_kernels.push_back(kernel);
+  }
+
+  // Resolve any pending scriptgroup breakpoints
+  {
+    Target &target = m_process->GetTarget();
+    const BreakpointList &list = target.GetBreakpointList();
+    const size_t num_breakpoints = list.GetSize();
+    if (log)
+      log->Printf("Resolving %zu breakpoints", num_breakpoints);
+    for (size_t i = 0; i < num_breakpoints; ++i) {
+      const BreakpointSP bp = list.GetBreakpointAtIndex(i);
+      if (bp) {
+        if (bp->MatchesName(group_name.AsCString())) {
+          if (log)
+            log->Printf("Found breakpoint with name %s",
+                        group_name.AsCString());
+          bp->ResolveBreakpoint();
+        }
+      }
+    }
   }
 }
 
@@ -1309,7 +1566,7 @@ void RenderScriptRuntime::CaptureScriptInit(RuntimeHook *hook,
       script->type = ScriptDetails::eScriptC;
       script->cache_dir = cache_dir;
       script->res_name = res_name;
-      script->shared_lib = strm.GetData();
+      script->shared_lib = strm.GetString();
       script->context = addr_t(args[eRsContext]);
     }
 
@@ -1332,7 +1589,7 @@ void RenderScriptRuntime::LoadRuntimeHooks(lldb::ModuleSP module,
   }
 
   Target &target = GetProcess()->GetTarget();
-  llvm::Triple::ArchType machine = target.GetArchitecture().GetMachine();
+  const llvm::Triple::ArchType machine = target.GetArchitecture().GetMachine();
 
   if (machine != llvm::Triple::ArchType::x86 &&
       machine != llvm::Triple::ArchType::arm &&
@@ -1345,7 +1602,11 @@ void RenderScriptRuntime::LoadRuntimeHooks(lldb::ModuleSP module,
     return;
   }
 
-  uint32_t target_ptr_size = target.GetArchitecture().GetAddressByteSize();
+  const uint32_t target_ptr_size =
+      target.GetArchitecture().GetAddressByteSize();
+
+  std::array<bool, s_runtimeHookCount> hook_placed;
+  hook_placed.fill(false);
 
   for (size_t idx = 0; idx < s_runtimeHookCount; idx++) {
     const HookDefn *hook_defn = &s_runtimeHookDefns[idx];
@@ -1392,6 +1653,20 @@ void RenderScriptRuntime::LoadRuntimeHooks(lldb::ModuleSP module,
                   __FUNCTION__, hook_defn->name,
                   module->GetFileSpec().GetFilename().AsCString(),
                   (uint64_t)hook_defn->version, (uint64_t)addr);
+    }
+    hook_placed[idx] = true;
+  }
+
+  // log any unhooked function
+  if (log) {
+    for (size_t i = 0; i < hook_placed.size(); ++i) {
+      if (hook_placed[i])
+        continue;
+      const HookDefn &hook_defn = s_runtimeHookDefns[i];
+      if (hook_defn.kind != kind)
+        continue;
+      log->Printf("%s - function %s was not hooked", __FUNCTION__,
+                  hook_defn.name);
     }
   }
 }
@@ -2579,6 +2854,11 @@ bool RenderScriptRuntime::LoadModule(const lldb::ModuleSP &module_sp) {
       module_desc.reset(new RSModuleDescriptor(module_sp));
       if (module_desc->ParseRSInfo()) {
         m_rsmodules.push_back(module_desc);
+        module_desc->WarnIfVersionMismatch(GetProcess()
+                                               ->GetTarget()
+                                               .GetDebugger()
+                                               .GetAsyncOutputStream()
+                                               .get());
         module_loaded = true;
       }
       if (module_loaded) {
@@ -2594,7 +2874,10 @@ bool RenderScriptRuntime::LoadModule(const lldb::ModuleSP &module_sp) {
       break;
     }
     case eModuleKindImpl: {
-      m_libRSCpuRef = module_sp;
+      if (!m_libRSCpuRef) {
+        m_libRSCpuRef = module_sp;
+        LoadRuntimeHooks(m_libRSCpuRef, RenderScriptRuntime::eModuleKindImpl);
+      }
       break;
     }
     case eModuleKindLibRS: {
@@ -2642,6 +2925,25 @@ void RenderScriptRuntime::Update() {
     if (!m_initiated) {
       Initiate();
     }
+  }
+}
+
+void RSModuleDescriptor::WarnIfVersionMismatch(lldb_private::Stream *s) const {
+  if (!s)
+    return;
+
+  if (m_slang_version.empty() || m_bcc_version.empty()) {
+    s->PutCString("WARNING: Unknown bcc or slang (llvm-rs-cc) version; debug "
+                  "experience may be unreliable");
+    s->EOL();
+  } else if (m_slang_version != m_bcc_version) {
+    s->Printf("WARNING: The debug info emitted by the slang frontend "
+              "(llvm-rs-cc) used to build this module (%s) does not match the "
+              "version of bcc used to generate the debug information (%s). "
+              "This is an unsupported configuration and may result in a poor "
+              "debugging experience; proceed with caution",
+              m_slang_version.c_str(), m_bcc_version.c_str());
+    s->EOL();
   }
 }
 
@@ -2712,6 +3014,22 @@ bool RSModuleDescriptor::ParseExportReduceCount(llvm::StringRef *lines,
   return true;
 }
 
+bool RSModuleDescriptor::ParseVersionInfo(llvm::StringRef *lines,
+                                          size_t n_lines) {
+  // Skip the versionInfo line
+  ++lines;
+  for (; n_lines--; ++lines) {
+    // We're only interested in bcc and slang versions, and ignore all other
+    // versionInfo lines
+    const auto kv_pair = lines->split(" - ");
+    if (kv_pair.first == "slang")
+      m_slang_version = kv_pair.second.str();
+    else if (kv_pair.first == "bcc")
+      m_bcc_version = kv_pair.second.str();
+  }
+  return true;
+}
+
 bool RSModuleDescriptor::ParseExportForeachCount(llvm::StringRef *lines,
                                                  size_t n_lines) {
   // Skip the exportForeachCount line
@@ -2776,7 +3094,8 @@ bool RSModuleDescriptor::ParseRSInfo() {
     eExportReduce,
     ePragma,
     eBuildChecksum,
-    eObjectSlot
+    eObjectSlot,
+    eVersionInfo,
   };
 
   const auto rs_info_handler = [](llvm::StringRef name) -> int {
@@ -2792,6 +3111,7 @@ bool RSModuleDescriptor::ParseRSInfo() {
         // script
         .Case("pragmaCount", ePragma)
         .Case("objectSlotCount", eObjectSlot)
+        .Case("versionInfo", eVersionInfo)
         .Default(-1);
   };
 
@@ -2808,9 +3128,8 @@ bool RSModuleDescriptor::ParseRSInfo() {
     // in numeric fields at the moment
     uint64_t n_lines;
     if (val.getAsInteger(10, n_lines)) {
-      if (log)
-        log->Debug("Failed to parse non-numeric '.rs.info' section %s",
-                   line->str().c_str());
+      LLDB_LOGV(log, "Failed to parse non-numeric '.rs.info' section {0}",
+                line->str());
       continue;
     }
     if (info_lines.end() - (line + 1) < (ptrdiff_t)n_lines)
@@ -2829,6 +3148,9 @@ bool RSModuleDescriptor::ParseRSInfo() {
       break;
     case ePragma:
       success = ParsePragmaCount(line, n_lines);
+      break;
+    case eVersionInfo:
+      success = ParseVersionInfo(line, n_lines);
       break;
     default: {
       if (log)
@@ -3535,6 +3857,45 @@ bool RenderScriptRuntime::PlaceBreakpointOnKernel(TargetSP target,
   return true;
 }
 
+BreakpointSP
+RenderScriptRuntime::CreateScriptGroupBreakpoint(const ConstString &name,
+                                                 bool stop_on_all) {
+  Log *log(
+      GetLogIfAnyCategoriesSet(LIBLLDB_LOG_LANGUAGE | LIBLLDB_LOG_BREAKPOINTS));
+
+  if (!m_filtersp) {
+    if (log)
+      log->Printf("%s - error, no breakpoint search filter set.", __FUNCTION__);
+    return nullptr;
+  }
+
+  BreakpointResolverSP resolver_sp(new RSScriptGroupBreakpointResolver(
+      nullptr, name, m_scriptGroups, stop_on_all));
+  BreakpointSP bp = GetProcess()->GetTarget().CreateBreakpoint(
+      m_filtersp, resolver_sp, false, false, false);
+  // Give RS breakpoints a specific name, so the user can manipulate them as a
+  // group.
+  Error err;
+  if (!bp->AddName(name.AsCString(), err))
+    if (log)
+      log->Printf("%s - error setting break name, '%s'.", __FUNCTION__,
+                  err.AsCString());
+  // ask the breakpoint to resolve itself
+  bp->ResolveBreakpoint();
+  return bp;
+}
+
+bool RenderScriptRuntime::PlaceBreakpointOnScriptGroup(TargetSP target,
+                                                       Stream &strm,
+                                                       const ConstString &name,
+                                                       bool multi) {
+  InitSearchFilter(target);
+  BreakpointSP bp = CreateScriptGroupBreakpoint(name, multi);
+  if (bp)
+    bp->GetDescription(&strm, lldb::eDescriptionLevelInitial, false);
+  return bool(bp);
+}
+
 bool RenderScriptRuntime::PlaceBreakpointOnReduction(TargetSP target,
                                                      Stream &messages,
                                                      const char *reduce_name,
@@ -3615,6 +3976,32 @@ RenderScriptRuntime::CreateAllocation(addr_t address) {
   a->address = address;
   m_allocations.push_back(std::move(a));
   return m_allocations.back().get();
+}
+
+bool RenderScriptRuntime::ResolveKernelName(lldb::addr_t kernel_addr,
+                                            ConstString &name) {
+  Log *log = GetLogIfAllCategoriesSet(LIBLLDB_LOG_SYMBOLS);
+
+  Target &target = GetProcess()->GetTarget();
+  Address resolved;
+  // RenderScript module
+  if (!target.GetSectionLoadList().ResolveLoadAddress(kernel_addr, resolved)) {
+    if (log)
+      log->Printf("%s: unable to resolve 0x%" PRIx64 " to a loaded symbol",
+                  __FUNCTION__, kernel_addr);
+    return false;
+  }
+
+  Symbol *sym = resolved.CalculateSymbolContextSymbol();
+  if (!sym)
+    return false;
+
+  name = sym->GetName();
+  assert(IsRenderScriptModule(resolved.CalculateSymbolContextModule()));
+  if (log)
+    log->Printf("%s: 0x%" PRIx64 " resolved to the symbol '%s'", __FUNCTION__,
+                kernel_addr, name.GetCString());
+  return true;
 }
 
 void RSModuleDescriptor::Dump(Stream &strm) const {
@@ -3812,23 +4199,23 @@ public:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_val,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *exe_ctx) override {
       Error err;
       StreamString err_str;
       const int short_option = m_getopt_table[option_idx].val;
       switch (short_option) {
       case 't':
-        if (!ParseReductionTypes(option_val, err_str))
+        if (!ParseReductionTypes(option_arg, err_str))
           err.SetErrorStringWithFormat(
-              "Unable to deduce reduction types for %s: %s", option_val,
-              err_str.GetData());
+              "Unable to deduce reduction types for %s: %s",
+              option_arg.str().c_str(), err_str.GetData());
         break;
       case 'c': {
         auto coord = RSCoordinate{};
-        if (!ParseCoordinate(option_val, coord))
+        if (!ParseCoordinate(option_arg, coord))
           err.SetErrorStringWithFormat("unable to parse coordinate for %s",
-                                       option_val);
+                                       option_arg.str().c_str());
         else {
           m_have_coord = true;
           m_coord = coord;
@@ -3849,7 +4236,8 @@ public:
       return llvm::makeArrayRef(g_renderscript_reduction_bp_set_options);
     }
 
-    bool ParseReductionTypes(const char *option_val, StreamString &err_str) {
+    bool ParseReductionTypes(llvm::StringRef option_val,
+                             StreamString &err_str) {
       m_kernel_types = RSReduceBreakpointResolver::eKernelTypeNone;
       const auto reduce_name_to_type = [](llvm::StringRef name) -> int {
         return llvm::StringSwitch<int>(name)
@@ -3872,7 +4260,7 @@ public:
 
       assert(match_type_list.IsValid());
 
-      if (!match_type_list.Execute(llvm::StringRef(option_val), &match)) {
+      if (!match_type_list.Execute(option_val, &match)) {
         err_str.PutCString(
             "a comma-separated list of kernel types is required");
         return false;
@@ -3967,7 +4355,7 @@ public:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *exe_ctx) override {
       Error err;
       const int short_option = m_getopt_table[option_idx].val;
@@ -3978,7 +4366,7 @@ public:
         if (!ParseCoordinate(option_arg, coord))
           err.SetErrorStringWithFormat(
               "Couldn't parse coordinate '%s', should be in format 'x,y,z'.",
-              option_arg);
+              option_arg.str().c_str());
         else {
           m_have_coord = true;
           m_coord = coord;
@@ -4248,7 +4636,7 @@ public:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *exe_ctx) override {
       Error err;
       const int short_option = m_getopt_table[option_idx].val;
@@ -4258,7 +4646,8 @@ public:
         m_outfile.SetFile(option_arg, true);
         if (m_outfile.Exists()) {
           m_outfile.Clear();
-          err.SetErrorStringWithFormat("file already exists: '%s'", option_arg);
+          err.SetErrorStringWithFormat("file already exists: '%s'",
+                                       option_arg.str().c_str());
         }
         break;
       default:
@@ -4369,16 +4758,14 @@ public:
 
     ~CommandOptions() override = default;
 
-    Error SetOptionValue(uint32_t option_idx, const char *option_arg,
+    Error SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                          ExecutionContext *exe_ctx) override {
       Error err;
       const int short_option = m_getopt_table[option_idx].val;
 
       switch (short_option) {
       case 'i':
-        bool success;
-        m_id = StringConvert::ToUInt32(option_arg, 0, 0, &success);
-        if (!success)
+        if (option_arg.getAsInteger(0, m_id))
           err.SetErrorStringWithFormat("invalid integer value for option '%c'",
                                        short_option);
         break;
@@ -4636,6 +5023,8 @@ public:
         "allocation",
         CommandObjectSP(
             new CommandObjectRenderScriptRuntimeAllocation(interpreter)));
+    LoadSubCommand("scriptgroup",
+                   NewCommandObjectRenderScriptScriptGroup(interpreter));
     LoadSubCommand(
         "reduction",
         CommandObjectSP(

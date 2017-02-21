@@ -11,11 +11,11 @@
 #define liblldb_Type_h_
 
 #include "lldb/Core/ClangForward.h"
-#include "lldb/Core/ConstString.h"
 #include "lldb/Core/UserID.h"
 #include "lldb/Symbol/CompilerDecl.h"
 #include "lldb/Symbol/CompilerType.h"
 #include "lldb/Symbol/Declaration.h"
+#include "lldb/Utility/ConstString.h"
 #include "lldb/lldb-private.h"
 
 #include "llvm/ADT/APSInt.h"
@@ -201,8 +201,9 @@ public:
 
   // From a fully qualified typename, split the type into the type basename
   // and the remaining type scope (namespaces/classes).
-  static bool GetTypeScopeAndBasename(const char *&name_cstr,
-                                      std::string &scope, std::string &basename,
+  static bool GetTypeScopeAndBasename(const llvm::StringRef& name,
+                                      llvm::StringRef &scope,
+                                      llvm::StringRef &basename,
                                       lldb::TypeClass &type_class);
   void SetEncodingType(Type *encoding_type) { m_encoding_type = encoding_type; }
 

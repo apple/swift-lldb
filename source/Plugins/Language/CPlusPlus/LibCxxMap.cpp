@@ -1,4 +1,4 @@
-//===-- LibCxxList.cpp ------------------------------------------*- C++ -*-===//
+//===-- LibCxxMap.cpp -------------------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -14,14 +14,14 @@
 #include "LibCxx.h"
 
 #include "lldb/Core/DataBufferHeap.h"
-#include "lldb/Core/Error.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Core/ValueObjectConstResult.h"
 #include "lldb/DataFormatters/FormattersHelpers.h"
 #include "lldb/Host/Endian.h"
 #include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/Error.h"
+#include "lldb/Utility/Stream.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -399,7 +399,8 @@ lldb_private::formatters::LibcxxStdMapSyntheticFrontEnd::GetChildAtIndex(
   StreamString name;
   name.Printf("[%" PRIu64 "]", (uint64_t)idx);
   auto potential_child_sp = CreateValueObjectFromData(
-      name.GetData(), data, m_backend.GetExecutionContextRef(), m_element_type);
+      name.GetString(), data, m_backend.GetExecutionContextRef(),
+      m_element_type);
   if (potential_child_sp) {
     switch (potential_child_sp->GetNumChildren()) {
     case 1: {
@@ -417,7 +418,7 @@ lldb_private::formatters::LibcxxStdMapSyntheticFrontEnd::GetChildAtIndex(
       break;
     }
     }
-    potential_child_sp->SetName(ConstString(name.GetData()));
+    potential_child_sp->SetName(ConstString(name.GetString()));
   }
   m_iterators[idx] = iterator;
   return potential_child_sp;

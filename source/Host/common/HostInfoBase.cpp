@@ -11,20 +11,21 @@
 
 #include "lldb/Core/ArchSpec.h"
 #include "lldb/Core/Log.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Host/FileSystem.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Host/HostInfoBase.h"
+#include "lldb/Utility/StreamString.h"
 
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/ScopedPrinter.h"
+#include "llvm/Support/Threading.h"
 #include "llvm/Support/raw_ostream.h"
 
-#include <mutex> // std::once
+#include <mutex>
 #include <thread>
 
 using namespace lldb;
@@ -82,7 +83,7 @@ void HostInfoBase::Terminate() {
 
 uint32_t HostInfoBase::GetNumberCPUS() {
   static std::once_flag g_once_flag;
-  std::call_once(g_once_flag, []() {
+  llvm::call_once(g_once_flag, []() {
     g_fields->m_number_cpus = std::thread::hardware_concurrency();
   });
   return g_fields->m_number_cpus;
@@ -92,7 +93,7 @@ uint32_t HostInfoBase::GetMaxThreadNameLength() { return 0; }
 
 llvm::StringRef HostInfoBase::GetVendorString() {
   static std::once_flag g_once_flag;
-  std::call_once(g_once_flag, []() {
+  llvm::call_once(g_once_flag, []() {
     g_fields->m_vendor_string =
         HostInfo::GetArchitecture().GetTriple().getVendorName().str();
   });
@@ -101,7 +102,7 @@ llvm::StringRef HostInfoBase::GetVendorString() {
 
 llvm::StringRef HostInfoBase::GetOSString() {
   static std::once_flag g_once_flag;
-  std::call_once(g_once_flag, []() {
+  llvm::call_once(g_once_flag, []() {
     g_fields->m_os_string =
         std::move(HostInfo::GetArchitecture().GetTriple().getOSName());
   });
@@ -110,7 +111,7 @@ llvm::StringRef HostInfoBase::GetOSString() {
 
 llvm::StringRef HostInfoBase::GetTargetTriple() {
   static std::once_flag g_once_flag;
-  std::call_once(g_once_flag, []() {
+  llvm::call_once(g_once_flag, []() {
     g_fields->m_host_triple =
         HostInfo::GetArchitecture().GetTriple().getTriple();
   });
@@ -119,7 +120,7 @@ llvm::StringRef HostInfoBase::GetTargetTriple() {
 
 const ArchSpec &HostInfoBase::GetArchitecture(ArchitectureKind arch_kind) {
   static std::once_flag g_once_flag;
-  std::call_once(g_once_flag, []() {
+  llvm::call_once(g_once_flag, []() {
     HostInfo::ComputeHostArchitectureSupport(g_fields->m_host_arch_32,
                                              g_fields->m_host_arch_64);
   });
@@ -148,7 +149,7 @@ bool HostInfoBase::GetLLDBPath(lldb::PathType type, FileSpec &file_spec) {
   case lldb::ePathTypeLLDBShlibDir: {
     static std::once_flag g_once_flag;
     static bool success = false;
-    std::call_once(g_once_flag, []() {
+    llvm::call_once(g_once_flag, []() {
       success =
           HostInfo::ComputeSharedLibraryDirectory(g_fields->m_lldb_so_dir);
       Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
@@ -162,7 +163,7 @@ bool HostInfoBase::GetLLDBPath(lldb::PathType type, FileSpec &file_spec) {
   case lldb::ePathTypeSupportExecutableDir: {
     static std::once_flag g_once_flag;
     static bool success = false;
-    std::call_once(g_once_flag, []() {
+    llvm::call_once(g_once_flag, []() {
       success = HostInfo::ComputeSupportExeDirectory(
           g_fields->m_lldb_support_exe_dir);
       Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
@@ -192,7 +193,7 @@ bool HostInfoBase::GetLLDBPath(lldb::PathType type, FileSpec &file_spec) {
   case lldb::ePathTypeHeaderDir: {
     static std::once_flag g_once_flag;
     static bool success = false;
-    std::call_once(g_once_flag, []() {
+    llvm::call_once(g_once_flag, []() {
       success = HostInfo::ComputeHeaderDirectory(g_fields->m_lldb_headers_dir);
       Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
       if (log)
@@ -205,7 +206,7 @@ bool HostInfoBase::GetLLDBPath(lldb::PathType type, FileSpec &file_spec) {
   case lldb::ePathTypePythonDir: {
     static std::once_flag g_once_flag;
     static bool success = false;
-    std::call_once(g_once_flag, []() {
+    llvm::call_once(g_once_flag, []() {
       success = HostInfo::ComputePythonDirectory(g_fields->m_lldb_python_dir);
       Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
       if (log)
@@ -218,7 +219,7 @@ bool HostInfoBase::GetLLDBPath(lldb::PathType type, FileSpec &file_spec) {
   case lldb::ePathTypeClangDir: {
     static std::once_flag g_once_flag;
     static bool success = false;
-    std::call_once(g_once_flag, []() {
+    llvm::call_once(g_once_flag, []() {
       success =
           HostInfo::ComputeClangDirectory(g_fields->m_lldb_clang_resource_dir);
       Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
@@ -248,7 +249,7 @@ bool HostInfoBase::GetLLDBPath(lldb::PathType type, FileSpec &file_spec) {
   case lldb::ePathTypeLLDBSystemPlugins: {
     static std::once_flag g_once_flag;
     static bool success = false;
-    std::call_once(g_once_flag, []() {
+    llvm::call_once(g_once_flag, []() {
       success = HostInfo::ComputeSystemPluginsDirectory(
           g_fields->m_lldb_system_plugin_dir);
       Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
@@ -263,7 +264,7 @@ bool HostInfoBase::GetLLDBPath(lldb::PathType type, FileSpec &file_spec) {
   case lldb::ePathTypeLLDBUserPlugins: {
     static std::once_flag g_once_flag;
     static bool success = false;
-    std::call_once(g_once_flag, []() {
+    llvm::call_once(g_once_flag, []() {
       success = HostInfo::ComputeUserPluginsDirectory(
           g_fields->m_lldb_user_plugin_dir);
       Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
@@ -278,7 +279,7 @@ bool HostInfoBase::GetLLDBPath(lldb::PathType type, FileSpec &file_spec) {
   case lldb::ePathTypeLLDBTempSystemDir: {
     static std::once_flag g_once_flag;
     static bool success = false;
-    std::call_once(g_once_flag, []() {
+    llvm::call_once(g_once_flag, []() {
       success = HostInfo::ComputeProcessTempFileDirectory(
           g_fields->m_lldb_process_tmp_dir);
       Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
@@ -293,7 +294,7 @@ bool HostInfoBase::GetLLDBPath(lldb::PathType type, FileSpec &file_spec) {
   case lldb::ePathTypeGlobalLLDBTempSystemDir: {
     static std::once_flag g_once_flag;
     static bool success = false;
-    std::call_once(g_once_flag, []() {
+    llvm::call_once(g_once_flag, []() {
       success = HostInfo::ComputeGlobalTempFileDirectory(
           g_fields->m_lldb_global_tmp_dir);
       Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);

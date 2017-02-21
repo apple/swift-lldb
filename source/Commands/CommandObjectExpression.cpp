@@ -204,6 +204,7 @@ void CommandObjectExpression::CommandOptions::OptionParsingStarting(
     ignore_breakpoints = true;
     unwind_on_error = true;
   }
+
   show_summary = true;
   try_all_threads = true;
   timeout = 0;
@@ -340,6 +341,7 @@ bool CommandObjectExpression::EvaluateExpression(const char *expr,
   if (target) {
     lldb::ValueObjectSP result_valobj_sp;
     bool keep_in_memory = true;
+    StackFrame *frame = exe_ctx.GetFramePtr();
 
     EvaluateExpressionOptions options;
     options.SetCoerceToId(m_varobj_options.use_objc);
@@ -382,13 +384,12 @@ bool CommandObjectExpression::EvaluateExpression(const char *expr,
       options.SetGenerateDebugInfo(true);
 
     if (m_command_options.timeout > 0)
-      options.SetTimeoutUsec(m_command_options.timeout);
+      options.SetTimeout(std::chrono::microseconds(m_command_options.timeout));
     else
-      options.SetTimeoutUsec(0);
+      options.SetTimeout(llvm::None);
 
     ExpressionResults success = target->EvaluateExpression(
-        expr, exe_ctx.GetFramePtr(), result_valobj_sp, options,
-        &m_fixed_expression);
+        expr, frame, result_valobj_sp, options, &m_fixed_expression);
 
     // We only tell you about the FixIt if we applied it.  The compiler errors
     // will suggest the FixIt if it parsed.
@@ -495,10 +496,12 @@ bool CommandObjectExpression::EvaluateExpression(const char *expr,
 
 void CommandObjectExpression::IOHandlerInputComplete(IOHandler &io_handler,
                                                      std::string &line) {
+  io_handler.SetIsDone(true);
+  //    StreamSP output_stream =
+  //    io_handler.GetDebugger().GetAsyncOutputStream();
+  //    StreamSP error_stream = io_handler.GetDebugger().GetAsyncErrorStream();
   StreamFileSP output_sp(io_handler.GetOutputStreamFile());
   StreamFileSP error_sp(io_handler.GetErrorStreamFile());
-
-  io_handler.SetIsDone(true);
 
   EvaluateExpression(line.c_str(), output_sp.get(), error_sp.get());
   if (output_sp)

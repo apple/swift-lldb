@@ -21,7 +21,6 @@
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/ValueObjectCast.h"
 #include "lldb/Core/ValueObjectChild.h"
 #include "lldb/Core/ValueObjectConstResult.h"
@@ -29,6 +28,7 @@
 #include "lldb/Core/ValueObjectList.h"
 #include "lldb/Core/ValueObjectMemory.h"
 #include "lldb/Core/ValueObjectSyntheticFilter.h"
+#include "lldb/Utility/StreamString.h"
 
 #include "lldb/DataFormatters/DataVisualization.h"
 #include "lldb/DataFormatters/StringPrinter.h"
@@ -414,29 +414,15 @@ const char *ValueObject::GetLocationAsCStringImpl(const Value &value,
               m_location_str = reg_info->name;
             else if (reg_info->alt_name)
               m_location_str = reg_info->alt_name;
-            if (m_location_str.empty()) {
-              if (reg_info->encoding == lldb::eEncodingVector)
-                m_location_str = "vector_reg";
-              else {
-                uint32_t addr_nibble_size = data.GetAddressByteSize() * 2;
-                sstr.Printf("scalar_reg(0x%*.*llx)", addr_nibble_size,
-                            addr_nibble_size,
-                            value.GetScalar().ULongLong(LLDB_INVALID_ADDRESS));
-                m_location_str.swap(sstr.GetString());
-              }
-            }
+            if (m_location_str.empty())
+              m_location_str = (reg_info->encoding == lldb::eEncodingVector)
+                                   ? "vector"
+                                   : "scalar";
           }
         }
-        if (m_location_str.empty()) {
-          if (value_type == Value::eValueTypeVector)
-            m_location_str = "vector";
-          else {
-            uint32_t addr_nibble_size = data.GetAddressByteSize() * 2;
-            sstr.Printf("scalar(0x%*.*llx)", addr_nibble_size, addr_nibble_size,
-                        value.GetScalar().ULongLong(LLDB_INVALID_ADDRESS));
-            m_location_str.swap(sstr.GetString());
-          }
-        }
+        if (m_location_str.empty())
+          m_location_str =
+              (value_type == Value::eValueTypeVector) ? "vector" : "scalar";
         break;
 
       case Value::eValueTypeLoadAddress:
@@ -445,7 +431,7 @@ const char *ValueObject::GetLocationAsCStringImpl(const Value &value,
         uint32_t addr_nibble_size = data.GetAddressByteSize() * 2;
         sstr.Printf("0x%*.*llx", addr_nibble_size, addr_nibble_size,
                     value.GetScalar().ULongLong(LLDB_INVALID_ADDRESS));
-        m_location_str.swap(sstr.GetString());
+        m_location_str = sstr.GetString();
       } break;
       }
     }
@@ -1026,7 +1012,7 @@ bool ValueObject::SetData(DataExtractor &data, Error &error) {
 static bool CopyStringDataToBufferSP(const StreamString &source,
                                      lldb::DataBufferSP &destination) {
   destination.reset(new DataBufferHeap(source.GetSize() + 1, 0));
-  memcpy(destination->GetBytes(), source.GetString().c_str(), source.GetSize());
+  memcpy(destination->GetBytes(), source.GetString().data(), source.GetSize());
   return true;
 }
 
@@ -1219,7 +1205,7 @@ const char *ValueObject::GetObjectDescription() {
   }
 
   if (runtime && runtime->GetObjectDescription(s, *this)) {
-    m_object_desc_str.append(s.GetData());
+    m_object_desc_str.append(s.GetString());
   }
 
   if (m_object_desc_str.empty())
@@ -1361,10 +1347,9 @@ bool ValueObject::DumpPrintableRepresentation(
 
   Flags flags(GetTypeInfo());
 
-  bool allow_special = ((special & ePrintableRepresentationSpecialCasesAllow) ==
-                        ePrintableRepresentationSpecialCasesAllow);
-  bool only_special = ((special & ePrintableRepresentationSpecialCasesOnly) ==
-                       ePrintableRepresentationSpecialCasesOnly);
+  bool allow_special =
+      (special == ValueObject::PrintableRepresentationSpecialCases::eAllow);
+  const bool only_special = false;
 
   if (allow_special) {
     if (flags.AnySet(eTypeIsArray | eTypeIsPointer) &&
@@ -1497,14 +1482,12 @@ bool ValueObject::DumpPrintableRepresentation(
   bool var_success = false;
 
   {
-    const char *cstr = NULL;
+    llvm::StringRef str;
 
     // this is a local stream that we are using to ensure that the data pointed
-    // to by cstr survives
-    // long enough for us to copy it to its destination - it is necessary to
-    // have this temporary storage
-    // area for cases where our desired output is not backed by some other
-    // longer-term storage
+    // to by cstr survives long enough for us to copy it to its destination - it
+    // is necessary to have this temporary storage area for cases where our
+    // desired output is not backed by some other longer-term storage
     StreamString strm;
 
     if (custom_format != eFormatInvalid)
@@ -1512,55 +1495,55 @@ bool ValueObject::DumpPrintableRepresentation(
 
     switch (val_obj_display) {
     case eValueObjectRepresentationStyleValue:
-      cstr = GetValueAsCString();
+      str = GetValueAsCString();
       break;
 
     case eValueObjectRepresentationStyleSummary:
-      cstr = GetSummaryAsCString();
+      str = GetSummaryAsCString();
       break;
 
     case eValueObjectRepresentationStyleLanguageSpecific:
-      cstr = GetObjectDescription();
+      str = GetObjectDescription();
       break;
 
     case eValueObjectRepresentationStyleLocation:
-      cstr = GetLocationAsCString();
+      str = GetLocationAsCString();
       break;
 
     case eValueObjectRepresentationStyleChildrenCount:
       strm.Printf("%" PRIu64 "", (uint64_t)GetNumChildren());
-      cstr = strm.GetString().c_str();
+      str = strm.GetString();
       break;
 
     case eValueObjectRepresentationStyleType:
-      cstr = GetTypeName().AsCString();
+      str = GetTypeName().GetStringRef();
       break;
 
     case eValueObjectRepresentationStyleName:
-      cstr = GetName().AsCString();
+      str = GetName().GetStringRef();
       break;
 
     case eValueObjectRepresentationStyleExpressionPath:
       GetExpressionPath(strm, false);
-      cstr = strm.GetString().c_str();
+      str = strm.GetString();
       break;
     }
 
-    if (!cstr) {
+    if (str.empty()) {
       if (val_obj_display == eValueObjectRepresentationStyleValue)
-        cstr = GetSummaryAsCString();
+        str = GetSummaryAsCString();
       else if (val_obj_display == eValueObjectRepresentationStyleSummary) {
         if (!CanProvideValue()) {
           strm.Printf("%s @ %s", GetTypeName().AsCString(),
                       GetLocationAsCString());
-          cstr = strm.GetString().c_str();
+          str = strm.GetString();
         } else
-          cstr = GetValueAsCString();
+          str = GetValueAsCString();
       }
     }
 
-    if (cstr)
-      s.PutCString(cstr);
+    if (!str.empty())
+      s << str;
     else {
       if (m_error.Fail()) {
         if (do_dump_error)
@@ -2025,7 +2008,7 @@ ValueObject::GetSyntheticExpressionPathChild(const char *expression,
     // We haven't made a synthetic array member for expression yet, so
     // lets make one and cache it for any future reference.
     synthetic_child_sp = GetValueForExpressionPath(
-        expression, NULL, NULL, NULL,
+        expression, NULL, NULL,
         GetValueForExpressionPathOptions().SetSyntheticChildrenTraversal(
             GetValueForExpressionPathOptions::SyntheticChildrenTraversal::
                 None));
@@ -2134,7 +2117,7 @@ bool ValueObject::GetBaseClassPath(Stream &s) {
     if (this_had_base_class) {
       if (parent_had_base_class)
         s.PutCString("::");
-      s.PutCString(cxx_class_name.c_str());
+      s.PutCString(cxx_class_name);
     }
     return parent_had_base_class || this_had_base_class;
   }
@@ -2269,13 +2252,11 @@ void ValueObject::GetExpressionPath(Stream &s, bool qualify_cxx_base_classes,
 }
 
 ValueObjectSP ValueObject::GetValueForExpressionPath(
-    const char *expression, const char **first_unparsed,
-    ExpressionPathScanEndReason *reason_to_stop,
+    llvm::StringRef expression, ExpressionPathScanEndReason *reason_to_stop,
     ExpressionPathEndResultType *final_value_type,
     const GetValueForExpressionPathOptions &options,
     ExpressionPathAftermath *final_task_on_target) {
 
-  const char *dummy_first_unparsed;
   ExpressionPathScanEndReason dummy_reason_to_stop =
       ValueObject::eExpressionPathScanEndReasonUnknown;
   ExpressionPathEndResultType dummy_final_value_type =
@@ -2284,8 +2265,7 @@ ValueObjectSP ValueObject::GetValueForExpressionPath(
       ValueObject::eExpressionPathAftermathNothing;
 
   ValueObjectSP ret_val = GetValueForExpressionPath_Impl(
-      expression, first_unparsed ? first_unparsed : &dummy_first_unparsed,
-      reason_to_stop ? reason_to_stop : &dummy_reason_to_stop,
+      expression, reason_to_stop ? reason_to_stop : &dummy_reason_to_stop,
       final_value_type ? final_value_type : &dummy_final_value_type, options,
       final_task_on_target ? final_task_on_target
                            : &dummy_final_task_on_target);
@@ -2339,109 +2319,20 @@ ValueObjectSP ValueObject::GetValueForExpressionPath(
                   // you know I did not do it
 }
 
-int ValueObject::GetValuesForExpressionPath(
-    const char *expression, ValueObjectListSP &list,
-    const char **first_unparsed, ExpressionPathScanEndReason *reason_to_stop,
-    ExpressionPathEndResultType *final_value_type,
-    const GetValueForExpressionPathOptions &options,
-    ExpressionPathAftermath *final_task_on_target) {
-  const char *dummy_first_unparsed;
-  ExpressionPathScanEndReason dummy_reason_to_stop;
-  ExpressionPathEndResultType dummy_final_value_type;
-  ExpressionPathAftermath dummy_final_task_on_target =
-      ValueObject::eExpressionPathAftermathNothing;
-
-  ValueObjectSP ret_val = GetValueForExpressionPath_Impl(
-      expression, first_unparsed ? first_unparsed : &dummy_first_unparsed,
-      reason_to_stop ? reason_to_stop : &dummy_reason_to_stop,
-      final_value_type ? final_value_type : &dummy_final_value_type, options,
-      final_task_on_target ? final_task_on_target
-                           : &dummy_final_task_on_target);
-
-  if (!ret_val.get()) // if there are errors, I add nothing to the list
-    return 0;
-
-  if ((reason_to_stop ? *reason_to_stop : dummy_reason_to_stop) !=
-      eExpressionPathScanEndReasonArrayRangeOperatorMet) {
-    // I need not expand a range, just post-process the final value and return
-    if (!final_task_on_target ||
-        *final_task_on_target == ValueObject::eExpressionPathAftermathNothing) {
-      list->Append(ret_val);
-      return 1;
-    }
-    if (ret_val.get() &&
-        (final_value_type ? *final_value_type : dummy_final_value_type) ==
-            eExpressionPathEndResultTypePlain) // I can only deref and
-                                               // takeaddress of plain objects
-    {
-      if (*final_task_on_target ==
-          ValueObject::eExpressionPathAftermathDereference) {
-        Error error;
-        ValueObjectSP final_value = ret_val->Dereference(error);
-        if (error.Fail() || !final_value.get()) {
-          if (reason_to_stop)
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonDereferencingFailed;
-          if (final_value_type)
-            *final_value_type =
-                ValueObject::eExpressionPathEndResultTypeInvalid;
-          return 0;
-        } else {
-          *final_task_on_target = ValueObject::eExpressionPathAftermathNothing;
-          list->Append(final_value);
-          return 1;
-        }
-      }
-      if (*final_task_on_target ==
-          ValueObject::eExpressionPathAftermathTakeAddress) {
-        Error error;
-        ValueObjectSP final_value = ret_val->AddressOf(error);
-        if (error.Fail() || !final_value.get()) {
-          if (reason_to_stop)
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonTakingAddressFailed;
-          if (final_value_type)
-            *final_value_type =
-                ValueObject::eExpressionPathEndResultTypeInvalid;
-          return 0;
-        } else {
-          *final_task_on_target = ValueObject::eExpressionPathAftermathNothing;
-          list->Append(final_value);
-          return 1;
-        }
-      }
-    }
-  } else {
-    return ExpandArraySliceExpression(
-        first_unparsed ? *first_unparsed : dummy_first_unparsed,
-        first_unparsed ? first_unparsed : &dummy_first_unparsed, ret_val, list,
-        reason_to_stop ? reason_to_stop : &dummy_reason_to_stop,
-        final_value_type ? final_value_type : &dummy_final_value_type, options,
-        final_task_on_target ? final_task_on_target
-                             : &dummy_final_task_on_target);
-  }
-  // in any non-covered case, just do the obviously right thing
-  list->Append(ret_val);
-  return 1;
-}
-
 ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
-    const char *expression_cstr, const char **first_unparsed,
-    ExpressionPathScanEndReason *reason_to_stop,
+    llvm::StringRef expression, ExpressionPathScanEndReason *reason_to_stop,
     ExpressionPathEndResultType *final_result,
     const GetValueForExpressionPathOptions &options,
     ExpressionPathAftermath *what_next) {
   ValueObjectSP root = GetSP();
 
-  if (!root.get())
-    return ValueObjectSP();
+  if (!root)
+    return nullptr;
 
-  *first_unparsed = expression_cstr;
+  llvm::StringRef remainder = expression;
 
   while (true) {
-
-    const char *expression_cstr =
-        *first_unparsed; // hide the top level expression_cstr
+    llvm::StringRef temp_expression = remainder;
 
     CompilerType root_compiler_type = root->GetCompilerType();
     CompilerType pointee_compiler_type;
@@ -2452,20 +2343,20 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
     if (pointee_compiler_type)
       pointee_compiler_type_info.Reset(pointee_compiler_type.GetTypeInfo());
 
-    if (!expression_cstr || *expression_cstr == '\0') {
+    if (temp_expression.empty()) {
       *reason_to_stop = ValueObject::eExpressionPathScanEndReasonEndOfString;
       return root;
     }
 
-    switch (*expression_cstr) {
+    switch (temp_expression.front()) {
     case '-': {
+      temp_expression = temp_expression.drop_front();
       if (options.m_check_dot_vs_arrow_syntax &&
           root_compiler_type_info.Test(eTypeIsPointer)) // if you are trying to
                                                         // use -> on a
                                                         // non-pointer and I
                                                         // must catch the error
       {
-        *first_unparsed = expression_cstr;
         *reason_to_stop =
             ValueObject::eExpressionPathScanEndReasonArrowInsteadOfDot;
         *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
@@ -2476,48 +2367,46 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
                                                        // when this is forbidden
           root_compiler_type_info.Test(eTypeIsPointer) &&
           options.m_no_fragile_ivar) {
-        *first_unparsed = expression_cstr;
         *reason_to_stop =
             ValueObject::eExpressionPathScanEndReasonFragileIVarNotAllowed;
         *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
         return ValueObjectSP();
       }
-      if (expression_cstr[1] != '>') {
-        *first_unparsed = expression_cstr;
+      if (!temp_expression.startswith(">")) {
         *reason_to_stop =
             ValueObject::eExpressionPathScanEndReasonUnexpectedSymbol;
         *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
         return ValueObjectSP();
       }
-      expression_cstr++; // skip the -
     }
       LLVM_FALLTHROUGH;
     case '.': // or fallthrough from ->
     {
-      if (options.m_check_dot_vs_arrow_syntax && *expression_cstr == '.' &&
+      if (options.m_check_dot_vs_arrow_syntax &&
+          temp_expression.front() == '.' &&
           root_compiler_type_info.Test(eTypeIsPointer)) // if you are trying to
                                                         // use . on a pointer
                                                         // and I must catch the
                                                         // error
       {
-        *first_unparsed = expression_cstr;
         *reason_to_stop =
             ValueObject::eExpressionPathScanEndReasonDotInsteadOfArrow;
         *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-        return ValueObjectSP();
+        return nullptr;
       }
-      expression_cstr++; // skip .
-      const char *next_separator = strpbrk(expression_cstr + 1, "-.[");
+      temp_expression = temp_expression.drop_front(); // skip . or >
+
+      size_t next_sep_pos = temp_expression.find_first_of("-.[", 1);
       ConstString child_name;
-      if (!next_separator) // if no other separator just expand this last layer
+      if (next_sep_pos == llvm::StringRef::npos) // if no other separator just
+                                                 // expand this last layer
       {
-        child_name.SetCString(expression_cstr);
+        child_name.SetString(temp_expression);
         ValueObjectSP child_valobj_sp =
             root->GetChildMemberWithName(child_name, true);
 
         if (child_valobj_sp.get()) // we know we are done, so just return
         {
-          *first_unparsed = "";
           *reason_to_stop =
               ValueObject::eExpressionPathScanEndReasonEndOfString;
           *final_result = ValueObject::eExpressionPathEndResultTypePlain;
@@ -2567,28 +2456,28 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
         // so we hit the "else" branch, and return an error
         if (child_valobj_sp.get()) // if it worked, just return
         {
-          *first_unparsed = "";
           *reason_to_stop =
               ValueObject::eExpressionPathScanEndReasonEndOfString;
           *final_result = ValueObject::eExpressionPathEndResultTypePlain;
           return child_valobj_sp;
         } else {
-          *first_unparsed = expression_cstr;
           *reason_to_stop =
               ValueObject::eExpressionPathScanEndReasonNoSuchChild;
           *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return ValueObjectSP();
+          return nullptr;
         }
       } else // other layers do expand
       {
-        child_name.SetCStringWithLength(expression_cstr,
-                                        next_separator - expression_cstr);
+        llvm::StringRef next_separator = temp_expression.substr(next_sep_pos);
+
+        child_name.SetString(temp_expression.slice(0, next_sep_pos));
+
         ValueObjectSP child_valobj_sp =
             root->GetChildMemberWithName(child_name, true);
         if (child_valobj_sp.get()) // store the new root and move on
         {
           root = child_valobj_sp;
-          *first_unparsed = next_separator;
+          remainder = next_separator;
           *final_result = ValueObject::eExpressionPathEndResultTypePlain;
           continue;
         } else {
@@ -2637,15 +2526,14 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
         if (child_valobj_sp.get()) // if it worked, move on
         {
           root = child_valobj_sp;
-          *first_unparsed = next_separator;
+          remainder = next_separator;
           *final_result = ValueObject::eExpressionPathEndResultTypePlain;
           continue;
         } else {
-          *first_unparsed = expression_cstr;
           *reason_to_stop =
               ValueObject::eExpressionPathScanEndReasonNoSuchChild;
           *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return ValueObjectSP();
+          return nullptr;
         }
       }
       break;
@@ -2663,7 +2551,6 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
               GetValueForExpressionPathOptions::SyntheticChildrenTraversal::
                   None) // ...only chance left is synthetic
           {
-            *first_unparsed = expression_cstr;
             *reason_to_stop =
                 ValueObject::eExpressionPathScanEndReasonRangeOperatorInvalid;
             *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
@@ -2673,26 +2560,23 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
                                                       // check that we can
                                                       // expand bitfields
         {
-          *first_unparsed = expression_cstr;
           *reason_to_stop =
               ValueObject::eExpressionPathScanEndReasonRangeOperatorNotAllowed;
           *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
           return ValueObjectSP();
         }
       }
-      if (*(expression_cstr + 1) ==
+      if (temp_expression[1] ==
           ']') // if this is an unbounded range it only works for arrays
       {
         if (!root_compiler_type_info.Test(eTypeIsArray)) {
-          *first_unparsed = expression_cstr;
           *reason_to_stop =
               ValueObject::eExpressionPathScanEndReasonEmptyRangeNotAllowed;
           *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return ValueObjectSP();
+          return nullptr;
         } else // even if something follows, we cannot expand unbounded ranges,
                // just let the caller do it
         {
-          *first_unparsed = expression_cstr + 2;
           *reason_to_stop =
               ValueObject::eExpressionPathScanEndReasonArrayRangeOperatorMet;
           *final_result =
@@ -2700,49 +2584,36 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
           return root;
         }
       }
-      const char *separator_position = ::strchr(expression_cstr + 1, '-');
-      const char *close_bracket_position = ::strchr(expression_cstr + 1, ']');
-      if (!close_bracket_position) // if there is no ], this is a syntax error
+
+      size_t close_bracket_position = temp_expression.find(']', 1);
+      if (close_bracket_position ==
+          llvm::StringRef::npos) // if there is no ], this is a syntax error
       {
-        *first_unparsed = expression_cstr;
         *reason_to_stop =
             ValueObject::eExpressionPathScanEndReasonUnexpectedSymbol;
         *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-        return ValueObjectSP();
+        return nullptr;
       }
-      if (!separator_position ||
-          separator_position > close_bracket_position) // if no separator, this
-                                                       // is either [] or [N]
-      {
-        char *end = NULL;
-        unsigned long index = ::strtoul(expression_cstr + 1, &end, 0);
-        if (!end || end != close_bracket_position) // if something weird is in
-                                                   // our way return an error
-        {
-          *first_unparsed = expression_cstr;
+
+      llvm::StringRef bracket_expr =
+          temp_expression.slice(1, close_bracket_position);
+
+      // If this was an empty expression it would have been caught by the if
+      // above.
+      assert(!bracket_expr.empty());
+
+      if (!bracket_expr.contains('-')) {
+        // if no separator, this is of the form [N].  Note that this cannot
+        // be an unbounded range of the form [], because that case was handled
+        // above with an unconditional return.
+        unsigned long index = 0;
+        if (bracket_expr.getAsInteger(0, index)) {
           *reason_to_stop =
               ValueObject::eExpressionPathScanEndReasonUnexpectedSymbol;
           *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return ValueObjectSP();
+          return nullptr;
         }
-        if (end - expression_cstr ==
-            1) // if this is [], only return a valid value for arrays
-        {
-          if (root_compiler_type_info.Test(eTypeIsArray)) {
-            *first_unparsed = expression_cstr + 2;
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonArrayRangeOperatorMet;
-            *final_result =
-                ValueObject::eExpressionPathEndResultTypeUnboundedRange;
-            return root;
-          } else {
-            *first_unparsed = expression_cstr;
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonEmptyRangeNotAllowed;
-            *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return ValueObjectSP();
-          }
-        }
+
         // from here on we do have a valid index
         if (root_compiler_type_info.Test(eTypeIsArray)) {
           ValueObjectSP child_valobj_sp = root->GetChildAtIndex(index, true);
@@ -2755,15 +2626,15 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
                   root->GetSyntheticValue()->GetChildAtIndex(index, true);
           if (child_valobj_sp) {
             root = child_valobj_sp;
-            *first_unparsed = end + 1; // skip ]
+            remainder =
+                temp_expression.substr(close_bracket_position + 1); // skip ]
             *final_result = ValueObject::eExpressionPathEndResultTypePlain;
             continue;
           } else {
-            *first_unparsed = expression_cstr;
             *reason_to_stop =
                 ValueObject::eExpressionPathScanEndReasonNoSuchChild;
             *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return ValueObjectSP();
+            return nullptr;
           }
         } else if (root_compiler_type_info.Test(eTypeIsPointer)) {
           if (*what_next ==
@@ -2780,12 +2651,11 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
               pointee_compiler_type_info.Test(eTypeIsScalar)) {
             Error error;
             root = root->Dereference(error);
-            if (error.Fail() || !root.get()) {
-              *first_unparsed = expression_cstr;
+            if (error.Fail() || !root) {
               *reason_to_stop =
                   ValueObject::eExpressionPathScanEndReasonDereferencingFailed;
               *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-              return ValueObjectSP();
+              return nullptr;
             } else {
               *what_next = eExpressionPathAftermathNothing;
               continue;
@@ -2804,30 +2674,28 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
               root = root->GetSyntheticValue()->GetChildAtIndex(index, true);
             } else
               root = root->GetSyntheticArrayMember(index, true);
-            if (!root.get()) {
-              *first_unparsed = expression_cstr;
+            if (!root) {
               *reason_to_stop =
                   ValueObject::eExpressionPathScanEndReasonNoSuchChild;
               *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-              return ValueObjectSP();
+              return nullptr;
             } else {
-              *first_unparsed = end + 1; // skip ]
+              remainder =
+                  temp_expression.substr(close_bracket_position + 1); // skip ]
               *final_result = ValueObject::eExpressionPathEndResultTypePlain;
               continue;
             }
           }
         } else if (root_compiler_type_info.Test(eTypeIsScalar)) {
           root = root->GetSyntheticBitFieldChild(index, index, true);
-          if (!root.get()) {
-            *first_unparsed = expression_cstr;
+          if (!root) {
             *reason_to_stop =
                 ValueObject::eExpressionPathScanEndReasonNoSuchChild;
             *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return ValueObjectSP();
+            return nullptr;
           } else // we do not know how to expand members of bitfields, so we
                  // just return and let the caller do any further processing
           {
-            *first_unparsed = end + 1; // skip ]
             *reason_to_stop = ValueObject::
                 eExpressionPathScanEndReasonBitfieldRangeOperatorMet;
             *final_result = ValueObject::eExpressionPathEndResultTypeBitfield;
@@ -2835,14 +2703,14 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
           }
         } else if (root_compiler_type_info.Test(eTypeIsVector)) {
           root = root->GetChildAtIndex(index, true);
-          if (!root.get()) {
-            *first_unparsed = expression_cstr;
+          if (!root) {
             *reason_to_stop =
                 ValueObject::eExpressionPathScanEndReasonNoSuchChild;
             *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
             return ValueObjectSP();
           } else {
-            *first_unparsed = end + 1; // skip ]
+            remainder =
+                temp_expression.substr(close_bracket_position + 1); // skip ]
             *final_result = ValueObject::eExpressionPathEndResultTypePlain;
             continue;
           }
@@ -2855,83 +2723,64 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
           if (root->HasSyntheticValue())
             root = root->GetSyntheticValue();
           else if (!root->IsSynthetic()) {
-            *first_unparsed = expression_cstr;
             *reason_to_stop =
                 ValueObject::eExpressionPathScanEndReasonSyntheticValueMissing;
             *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return ValueObjectSP();
+            return nullptr;
           }
           // if we are here, then root itself is a synthetic VO.. should be good
           // to go
 
-          if (!root.get()) {
-            *first_unparsed = expression_cstr;
+          if (!root) {
             *reason_to_stop =
                 ValueObject::eExpressionPathScanEndReasonSyntheticValueMissing;
             *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return ValueObjectSP();
+            return nullptr;
           }
           root = root->GetChildAtIndex(index, true);
-          if (!root.get()) {
-            *first_unparsed = expression_cstr;
+          if (!root) {
             *reason_to_stop =
                 ValueObject::eExpressionPathScanEndReasonNoSuchChild;
             *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return ValueObjectSP();
+            return nullptr;
           } else {
-            *first_unparsed = end + 1; // skip ]
+            remainder =
+                temp_expression.substr(close_bracket_position + 1); // skip ]
             *final_result = ValueObject::eExpressionPathEndResultTypePlain;
             continue;
           }
         } else {
-          *first_unparsed = expression_cstr;
           *reason_to_stop =
               ValueObject::eExpressionPathScanEndReasonNoSuchChild;
           *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return ValueObjectSP();
+          return nullptr;
         }
-      } else // we have a low and a high index
-      {
-        char *end = NULL;
-        unsigned long index_lower = ::strtoul(expression_cstr + 1, &end, 0);
-        if (!end || end != separator_position) // if something weird is in our
-                                               // way return an error
-        {
-          *first_unparsed = expression_cstr;
+      } else {
+        // we have a low and a high index
+        llvm::StringRef sleft, sright;
+        unsigned long low_index, high_index;
+        std::tie(sleft, sright) = bracket_expr.split('-');
+        if (sleft.getAsInteger(0, low_index) ||
+            sright.getAsInteger(0, high_index)) {
           *reason_to_stop =
               ValueObject::eExpressionPathScanEndReasonUnexpectedSymbol;
           *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return ValueObjectSP();
+          return nullptr;
         }
-        unsigned long index_higher = ::strtoul(separator_position + 1, &end, 0);
-        if (!end || end != close_bracket_position) // if something weird is in
-                                                   // our way return an error
-        {
-          *first_unparsed = expression_cstr;
-          *reason_to_stop =
-              ValueObject::eExpressionPathScanEndReasonUnexpectedSymbol;
-          *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return ValueObjectSP();
-        }
-        if (index_lower > index_higher) // swap indices if required
-        {
-          unsigned long temp = index_lower;
-          index_lower = index_higher;
-          index_higher = temp;
-        }
+
+        if (low_index > high_index) // swap indices if required
+          std::swap(low_index, high_index);
+
         if (root_compiler_type_info.Test(
                 eTypeIsScalar)) // expansion only works for scalars
         {
-          root =
-              root->GetSyntheticBitFieldChild(index_lower, index_higher, true);
-          if (!root.get()) {
-            *first_unparsed = expression_cstr;
+          root = root->GetSyntheticBitFieldChild(low_index, high_index, true);
+          if (!root) {
             *reason_to_stop =
                 ValueObject::eExpressionPathScanEndReasonNoSuchChild;
             *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return ValueObjectSP();
+            return nullptr;
           } else {
-            *first_unparsed = end + 1; // skip ]
             *reason_to_stop = ValueObject::
                 eExpressionPathScanEndReasonBitfieldRangeOperatorMet;
             *final_result = ValueObject::eExpressionPathEndResultTypeBitfield;
@@ -2947,18 +2796,16 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
                    pointee_compiler_type_info.Test(eTypeIsScalar)) {
           Error error;
           root = root->Dereference(error);
-          if (error.Fail() || !root.get()) {
-            *first_unparsed = expression_cstr;
+          if (error.Fail() || !root) {
             *reason_to_stop =
                 ValueObject::eExpressionPathScanEndReasonDereferencingFailed;
             *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return ValueObjectSP();
+            return nullptr;
           } else {
             *what_next = ValueObject::eExpressionPathAftermathNothing;
             continue;
           }
         } else {
-          *first_unparsed = expression_cstr;
           *reason_to_stop =
               ValueObject::eExpressionPathScanEndReasonArrayRangeOperatorMet;
           *final_result = ValueObject::eExpressionPathEndResultTypeBoundedRange;
@@ -2969,323 +2816,10 @@ ValueObjectSP ValueObject::GetValueForExpressionPath_Impl(
     }
     default: // some non-separator is in the way
     {
-      *first_unparsed = expression_cstr;
       *reason_to_stop =
           ValueObject::eExpressionPathScanEndReasonUnexpectedSymbol;
       *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-      return ValueObjectSP();
-      break;
-    }
-    }
-  }
-}
-
-int ValueObject::ExpandArraySliceExpression(
-    const char *expression_cstr, const char **first_unparsed,
-    ValueObjectSP root, ValueObjectListSP &list,
-    ExpressionPathScanEndReason *reason_to_stop,
-    ExpressionPathEndResultType *final_result,
-    const GetValueForExpressionPathOptions &options,
-    ExpressionPathAftermath *what_next) {
-  if (!root.get())
-    return 0;
-
-  *first_unparsed = expression_cstr;
-
-  while (true) {
-
-    const char *expression_cstr =
-        *first_unparsed; // hide the top level expression_cstr
-
-    CompilerType root_compiler_type = root->GetCompilerType();
-    CompilerType pointee_compiler_type;
-    Flags pointee_compiler_type_info;
-    Flags root_compiler_type_info(
-        root_compiler_type.GetTypeInfo(&pointee_compiler_type));
-    if (pointee_compiler_type)
-      pointee_compiler_type_info.Reset(pointee_compiler_type.GetTypeInfo());
-
-    if (!expression_cstr || *expression_cstr == '\0') {
-      *reason_to_stop = ValueObject::eExpressionPathScanEndReasonEndOfString;
-      list->Append(root);
-      return 1;
-    }
-
-    switch (*expression_cstr) {
-    case '[': {
-      if (!root_compiler_type_info.Test(eTypeIsArray) &&
-          !root_compiler_type_info.Test(
-              eTypeIsPointer)) // if this is not a T[] nor a T*
-      {
-        if (!root_compiler_type_info.Test(eTypeIsScalar)) // if this is not even
-                                                          // a scalar, this
-                                                          // syntax is just
-                                                          // plain wrong!
-        {
-          *first_unparsed = expression_cstr;
-          *reason_to_stop =
-              ValueObject::eExpressionPathScanEndReasonRangeOperatorInvalid;
-          *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return 0;
-        } else if (!options.m_allow_bitfields_syntax) // if this is a scalar,
-                                                      // check that we can
-                                                      // expand bitfields
-        {
-          *first_unparsed = expression_cstr;
-          *reason_to_stop =
-              ValueObject::eExpressionPathScanEndReasonRangeOperatorNotAllowed;
-          *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return 0;
-        }
-      }
-      if (*(expression_cstr + 1) ==
-          ']') // if this is an unbounded range it only works for arrays
-      {
-        if (!root_compiler_type_info.Test(eTypeIsArray)) {
-          *first_unparsed = expression_cstr;
-          *reason_to_stop =
-              ValueObject::eExpressionPathScanEndReasonEmptyRangeNotAllowed;
-          *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return 0;
-        } else // expand this into list
-        {
-          const size_t max_index = root->GetNumChildren() - 1;
-          for (size_t index = 0; index < max_index; index++) {
-            ValueObjectSP child = root->GetChildAtIndex(index, true);
-            list->Append(child);
-          }
-          *first_unparsed = expression_cstr + 2;
-          *reason_to_stop =
-              ValueObject::eExpressionPathScanEndReasonRangeOperatorExpanded;
-          *final_result =
-              ValueObject::eExpressionPathEndResultTypeValueObjectList;
-          return max_index; // tell me number of items I added to the VOList
-        }
-      }
-      const char *separator_position = ::strchr(expression_cstr + 1, '-');
-      const char *close_bracket_position = ::strchr(expression_cstr + 1, ']');
-      if (!close_bracket_position) // if there is no ], this is a syntax error
-      {
-        *first_unparsed = expression_cstr;
-        *reason_to_stop =
-            ValueObject::eExpressionPathScanEndReasonUnexpectedSymbol;
-        *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-        return 0;
-      }
-      if (!separator_position ||
-          separator_position > close_bracket_position) // if no separator, this
-                                                       // is either [] or [N]
-      {
-        char *end = NULL;
-        unsigned long index = ::strtoul(expression_cstr + 1, &end, 0);
-        if (!end || end != close_bracket_position) // if something weird is in
-                                                   // our way return an error
-        {
-          *first_unparsed = expression_cstr;
-          *reason_to_stop =
-              ValueObject::eExpressionPathScanEndReasonUnexpectedSymbol;
-          *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return 0;
-        }
-        if (end - expression_cstr ==
-            1) // if this is [], only return a valid value for arrays
-        {
-          if (root_compiler_type_info.Test(eTypeIsArray)) {
-            const size_t max_index = root->GetNumChildren() - 1;
-            for (size_t index = 0; index < max_index; index++) {
-              ValueObjectSP child = root->GetChildAtIndex(index, true);
-              list->Append(child);
-            }
-            *first_unparsed = expression_cstr + 2;
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonRangeOperatorExpanded;
-            *final_result =
-                ValueObject::eExpressionPathEndResultTypeValueObjectList;
-            return max_index; // tell me number of items I added to the VOList
-          } else {
-            *first_unparsed = expression_cstr;
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonEmptyRangeNotAllowed;
-            *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return 0;
-          }
-        }
-        // from here on we do have a valid index
-        if (root_compiler_type_info.Test(eTypeIsArray)) {
-          root = root->GetChildAtIndex(index, true);
-          if (!root.get()) {
-            *first_unparsed = expression_cstr;
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonNoSuchChild;
-            *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return 0;
-          } else {
-            list->Append(root);
-            *first_unparsed = end + 1; // skip ]
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonRangeOperatorExpanded;
-            *final_result =
-                ValueObject::eExpressionPathEndResultTypeValueObjectList;
-            return 1;
-          }
-        } else if (root_compiler_type_info.Test(eTypeIsPointer)) {
-          if (*what_next ==
-                  ValueObject::
-                      eExpressionPathAftermathDereference && // if this is a
-                                                             // ptr-to-scalar, I
-                                                             // am accessing it
-                                                             // by index and I
-                                                             // would have
-                                                             // deref'ed anyway,
-                                                             // then do it now
-                                                             // and use this as
-                                                             // a bitfield
-              pointee_compiler_type_info.Test(eTypeIsScalar)) {
-            Error error;
-            root = root->Dereference(error);
-            if (error.Fail() || !root.get()) {
-              *first_unparsed = expression_cstr;
-              *reason_to_stop =
-                  ValueObject::eExpressionPathScanEndReasonDereferencingFailed;
-              *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-              return 0;
-            } else {
-              *what_next = eExpressionPathAftermathNothing;
-              continue;
-            }
-          } else {
-            root = root->GetSyntheticArrayMember(index, true);
-            if (!root.get()) {
-              *first_unparsed = expression_cstr;
-              *reason_to_stop =
-                  ValueObject::eExpressionPathScanEndReasonNoSuchChild;
-              *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-              return 0;
-            } else {
-              list->Append(root);
-              *first_unparsed = end + 1; // skip ]
-              *reason_to_stop = ValueObject::
-                  eExpressionPathScanEndReasonRangeOperatorExpanded;
-              *final_result =
-                  ValueObject::eExpressionPathEndResultTypeValueObjectList;
-              return 1;
-            }
-          }
-        } else /*if (ClangASTContext::IsScalarType(root_compiler_type))*/
-        {
-          root = root->GetSyntheticBitFieldChild(index, index, true);
-          if (!root.get()) {
-            *first_unparsed = expression_cstr;
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonNoSuchChild;
-            *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return 0;
-          } else // we do not know how to expand members of bitfields, so we
-                 // just return and let the caller do any further processing
-          {
-            list->Append(root);
-            *first_unparsed = end + 1; // skip ]
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonRangeOperatorExpanded;
-            *final_result =
-                ValueObject::eExpressionPathEndResultTypeValueObjectList;
-            return 1;
-          }
-        }
-      } else // we have a low and a high index
-      {
-        char *end = NULL;
-        unsigned long index_lower = ::strtoul(expression_cstr + 1, &end, 0);
-        if (!end || end != separator_position) // if something weird is in our
-                                               // way return an error
-        {
-          *first_unparsed = expression_cstr;
-          *reason_to_stop =
-              ValueObject::eExpressionPathScanEndReasonUnexpectedSymbol;
-          *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return 0;
-        }
-        unsigned long index_higher = ::strtoul(separator_position + 1, &end, 0);
-        if (!end || end != close_bracket_position) // if something weird is in
-                                                   // our way return an error
-        {
-          *first_unparsed = expression_cstr;
-          *reason_to_stop =
-              ValueObject::eExpressionPathScanEndReasonUnexpectedSymbol;
-          *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-          return 0;
-        }
-        if (index_lower > index_higher) // swap indices if required
-        {
-          unsigned long temp = index_lower;
-          index_lower = index_higher;
-          index_higher = temp;
-        }
-        if (root_compiler_type_info.Test(
-                eTypeIsScalar)) // expansion only works for scalars
-        {
-          root =
-              root->GetSyntheticBitFieldChild(index_lower, index_higher, true);
-          if (!root.get()) {
-            *first_unparsed = expression_cstr;
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonNoSuchChild;
-            *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return 0;
-          } else {
-            list->Append(root);
-            *first_unparsed = end + 1; // skip ]
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonRangeOperatorExpanded;
-            *final_result =
-                ValueObject::eExpressionPathEndResultTypeValueObjectList;
-            return 1;
-          }
-        } else if (root_compiler_type_info.Test(
-                       eTypeIsPointer) && // if this is a ptr-to-scalar, I am
-                                          // accessing it by index and I would
-                                          // have deref'ed anyway, then do it
-                                          // now and use this as a bitfield
-                   *what_next ==
-                       ValueObject::eExpressionPathAftermathDereference &&
-                   pointee_compiler_type_info.Test(eTypeIsScalar)) {
-          Error error;
-          root = root->Dereference(error);
-          if (error.Fail() || !root.get()) {
-            *first_unparsed = expression_cstr;
-            *reason_to_stop =
-                ValueObject::eExpressionPathScanEndReasonDereferencingFailed;
-            *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-            return 0;
-          } else {
-            *what_next = ValueObject::eExpressionPathAftermathNothing;
-            continue;
-          }
-        } else {
-          for (unsigned long index = index_lower; index <= index_higher;
-               index++) {
-            ValueObjectSP child = root->GetChildAtIndex(index, true);
-            list->Append(child);
-          }
-          *first_unparsed = end + 1;
-          *reason_to_stop =
-              ValueObject::eExpressionPathScanEndReasonRangeOperatorExpanded;
-          *final_result =
-              ValueObject::eExpressionPathEndResultTypeValueObjectList;
-          return index_higher - index_lower +
-                 1; // tell me number of items I added to the VOList
-        }
-      }
-      break;
-    }
-    default: // some non-[ separator, or something entirely wrong, is in the way
-    {
-      *first_unparsed = expression_cstr;
-      *reason_to_stop =
-          ValueObject::eExpressionPathScanEndReasonUnexpectedSymbol;
-      *final_result = ValueObject::eExpressionPathEndResultTypeInvalid;
-      return 0;
-      break;
+      return nullptr;
     }
     }
   }
@@ -3453,11 +2987,11 @@ ValueObjectSP ValueObject::Dereference(Error &error) {
     if (is_pointer_or_reference_type)
       error.SetErrorStringWithFormat("dereference failed: (%s) %s",
                                      GetTypeName().AsCString("<invalid type>"),
-                                     strm.GetString().c_str());
+                                     strm.GetData());
     else
       error.SetErrorStringWithFormat("not a pointer or reference type: (%s) %s",
                                      GetTypeName().AsCString("<invalid type>"),
-                                     strm.GetString().c_str());
+                                     strm.GetData());
     return ValueObjectSP();
   }
 }
@@ -3476,7 +3010,7 @@ ValueObjectSP ValueObject::AddressOf(Error &error) {
       StreamString expr_path_strm;
       GetExpressionPath(expr_path_strm, true);
       error.SetErrorStringWithFormat("'%s' is not in memory",
-                                     expr_path_strm.GetString().c_str());
+                                     expr_path_strm.GetData());
     } break;
 
     case eAddressTypeFile:
@@ -3499,7 +3033,7 @@ ValueObjectSP ValueObject::AddressOf(Error &error) {
     StreamString expr_path_strm;
     GetExpressionPath(expr_path_strm, true);
     error.SetErrorStringWithFormat("'%s' doesn't have a valid address",
-                                   expr_path_strm.GetString().c_str());
+                                   expr_path_strm.GetData());
   }
 
   return m_addr_of_valobj_sp;
@@ -3706,32 +3240,33 @@ SymbolContextScope *ValueObject::GetSymbolContextScope() {
   return NULL;
 }
 
-lldb::ValueObjectSP ValueObject::CreateValueObjectFromExpression(
-    const char *name, const char *expression, const ExecutionContext &exe_ctx) {
+lldb::ValueObjectSP
+ValueObject::CreateValueObjectFromExpression(llvm::StringRef name,
+                                             llvm::StringRef expression,
+                                             const ExecutionContext &exe_ctx) {
   return CreateValueObjectFromExpression(name, expression, exe_ctx,
                                          EvaluateExpressionOptions());
 }
 
 lldb::ValueObjectSP ValueObject::CreateValueObjectFromExpression(
-    const char *name, const char *expression, const ExecutionContext &exe_ctx,
-    const EvaluateExpressionOptions &options) {
+    llvm::StringRef name, llvm::StringRef expression,
+    const ExecutionContext &exe_ctx, const EvaluateExpressionOptions &options) {
   lldb::ValueObjectSP retval_sp;
   lldb::TargetSP target_sp(exe_ctx.GetTargetSP());
   if (!target_sp)
     return retval_sp;
-  if (!expression || !*expression)
+  if (expression.empty())
     return retval_sp;
   target_sp->EvaluateExpression(expression, exe_ctx.GetFrameSP().get(),
                                 retval_sp, options);
-  if (retval_sp && name && *name)
+  if (retval_sp && !name.empty())
     retval_sp->SetName(ConstString(name));
   return retval_sp;
 }
 
-lldb::ValueObjectSP
-ValueObject::CreateValueObjectFromAddress(const char *name, uint64_t address,
-                                          const ExecutionContext &exe_ctx,
-                                          CompilerType type) {
+lldb::ValueObjectSP ValueObject::CreateValueObjectFromAddress(
+    llvm::StringRef name, uint64_t address, const ExecutionContext &exe_ctx,
+    CompilerType type) {
   if (type) {
     CompilerType pointer_type(type.GetPointerType());
     if (pointer_type) {
@@ -3746,7 +3281,7 @@ ValueObject::CreateValueObjectFromAddress(const char *name, uint64_t address,
             Value::eValueTypeLoadAddress);
         Error err;
         ptr_result_valobj_sp = ptr_result_valobj_sp->Dereference(err);
-        if (ptr_result_valobj_sp && name && *name)
+        if (ptr_result_valobj_sp && !name.empty())
           ptr_result_valobj_sp->SetName(ConstString(name));
       }
       return ptr_result_valobj_sp;
@@ -3756,14 +3291,14 @@ ValueObject::CreateValueObjectFromAddress(const char *name, uint64_t address,
 }
 
 lldb::ValueObjectSP ValueObject::CreateValueObjectFromData(
-    const char *name, const DataExtractor &data,
+    llvm::StringRef name, const DataExtractor &data,
     const ExecutionContext &exe_ctx, CompilerType type) {
   lldb::ValueObjectSP new_value_sp;
   new_value_sp = ValueObjectConstResult::Create(
       exe_ctx.GetBestExecutionContextScope(), type, ConstString(name), data,
       LLDB_INVALID_ADDRESS);
   new_value_sp->SetAddressTypeOfChildren(eAddressTypeLoad);
-  if (new_value_sp && name && *name)
+  if (new_value_sp && !name.empty())
     new_value_sp->SetName(ConstString(name));
   return new_value_sp;
 }
@@ -3903,3 +3438,98 @@ void ValueObject::SetSyntheticChildrenGenerated(bool b) {
 uint64_t ValueObject::GetLanguageFlags() { return m_language_flags; }
 
 void ValueObject::SetLanguageFlags(uint64_t flags) { m_language_flags = flags; }
+
+ValueObjectManager::ValueObjectManager(lldb::ValueObjectSP in_valobj_sp,
+                                       lldb::DynamicValueType use_dynamic,
+                                       bool use_synthetic) : m_root_valobj_sp(),
+    m_user_valobj_sp(), m_use_dynamic(use_dynamic), m_stop_id(UINT32_MAX),
+    m_use_synthetic(use_synthetic) {
+  if (!in_valobj_sp)
+    return;
+  // If the user passes in a value object that is dynamic or synthetic, then
+  // water it down to the static type.
+  m_root_valobj_sp = in_valobj_sp->GetQualifiedRepresentationIfAvailable(lldb::eNoDynamicValues, false);
+}
+
+bool ValueObjectManager::IsValid() const {
+  if (!m_root_valobj_sp)
+    return false;
+  lldb::TargetSP target_sp = GetTargetSP();
+  if (target_sp)
+    return target_sp->IsValid();
+  return false;
+}
+
+lldb::ValueObjectSP ValueObjectManager::GetSP() {
+  lldb::ProcessSP process_sp = GetProcessSP();
+  if (!process_sp)
+    return lldb::ValueObjectSP();
+  
+  const uint32_t current_stop_id = process_sp->GetLastNaturalStopID();
+  if (current_stop_id == m_stop_id)
+    return m_user_valobj_sp;
+  
+  m_stop_id = current_stop_id;
+  
+  if (!m_root_valobj_sp) {
+    m_user_valobj_sp.reset();
+    return m_root_valobj_sp;
+  }
+  
+  m_user_valobj_sp = m_root_valobj_sp;
+  
+  if (m_use_dynamic != lldb::eNoDynamicValues) {
+    lldb::ValueObjectSP dynamic_sp = m_user_valobj_sp->GetDynamicValue(m_use_dynamic);
+    if (dynamic_sp)
+      m_user_valobj_sp = dynamic_sp;
+  }
+  
+  if (m_use_synthetic) {
+    lldb::ValueObjectSP synthetic_sp = m_user_valobj_sp->GetSyntheticValue(m_use_synthetic);
+    if (synthetic_sp)
+      m_user_valobj_sp = synthetic_sp;
+  }
+  
+  return m_user_valobj_sp;
+}
+
+void ValueObjectManager::SetUseDynamic(lldb::DynamicValueType use_dynamic) {
+  if (use_dynamic != m_use_dynamic) {
+    m_use_dynamic = use_dynamic;
+    m_user_valobj_sp.reset();
+    m_stop_id = UINT32_MAX;
+  }
+}
+
+void ValueObjectManager::SetUseSynthetic(bool use_synthetic) {
+  if (m_use_synthetic != use_synthetic) {
+    m_use_synthetic = use_synthetic;
+    m_user_valobj_sp.reset();
+    m_stop_id = UINT32_MAX;
+  }
+}
+
+lldb::TargetSP ValueObjectManager::GetTargetSP() const {
+  if (!m_root_valobj_sp)
+    return m_root_valobj_sp->GetTargetSP();
+  return lldb::TargetSP();
+}
+
+lldb::ProcessSP ValueObjectManager::GetProcessSP() const {
+  if (m_root_valobj_sp)
+    return m_root_valobj_sp->GetProcessSP();
+  return lldb::ProcessSP();
+}
+
+lldb::ThreadSP ValueObjectManager::GetThreadSP() const {
+  if (m_root_valobj_sp)
+    return m_root_valobj_sp->GetThreadSP();
+  return lldb::ThreadSP();
+}
+
+lldb::StackFrameSP ValueObjectManager::GetFrameSP() const {
+  if (m_root_valobj_sp)
+    return m_root_valobj_sp->GetFrameSP();
+  return lldb::StackFrameSP();
+}
+

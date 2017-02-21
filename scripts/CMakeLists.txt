@@ -11,8 +11,13 @@ set(SWIG_HEADERS
 
 include(FindPythonInterp)
 
-set(SWIG_PYTHON_DIR
-  ${CMAKE_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})
+if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+  set(SWIG_PYTHON_DIR
+    ${CMAKE_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})
+else()
+  set(SWIG_PYTHON_DIR ${CMAKE_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}/site-packages)
+endif()
+
 set(SWIG_INSTALL_DIR lib${LLVM_LIBDIR_SUFFIX})
 
 # Generating the LLDB framework correctly is a bit complicated because the
@@ -25,20 +30,12 @@ if(LLDB_BUILD_FRAMEWORK)
     ${LLDB_FRAMEWORK_INSTALL_DIR}/${LLDB_FRAMEWORK_RESOURCE_DIR})
 endif()
 
-set(PREPARE_BINDINGS_ARGS
-  "--src-root=${LLDB_SOURCE_DIR}"
-  "--target-dir=${LLDB_PYTHON_TARGET_DIR}"
-  "--config-build-dir=${CMAKE_CURRENT_BINARY_DIR}"
-  "--prefix=${CMAKE_BINARY_DIR}")
-
 find_package(SWIG)
 if( ${SWIG_FOUND} )
   set(PREPARE_BINDINGS_ARGS
-    ${PREPARE_BINDINGS_ARGS}
     "--swig-executable=${SWIG_EXECUTABLE}")
 elseif( ${LLDB_ALLOW_STATIC_BINDINGS} )
   set(PREPARE_BINDINGS_ARGS
-    ${PREPARE_BINDINGS_ARGS}
     --find-swig
     --allow-static-binding)
 else()
@@ -53,17 +50,22 @@ add_custom_command(
   DEPENDS ${SWIG_HEADERS}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Python/prepare_binding_Python.py
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Python/modify-python-lldb.py
-  COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/prepare_bindings.py ${PREPARE_BINDINGS_ARGS}
+  COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/prepare_bindings.py
+      ${framework_arg}
+      --srcRoot=${LLDB_SOURCE_DIR}
+      --targetDir=${LLDB_PYTHON_TARGET_DIR}
+      --cfgBldDir=${CMAKE_CURRENT_BINARY_DIR}
+      --prefix=${CMAKE_BINARY_DIR}
+      ${PREPARE_BINDINGS_ARGS}
+  VERBATIM
   COMMENT "Python script building LLDB Python wrapper")
 set_source_files_properties(${LLDB_WRAP_PYTHON} PROPERTIES GENERATED 1)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/lldb.py PROPERTIES GENERATED 1)
 
 add_custom_target(swig_wrapper ALL DEPENDS ${LLDB_WRAP_PYTHON})
 
-# Install the LLDB python module on all operating systems (except Windows)
-if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
-  install(DIRECTORY ${SWIG_PYTHON_DIR} DESTINATION ${SWIG_INSTALL_DIR})
-endif()
+# Install the LLDB python module
+install(DIRECTORY ${SWIG_PYTHON_DIR} DESTINATION ${SWIG_INSTALL_DIR})
 
 # build Python modules
 add_subdirectory(Python/modules)

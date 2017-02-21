@@ -81,8 +81,8 @@ public:
   /// @param[in] options
   ///     Additional options for the expression.
   //------------------------------------------------------------------
-  SwiftUserExpression(ExecutionContextScope &exe_scope, const char *expr,
-                      const char *expr_prefix, lldb::LanguageType language,
+  SwiftUserExpression(ExecutionContextScope &exe_scope, llvm::StringRef expr,
+                      llvm::StringRef prefix, lldb::LanguageType language,
                       ResultType desired_type,
                       const EvaluateExpressionOptions &options);
 

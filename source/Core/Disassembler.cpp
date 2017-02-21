@@ -20,10 +20,8 @@
 #include "lldb/Core/DataExtractor.h"
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/EmulateInstruction.h"
-#include "lldb/Core/Error.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/PluginManager.h"
-#include "lldb/Core/RegularExpression.h"
 #include "lldb/Core/Timer.h"
 #include "lldb/Host/FileSystem.h"
 #include "lldb/Interpreter/OptionValue.h"
@@ -39,6 +37,8 @@
 #include "lldb/Target/SectionLoadList.h"
 #include "lldb/Target/StackFrame.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/Error.h"
+#include "lldb/Utility/RegularExpression.h"
 #include "lldb/lldb-private.h"
 
 #define DEFAULT_DISASM_BYTE_SIZE 32
@@ -725,17 +725,17 @@ void Instruction::Dump(lldb_private::Stream *s, uint32_t max_opcode_byte_size,
     opcode_column_width = m_opcode_name.length() + 1;
   }
 
-  ss.PutCString(m_opcode_name.c_str());
+  ss.PutCString(m_opcode_name);
   ss.FillLastLineToColumn(opcode_pos + opcode_column_width, ' ');
-  ss.PutCString(m_mnemonics.c_str());
+  ss.PutCString(m_mnemonics);
 
   if (!m_comment.empty()) {
     ss.FillLastLineToColumn(
         opcode_pos + opcode_column_width + operand_column_width, ' ');
     ss.PutCString(" ; ");
-    ss.PutCString(m_comment.c_str());
+    ss.PutCString(m_comment);
   }
-  s->Write(ss.GetData(), ss.GetSize());
+  s->PutCString(ss.GetString());
 }
 
 bool Instruction::DumpEmulation(const ArchSpec &arch) {
@@ -1321,9 +1321,8 @@ void PseudoInstruction::SetOpcode(size_t opcode_size, void *opcode_data) {
   }
 }
 
-void PseudoInstruction::SetDescription(const char *description) {
-  if (description && strlen(description) > 0)
-    m_description = description;
+void PseudoInstruction::SetDescription(llvm::StringRef description) {
+  m_description = description;
 }
 
 Instruction::Operand Instruction::Operand::BuildRegister(ConstString &r) {

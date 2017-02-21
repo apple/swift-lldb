@@ -34,6 +34,8 @@
 #include "lldb/Target/TargetList.h"
 #include "lldb/lldb-public.h"
 
+#include "llvm/Support/Threading.h"
+
 namespace llvm {
 namespace sys {
 class DynamicLibrary;
@@ -210,8 +212,8 @@ public:
   };
 
   Error SetPropertyValue(const ExecutionContext *exe_ctx,
-                         VarSetOperationType op, const char *property_path,
-                         const char *value) override;
+                         VarSetOperationType op, llvm::StringRef property_path,
+    llvm::StringRef value) override;
 
   bool GetAutoConfirm() const;
 
@@ -371,9 +373,8 @@ protected:
   std::unique_ptr<CommandInterpreter> m_command_interpreter_ap;
 
   IOHandlerStack m_input_reader_stack;
-  typedef std::map<std::string, lldb::StreamWP> LogStreamMap;
-  LogStreamMap m_log_streams;
-  lldb::StreamSP m_log_callback_stream_sp;
+  llvm::StringMap<std::weak_ptr<llvm::raw_ostream>> m_log_streams;
+  std::shared_ptr<llvm::raw_ostream> m_log_callback_stream_sp;
   ConstString m_instance_name;
   static LoadPluginCallbackType g_load_plugin_callback;
   typedef std::vector<llvm::sys::DynamicLibrary> LoadedPluginsList;

@@ -14,7 +14,7 @@
 #define liblldb_SwiftASTManipulator_h
 
 #include "lldb/Core/ClangForward.h"
-#include "lldb/Core/Stream.h"
+#include "lldb/Utility/Stream.h"
 #include "lldb/Expression/Expression.h"
 #include "lldb/Symbol/CompilerType.h"
 
@@ -130,8 +130,7 @@ public:
   static void WrapExpression(Stream &wrapped_stream, const char *text,
                              uint32_t language_flags,
                              const EvaluateExpressionOptions &options,
-                             const Expression::SwiftGenericInfo &generic_info,
-                             uint32_t &first_body_line);
+                             const Expression::SwiftGenericInfo &generic_info);
 
   void FindSpecialNames(llvm::SmallVectorImpl<swift::Identifier> &names,
                         llvm::StringRef prefix);

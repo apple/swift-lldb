@@ -1,5 +1,4 @@
-//===-- SBFileSpecListList.cpp ------------------------------------------*- C++
-//-*-===//
+//===-- SBFileSpecList.cpp --------------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -15,8 +14,8 @@
 #include "lldb/API/SBStream.h"
 #include "lldb/Core/FileSpecList.h"
 #include "lldb/Core/Log.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Host/FileSpec.h"
+#include "lldb/Utility/Stream.h"
 
 using namespace lldb;
 using namespace lldb_private;

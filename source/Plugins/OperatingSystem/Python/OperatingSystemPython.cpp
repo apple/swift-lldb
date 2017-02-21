@@ -1,5 +1,4 @@
-//===-- OperatingSystemPython.cpp --------------------------------*- C++
-//-*-===//
+//===-- OperatingSystemPython.cpp --------------------------------*- C++-*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -24,7 +23,6 @@
 #include "lldb/Core/Module.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Core/RegisterValue.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/StructuredData.h"
 #include "lldb/Core/ValueObjectVariable.h"
 #include "lldb/Interpreter/CommandInterpreter.h"
@@ -36,6 +34,7 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Target/ThreadList.h"
+#include "lldb/Utility/StreamString.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -197,7 +196,7 @@ bool OperatingSystemPython::UpdateThreadList(ThreadList &old_thread_list,
     if (log) {
       StreamString strm;
       threads_list->Dump(strm);
-      log->Printf("threads_list = %s", strm.GetString().c_str());
+      log->Printf("threads_list = %s", strm.GetData());
     }
 
     const uint32_t num_threads = threads_list->GetSize();

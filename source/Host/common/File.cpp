@@ -19,17 +19,18 @@
 #include "lldb/Host/windows/windows.h"
 #else
 #include <sys/ioctl.h>
+#include <termios.h>
 #endif
 
 #include "llvm/Support/ConvertUTF.h"
 #include "llvm/Support/Process.h" // for llvm::sys::Process::FileDescriptorHasColors()
 
 #include "lldb/Core/DataBufferHeap.h"
-#include "lldb/Core/Error.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Host/Config.h"
 #include "lldb/Host/FileSpec.h"
 #include "lldb/Host/FileSystem.h"
+#include "lldb/Utility/Error.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -222,7 +223,7 @@ Error File::Open(const char *path, uint32_t options, uint32_t permissions) {
   }
 
   do {
-#ifdef _WIN32
+#ifdef _MSC_VER
     std::wstring wpath;
     if (!llvm::ConvertUTF8toWide(path, wpath)) {
       m_descriptor = -1;

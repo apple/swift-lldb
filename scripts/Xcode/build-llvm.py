@@ -204,6 +204,124 @@ def setup_build_symlink():
     link_path = expected_package_build_path()
     do_symlink(source_path, link_path)
 
+def find_cmake():
+    # First check the system PATH env var for cmake
+    cmake_binary = find_executable_in_paths(
+        "cmake", os.environ["PATH"].split(os.pathsep))
+    if cmake_binary:
+        # We found it there, use it.
+        return cmake_binary
+
+    # Check a few more common spots.  Xcode launched from Finder
+    # will have the default environment, and may not have
+    # all the normal places present.
+    extra_cmake_dirs = [
+        "/usr/local/bin",
+        "/opt/local/bin",
+        os.path.join(os.path.expanduser("~"), "bin")
+    ]
+
+    if platform.system() == "Darwin":
+        # Add locations where an official CMake.app package may be installed.
+        extra_cmake_dirs.extend([
+            os.path.join(
+                os.path.expanduser("~"),
+                "Applications",
+                "CMake.app",
+                "Contents",
+                "bin"),
+            os.path.join(
+                os.sep,
+                "Applications",
+                "CMake.app",
+                "Contents",
+                "bin")])
+
+    cmake_binary = find_executable_in_paths("cmake", extra_cmake_dirs)
+    if cmake_binary:
+        # We found it in one of the usual places.  Use that.
+        return cmake_binary
+
+    # We couldn't find cmake.  Tell the user what to do.
+    raise Exception(
+        "could not find cmake in PATH ({}) or in any of these locations ({}), "
+        "please install cmake or add a link to it in one of those locations".format(
+            os.environ["PATH"], extra_cmake_dirs))
+
+
+def cmake_flags():
+    cmake_flags = CMAKE_FLAGS()[lldb_configuration()]
+    cmake_flags += ["-GNinja",
+                    "-DCMAKE_C_COMPILER={}".format(get_c_compiler()),
+                    "-DCMAKE_CXX_COMPILER={}".format(get_cxx_compiler()),
+                    "-DCMAKE_INSTALL_PREFIX={}".format(expected_package_build_path_for("llvm")),
+                    "-DCMAKE_C_FLAGS={}".format(get_c_flags()),
+                    "-DCMAKE_CXX_FLAGS={}".format(get_cxx_flags()),
+                    "-DCMAKE_EXE_LINKER_FLAGS={}".format(get_exe_linker_flags()),
+                    "-DCMAKE_SHARED_LINKER_FLAGS={}".format(get_shared_linker_flags()),
+                    "-DHAVE_CRASHREPORTER_INFO=1"]
+    deployment_target = get_deployment_target()
+    if deployment_target:
+        cmake_flags.append(
+            "-DCMAKE_OSX_DEPLOYMENT_TARGET={}".format(deployment_target))
+    return cmake_flags
+
+
+def run_cmake(cmake_build_dir, ninja_binary_path):
+    cmake_binary = find_cmake()
+    print "found cmake binary: using \"{}\"".format(cmake_binary)
+
+    command_line = [cmake_binary] + cmake_flags() + [
+        "-DCMAKE_MAKE_PROGRAM={}".format(ninja_binary_path),
+        llvm_source_path()]
+    print "running cmake like so: ({}) in dir ({})".format(command_line, cmake_build_dir)
+
+    subprocess.check_call(
+        command_line,
+        cwd=cmake_build_dir,
+        env=cmake_environment())
+
+
+def create_directories_as_needed(path):
+    try:
+        os.makedirs(path)
+    except OSError as error:
+        # An error indicating that the directory exists already is fine.
+        # Anything else should be passed along.
+        if error.errno != errno.EEXIST:
+            raise error
+
+
+def run_cmake_if_needed(ninja_binary_path):
+    cmake_build_dir = package_build_path()
+    if should_run_cmake(cmake_build_dir):
+        # Create the build directory as needed
+        create_directories_as_needed(cmake_build_dir)
+        run_cmake(cmake_build_dir, ninja_binary_path)
+
+
+def build_ninja_if_needed():
+    # First check if ninja is in our path.  If so, there's nothing to do.
+    ninja_binary_path = find_executable_in_paths(
+        "ninja", os.environ["PATH"].split(os.pathsep))
+    if ninja_binary_path:
+        # It's on the path.  cmake will find it.  We're good.
+        print "found ninja here: \"{}\"".format(ninja_binary_path)
+        return ninja_binary_path
+
+    # Figure out if we need to build it.
+    ninja_build_dir = ninja_source_path()
+    ninja_binary_path = os.path.join(ninja_build_dir, "ninja")
+    if not is_executable(ninja_binary_path):
+        # Build ninja
+        command_line = ["python", "configure.py", "--bootstrap"]
+        print "building ninja like so: ({}) in dir ({})".format(command_line, ninja_build_dir)
+        subprocess.check_call(
+            command_line,
+            cwd=ninja_build_dir,
+            env=os.environ)
+
+    return ninja_binary_path
 
 def build_script_flags():
     return BUILD_SCRIPT_FLAGS()[lldb_configuration(

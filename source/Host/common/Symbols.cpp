@@ -14,12 +14,12 @@
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/ModuleSpec.h"
-#include "lldb/Core/StreamString.h"
 #include "lldb/Core/Timer.h"
 #include "lldb/Core/UUID.h"
 #include "lldb/Symbol/ObjectFile.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Utility/SafeMachO.h"
+#include "lldb/Utility/StreamString.h"
 
 #include "llvm/Support/FileSystem.h"
 
@@ -246,7 +246,7 @@ FileSpec Symbols::LocateExecutableSymbolFile(const ModuleSpec &module_spec) {
       const uint32_t num_files = files.size();
       for (size_t idx_file = 0; idx_file < num_files; ++idx_file) {
         const std::string &filename = files[idx_file];
-        FileSpec file_spec(filename.c_str(), true);
+        FileSpec file_spec(filename, true);
 
         if (llvm::sys::fs::equivalent(file_spec.GetPath(),
                                       module_spec.GetFileSpec().GetPath()))

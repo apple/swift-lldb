@@ -10,8 +10,6 @@
 #include "lldb/Symbol/Variable.h"
 
 #include "lldb/Core/Module.h"
-#include "lldb/Core/RegularExpression.h"
-#include "lldb/Core/Stream.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Core/ValueObjectVariable.h"
 #include "lldb/Symbol/Block.h"
@@ -30,6 +28,10 @@
 #include "lldb/Target/StackFrame.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
+#include "lldb/Utility/RegularExpression.h"
+#include "lldb/Utility/Stream.h"
+
+#include "llvm/ADT/Twine.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -329,121 +331,130 @@ bool Variable::IsInScope(StackFrame *frame) {
 }
 
 Error Variable::GetValuesForVariableExpressionPath(
-    const char *variable_expr_path, ExecutionContextScope *scope,
+    llvm::StringRef variable_expr_path, ExecutionContextScope *scope,
     GetVariableCallback callback, void *baton, VariableList &variable_list,
     ValueObjectList &valobj_list) {
   Error error;
-  if (variable_expr_path && callback) {
-    switch (variable_expr_path[0]) {
-    case '*': {
-      error = Variable::GetValuesForVariableExpressionPath(
-          variable_expr_path + 1, scope, callback, baton, variable_list,
-          valobj_list);
-      if (error.Success()) {
-        for (uint32_t i = 0; i < valobj_list.GetSize();) {
-          Error tmp_error;
-          ValueObjectSP valobj_sp(
-              valobj_list.GetValueObjectAtIndex(i)->Dereference(tmp_error));
-          if (tmp_error.Fail()) {
-            variable_list.RemoveVariableAtIndex(i);
-            valobj_list.RemoveValueObjectAtIndex(i);
-          } else {
-            valobj_list.SetValueObjectAtIndex(i, valobj_sp);
-            ++i;
-          }
-        }
-      } else {
-        error.SetErrorString("unknown error");
-      }
+  if (!callback || variable_expr_path.empty()) {
+    error.SetErrorString("unknown error");
+    return error;
+  }
+
+  switch (variable_expr_path.front()) {
+  case '*':
+    error = Variable::GetValuesForVariableExpressionPath(
+        variable_expr_path.drop_front(), scope, callback, baton, variable_list,
+        valobj_list);
+    if (error.Fail()) {
+      error.SetErrorString("unknown error");
       return error;
-    } break;
-
-    case '&': {
-      error = Variable::GetValuesForVariableExpressionPath(
-          variable_expr_path + 1, scope, callback, baton, variable_list,
-          valobj_list);
-      if (error.Success()) {
-        for (uint32_t i = 0; i < valobj_list.GetSize();) {
-          Error tmp_error;
-          ValueObjectSP valobj_sp(
-              valobj_list.GetValueObjectAtIndex(i)->AddressOf(tmp_error));
-          if (tmp_error.Fail()) {
-            variable_list.RemoveVariableAtIndex(i);
-            valobj_list.RemoveValueObjectAtIndex(i);
-          } else {
-            valobj_list.SetValueObjectAtIndex(i, valobj_sp);
-            ++i;
-          }
-        }
-      } else {
-        error.SetErrorString("unknown error");
-      }
-      return error;
-    } break;
-
-    default: {
-      static RegularExpression g_regex(
-          llvm::StringRef("^([A-Za-z_:][A-Za-z_0-9:]*)(.*)"));
-      RegularExpression::Match regex_match(1);
-      if (g_regex.Execute(llvm::StringRef::withNullAsEmpty(variable_expr_path),
-                          &regex_match)) {
-        std::string variable_name;
-        if (regex_match.GetMatchAtIndex(variable_expr_path, 1, variable_name)) {
-          variable_list.Clear();
-          if (callback(baton, variable_name.c_str(), variable_list)) {
-            uint32_t i = 0;
-            while (i < variable_list.GetSize()) {
-              VariableSP var_sp(variable_list.GetVariableAtIndex(i));
-              ValueObjectSP valobj_sp;
-              if (var_sp) {
-                ValueObjectSP variable_valobj_sp(
-                    ValueObjectVariable::Create(scope, var_sp));
-                if (variable_valobj_sp) {
-                  const char *variable_sub_expr_path =
-                      variable_expr_path + variable_name.size();
-                  if (*variable_sub_expr_path) {
-                    const char *first_unparsed = nullptr;
-                    ValueObject::ExpressionPathScanEndReason reason_to_stop;
-                    ValueObject::ExpressionPathEndResultType final_value_type;
-                    ValueObject::GetValueForExpressionPathOptions options;
-                    ValueObject::ExpressionPathAftermath final_task_on_target;
-
-                    valobj_sp = variable_valobj_sp->GetValueForExpressionPath(
-                        variable_sub_expr_path, &first_unparsed,
-                        &reason_to_stop, &final_value_type, options,
-                        &final_task_on_target);
-                    if (!valobj_sp) {
-                      error.SetErrorStringWithFormat(
-                          "invalid expression path '%s' for variable '%s'",
-                          variable_sub_expr_path,
-                          var_sp->GetName().GetCString());
-                    }
-                  } else {
-                    // Just the name of a variable with no extras
-                    valobj_sp = variable_valobj_sp;
-                  }
-                }
-              }
-
-              if (!var_sp || !valobj_sp) {
-                variable_list.RemoveVariableAtIndex(i);
-              } else {
-                valobj_list.Append(valobj_sp);
-                ++i;
-              }
-            }
-
-            if (variable_list.GetSize() > 0) {
-              error.Clear();
-              return error;
-            }
-          }
-        }
-      }
-      error.SetErrorStringWithFormat(
-          "unable to extract a variable name from '%s'", variable_expr_path);
-    } break;
     }
+    for (uint32_t i = 0; i < valobj_list.GetSize();) {
+      Error tmp_error;
+      ValueObjectSP valobj_sp(
+          valobj_list.GetValueObjectAtIndex(i)->Dereference(tmp_error));
+      if (tmp_error.Fail()) {
+        variable_list.RemoveVariableAtIndex(i);
+        valobj_list.RemoveValueObjectAtIndex(i);
+      } else {
+        valobj_list.SetValueObjectAtIndex(i, valobj_sp);
+        ++i;
+      }
+    }
+    return error;
+  case '&': {
+    error = Variable::GetValuesForVariableExpressionPath(
+        variable_expr_path.drop_front(), scope, callback, baton, variable_list,
+        valobj_list);
+    if (error.Success()) {
+      for (uint32_t i = 0; i < valobj_list.GetSize();) {
+        Error tmp_error;
+        ValueObjectSP valobj_sp(
+            valobj_list.GetValueObjectAtIndex(i)->AddressOf(tmp_error));
+        if (tmp_error.Fail()) {
+          variable_list.RemoveVariableAtIndex(i);
+          valobj_list.RemoveValueObjectAtIndex(i);
+        } else {
+          valobj_list.SetValueObjectAtIndex(i, valobj_sp);
+          ++i;
+        }
+      }
+    } else {
+      error.SetErrorString("unknown error");
+    }
+    return error;
+  } break;
+
+  default: {
+    static RegularExpression g_regex(
+        llvm::StringRef("^([A-Za-z_:][A-Za-z_0-9:]*)(.*)"));
+    RegularExpression::Match regex_match(1);
+    std::string variable_name;
+    variable_list.Clear();
+    if (!g_regex.Execute(variable_expr_path, &regex_match)) {
+      error.SetErrorStringWithFormat(
+          "unable to extract a variable name from '%s'",
+          variable_expr_path.str().c_str());
+      return error;
+    }
+    if (!regex_match.GetMatchAtIndex(variable_expr_path, 1, variable_name)) {
+      error.SetErrorStringWithFormat(
+          "unable to extract a variable name from '%s'",
+          variable_expr_path.str().c_str());
+      return error;
+    }
+    if (!callback(baton, variable_name.c_str(), variable_list)) {
+      error.SetErrorString("unknown error");
+      return error;
+    }
+    uint32_t i = 0;
+    while (i < variable_list.GetSize()) {
+      VariableSP var_sp(variable_list.GetVariableAtIndex(i));
+      ValueObjectSP valobj_sp;
+      if (!var_sp) {
+        variable_list.RemoveVariableAtIndex(i);
+        continue;
+      }
+      ValueObjectSP variable_valobj_sp(
+          ValueObjectVariable::Create(scope, var_sp));
+      if (!variable_valobj_sp) {
+        variable_list.RemoveVariableAtIndex(i);
+        continue;
+      }
+
+      llvm::StringRef variable_sub_expr_path =
+          variable_expr_path.drop_front(variable_name.size());
+      if (!variable_sub_expr_path.empty()) {
+        ValueObject::ExpressionPathScanEndReason reason_to_stop;
+        ValueObject::ExpressionPathEndResultType final_value_type;
+        ValueObject::GetValueForExpressionPathOptions options;
+        ValueObject::ExpressionPathAftermath final_task_on_target;
+
+        valobj_sp = variable_valobj_sp->GetValueForExpressionPath(
+            variable_sub_expr_path, &reason_to_stop, &final_value_type, options,
+            &final_task_on_target);
+        if (!valobj_sp) {
+          error.SetErrorStringWithFormat(
+              "invalid expression path '%s' for variable '%s'",
+              variable_sub_expr_path.str().c_str(),
+              var_sp->GetName().GetCString());
+          variable_list.RemoveVariableAtIndex(i);
+          continue;
+        }
+      } else {
+        // Just the name of a variable with no extras
+        valobj_sp = variable_valobj_sp;
+      }
+
+      valobj_list.Append(valobj_sp);
+      ++i;
+    }
+
+    if (variable_list.GetSize() > 0) {
+      error.Clear();
+      return error;
+    }
+  } break;
   }
   error.SetErrorString("unknown error");
   return error;
@@ -483,24 +494,24 @@ bool Variable::DumpLocationForAddress(Stream *s, const Address &address) {
 }
 
 static void PrivateAutoComplete(
-    StackFrame *frame, const std::string &partial_path,
-    const std::string
+    StackFrame *frame, llvm::StringRef partial_path,
+    const llvm::Twine
         &prefix_path, // Anything that has been resolved already will be in here
     const CompilerType &compiler_type,
     StringList &matches, bool &word_complete);
 
 static void PrivateAutoCompleteMembers(
     StackFrame *frame, const std::string &partial_member_name,
-    const std::string &partial_path,
-    const std::string
+    llvm::StringRef partial_path,
+    const llvm::Twine
         &prefix_path, // Anything that has been resolved already will be in here
     const CompilerType &compiler_type,
     StringList &matches, bool &word_complete);
 
 static void PrivateAutoCompleteMembers(
     StackFrame *frame, const std::string &partial_member_name,
-    const std::string &partial_path,
-    const std::string
+    llvm::StringRef partial_path,
+    const llvm::Twine
         &prefix_path, // Anything that has been resolved already will be in here
     const CompilerType &compiler_type,
     StringList &matches, bool &word_complete) {
@@ -551,7 +562,7 @@ static void PrivateAutoCompleteMembers(
                                          // already will be in here
               member_compiler_type.GetCanonicalType(), matches, word_complete);
         } else {
-          matches.AppendString(prefix_path + member_name);
+          matches.AppendString((prefix_path + member_name).str());
         }
       }
     }
@@ -559,8 +570,8 @@ static void PrivateAutoCompleteMembers(
 }
 
 static void PrivateAutoComplete(
-    StackFrame *frame, const std::string &partial_path,
-    const std::string
+    StackFrame *frame, llvm::StringRef partial_path,
+    const llvm::Twine
         &prefix_path, // Anything that has been resolved already will be in here
     const CompilerType &compiler_type,
     StringList &matches, bool &word_complete) {
@@ -584,15 +595,15 @@ static void PrivateAutoComplete(
       case eTypeClassReference:
       case eTypeClassTypedef:
       case eTypeClassVector: {
-        matches.AppendString(prefix_path);
+        matches.AppendString(prefix_path.str());
         word_complete = matches.GetSize() == 1;
       } break;
 
       case eTypeClassClass:
       case eTypeClassStruct:
       case eTypeClassUnion:
-        if (prefix_path.back() != '.')
-          matches.AppendString(prefix_path + '.');
+        if (prefix_path.str().back() != '.')
+          matches.AppendString((prefix_path + ".").str());
         break;
 
       case eTypeClassObjCObject:
@@ -602,9 +613,9 @@ static void PrivateAutoComplete(
       case eTypeClassPointer: {
         bool omit_empty_base_classes = true;
         if (compiler_type.GetNumChildren(omit_empty_base_classes) > 0)
-          matches.AppendString(prefix_path + "->");
+          matches.AppendString((prefix_path + "->").str());
         else {
-          matches.AppendString(prefix_path);
+          matches.AppendString(prefix_path.str());
           word_complete = true;
         }
       } break;
@@ -628,21 +639,21 @@ static void PrivateAutoComplete(
     const char ch = partial_path[0];
     switch (ch) {
     case '*':
-      if (prefix_path.empty()) {
-        PrivateAutoComplete(frame, partial_path.substr(1), std::string("*"),
-                            compiler_type, matches, word_complete);
+      if (prefix_path.str().empty()) {
+        PrivateAutoComplete(frame, partial_path.substr(1), "*", compiler_type,
+                            matches, word_complete);
       }
       break;
 
     case '&':
-      if (prefix_path.empty()) {
+      if (prefix_path.isTriviallyEmpty()) {
         PrivateAutoComplete(frame, partial_path.substr(1), std::string("&"),
                             compiler_type, matches, word_complete);
       }
       break;
 
     case '-':
-      if (partial_path[1] == '>' && !prefix_path.empty()) {
+      if (partial_path[1] == '>' && !prefix_path.str().empty()) {
         switch (type_class) {
         case lldb::eTypeClassPointer: {
           CompilerType pointee_type(compiler_type.GetPointeeType());
@@ -740,10 +751,10 @@ static void PrivateAutoComplete(
                       variable_compiler_type.GetCanonicalType(), matches,
                       word_complete);
                 } else {
-                  matches.AppendString(prefix_path + variable_name);
+                  matches.AppendString((prefix_path + variable_name).str());
                 }
               } else if (remaining_partial_path.empty()) {
-                matches.AppendString(prefix_path + variable_name);
+                matches.AppendString((prefix_path + variable_name).str());
               }
             }
           }
@@ -755,17 +766,13 @@ static void PrivateAutoComplete(
 }
 
 size_t Variable::AutoComplete(const ExecutionContext &exe_ctx,
-                              const char *partial_path_cstr,
-                              StringList &matches, bool &word_complete) {
+                              llvm::StringRef partial_path, StringList &matches,
+                              bool &word_complete) {
   word_complete = false;
-  std::string partial_path;
-  std::string prefix_path;
   CompilerType compiler_type;
-  if (partial_path_cstr && partial_path_cstr[0])
-    partial_path = partial_path_cstr;
 
-  PrivateAutoComplete(exe_ctx.GetFramePtr(), partial_path, prefix_path,
-                      compiler_type, matches, word_complete);
+  PrivateAutoComplete(exe_ctx.GetFramePtr(), partial_path, "", compiler_type,
+                      matches, word_complete);
 
   return matches.GetSize();
 }

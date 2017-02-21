@@ -1,4 +1,4 @@
-//===-- DWARFDefines.c ------------------------------------------*- C++ -*-===//
+//===-- DWARFDefines.cpp ----------------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -8,7 +8,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "DWARFDefines.h"
-#include "lldb/Core/ConstString.h"
+#include "lldb/Utility/ConstString.h"
 #include <cstdio>
 #include <cstring>
 #include <string>

@@ -18,8 +18,6 @@
 #include "llvm/ADT/Triple.h"
 
 // Project includes
-#include "lldb/Core/ConstString.h"
-#include "lldb/Core/Error.h"
 #include "lldb/Core/Log.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/PluginManager.h"
@@ -32,6 +30,8 @@
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
+#include "lldb/Utility/ConstString.h"
+#include "lldb/Utility/Error.h"
 
 #include "Utility/ARM64_DWARF_Registers.h"
 
@@ -1697,7 +1697,7 @@ bool ABISysV_arm64::PrepareTrivialCall(Thread &thread, addr_t sp,
 
   if (log) {
     StreamString s;
-    s.Printf("ABISysV_x86_64::PrepareTrivialCall (tid = 0x%" PRIx64
+    s.Printf("ABISysV_arm64::PrepareTrivialCall (tid = 0x%" PRIx64
              ", sp = 0x%" PRIx64 ", func_addr = 0x%" PRIx64
              ", return_addr = 0x%" PRIx64,
              thread.GetID(), (uint64_t)sp, (uint64_t)func_addr,
@@ -1706,7 +1706,7 @@ bool ABISysV_arm64::PrepareTrivialCall(Thread &thread, addr_t sp,
     for (size_t i = 0; i < args.size(); ++i)
       s.Printf(", arg%d = 0x%" PRIx64, static_cast<int>(i + 1), args[i]);
     s.PutCString(")");
-    log->PutCString(s.GetString().c_str());
+    log->PutString(s.GetString());
   }
 
   // x0 - x7 contain first 8 simple args
