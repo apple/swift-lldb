@@ -9,9 +9,14 @@
 // See https://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
 //
 // -----------------------------------------------------------------------------
+
+func generic_print<T>(t: T) {
+  print("hello world \(t)") // Set breakpoint here
+}
+
 func main() {
-  var d: Double = 3.1415
-	print("hello world \(d)") // Set breakpoint here
+  let d = Double(3.1415)
+  generic_print(t:d)
 }
 
 main()
