@@ -442,7 +442,8 @@ void SwiftASTManipulatorBase::DoInitialization() {
             cur_ctx = cur_ctx->getParent();
           }
         } else if (func_decl->hasName() &&
-                   func_decl->getName().str().startswith(m_wrapper_func_prefix))
+                   func_decl->getBaseName().str()
+                     .startswith(m_wrapper_func_prefix))
           m_wrapper_decl = func_decl;
 
         // There's nothing buried in a function that we need to find in this
@@ -502,12 +503,12 @@ SwiftASTManipulator::SwiftASTManipulator(swift::SourceFile &source_file,
     : SwiftASTManipulatorBase(source_file, repl) {}
 
 void SwiftASTManipulator::FindSpecialNames(
-    llvm::SmallVectorImpl<swift::Identifier> &names, llvm::StringRef prefix) {
+    llvm::SmallVectorImpl<swift::DeclName> &names, llvm::StringRef prefix) {
   names.clear();
 
   class SpecialNameFinder : public swift::ASTWalker {
   public:
-    typedef llvm::SmallVectorImpl<swift::Identifier> NameVector;
+    typedef llvm::SmallVectorImpl<swift::DeclName> NameVector;
 
     SpecialNameFinder(NameVector &names, llvm::StringRef &prefix)
         : m_names(names), m_prefix(prefix) {}
@@ -515,7 +516,7 @@ void SwiftASTManipulator::FindSpecialNames(
     virtual std::pair<bool, swift::Expr *> walkToExprPre(swift::Expr *expr) {
       if (swift::UnresolvedDeclRefExpr *decl_ref_expr =
               llvm::dyn_cast<swift::UnresolvedDeclRefExpr>(expr)) {
-        swift::Identifier name = decl_ref_expr->getName().getBaseName();
+        swift::DeclName name = decl_ref_expr->getName();
 
         if (m_prefix.empty() || name.str().startswith(m_prefix))
           m_names.push_back(name);
@@ -904,7 +905,9 @@ void SwiftASTManipulator::FindVariableDeclarations(
                            &found_declarations](swift::VarDecl *var_decl) {
     VariableInfo persistent_info;
 
-    swift::Identifier name = var_decl->getName();
+    assert(!var_decl->getBaseName().isSpecialName() &&
+             "Special variable name?");
+    swift::Identifier name = var_decl->getBaseName().getIdentifier();
 
     size_t persistent_info_location = m_variables.size();
 
@@ -923,7 +926,7 @@ void SwiftASTManipulator::FindVariableDeclarations(
   if (m_repl) {
     for (swift::Decl *decl : m_source_file.Decls) {
       if (swift::VarDecl *var_decl = llvm::dyn_cast<swift::VarDecl>(decl)) {
-        if (!var_decl->getName().str().startswith("$")) {
+        if (!var_decl->getBaseName().str().startswith("$")) {
           register_one_var(var_decl);
         }
       }
@@ -943,7 +946,7 @@ void SwiftASTManipulator::FindVariableDeclarations(
           if (!var_decl->isDebuggerVar()) // skip bona fide external variables
                                           // or variables we've already tagged
           {
-            swift::Identifier name = var_decl->getName();
+            swift::DeclName name = var_decl->getBaseName();
 
             if (name.str().startswith("$")) {
               var_decl->setDebuggerVar(true);
@@ -1159,7 +1162,7 @@ bool SwiftASTManipulator::FixupResultAfterTypeChecking(Error &error) {
           if (var_decl->hasType()) {
             swift::Identifier error_var_name =
                 ast_context.getIdentifier(GetErrorName());
-            if (error_var_name != var_decl->getName())
+            if (error_var_name != var_decl->getBaseName())
               continue;
 
             swift::Type error_type = var_decl->getInterfaceType();
@@ -1457,7 +1460,7 @@ static swift::VarDecl *FindArgInFunction(swift::ASTContext &ast_context,
 
   for (auto *paramList : func_decl->getParameterLists()) {
     for (auto param : *paramList)
-      if (param->getName() == name)
+      if (param->getIdentifier() == name)
         return param;
   }
 

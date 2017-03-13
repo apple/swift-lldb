@@ -443,7 +443,10 @@ CachedMemberInfo *SwiftASTContext::GetCachedMemberInfo(void *type) {
                     member_info.clang_type.GetByteSize(nullptr);
                 member_info.is_fragile =
                     is_class; // Class fields are all fragile...
-                const char *child_name_cstr = var_decl->getName().get();
+                assert(!var_decl->getBaseName().isSpecialName() &&
+                         "Special variable name?");
+                const char *child_name_cstr = var_decl->getBaseName()
+                                                .getIdentifier().get();
                 if (child_name_cstr)
                   member_info.name.SetCString(child_name_cstr);
                 field_type_infos.push_back(
@@ -506,7 +509,10 @@ CachedMemberInfo *SwiftASTContext::GetCachedMemberInfo(void *type) {
                     member_info.clang_type.GetByteSize(nullptr);
                 member_info.is_fragile =
                     is_class; // Class fields are all fragile...
-                const char *child_name_cstr = var_decl->getName().get();
+                assert(!var_decl->getBaseName().isSpecialName() &&
+                         "Special variable name?");
+                const char *child_name_cstr = var_decl->getBaseName()
+                                                .getIdentifier().get();
                 if (child_name_cstr)
                   member_info.name.SetCString(child_name_cstr);
                 field_type_infos.push_back(GetSwiftTypeInfo(
@@ -616,7 +622,7 @@ protected:
       : m_kind(k), m_type_name() {
     if (swift_can_type.getPointer()) {
       if (auto nominal = swift_can_type->getAnyNominal()) {
-        swift::Identifier name(nominal->getName());
+        swift::Identifier name(nominal->getIdentifier());
         if (name.get())
           m_type_name.SetCString(name.get());
       }
@@ -726,7 +732,7 @@ public:
                   Dump(m_nopayload_elems_bitmask).c_str());
 
     for (auto enum_case : elements_with_no_payload) {
-      ConstString case_name(enum_case.decl->getName().str().data());
+      ConstString case_name(enum_case.decl->getIdentifier().str().data());
       swift::ClusteredBitVector case_value =
           enum_impl_strategy.getBitPatternForNoPayloadElement(enum_case.decl);
 
@@ -876,7 +882,7 @@ public:
     auto module_ctx = enum_decl->getModuleContext();
     const bool has_payload = true;
     for (auto enum_case : elements_with_payload) {
-      ConstString case_name(enum_case.decl->getName().str().data());
+      ConstString case_name(enum_case.decl->getIdentifier().str().data());
 
       swift::EnumElementDecl *case_decl = enum_case.decl;
       assert(case_decl);
@@ -3344,7 +3350,7 @@ void SwiftASTContext::CacheModule(swift::ModuleDecl *module) {
 
   if (!module)
     return;
-  auto ID = module->getName().get();
+  auto ID = module->getIdentifier().get();
   if (nullptr == ID || 0 == ID[0])
     return;
   if (m_swift_module_cache.find(ID) != m_swift_module_cache.end())
@@ -3406,7 +3412,7 @@ SwiftASTContext::GetModule(const ConstString &module_basename, Error &error) {
         if (log)
           log->Printf("((SwiftASTContext*)%p)->GetModule('%s') -- found %s",
                       this, module_basename.GetCString(),
-                      module->getName().str().str().c_str());
+                      module->getIdentifier().str().str().c_str());
 
         m_swift_module_cache[module_basename.GetCString()] = module;
         return module;
@@ -3492,7 +3498,7 @@ swift::ModuleDecl *SwiftASTContext::GetModule(const FileSpec &module_spec,
           log->Printf(
               "((SwiftASTContext*)%p)->GetModule((FileSpec)'%s') -- found %s",
               this, module_spec.GetPath().c_str(),
-              module->getName().str().str().c_str());
+              module->getIdentifier().str().str().c_str());
 
         m_swift_module_cache[module_basename.GetCString()] = module;
         return module;
@@ -3743,7 +3749,7 @@ void SwiftASTContext::LoadModule(swift::ModuleDecl *swift_module,
 
     current_error.SetErrorStringWithFormat(
         "Failed to load linked library %s of module %s - errors:\n%s\n",
-        library_name, swift_module->getName().str().str().c_str(),
+        library_name, swift_module->getIdentifier().str().str().c_str(),
         all_dlopen_errors.GetData());
   };
 
@@ -5005,7 +5011,10 @@ SwiftASTContext::ExtraTypeInformation::ExtraTypeInformation(
           if (protocol_decl == option_set) {
             for (swift::VarDecl *stored_property :
                  nominal_decl->getStoredProperties()) {
-              swift::Identifier name = stored_property->getName();
+              assert(!stored_property->getBaseName().isSpecialName() &&
+                       "Special property name?");
+              swift::Identifier name = stored_property->getBaseName()
+                                         .getIdentifier();
               if (name.str() == g_rawValue.GetStringRef()) {
                 m_is_trivial_option_set = true;
                 break;
@@ -5116,8 +5125,7 @@ bool SwiftASTContext::IsArrayType(void *type, CompilerType *element_type_ptr,
     if (struct_type) {
       swift::StructDecl *struct_decl = struct_type->getDecl();
       if (struct_decl) {
-        if (struct_decl->getName().get() &&
-            strcmp(struct_decl->getName().get(), "Array") != 0)
+        if (struct_decl->getBaseName() != "Array")
           break;
         if (!struct_decl->getModuleContext() ||
             !struct_decl->getModuleContext()->isStdlibModule())
@@ -6203,7 +6211,7 @@ CompilerType SwiftASTContext::GetArrayElementType(void *type,
           !decl->getModuleContext()->isStdlibModule())
         break;
 
-      const char *declname = decl->getName().get();
+      const char *declname = decl->getIdentifier().get();
 
       if (!declname)
         break;
@@ -6430,10 +6438,10 @@ TypeMemberFunctionImpl SwiftASTContext::GetMemberFunctionAtIndex(void *type,
                     swift::FuncDecl *func_decl =
                         llvm::dyn_cast<swift::FuncDecl>(*iter);
                     if (func_decl) {
-                      if (func_decl->getName().empty())
-                        name.clear();
+                      if (func_decl->getBaseName())
+                        name.assign(func_decl->getBaseName().str());
                       else
-                        name.assign(func_decl->getName().get());
+                        name.clear();
                       if (func_decl->isStatic())
                         kind = lldb::eMemberFunctionKindStaticMethod;
                       else
@@ -6495,10 +6503,10 @@ TypeMemberFunctionImpl SwiftASTContext::GetMemberFunctionAtIndex(void *type,
                     swift::FuncDecl *func_decl =
                         llvm::dyn_cast<swift::FuncDecl>(*iter);
                     if (func_decl) {
-                      if (func_decl->getName().empty())
-                        name.clear();
+                      if (func_decl->getBaseName())
+                        name.assign(func_decl->getBaseName().str());
                       else
-                        name.assign(func_decl->getName().get());
+                        name.clear();
                       if (func_decl->isStatic())
                         kind = lldb::eMemberFunctionKindStaticMethod;
                       else
@@ -8881,7 +8889,8 @@ void SwiftASTContext::DumpTypeDescription(void *type, Stream *s,
                 case swift::ImportKind::Module: {
                   swift::ModuleDecl *imported_module = import_decl->getModule();
                   if (imported_module) {
-                    s->Printf("import %s\n", imported_module->getName().get());
+                    s->Printf("import %s\n",
+                              imported_module->getIdentifier().get());
                   }
                 } break;
                 default: {

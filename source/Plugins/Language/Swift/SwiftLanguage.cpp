@@ -1349,7 +1349,8 @@ std::unique_ptr<Language::TypeScavenger> SwiftLanguage::GetTypeScavenger() {
                         size_t idx_of_deeper = 1;
                         // if you're looking for Swift.Int in module Swift, try
                         // looking for Int
-                        if (name_parts.front() == module->getName().str()) {
+                        if (name_parts.front() ==
+                              module->getIdentifier().str()) {
                           candidate = ast_ctx->FindTypeOrDecl(
                               name_parts[1].str().c_str(), module);
                           idx_of_deeper = 2;
@@ -1382,7 +1383,8 @@ std::unique_ptr<Language::TypeScavenger> SwiftLanguage::GetTypeScavenger() {
                           results.insert(result);
                       } else if (local_results.empty() && module &&
                                  name_parts.size() == 1 &&
-                                 name_parts.front() == module->getName().str())
+                                 name_parts.front() ==
+                                   module->getIdentifier().str())
                         results.insert(
                             CompilerType(ast_ctx->GetASTContext(),
                                          swift::ModuleType::get(module)));
