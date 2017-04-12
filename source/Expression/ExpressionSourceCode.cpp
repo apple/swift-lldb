@@ -30,6 +30,7 @@
 #include "lldb/Target/Target.h"
 
 #include "llvm/ADT/SmallString.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/FileSystem.h"
 
 using namespace lldb_private;
@@ -201,7 +202,6 @@ bool ExpressionSourceCode::SaveExpressionTextToTempFile(
   bool success = false;
 
   const uint32_t expr_number = options.GetExpressionNumber();
-  FileSpec tmpdir_file_spec;
 
   const bool playground = options.GetPlaygroundTransformEnabled();
   const bool repl = options.GetREPLEnabled();
@@ -214,30 +214,25 @@ bool ExpressionSourceCode::SaveExpressionTextToTempFile(
   else
     file_prefix = "expr";
 
-  StreamString strm;
-  if (HostInfo::GetLLDBPath(lldb::ePathTypeLLDBTempSystemDir,
-                            tmpdir_file_spec)) {
-    strm.Printf("%s%u", file_prefix, expr_number);
-    tmpdir_file_spec.GetFilename().SetCStringWithLength(
-        strm.GetString().c_str(), strm.GetString().size());
-    expr_source_path = std::move(tmpdir_file_spec.GetPath());
-  } else {
-    strm.Printf("/tmp/%s%u", file_prefix, expr_number);
-    expr_source_path = std::move(strm.GetString());
-  }
+  llvm::Twine prefix =
+      llvm::Twine(file_prefix).concat(llvm::Twine(expr_number));
 
+  llvm::StringRef suffix;
   switch (options.GetLanguage()) {
   default:
-    expr_source_path.append(".cpp");
+    suffix = ".cpp";
     break;
 
   case lldb::eLanguageTypeSwift:
-    expr_source_path.append(".swift");
+    suffix = ".swift";
     break;
   }
 
-  int temp_fd = mkstemp(&expr_source_path[0]);
-  if (temp_fd != -1) {
+  int temp_fd;
+  llvm::SmallString<128> buffer;
+  std::error_code err =
+      llvm::sys::fs::createTemporaryFile(prefix, suffix, temp_fd, buffer);
+  if (!err) {
     lldb_private::File file(temp_fd, true);
     const size_t text_len = strlen(text);
     size_t bytes_written = text_len;
@@ -251,10 +246,13 @@ bool ExpressionSourceCode::SaveExpressionTextToTempFile(
       }
     }
     if (!success)
-      FileSystem::Unlink(FileSpec(expr_source_path.c_str(), true));
+      FileSystem::Unlink(FileSpec(buffer.c_str(), true));
   }
   if (!success)
     expr_source_path.clear();
+  else
+    expr_source_path = buffer.str().str();
+
   return success;
 }
 

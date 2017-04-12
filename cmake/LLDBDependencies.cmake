@@ -227,9 +227,17 @@ endif()
 
 if(LLDB_BUILT_STANDALONE)
   # this needs to be linked statially
-  list(APPEND LLDB_SYSTEM_LIBS ${PATH_TO_CMARK_BUILD}/src/libcmark.a)
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    list(APPEND LLDB_SYSTEM_LIBS ${PATH_TO_CMARK_BUILD}/src/cmark.lib)
+  else()
+    list(APPEND LLDB_SYSTEM_LIBS ${PATH_TO_CMARK_BUILD}/src/libcmark.a)
+  endif()
 else()
-  list(APPEND LLDB_SYSTEM_LIBS libcmark_static)
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    list(APPEND LLDB_SYSTEM_LIBS ${PATH_TO_CMARK_BUILD}/src/cmark_static.lib)
+  else()
+    list(APPEND LLDB_SYSTEM_LIBS libcmark_static)
+  endif()
 endif()
 
 set(LLVM_LINK_COMPONENTS
