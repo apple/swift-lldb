@@ -79,3 +79,12 @@ size_t DiagnosticManager::PutCString(DiagnosticSeverity severity,
   AddDiagnostic(cstr, severity, eDiagnosticOriginLLDB);
   return strlen(cstr);
 }
+
+void DiagnosticManager::CopyDiagnostics(DiagnosticManager &otherDiagnostics) {
+  for (const DiagnosticList::value_type &other_diagnostic:
+       otherDiagnostics.Diagnostics()) {
+    AddDiagnostic(
+        other_diagnostic->GetMessage(), other_diagnostic->GetSeverity(),
+        other_diagnostic->getKind(), other_diagnostic->GetCompilerID());
+  }
+}
