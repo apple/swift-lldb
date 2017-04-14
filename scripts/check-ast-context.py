@@ -413,7 +413,8 @@ def main():
         'GetPluginVersion',
         'HasFatalErrors',
         'GetFatalErrors',
-        'PrintDiagnostics'
+        'PrintDiagnostics',
+        'CopyDiagnostics'
     ]
 
     for method in methods:

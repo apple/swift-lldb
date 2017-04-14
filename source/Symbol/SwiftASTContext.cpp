@@ -99,34 +99,31 @@
 #include "Plugins/SymbolFile/DWARF/DWARFASTParserSwift.h"
 
 #ifdef LLDB_CONFIGURATION_DEBUG
-#define VALID_OR_RETURN(value)                                                 \
-  do {                                                                         \
-    lldbassert(!HasFatalErrors());                                             \
-    if (HasFatalErrors()) {                                                    \
-      return (value);                                                          \
-    }                                                                          \
-  } while (0)
-#define VALID_OR_RETURN_VOID()                                                 \
-  do {                                                                         \
-    lldbassert(!HasFatalErrors());                                             \
-    if (HasFatalErrors()) {                                                    \
-      return;                                                                  \
-    }                                                                          \
-  } while (0)
-#else
-#define VALID_OR_RETURN(value)                                                 \
+#define _VALID_OR_RETURN(_return)                                              \
   do {                                                                         \
     if (HasFatalErrors()) {                                                    \
-      return (value);                                                          \
+      DiagnosticManager diagnostic_manager;                                    \
+      CopyDiagnostics(diagnostic_manager);                                     \
+      llvm::errs() << diagnostic_manager.GetString();                          \
+      lldbassert(false);                                                       \
+      _return;                                                                 \
     }                                                                          \
   } while (0)
-#define VALID_OR_RETURN_VOID()                                                 \
+
+#define VALID_OR_RETURN(value) _VALID_OR_RETURN(return(value))
+#define VALID_OR_RETURN_VOID() _VALID_OR_RETURN(return)
+#else /* LLDB_CONFIGURATION_DEBUG */
+#define _VALID_OR_RETURN(_return)                                              \
   do {                                                                         \
     if (HasFatalErrors()) {                                                    \
-      return;                                                                  \
+      _return;                                                                 \
     }                                                                          \
   } while (0)
-#endif
+
+#define VALID_OR_RETURN(value) _VALID_OR_RETURN(return(value))
+#define VALID_OR_RETURN_VOID() _VALID_OR_RETURN(return)
+#endif /* LLDB_CONFIGURATION_DEBUG */
+
 
 using namespace lldb;
 using namespace lldb_private;
@@ -4836,6 +4833,33 @@ bool SwiftASTContext::SetColorizeDiagnostics(bool b) {
   return false;
 }
 
+void SwiftASTContext::CopyDiagnostics(DiagnosticManager &diagnostic_manager,
+                                      uint32_t bufferID,
+                                      uint32_t first_line,
+                                      uint32_t last_line,
+                                      uint32_t line_offset) const {
+  // N.B. you cannot use VALID_OR_RETURN_VOID here since that exits if you have
+  // fatal errors, which are what we are trying to copy them out here.
+  if (!m_ast_context_ap.get()) {
+    SymbolFile *sym_file = GetSymbolFile();
+    if (sym_file) {
+      ConstString name
+              = sym_file->GetObjectFile()->GetModule()->GetObjectName();
+      diagnostic_manager.Printf(eDiagnosticSeverityError,
+              "Null context for %s.", name.AsCString());
+    } else {
+      diagnostic_manager.PutCString(eDiagnosticSeverityError,
+              "Unknown fatal error occurred.");
+    }
+    return;
+  }
+
+  if (m_diagnostic_consumer_ap.get())
+    static_cast<StoringDiagnosticConsumer *>(m_diagnostic_consumer_ap.get())
+        ->PrintDiagnostics(diagnostic_manager, bufferID, first_line, last_line,
+                           line_offset);
+}
+
 void SwiftASTContext::PrintDiagnostics(DiagnosticManager &diagnostic_manager,
                                        uint32_t bufferID, uint32_t first_line,
                                        uint32_t last_line,
@@ -4845,50 +4869,29 @@ void SwiftASTContext::PrintDiagnostics(DiagnosticManager &diagnostic_manager,
   // to the stream.
 
 
-  // N.B. you cannot use VALID_OR_RETURN_VOID here since that exits if you have
-  // fatal errors, which are what we are trying to print here.
+  // N.B. like in CopyDiagnostics, you cannot use VALID_OR_RETURN_VOID to avoid
+  // early return
+  DiagnosticManager fatal_diagnostics;
+  CopyDiagnostics(fatal_diagnostics, bufferID, first_line, last_line,
+          line_offset);
+
   if (!m_ast_context_ap.get()) {
-    SymbolFile *sym_file = GetSymbolFile();
-    if (sym_file) {
-      ConstString name 
-              = sym_file->GetObjectFile()->GetModule()->GetObjectName();
-      m_fatal_errors.SetErrorStringWithFormat(
-                  "Null context for %s.", name.AsCString());
-    } else {
-      m_fatal_errors.SetErrorString("Unknown fatal error occurred.");
-    }
+    assert(fatal_diagnostics.Diagnostics().size() > 0);
+    m_fatal_errors.SetErrorString(fatal_diagnostics.GetString().c_str());
     return;
   }
 
   if (m_ast_context_ap->Diags.hasFatalErrorOccurred() &&
       !m_reported_fatal_error) {
-    DiagnosticManager fatal_diagnostics;
 
-    if (m_diagnostic_consumer_ap.get())
-      static_cast<StoringDiagnosticConsumer *>(m_diagnostic_consumer_ap.get())
-          ->PrintDiagnostics(fatal_diagnostics, bufferID, first_line, last_line,
-                             line_offset);
     if (fatal_diagnostics.Diagnostics().size())
       m_fatal_errors.SetErrorString(fatal_diagnostics.GetString().c_str());
     else
       m_fatal_errors.SetErrorString("Unknown fatal error occurred.");
 
     m_reported_fatal_error = true;
-
-    for (const DiagnosticList::value_type &fatal_diagnostic :
-         fatal_diagnostics.Diagnostics()) {
-      // FIXME: need to add a CopyDiagnostic operation for copying diagnostics
-      // from one manager to another.
-      diagnostic_manager.AddDiagnostic(
-          fatal_diagnostic->GetMessage(), fatal_diagnostic->GetSeverity(),
-          fatal_diagnostic->getKind(), fatal_diagnostic->GetCompilerID());
-    }
-  } else {
-    if (m_diagnostic_consumer_ap.get())
-      static_cast<StoringDiagnosticConsumer *>(m_diagnostic_consumer_ap.get())
-          ->PrintDiagnostics(diagnostic_manager, bufferID, first_line,
-                             last_line, line_offset);
   }
+  diagnostic_manager.CopyDiagnostics(fatal_diagnostics);
 }
 
 void SwiftASTContext::ModulesDidLoad(ModuleList &module_list) {
