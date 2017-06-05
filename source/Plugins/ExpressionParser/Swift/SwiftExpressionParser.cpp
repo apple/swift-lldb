@@ -407,12 +407,11 @@ public:
       if (Kind == swift::DeclKind::Func && Name.isOperator())
         return true;
 
-      const char *name_cstr = Name.get();
-      if (name_cstr && name_cstr[0] == '$') {
+      if (Name.str().startswith("$")) {
         if (m_log)
           m_log->Printf("[LLDBNameLookup::shouldGlobalize] Returning true to "
                         "globalizing %s",
-                        name_cstr);
+                        Name.str().str().c_str());
         return true;
       }
     }
