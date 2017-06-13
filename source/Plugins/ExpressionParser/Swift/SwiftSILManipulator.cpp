@@ -42,8 +42,7 @@ swift::SILValue SwiftSILManipulator::emitLValueForVariable(
   swift::SILArgument *struct_argument = nullptr;
 
   for (swift::SILArgument *argument : entry_block.getArguments()) {
-    swift::Identifier argument_name = argument->getDecl()->getBaseName()
-                                        .getIdentifier();
+    swift::Identifier argument_name = argument->getDecl()->getName();
 
     if (!strcmp(argument_name.get(), SwiftASTManipulator::GetArgumentName())) {
       struct_argument = argument;
