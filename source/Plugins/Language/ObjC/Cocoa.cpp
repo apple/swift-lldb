@@ -500,7 +500,7 @@ bool lldb_private::formatters::NSNumberSummaryProvider(
               process_sp->GetObjCLanguageRuntime());
 
       const bool new_format =
-          (runtime && runtime->GetFoundationVersion() >= 1100);
+          (runtime && runtime->GetFoundationVersion() >= 1400);
       
       enum class TypeCodes : int {
         sint8 = 0x0,
