@@ -123,8 +123,8 @@ static std::string TranslateObjCNameToSwiftName(std::string className,
         // We need to loadAllMembers(), otherwise 'isAccessor' returns false.
         if (auto extension = clang::dyn_cast<swift::ExtensionDecl>(funcCtx)) {
           extension->loadAllMembers();
-        }
-        if (auto nominal = clang::dyn_cast<swift::NominalTypeDecl>(funcCtx)) {
+        } else if (auto nominal =
+                       clang::dyn_cast<swift::NominalTypeDecl>(funcCtx)) {
           nominal->loadAllMembers();
         }
 
