@@ -76,6 +76,7 @@ class TestSwiftLetIntSupport(TestBase):
                                              get_statics, get_in_scope_only)
         self.assertTrue(local_vars.GetFirstValueByName("x").IsValid())
         self.assertTrue(local_vars.GetFirstValueByName("y").IsValid())
+        self.assertTrue(not local_vars.GetFirstValueByName("z").IsValid())
 
 if __name__ == '__main__':
     import atexit
