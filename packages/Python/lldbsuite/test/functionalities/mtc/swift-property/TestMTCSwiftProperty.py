@@ -1,5 +1,5 @@
 """
-Tests Main Thread Checker support on Swift code.
+Tests Main Thread Checker support on Swift properties.
 """
 
 import os
@@ -12,7 +12,7 @@ from lldbsuite.test.lldbplatformutil import *
 import json
 
 
-class MTCSwiftTestCase(TestBase):
+class MTCSwiftPropertyTestCase(TestBase):
 
     mydir = TestBase.compute_mydir(__file__)
 
@@ -41,7 +41,7 @@ class MTCSwiftTestCase(TestBase):
         thread = process.GetSelectedThread()
         frame = thread.GetSelectedFrame()
 
-        self.expect("thread info", substrs=['stop reason = NSView.removeFromSuperview() must be used from main thread only'])
+        self.expect("thread info", substrs=['stop reason = NSView.superview must be used from main thread only'])
 
         self.expect(
             "thread info -s",
@@ -51,7 +51,7 @@ class MTCSwiftTestCase(TestBase):
         json_line = '\n'.join(output_lines[2:])
         data = json.loads(json_line)
         self.assertEqual(data["instrumentation_class"], "MainThreadChecker")
-        self.assertEqual(data["api_name"], "NSView.removeFromSuperview()")
+        self.assertEqual(data["api_name"], "NSView.superview")
         self.assertEqual(data["class_name"], "NSView")
-        self.assertEqual(data["selector"], "removeFromSuperview")
-        self.assertEqual(data["description"], "NSView.removeFromSuperview() must be used from main thread only")
+        self.assertEqual(data["selector"], "superview")
+        self.assertEqual(data["description"], "NSView.superview must be used from main thread only")
