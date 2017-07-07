@@ -4269,7 +4269,7 @@ VariableSP SymbolFileDWARF::ParseVariableDIE(const SymbolContext &sc,
           }
         } else {
           // The heuristic for inferring static variables works for Clang's
-          // behavior on C-like languages, which generallydoes n ot emit
+          // behavior on C-like languages, which generally does not emit
           // AT_const_value for locals.
           //
           // However, the Swift compiler can and does emit AT_const_value for
