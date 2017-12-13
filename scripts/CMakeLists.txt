@@ -12,13 +12,18 @@ set(SWIG_HEADERS
 include(FindPythonInterp)
 
 if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
-  set(SWIG_PYTHON_DIR
-    ${CMAKE_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})
+    execute_process(
+        COMMAND
+            ${PYTHON_EXECUTABLE}
+                "-c"
+                "from __future__ import print_function; from distutils.sysconfig import get_python_lib; \
+                 print(get_python_lib(True, False, '${CMAKE_BINARY_DIR}'), end='')"
+        OUTPUT_VARIABLE SWIG_PYTHON_DIR)
 else()
   set(SWIG_PYTHON_DIR ${CMAKE_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}/site-packages)
 endif()
 
-set(SWIG_INSTALL_DIR lib${LLVM_LIBDIR_SUFFIX})
+string(REGEX MATCH "lib/|lib64/" SWIG_INSTALL_DIR ${SWIG_PYTHON_DIR})
 
 # Generating the LLDB framework correctly is a bit complicated because the
 # framework depends on the swig output.
