@@ -2135,7 +2135,9 @@ unsigned ObjectFileELF::ParseSymbols(Symtab *symtab, user_id_t start_id,
   // Local cache to avoid doing a FindSectionByName for each symbol. The "const
   // char*" key must
   // came from a ConstString object so they can be compared by pointer
-  std::unordered_map<const char *, lldb::SectionSP> section_name_to_section;
+  // [BEGIN GOOGLE] const char * -> std::string
+  std::unordered_map<std::string, lldb::SectionSP> section_name_to_section;
+  // [END GOOGLE]
 
   unsigned i;
   for (i = 0; i < num_symbols; ++i) {

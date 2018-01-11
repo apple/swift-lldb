@@ -77,17 +77,17 @@ protected:
 
   dw_offset_t m_offset;
   Header m_header;
+// [BEGIN GOOGLE] const char * -> std::string
 #if __cplusplus >= 201103L || defined(_MSC_VER)
-  typedef std::unordered_multimap<const char *, uint32_t,
-                                  std::hash<const char *>,
-                                  CStringEqualBinaryPredicate>
+  typedef std::unordered_multimap<std::string, uint32_t,
+                                  std::hash<std::string>>
       cstr_to_index_mmap;
 #else
-  typedef __gnu_cxx::hash_multimap<const char *, uint32_t,
-                                   __gnu_cxx::hash<const char *>,
-                                   CStringEqualBinaryPredicate>
+  typedef __gnu_cxx::hash_multimap<std::string, uint32_t,
+                                   __gnu_cxx::hash<std::string>>
       cstr_to_index_mmap;
 #endif
+// [END GOOGLE]
   DescriptorColl m_descriptors;
   mutable cstr_to_index_mmap m_name_to_descriptor_index;
 };
