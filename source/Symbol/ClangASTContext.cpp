@@ -1499,6 +1499,13 @@ clang::FunctionTemplateDecl *ClangASTContext::CreateFunctionTemplateDecl(
     clang::DeclContext *decl_ctx, clang::FunctionDecl *func_decl,
     const char *name, const TemplateParameterInfos &template_param_infos) {
   //    /// \brief Create a function template node.
+
+  // If the underlying templated decl is missing its TypeSourceInfo, Sema
+  // won't be able to attempt parameter substitution.
+  auto *TSI = func_decl->getTypeSourceInfo();
+  if (!TSI)
+    return nullptr;
+
   ASTContext *ast = getASTContext();
 
   llvm::SmallVector<NamedDecl *, 8> template_param_decls;

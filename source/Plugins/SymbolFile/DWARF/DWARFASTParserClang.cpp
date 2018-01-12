@@ -1642,8 +1642,15 @@ TypeSP DWARFASTParserClang::ParseTypeFromDWARF(const SymbolContext &sc,
                     m_ast.CreateFunctionTemplateDecl(
                         containing_decl_ctx, function_decl, type_name_cstr,
                         template_param_infos);
-                m_ast.CreateFunctionTemplateSpecializationInfo(
-                    function_decl, func_template_decl, template_param_infos);
+                if (!func_template_decl) {
+                  std::string function_name = function_decl->getNameAsString();
+                  dwarf->GetObjectFile()->GetModule()->ReportError(
+                      "Unable to reconstruct function template for %s",
+                      function_name.c_str());
+                } else {
+                  m_ast.CreateFunctionTemplateSpecializationInfo(
+                      function_decl, func_template_decl, template_param_infos);
+                }
               }
               
               lldbassert(function_decl);
