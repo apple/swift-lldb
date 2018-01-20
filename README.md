@@ -9,8 +9,8 @@
 
 **Welcome to the Swift Debugger and REPL!**
 
-Swift is a new, high performance systems programming language.  It has a clean
-and modern syntax, offers seamless access to existing C and Objective-C
+Swift is a new, high-performance systems programming language.  It has a clean
+and modern syntax offers seamless access to existing C and Objective-C
 code and frameworks, and is memory safe (by default).
 
 This repository covers the Swift Debugger and REPL support, built on
@@ -49,7 +49,7 @@ lldb/scripts/build-swift-cmake.py --test
 
 The lldb build script will clone additional repositories for required
 dependencies if they are not already present. An optional `--update`
-argument can be used to refresh these required repositories. Products
+an argument can be used to refresh these required repositories. Products
 of the build process will be placed in the `build/` directory
 under the root source directory.
 
@@ -90,9 +90,7 @@ Details on the contents:
 * lldb
 
   Contains the LLDB source that includes Swift support. All of
-  LLDB for Swift is contained in this repository. Core LLDB contents
-  are merged into this repository. No other copy of LLDB source code
-  is required.
+  LLDB for Swift is contained in this repository. Core LLDB contents are merged into this repository. No other copy of LLDB source code is required.
 
 * llvm
 
@@ -108,7 +106,7 @@ Details on the contents:
 
 Note: If you don't use the build-swift-cmake.py script to do the initial
 clone of the related project repositories, you'll need to manually clone
-them to the names above:
+them with the names above:
 * [swift-clang][swift-clang] should be cloned as `clang`
 * [swift-cmark][swift-cmark] should be cloned as `cmark`
 * [swift-llvm][swift-llvm] should be cloned as `llvm`
