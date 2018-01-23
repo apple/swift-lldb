@@ -1475,6 +1475,10 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
                 swift_ast_sp->AddClangArgumentPair("-iquote",
                                                    cc_options[i + 1].c_str());
               }
+
+              if (!cc_options[i].compare(0, 2, "-D")) {
+                swift_ast_sp->AddClangArgument(cc_options[i].c_str());
+              }
             }
           }
         }
