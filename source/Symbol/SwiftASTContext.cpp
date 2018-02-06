@@ -1424,8 +1424,13 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
                 "No resource dir available for module's SwiftASTContext.");
         }
 
-        if (!got_serialized_options) {
+        // If the serialized debugging options don't contain the set of options
+        // below,
+        // this could be because -serialize-debugging-options was not set.
+        // Attempt to parse these debugging options from the compile flags.
 
+        if (!got_serialized_options ||
+            !swift_ast_sp->GetNumFrameworkSearchPaths()) {
           std::vector<std::string> framework_search_paths;
 
           if (sym_vendor->GetCompileOptions("-F", framework_search_paths)) {
@@ -1433,7 +1438,10 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
               swift_ast_sp->AddFrameworkSearchPath(search_path.c_str());
             }
           }
+        }
 
+        if (!got_serialized_options ||
+            !swift_ast_sp->GetNumModuleSearchPaths()) {
           std::vector<std::string> include_paths;
 
           if (sym_vendor->GetCompileOptions("-I", include_paths)) {
@@ -1455,7 +1463,9 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
               }
             }
           }
+        }
 
+        if (!got_serialized_options || !swift_ast_sp->GetNumClangArguments()) {
           std::vector<std::string> cc_options;
 
           if (sym_vendor->GetCompileOptions("-Xcc", cc_options)) {
@@ -1464,6 +1474,17 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
                   i + 1 < cc_options.size()) {
                 swift_ast_sp->AddClangArgumentPair("-iquote",
                                                    cc_options[i + 1].c_str());
+              } else if (!cc_options[i].compare(0, 2, "-D")) {
+                swift_ast_sp->AddClangArgument(cc_options[i].c_str());
+              } else if (!cc_options[i].compare("-I") &&
+                         i + 1 < cc_options.size()) {
+                std::string &search_path = cc_options[i + 1];
+                const FileSpec path_spec(search_path.c_str(), false);
+                if (path_spec.Exists()) {
+                  std::string argument("-I");
+                  argument.append(search_path);
+                  swift_ast_sp->AddClangArgument(argument.c_str());
+                }
               }
             }
           }
