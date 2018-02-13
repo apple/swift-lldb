@@ -2033,7 +2033,7 @@ void ObjectFileELF::CreateSections(SectionList &unified_section_list) {
         SectionType section_type = g_sections[idx];
         SectionSP section_sp(
             elf_section_list->FindSectionByType(section_type, true));
-        if (section_sp) {
+        if (section_sp && section_sp->GetFileSize()) {
           SectionSP module_section_sp(
               unified_section_list.FindSectionByType(section_type, true));
           if (module_section_sp)
