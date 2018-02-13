@@ -134,6 +134,7 @@ SymbolVendorELF::CreateInstance(const lldb::ModuleSP &module_sp,
               eSectionTypeDWARFDebugPubNames,   eSectionTypeDWARFDebugPubTypes,
               eSectionTypeDWARFDebugRanges,     eSectionTypeDWARFDebugStr,
               eSectionTypeDWARFDebugStrOffsets, eSectionTypeELFSymbolTable,
+              eSectionTypeSwiftModules,
           };
           for (size_t idx = 0; idx < sizeof(g_sections) / sizeof(g_sections[0]);
                ++idx) {

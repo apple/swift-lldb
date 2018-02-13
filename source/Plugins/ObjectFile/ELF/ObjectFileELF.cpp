@@ -2026,6 +2026,7 @@ void ObjectFileELF::CreateSections(SectionList &unified_section_list) {
           eSectionTypeDWARFDebugPubNames,   eSectionTypeDWARFDebugPubTypes,
           eSectionTypeDWARFDebugRanges,     eSectionTypeDWARFDebugStr,
           eSectionTypeDWARFDebugStrOffsets, eSectionTypeELFSymbolTable,
+          eSectionTypeSwiftModules,
       };
       SectionList *elf_section_list = m_sections_ap.get();
       for (size_t idx = 0; idx < sizeof(g_sections) / sizeof(g_sections[0]);
