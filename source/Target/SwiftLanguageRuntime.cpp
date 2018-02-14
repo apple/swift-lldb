@@ -1401,21 +1401,12 @@ SwiftLanguageRuntime::MetadataPromise::FulfillTypePromise(Status *error) {
       m_remote_ast->getTypeForRemoteTypeMetadata(
           swift::remote::RemoteAddress(m_metadata_location));
 
-  if (result) {
-    m_compiler_type = CompilerType(m_swift_ast, result.getValue().getPointer());
-    if (log)
-      log->Printf("[MetadataPromise] result is type %s",
-                  m_compiler_type->GetTypeName().AsCString());
-    return m_compiler_type.getValue();
-  } else {
-    const auto &failure = result.getFailure();
-    if (error)
-      error->SetErrorStringWithFormat("error in resolving type: %s",
-                                      failure.render().c_str());
-    if (log)
-      log->Printf("[MetadataPromise] failure: %s", failure.render().c_str());
-    return (m_compiler_type = CompilerType()).getValue();
-  }
+  assert(result && "RemoteAST answer is invalid!");
+  m_compiler_type = CompilerType(m_swift_ast, result.getValue().getPointer());
+  if (log)
+    log->Printf("[MetadataPromise] result is type %s",
+                m_compiler_type->GetTypeName().AsCString());
+  return m_compiler_type.getValue();
 }
 
 llvm::Optional<swift::MetadataKind>
