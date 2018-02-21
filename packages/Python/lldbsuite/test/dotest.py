@@ -1387,14 +1387,6 @@ def run_suite():
             " can be found in directory '%s'\n" %
             configuration.sdir_name)
 
-    if configuration.useCategories and len(
-            configuration.failuresPerCategory) > 0:
-        sys.stderr.write("Failures per category:\n")
-        for category in configuration.failuresPerCategory:
-            sys.stderr.write(
-                "%s - %d\n" %
-                (category, configuration.failuresPerCategory[category]))
-
     # Terminate the test suite if ${LLDB_TESTSUITE_FORCE_FINISH} is defined.
     # This should not be necessary now.
     if ("LLDB_TESTSUITE_FORCE_FINISH" in os.environ):
