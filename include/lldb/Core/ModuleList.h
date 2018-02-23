@@ -12,6 +12,7 @@
 
 #include "lldb/Core/Address.h"     // for Address
 #include "lldb/Core/ModuleSpec.h"  // for ModuleSpec
+#include "lldb/Core/UserSettingsController.h"
 #include "lldb/Utility/FileSpec.h" // for FileSpec
 #include "lldb/Utility/Iterable.h"
 #include "lldb/Utility/Status.h" // for Status
@@ -73,6 +74,13 @@ class VariableList;
 }
 
 namespace lldb_private {
+
+class ModuleListProperties : public Properties {
+public:
+  ModuleListProperties();
+
+  bool GetSwiftUseHeadermaps() const;
+};
 
 //----------------------------------------------------------------------
 /// @class ModuleList ModuleList.h "lldb/Core/ModuleList.h"
@@ -533,6 +541,8 @@ public:
   bool LoadScriptingResourcesInTarget(Target *target, std::list<Status> &errors,
                                       Stream *feedback_stream = nullptr,
                                       bool continue_on_error = true);
+
+  static ModuleListProperties &GetGlobalModuleListProperties();
 
   static bool ModuleIsInCache(const Module *module_ptr);
 

@@ -1478,11 +1478,11 @@ uint32_t AppleObjCRuntimeV2::ParseClassInfoArray(const DataExtractor &data,
       ClassDescriptorSP descriptor_sp(new ClassDescriptorV2(*this, isa, NULL));
       AddClass(isa, descriptor_sp, name_hash);
       num_parsed++;
-      if (log)
-        log->Printf("AppleObjCRuntimeV2 added isa=0x%" PRIx64
-                    ", hash=0x%8.8x, name=%s",
-                    isa, name_hash,
-                    descriptor_sp->GetClassName().AsCString("<unknown>"));
+  //    if (log)
+  //      log->Printf("AppleObjCRuntimeV2 added isa=0x%" PRIx64
+   //                 ", hash=0x%8.8x, name=%s",
+    //                isa, name_hash,
+     //               descriptor_sp->GetClassName().AsCString("<unknown>"));
     }
   }
   if (log)
