@@ -96,6 +96,7 @@ if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 
   get_filename_component(PATH_TO_SWIFT_BUILD ${LLDB_PATH_TO_SWIFT_BUILD}
                          ABSOLUTE)
+  set(SWIFT_TOOLS_BINARY_DIR ${PATH_TO_SWIFT_BUILD}/bin CACHE PATH "Path to swift/bin")
 
   get_filename_component(PATH_TO_CMARK_BUILD ${LLDB_PATH_TO_CMARK_BUILD}
                          ABSOLUTE)
