@@ -160,7 +160,8 @@ def _decorateTest(mode,
                   debug_info=None,
                   swig_version=None, py_version=None,
                   macos_version=None,
-                  remote=None):
+                  remote=None,
+                  categories=None):
     def fn(self):
         skip_for_os = _match_decorator_property(
             lldbplatform.translate(oslist), self.getPlatform())
@@ -177,6 +178,16 @@ def _decorateTest(mode,
             triple, lldb.DBG.GetSelectedPlatform().GetTriple())
         skip_for_remote = _match_decorator_property(
             remote, lldb.remote_platform is not None)
+
+        skip_for_categories = False
+        if configuration.useCategories:
+            # If we're using categories, we should skip the test if (1) no
+            # categories are set or (2) none of its categories are enabled.
+            skip_for_categories = not categories or all(
+            [
+                cat not in configuration.categoriesList
+                for cat in categories
+            ])
 
         skip_for_swig_version = (
             swig_version is None) or (
@@ -208,7 +219,8 @@ def _decorateTest(mode,
                       (swig_version, skip_for_swig_version, "swig version"),
                       (py_version, skip_for_py_version, "python version"),
                       (macos_version, skip_for_macos_version, "macOS version"),
-                      (remote, skip_for_remote, "platform locality (remote/local)")]
+                      (remote, skip_for_remote, "platform locality (remote/local)"),
+                      (categories, skip_for_categories, "missing categories")]
         reasons = []
         final_skip_result = True
         for this_condition in conditions:
@@ -277,7 +289,8 @@ def skipIf(bugnumber=None,
            debug_info=None,
            swig_version=None, py_version=None,
            macos_version=None,
-           remote=None):
+           remote=None,
+           categories=None):
     return _decorateTest(DecorateMode.Skip,
                          bugnumber=bugnumber,
                          oslist=oslist, hostoslist=hostoslist,
@@ -286,7 +299,8 @@ def skipIf(bugnumber=None,
                          debug_info=debug_info,
                          swig_version=swig_version, py_version=py_version,
                          macos_version=macos_version,
-                         remote=remote)
+                         remote=remote,
+                         categories=categories)
 
 
 def _skip_for_android(reason, api_levels, archs):
@@ -300,23 +314,8 @@ def _skip_for_android(reason, api_levels, archs):
 def add_test_categories(cat):
     """Add test categories to a TestCase method"""
     cat = test_categories.validate(cat, True)
-
     def impl(func):
-        if isinstance(func, type) and issubclass(func, unittest2.TestCase):
-            raise Exception(
-                "@add_test_categories can only be used to decorate a test method")
-
-        # Update or set the categories attribute. For instance methods, the
-        # attribute must be set on the actual function.
-        func_for_attr = func
-        if inspect.ismethod(func_for_attr):
-            func_for_attr = func.__func__
-        if hasattr(func_for_attr, "categories"):
-            cat.extend(func_for_attr.categories)
-        setattr(func_for_attr, "categories", cat)
-
-        return func
-
+        return skipIf(categories=cat)(func)
     return impl
 
 
@@ -608,6 +607,9 @@ def skipUnlessDarwin(func):
     """Decorate the item to skip tests that should be skipped on any non Darwin platform."""
     return skipUnlessPlatform(lldbplatformutil.getDarwinOSTriples())(func)
 
+def skipUnlessSwiftPR(func):
+    """Decorate the item to skip tests which are not part of the Swift PR suite."""
+    return skipIf(categories=['swiftpr'])(func)
 
 def swiftTest(func):
     """Decorate the item as a Swift test (Darwin/Linux only, no i386)."""

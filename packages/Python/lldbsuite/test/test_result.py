@@ -105,19 +105,6 @@ class LLDBTestResult(unittest2.TextTestResult):
         else:
             return str(test)
 
-    def getCategoriesForTest(self, test):
-        """
-        Gets all the categories for the currently running test method in test case
-        """
-        test_categories = []
-        test_method = getattr(test, test._testMethodName)
-        if test_method is not None and hasattr(test_method, "categories"):
-            test_categories.extend(test_method.categories)
-
-        test_categories.extend(test.getCategories())
-
-        return test_categories
-
     def hardMarkAsSkipped(self, test):
         getattr(test, test._testMethodName).__func__.__unittest_skip__ = True
         getattr(
@@ -133,9 +120,6 @@ class LLDBTestResult(unittest2.TextTestResult):
         return False
 
     def startTest(self, test):
-        if configuration.shouldSkipBecauseOfCategories(
-                self.getCategoriesForTest(test)):
-            self.hardMarkAsSkipped(test)
         if self.checkExclusion(
                 configuration.skip_tests, test.id()):
             self.hardMarkAsSkipped(test)
@@ -238,14 +222,6 @@ class LLDBTestResult(unittest2.TextTestResult):
             self.stream.write(
                 "FAIL: LLDB (%s) :: %s\n" %
                 (self._config_string(test), str(test)))
-        if configuration.useCategories:
-            test_categories = self.getCategoriesForTest(test)
-            for category in test_categories:
-                if category in configuration.failuresPerCategory:
-                    configuration.failuresPerCategory[
-                        category] = configuration.failuresPerCategory[category] + 1
-                else:
-                    configuration.failuresPerCategory[category] = 1
         if self.results_formatter:
             self.results_formatter.handle_event(
                 EventBuilder.event_for_failure(test, err))

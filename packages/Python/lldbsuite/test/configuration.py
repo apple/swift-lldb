@@ -36,9 +36,6 @@ skipCategories = ["darwin-log", "frame-diagnose"]
 if platform.system() == 'Linux':
     skipCategories.append('watchpoints')
 
-# use this to track per-category failures
-failuresPerCategory = {}
-
 # The path to LLDB.framework is optional.
 lldbFrameworkPath = None
 
