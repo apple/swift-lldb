@@ -1,0 +1,11 @@
+# Check that debugging works without serialized options
+# REQUIRES: darwin
+
+# RUN: %swiftc %p/Inputs/no_serialized/mod/mod.swift -g -Onone -emit-module -module-name mod -emit-library -o %T/libmod.dylib -I%p/Inputs/no_serialized/mod/cdeps -Xcc -DFOO
+# RUN: %swiftc %p/Inputs/no_serialized/main.swift -g -Onone -L%T -I%T -I%p/Inputs/no_serialized/mod/cdeps -lmod -Xcc -DFOO -o %T/main
+# RUN: %lldb -b -s %s -- %T/main | FileCheck %s
+
+breakpoint set --file main.swift --line 17
+run
+print a.x
+# CHECK: 1
