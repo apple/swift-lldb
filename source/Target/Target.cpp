@@ -3678,8 +3678,6 @@ static PropertyDefinition g_properties[] = {
      "one is _sigtramp."},
     {"sdk-path", OptionValue::eTypeFileSpec, false, 0, nullptr, nullptr,
      "The path to the SDK used to build the current target."},
-    {"module-cache-path", OptionValue::eTypeFileSpec, false, 0, nullptr,
-     nullptr, "The path to the module-cache directory."},
     {"display-runtime-support-values", OptionValue::eTypeBoolean, false, false,
      nullptr, nullptr, "If true, LLDB will show variables that are meant to "
                        "support the operation of a language's runtime "
@@ -3732,8 +3730,11 @@ enum {
   ePropertyMemoryModuleLoadLevel,
   ePropertyDisplayExpressionsInCrashlogs,
   ePropertyTrapHandlerNames,
+<<<<<<< HEAD
   ePropertySDKPath,
   ePropertyModuleCachePath,
+=======
+>>>>>>> f577c4eb9... Make the clang module cache setting available without a target
   ePropertyDisplayRuntimeSupportValues,
   ePropertyNonStopModeEnabled,
   ePropertyExperimental
@@ -4112,6 +4113,7 @@ FileSpecList &TargetProperties::GetDebugFileSearchPaths() {
   return option_value->GetCurrentValue();
 }
 
+<<<<<<< HEAD
 FileSpec &TargetProperties::GetModuleCachePath() {
   const uint32_t idx = ePropertyModuleCachePath;
   OptionValueFileSpec *option_value =
@@ -4148,6 +4150,8 @@ FileSpecList &TargetProperties::GetSwiftModuleSearchPaths() {
   return option_value->GetCurrentValue();
 }
 
+=======
+>>>>>>> f577c4eb9... Make the clang module cache setting available without a target
 FileSpecList &TargetProperties::GetClangModuleSearchPaths() {
   const uint32_t idx = ePropertyClangModuleSearchPaths;
   OptionValueFileSpecList *option_value =
