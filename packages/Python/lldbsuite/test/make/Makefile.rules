@@ -573,6 +573,17 @@ endif
 #----------------------------------------------------------------------
 # Make the dSYM file from the executable if $(MAKE_DSYM) != "NO"
 #----------------------------------------------------------------------
+ifeq "$(SPLIT_DEBUG_SYMBOLS)" "YES"
+  OBJCOPY_COPY_ARGS =
+  ifneq "$(SPLIT_SWIFT_AST)" "YES"
+    OBJCOPY_COPY_ARGS += --only-keep-debug
+  endif
+  OBJCOPY_STRIP_ARGS = --remove-section .gnu_debuglink --strip-debug --add-gnu-debuglink="$(DSYM)"
+  ifeq "$(SPLIT_SWIFT_AST)" "YES"
+    OBJCOPY_STRIP_ARGS += --remove-section .swift_ast
+  endif
+endif
+
 ifneq "$(DYLIB_ONLY)" "YES"
 $(DSYM) : $(EXE)
 ifeq "$(OS)" "Darwin"
@@ -581,8 +592,8 @@ ifneq "$(MAKE_DSYM)" "NO"
 endif
 else
 ifeq "$(SPLIT_DEBUG_SYMBOLS)" "YES"
-	$(OBJCOPY) --only-keep-debug "$(EXE)" "$(DSYM)"
-	$(OBJCOPY) --remove-section .gnu_debuglink --strip-debug --add-gnu-debuglink="$(DSYM)" "$(EXE)" "$(EXE)"
+	$(OBJCOPY) $(OBJCOPY_COPY_ARGS) "$(EXE)" "$(DSYM)"
+	$(OBJCOPY) $(OBJCOPY_STRIP_ARGS) "$(EXE)" "$(EXE)"
 endif
 endif
 endif

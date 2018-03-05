@@ -134,13 +134,14 @@ SymbolVendorELF::CreateInstance(const lldb::ModuleSP &module_sp,
               eSectionTypeDWARFDebugPubNames,   eSectionTypeDWARFDebugPubTypes,
               eSectionTypeDWARFDebugRanges,     eSectionTypeDWARFDebugStr,
               eSectionTypeDWARFDebugStrOffsets, eSectionTypeELFSymbolTable,
+              eSectionTypeSwiftModules,
           };
           for (size_t idx = 0; idx < sizeof(g_sections) / sizeof(g_sections[0]);
                ++idx) {
             SectionType section_type = g_sections[idx];
             SectionSP section_sp(
                 objfile_section_list->FindSectionByType(section_type, true));
-            if (section_sp) {
+            if (section_sp && section_sp->GetFileSize()) {
               SectionSP module_section_sp(
                   module_section_list->FindSectionByType(section_type, true));
               if (module_section_sp)

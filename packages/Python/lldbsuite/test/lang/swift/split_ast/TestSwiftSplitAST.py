@@ -1,4 +1,4 @@
-# TestSplitDebug.py
+# TestSplitAST.py
 #
 # This source file is part of the Swift.org open source project
 #
@@ -10,7 +10,7 @@
 #
 # ------------------------------------------------------------------------------
 """
-Test that split debug-info works properly
+Test that split ast works properly
 """
 import lldb
 import lldbsuite.test.decorators as decorators
@@ -20,14 +20,14 @@ import os
 import unittest2
 
 
-class TestSwiftSplitDebug(lldbtest.TestBase):
+class TestSwiftSplitAST(lldbtest.TestBase):
 
     mydir = lldbtest.TestBase.compute_mydir(__file__)
 
     @decorators.swiftTest
     @decorators.add_test_categories(["swiftpr"])
-    def test_split_debug_info(self):
-        """Test split debug info"""
+    def test_split_ast_info(self):
+        """Test split ast"""
         self.build()
         self.do_test()
 
@@ -44,7 +44,7 @@ class TestSwiftSplitDebug(lldbtest.TestBase):
         self.assertEquals(value.GetValue(), expected_val)
 
     def do_test(self):
-        """Test the split debug info"""
+        """Test the split ast"""
         (target, process, thread, bkpt) = lldbutil.run_to_source_breakpoint(self,
             "Break here in main", self.main_source_spec)
 

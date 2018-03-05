@@ -2026,6 +2026,7 @@ void ObjectFileELF::CreateSections(SectionList &unified_section_list) {
           eSectionTypeDWARFDebugPubNames,   eSectionTypeDWARFDebugPubTypes,
           eSectionTypeDWARFDebugRanges,     eSectionTypeDWARFDebugStr,
           eSectionTypeDWARFDebugStrOffsets, eSectionTypeELFSymbolTable,
+          eSectionTypeSwiftModules,
       };
       SectionList *elf_section_list = m_sections_ap.get();
       for (size_t idx = 0; idx < sizeof(g_sections) / sizeof(g_sections[0]);
@@ -2033,7 +2034,7 @@ void ObjectFileELF::CreateSections(SectionList &unified_section_list) {
         SectionType section_type = g_sections[idx];
         SectionSP section_sp(
             elf_section_list->FindSectionByType(section_type, true));
-        if (section_sp) {
+        if (section_sp && section_sp->GetFileSize()) {
           SectionSP module_section_sp(
               unified_section_list.FindSectionByType(section_type, true));
           if (module_section_sp)
