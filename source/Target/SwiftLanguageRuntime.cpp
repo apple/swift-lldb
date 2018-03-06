@@ -88,20 +88,40 @@ using namespace lldb_private;
 SwiftLanguageRuntime::~SwiftLanguageRuntime() {}
 
 // FIXME: should this be member of a class?
-using NativeReflectionContext
-  = swift::reflection::ReflectionContext<swift::External<swift::RuntimeTarget<sizeof(uintptr_t)>>>;
+using NativeReflectionContext = swift::reflection::ReflectionContext<
+    swift::External<swift::RuntimeTarget<sizeof(uintptr_t)>>>;
 NativeReflectionContext *ctx;
 
+void SwiftASTContext::ModulesDidLoad(ModuleList &module_list) {
+  ClearModuleDependentCaches();
+
+  // Add the images to RemoteMirrors.
+  auto target = m_target_wp.lock();
+  target->GetProcessSP()->GetSwiftLanguageRuntime()->SetupReflection();
+  module_list.ForEach([&](const ModuleSP &module_sp) -> bool {
+    auto *ObjFile = module_sp->GetObjectFile();
+    Address startAddress = ObjFile->GetHeaderAddress();
+    auto loadPtr =
+      static_cast<uintptr_t>(startAddress.GetLoadAddress(target.get()));
+    ctx->addImage(swift::remote::RemoteAddress(loadPtr));
+    return true;
+  });
+}
+
 void SwiftLanguageRuntime::SetupReflection() {
-  auto &Target = m_process->GetTarget();
-  auto M = Target.GetExecutableModule();
+  static bool initialized = false;
+  if (initialized)
+    return;
+  initialized = true;
+  auto &target = m_process->GetTarget();
+  auto M = target.GetExecutableModule();
   auto *ObjFile = M->GetObjectFile();
   Address startAddress = ObjFile->GetHeaderAddress();
-  auto loadPtr = static_cast<uintptr_t>(startAddress.GetLoadAddress(&m_process->GetTarget()));
-
+  auto loadPtr = static_cast<uintptr_t>(startAddress.GetLoadAddress(&target));
+  
   ctx = new NativeReflectionContext(this->GetMemoryReader());
   ctx->addImage(swift::remote::RemoteAddress(loadPtr));
-  //ctx->getBuilder().dumpAllSections(std::cout);
+  ctx->getBuilder().dumpAllSections(std::cout);
 }
 
 SwiftLanguageRuntime::SwiftLanguageRuntime(Process *process)
