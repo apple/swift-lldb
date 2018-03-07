@@ -13,7 +13,6 @@
 
 // Other libraries and framework includes
 #include "clang/Basic/TargetInfo.h"
-#include "clang/CodeGen/ObjectFilePCHContainerOperations.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendActions.h"
 #include "clang/Lex/Preprocessor.h"
@@ -28,6 +27,7 @@
 // Project includes
 #include "ClangModulesDeclVendor.h"
 
+#include "lldb/Core/ModuleList.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Symbol/CompileUnit.h"
@@ -583,6 +583,7 @@ ClangModulesDeclVendor::Create(Target &target) {
   // Add additional search paths with { "-I", path } or { "-F", path } here.
 
   {
+<<<<<<< HEAD
     llvm::SmallString<128> DefaultModuleCache;
     const bool erased_on_reboot = false;
     llvm::sys::path::system_temp_directory(erased_on_reboot,
@@ -591,6 +592,13 @@ ClangModulesDeclVendor::Create(Target &target) {
     llvm::sys::path::append(DefaultModuleCache, "ModuleCache");
     std::string module_cache_argument("-fmodules-cache-path=");
     module_cache_argument.append(DefaultModuleCache.str().str());
+=======
+    llvm::SmallString<128> path;
+    auto props = ModuleList::GetGlobalModuleListProperties();
+    props.GetClangModulesCachePath().GetPath(path);
+    std::string module_cache_argument("-fmodules-cache-path=");
+    module_cache_argument.append(path.str());
+>>>>>>> f577c4eb9... Make the clang module cache setting available without a target
     compiler_invocation_arguments.push_back(module_cache_argument);
   }
 
