@@ -427,7 +427,9 @@ protected:
 
   void SetupSwiftError();
   void SetupExclusivity();
+public:
   void SetupReflection();
+private:
 
   const CompilerType &GetBoxMetadataType();
 
