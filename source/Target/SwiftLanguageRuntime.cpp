@@ -28,8 +28,12 @@
 #include "swift/AST/Types.h"
 #include "swift/Demangling/Demangle.h"
 #include "swift/Demangling/Demangler.h"
+#include "swift/Reflection/ReflectionContext.h"
+#include "swift/Reflection/TypeRefBuilder.h"
 #include "swift/Remote/MemoryReader.h"
+#include "swift/Remote/RemoteAddress.h"
 #include "swift/RemoteAST/RemoteAST.h"
+#include "swift/Runtime/Metadata.h"
 
 #include "lldb/Breakpoint/StoppointCallbackContext.h"
 #include "lldb/Core/Debugger.h"
@@ -54,6 +58,7 @@
 #include "lldb/Symbol/CompileUnit.h"
 #include "lldb/Symbol/SwiftASTContext.h"
 #include "lldb/Symbol/Symbol.h"
+#include "lldb/Symbol/ObjectFile.h"
 #include "lldb/Symbol/TypeList.h"
 #include "lldb/Symbol/VariableList.h"
 #include "lldb/Target/ExecutionContext.h"
@@ -82,12 +87,50 @@ using namespace lldb_private;
 //----------------------------------------------------------------------
 SwiftLanguageRuntime::~SwiftLanguageRuntime() {}
 
+// FIXME: should this be member of a class?
+using NativeReflectionContext = swift::reflection::ReflectionContext<
+    swift::External<swift::RuntimeTarget<sizeof(uintptr_t)>>>;
+NativeReflectionContext *ctx;
+
+void SwiftASTContext::ModulesDidLoad(ModuleList &module_list) {
+  ClearModuleDependentCaches();
+
+  // Add the images to RemoteMirrors.
+  auto target = m_target_wp.lock();
+  target->GetProcessSP()->GetSwiftLanguageRuntime()->SetupReflection();
+  module_list.ForEach([&](const ModuleSP &module_sp) -> bool {
+    auto *ObjFile = module_sp->GetObjectFile();
+    Address startAddress = ObjFile->GetHeaderAddress();
+    auto loadPtr =
+      static_cast<uintptr_t>(startAddress.GetLoadAddress(target.get()));
+    ctx->addImage(swift::remote::RemoteAddress(loadPtr));
+    return true;
+  });
+}
+
+void SwiftLanguageRuntime::SetupReflection() {
+  static bool initialized = false;
+  if (initialized)
+    return;
+  initialized = true;
+  auto &target = m_process->GetTarget();
+  auto M = target.GetExecutableModule();
+  auto *ObjFile = M->GetObjectFile();
+  Address startAddress = ObjFile->GetHeaderAddress();
+  auto loadPtr = static_cast<uintptr_t>(startAddress.GetLoadAddress(&target));
+  
+  ctx = new NativeReflectionContext(this->GetMemoryReader());
+  ctx->addImage(swift::remote::RemoteAddress(loadPtr));
+  ctx->getBuilder().dumpAllSections(std::cout);
+}
+
 SwiftLanguageRuntime::SwiftLanguageRuntime(Process *process)
     : LanguageRuntime(process), m_negative_cache_mutex(),
       m_SwiftNativeNSErrorISA(), m_memory_reader_sp(), m_promises_map(),
       m_resolvers_map(), m_bridged_synthetics_map(), m_box_metadata_type() {
   SetupSwiftError();
   SetupExclusivity();
+  SetupReflection();
 }
 
 static llvm::Optional<lldb::addr_t>
@@ -1086,6 +1129,24 @@ SwiftLanguageRuntime::GetMemoryReader() {
       return swift::remote::RemoteAddress(nullptr);
     }
 
+    ReadBytesResult
+    readBytes(swift::remote::RemoteAddress address, uint64_t size) override {
+      void *dest = malloc(size);
+      assert(dest && "malloc failed!");
+
+      ReadBytesResult Result(dest, [](const void *ptr) {
+        free(const_cast<void *>(ptr));
+      });
+
+      Target &target(m_process->GetTarget());
+      Address addr(address.getAddressData());
+      Status error;
+      uint64_t readBytes = target.ReadMemory(addr, false, dest, size, error);
+      if ((readBytes < size) || error.Fail())
+        Result.reset();
+      return Result;
+    }
+
     bool readBytes(swift::remote::RemoteAddress address, uint8_t *dest,
                    uint64_t size) override {
       Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_TYPES));
@@ -1514,7 +1575,13 @@ bool SwiftLanguageRuntime::IsValidErrorValue(
     return false;
   if (!protocol_info.m_is_errortype)
     return false;
-
+#if 0
+  swift::Demangle::Demangler Dem;
+  auto demangled = Dem.demangleType(in_value.GetMangledTypeName().GetStringRef());
+  auto *typeRef = swift::Demangle::decodeMangledType(ctx->getBuilder(),
+                                                     demangled);
+#endif
+  
   static ConstString g_instance_type_child_name("instance_type");
   ValueObjectSP instance_type_sp(
       in_value.GetStaticValue()->GetChildMemberWithName(

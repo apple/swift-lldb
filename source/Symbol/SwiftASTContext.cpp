@@ -1867,6 +1867,10 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
     }
   }
 
+  // Add any images that were created before the LLDB Swift runtime
+  // was initialized.
+  swift_ast_sp->ModulesDidLoad(target.GetImages());
+  
   return swift_ast_sp;
 }
 
@@ -4816,10 +4820,6 @@ void SwiftASTContext::PrintDiagnostics(DiagnosticManager &diagnostic_manager,
   }
 }
 
-void SwiftASTContext::ModulesDidLoad(ModuleList &module_list) {
-  ClearModuleDependentCaches();
-}
-
 void SwiftASTContext::ClearModuleDependentCaches() {
   m_negative_type_cache.Clear();
   m_extra_type_info_cache.Clear();
@@ -6140,6 +6140,9 @@ uint64_t SwiftASTContext::GetBitSize(lldb::opaque_compiler_type_t type,
         GetSwiftFixedTypeInfo(type);
     if (fixed_type_info)
       return fixed_type_info->getFixedSize().getValue() * 8;
+    else {
+        assert(0);
+    }
   }
   return 0;
 }

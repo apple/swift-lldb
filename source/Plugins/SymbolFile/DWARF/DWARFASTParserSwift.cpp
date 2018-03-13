@@ -19,6 +19,7 @@
 #include "SymbolFileDWARF.h"
 
 #include "swift/AST/ASTContext.h"
+#include "swift/Reflection/ReflectionContext.h"
 
 #include "lldb/Utility/Status.h"
 #include "lldb/Core/Module.h"
@@ -29,6 +30,10 @@
 #include "lldb/Symbol/Type.h"
 #include "lldb/Target/SwiftLanguageRuntime.h"
 #include "lldb/Utility/Log.h"
+
+using NativeReflectionContext
+= swift::reflection::ReflectionContext<swift::External<swift::RuntimeTarget<sizeof(uintptr_t)>>>;
+extern NativeReflectionContext *ctx;
 
 using namespace lldb;
 using namespace lldb_private;
@@ -106,6 +111,8 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
       }
     }
   }
+    
+  llvm::Optional<uint64_t> size;
 
   if (mangled_name) {
     // see if we parsed this type already
@@ -116,6 +123,12 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
     // otherwise figure it out yourself
     compiler_type =
         m_ast.GetTypeFromMangledTypename(mangled_name.GetCString(), error);
+
+    llvm::StringRef mangled = mangled_name.GetStringRef();
+    if (auto *type_ref = ctx->readTypeFromMangledName(mangled.data(), mangled.size())) {
+      auto type_info = ctx->getTypeInfo(type_ref);
+      size = type_info->getSize();
+    }
   }
 
   if (!compiler_type && name) {
@@ -161,9 +174,12 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
   }
 
   if (compiler_type) {
+    if (!size)
+      size = compiler_type.GetByteSize(nullptr);
+
     type_sp = TypeSP(new Type(
         die.GetID(), die.GetDWARF(), compiler_type.GetTypeName(),
-        compiler_type.GetByteSize(nullptr), NULL, LLDB_INVALID_UID,
+        *size, NULL, LLDB_INVALID_UID,
         Type::eEncodingIsUID, &decl, compiler_type, Type::eResolveStateFull));
   }
 
