@@ -2670,7 +2670,7 @@ GetThunkKind(llvm::StringRef symbol_name)
   case swift::Demangle::Node::Kind::ProtocolWitness:
     if (node_ptr->getNumChildren() == 0)
       return ThunkKind::Unknown;
-    if (node_ptr->getFirstChild()->getKind() 
+    if (node_ptr->getFirstChild()->getKind()
            == swift::Demangle::Node::Kind::ProtocolConformance)
       return ThunkKind::ProtocolConformance;
     break;
@@ -2681,7 +2681,7 @@ GetThunkKind(llvm::StringRef symbol_name)
   case swift::Demangle::Node::Kind::Allocator:
     if (node_ptr->getNumChildren() == 0)
       return ThunkKind::Unknown;
-    if (node_ptr->getFirstChild()->getKind() 
+    if (node_ptr->getFirstChild()->getKind()
            == swift::Demangle::Node::Kind::Class)
       return ThunkKind::AllocatingInit;
     break;
