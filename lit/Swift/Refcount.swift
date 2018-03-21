@@ -1,5 +1,3 @@
-// REQUIRES: darwin
-
 // RUN: rm -f %t.cmds %t
 // RUN: echo 'breakpoint set -p "break here"' > %t.cmds
 // RUN: echo 'run' >> %t.cmds
