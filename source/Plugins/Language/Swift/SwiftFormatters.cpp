@@ -652,6 +652,17 @@ bool lldb_private::formatters::swift::StridedRangeGenerator_SummaryProvider(
   return true;
 }
 
+// SWIFT_ENABLE_TENSORFLOW
+bool lldb_private::formatters::swift::Tensor_SummaryProvider(
+    ValueObject &valobj, Stream &stream, const TypeSummaryOptions &options) {
+  std::string description(valobj.GetObjectDescription());
+  // Remove trailing newline, if it exists.
+  if (description.back() == '\n')
+    description.pop_back();
+  stream.Printf("%s", description.c_str());
+  return true;
+}
+
 bool lldb_private::formatters::swift::BuiltinObjC_SummaryProvider(
     ValueObject &valobj, Stream &stream, const TypeSummaryOptions &options) {
   stream.Printf("0x%" PRIx64 " ", valobj.GetValueAsUnsigned(0));
