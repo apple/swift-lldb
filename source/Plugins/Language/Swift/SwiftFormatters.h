@@ -85,10 +85,8 @@ bool StridedRangeGenerator_SummaryProvider(ValueObject &valobj, Stream &stream,
                                            const TypeSummaryOptions &options);
 
 // SWIFT_ENABLE_TENSORFLOW
-// TODO: Consider renaming to "ObjectDescription_SummaryProvider", a more
-// accurate description.
-bool Tensor_SummaryProvider(ValueObject &valobj, Stream &stream,
-                            const TypeSummaryOptions &options);
+bool ObjectDescription_SummaryProvider(ValueObject &valobj, Stream &stream,
+                                       const TypeSummaryOptions &options);
 
 // TODO: this is a transient workaround for the fact that
 // ObjC types are totally opaque in Swift for LLDB

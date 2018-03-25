@@ -87,4 +87,6 @@ if os.path.isdir(swift_resources):
 shutil.copytree(
     swift_dir,
     swift_resources,
+    # SWIFT_ENABLE_TENSORFLOW
+    symlinks=True,
     ignore=shutil.ignore_patterns("install-tmp"))
