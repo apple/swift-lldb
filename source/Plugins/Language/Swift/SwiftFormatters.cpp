@@ -653,12 +653,19 @@ bool lldb_private::formatters::swift::StridedRangeGenerator_SummaryProvider(
 }
 
 // SWIFT_ENABLE_TENSORFLOW
-bool lldb_private::formatters::swift::Tensor_SummaryProvider(
+bool lldb_private::formatters::swift::ObjectDescription_SummaryProvider(
     ValueObject &valobj, Stream &stream, const TypeSummaryOptions &options) {
   std::string description(valobj.GetObjectDescription());
   // Remove trailing newline, if it exists.
   if (description.back() == '\n')
     description.pop_back();
+  // If description still contains a newline and doesn't start with a newline,
+  // prepend a newline character.
+  // NOTE: Linear search over long strings can be terribly inefficient. Consder
+  // adding an early termination condition.
+  if (description.front() != '\n' &&
+      description.find('\n') != std::string::npos)
+    description.insert(0, "\n");
   stream.Printf("%s", description.c_str());
   return true;
 }
