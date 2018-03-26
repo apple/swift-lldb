@@ -242,6 +242,21 @@ bool lldb_private::formatters::swift::StringGuts_SummaryProvider(
     if (objectAddr == LLDB_INVALID_ADDRESS)
       return false;
 
+    uint64_t topNibbleMask = 0xF000000000000000;
+    uint64_t smallUTF8TopNibble = 0xE000000000000000;
+
+    // Small UTF-8 string
+    if ((objectAddr & topNibbleMask) == smallUTF8TopNibble) {
+      uint64_t countMask = 0x0F00000000000000;
+      uint64_t count = (objectAddr & countMask) >> 56U;
+      assert(count <= 15 && "malformed small string");
+      uint64_t buffer[2] = {otherBits->GetValueAsUnsigned(0), objectAddr};
+      stream.Printf("\"");
+      stream.Write(&buffer, count);
+      stream.Printf("\"");
+      return true;
+    }
+
     bool isValue = objectAddr & (1ULL << 63);
     bool isCocoaOrSmall = objectAddr & (1ULL << 62);
     bool isOpaque = objectAddr & (1ULL << 61);
