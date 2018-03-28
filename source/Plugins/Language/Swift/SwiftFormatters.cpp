@@ -262,10 +262,21 @@ bool lldb_private::formatters::swift::StringGuts_SummaryProvider(
       uint64_t count = (objectAddr & countMask) >> 56U;
       assert(count <= 15 && "malformed small string");
       uint64_t buffer[2] = {otherBits->GetValueAsUnsigned(0), objectAddr};
-      stream.Printf("\"");
-      stream.Write(&buffer, count);
-      stream.Printf("\"");
-      return true;
+
+      DataExtractor data(buffer, count, process->GetByteOrder(),
+                         process->GetAddressByteSize());
+
+      StringPrinter::ReadBufferAndDumpToStreamOptions options;
+      options.SetData(data)
+          .SetEscapeNonPrintables(true)
+          .SetPrefixToken(0)
+          .SetQuote('"')
+          .SetStream(&stream)
+          .SetSourceSize(count)
+          .SetBinaryZeroIsTerminator(false)
+          .SetLanguage(lldb::eLanguageTypeSwift);
+      return StringPrinter::ReadBufferAndDumpToStream<
+          StringPrinter::StringElementType::UTF8>(options);
     }
 
     bool isValue = objectAddr & (1ULL << 63);
