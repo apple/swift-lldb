@@ -6324,181 +6324,50 @@ CompilerType SwiftASTContext::GetFieldAtIndex(void *type, size_t idx,
                                               uint64_t *bit_offset_ptr,
                                               uint32_t *bitfield_bit_size_ptr,
                                               bool *is_bitfield_ptr) {
-  VALID_OR_RETURN(CompilerType());
+  uint32_t child_byte_size;
+  int32_t child_byte_offset;
+  uint32_t child_bitfield_bit_size;
+  uint32_t child_bitfield_bit_offset;
+  bool child_is_base_class;
+  bool child_is_deref_of_parent;
+  uint64_t language_flags;
 
-  if (!type)
-    return CompilerType();
+  // Use the more general entry point, which will degrade gracefully when there
+  // is no value object or execution context.
+  auto child_type =
+    GetChildCompilerTypeAtIndex(type, /*exe_ctx=*/nullptr, idx,
+                                /*transparent_pointers=*/false,
+                                /*omit_empty_base_classes=*/false,
+                                /*ignore_array_bounds=*/false,
+                                name, child_byte_size, child_byte_offset,
+                                child_bitfield_bit_size,
+                                child_bitfield_bit_offset,
+                                child_is_base_class,
+                                child_is_deref_of_parent,
+                                /*valobj=*/nullptr,
+                                language_flags);
 
-  swift::CanType swift_can_type(GetCanonicalSwiftType(type));
-
-  const swift::TypeKind type_kind = swift_can_type->getKind();
-  switch (type_kind) {
-  case swift::TypeKind::Error:
-  case swift::TypeKind::BuiltinInteger:
-  case swift::TypeKind::BuiltinFloat:
-  case swift::TypeKind::BuiltinRawPointer:
-  case swift::TypeKind::BuiltinNativeObject:
-  case swift::TypeKind::BuiltinUnsafeValueBuffer:
-  case swift::TypeKind::BuiltinUnknownObject:
-  case swift::TypeKind::BuiltinBridgeObject:
-  case swift::TypeKind::BuiltinVector:
-    break;
-  case swift::TypeKind::UnmanagedStorage:
-  case swift::TypeKind::UnownedStorage:
-  case swift::TypeKind::WeakStorage:
-    return CompilerType(GetASTContext(),
-                        swift_can_type->getReferenceStorageReferent())
-        .GetFieldAtIndex(idx, name, bit_offset_ptr, bitfield_bit_size_ptr,
-                         is_bitfield_ptr);
-  case swift::TypeKind::GenericTypeParam:
-  case swift::TypeKind::DependentMember:
-    break;
-
-  case swift::TypeKind::Enum:
-  case swift::TypeKind::BoundGenericEnum: {
-    SwiftEnumDescriptor *cached_enum_info = GetCachedEnumInfo(type);
-    if (cached_enum_info &&
-        idx < cached_enum_info->GetNumElementsWithPayload()) {
-      const SwiftEnumDescriptor::ElementInfo *enum_element_info =
-          cached_enum_info->GetElementWithPayloadAtIndex(idx);
-      name.assign(enum_element_info->name.GetCString());
-      if (bit_offset_ptr)
-        *bit_offset_ptr = 0;
-      if (bitfield_bit_size_ptr)
-        *bitfield_bit_size_ptr = 0;
-      if (is_bitfield_ptr)
-        *is_bitfield_ptr = false;
-      return enum_element_info->payload_type;
-    }
-  } break;
-
-  case swift::TypeKind::Tuple: {
-    auto tuple_type = cast<swift::TupleType>(swift_can_type);
-    if (idx >= tuple_type->getNumElements()) break;
-
-    // We cannot reliably get layout information without an execution
-    // context.
+  // If we have a bit-field, record it as such.
+  if (child_bitfield_bit_offset % 8 || child_bitfield_bit_size % 8) {
     if (bit_offset_ptr)
-      *bit_offset_ptr = LLDB_INVALID_IVAR_OFFSET;
+      *bit_offset_ptr = child_bitfield_bit_offset;
     if (bitfield_bit_size_ptr)
-      *bitfield_bit_size_ptr = 0;
+      *bitfield_bit_size_ptr = child_bitfield_bit_size;
     if (is_bitfield_ptr)
-      *is_bitfield_ptr = false;
-
-    name = GetTupleElementName(tuple_type, idx);
-
-    const auto &child = tuple_type->getElement(idx);
-    return CompilerType(GetASTContext(), child.getType().getPointer());
-  }
-
-  case swift::TypeKind::Class:
-  case swift::TypeKind::BoundGenericClass: {
-    auto class_decl = swift_can_type->getClassOrBoundGenericClass();
-    if (class_decl->hasSuperclass()) {
-      if (idx == 0) {
-        swift::Type superclass_swift_type = swift_can_type->getSuperclass();
-        CompilerType superclass_type(GetASTContext(),
-                                     superclass_swift_type.getPointer());
-
-        name = GetSuperclassName(superclass_type);
-
-        // We cannot reliably get layout information without an execution
-        // context.
-        if (bit_offset_ptr)
-          *bit_offset_ptr = LLDB_INVALID_IVAR_OFFSET;
-        if (bitfield_bit_size_ptr)
-          *bitfield_bit_size_ptr = 0;
-        if (is_bitfield_ptr)
-          *is_bitfield_ptr = false;
-
-        return superclass_type;
-      }
-
-      // Adjust the index to refer into the stored properties.
-      --idx;
-    }
-
-    LLVM_FALLTHROUGH;
-  }
-
-  case swift::TypeKind::Struct:
-  case swift::TypeKind::BoundGenericStruct: {
-    auto nominal = swift_can_type->getAnyNominal();
-    auto stored_properties = GetStoredProperties(nominal);
-    if (idx >= stored_properties.size()) break;
-
-    auto property = stored_properties[idx];
-    name = property->getBaseName().userFacingName();
-
-    // We cannot reliably get layout information without an execution
-    // context.
-    if (bit_offset_ptr)
-      *bit_offset_ptr = LLDB_INVALID_IVAR_OFFSET;
-    if (bitfield_bit_size_ptr)
-      *bitfield_bit_size_ptr = 0;
-    if (is_bitfield_ptr)
-      *is_bitfield_ptr = false;
-
-    swift::Type child_swift_type = swift_can_type->getTypeOfMember(
-        nominal->getModuleContext(), property, nullptr);
-    return CompilerType(GetASTContext(), child_swift_type.getPointer());
-  }
-
-  case swift::TypeKind::Protocol:
-  case swift::TypeKind::ProtocolComposition: {
-    ProtocolInfo protocol_info;
-    if (!GetProtocolTypeInfo(
-            CompilerType(GetASTContext(), GetSwiftType(type)), protocol_info))
-      break;
-
-    if (idx >= protocol_info.m_num_storage_words) break;
-
-    CompilerType compiler_type(GetASTContext(), GetSwiftType(type));
-    CompilerType child_type;
-    std::tie(child_type, name) =
-      GetExistentialTypeChild(GetASTContext(), compiler_type, protocol_info,
-                              idx);
-
-    uint64_t child_size = child_type.GetByteSize(nullptr);
-    if (bit_offset_ptr)
-      *bit_offset_ptr = idx * child_size * 8;
-    if (bitfield_bit_size_ptr)
-      *bitfield_bit_size_ptr = 0;
-    if (is_bitfield_ptr)
-      *is_bitfield_ptr = false;
+      *is_bitfield_ptr = true;
 
     return child_type;
   }
 
-  case swift::TypeKind::ExistentialMetatype:
-  case swift::TypeKind::Metatype:
-    break;
+  // Not a bitfield; record a byte offset.
+  if (bit_offset_ptr)
+    *bit_offset_ptr = child_byte_offset * 8;
+  if (bitfield_bit_size_ptr)
+    *bitfield_bit_size_ptr = child_byte_size * 8;
+  if (is_bitfield_ptr)
+    *is_bitfield_ptr = false;
 
-  case swift::TypeKind::Module:
-  case swift::TypeKind::Archetype:
-  case swift::TypeKind::Function:
-  case swift::TypeKind::GenericFunction:
-  case swift::TypeKind::LValue:
-  case swift::TypeKind::UnboundGeneric:
-  case swift::TypeKind::TypeVariable:
-  case swift::TypeKind::DynamicSelf:
-  case swift::TypeKind::SILBox:
-  case swift::TypeKind::SILFunction:
-  case swift::TypeKind::SILBlockStorage:
-  case swift::TypeKind::InOut:
-  case swift::TypeKind::Unresolved:
-    break;
-
-  case swift::TypeKind::Optional:
-  case swift::TypeKind::NameAlias:
-  case swift::TypeKind::Paren:
-  case swift::TypeKind::Dictionary:
-  case swift::TypeKind::ArraySlice:
-    assert(false && "Not a canonical type");
-    break;
-  }
-
-  return CompilerType();
+  return child_type;
 }
 
 // If a pointer to a pointee type (the clang_type arg) says that it has no
