@@ -12,4 +12,4 @@
 import lldbsuite.test.lldbinline as lldbinline
 import lldbsuite.test.decorators as decorators
 
-lldbinline.MakeInlineTest(__file__, globals(), decorators=[])
+lldbinline.MakeInlineTest(__file__, globals())
