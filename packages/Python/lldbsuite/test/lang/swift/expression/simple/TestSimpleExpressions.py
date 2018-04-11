@@ -48,7 +48,14 @@ class TestSimpleSwiftExpressions(TestBase):
                                                                                         self.main_source_spec)
         self.frame = self.thread.frames[0]
         self.assertTrue(self.frame, "Frame 0 is valid.")
+        # This is a bit of an artificial test.  The intent is to ensure the current
+        # "look up expr as a local expression" works as intended.  We know at present
+        # that ALL swift expressions require JIT execution.  So even a simple variable
+        # access would fail if we don't allow JIT'ting.
+        
+        # This test ensures that we are currently accelerating simple local lookup
         self.expect("expression --allow-jit 0 -- same_five", substrs=["Bool", "true"])
+        # This test ensures that we aren't accelerating anything but simple lookups.
         self.expect("expression --allow-jit 0 -- b_struct.b_int", error=True)
         
 

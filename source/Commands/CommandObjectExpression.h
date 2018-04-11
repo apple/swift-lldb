@@ -83,6 +83,14 @@ protected:
                           CommandReturnObject *result = NULL);
 
   void GetMultilineExpression();
+  
+private:
+  lldb::ExpressionResults 
+  SwiftTryLocalVariableLookup(const char *expr,
+                              Target *target, 
+                              StackFrame *frame,
+                              EvaluateExpressionOptions &options,
+                              lldb::ValueObjectSP &result_valobj_sp);
 
   OptionGroupOptions m_option_group;
   OptionGroupFormat m_format_options;
