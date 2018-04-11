@@ -36,6 +36,12 @@ class TestSwiftObjCMainConflictingDylibs(TestBase):
 
         self.runCmd('settings set symbols.clang-modules-cache-path "%s"'
                     % mod_cache)
+        # This test relies on particular failure modes of the 
+        # expression parser in full mode.  To get that we need
+        # to turn off the "frame var for simple expressions" mode
+        # since it behaves better than plain expr in the face of
+        # this sort of failure.
+        self.runCmd('settings set target.frame-var-accelerates-simple-expr 0')
         self.build()
         exe_name = "a.out"
         exe = self.getBuildArtifact(exe_name)
