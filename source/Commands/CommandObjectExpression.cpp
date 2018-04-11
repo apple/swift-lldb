@@ -410,7 +410,6 @@ bool CommandObjectExpression::EvaluateExpression(const char *expr,
     // or if the PlaygroundTransform is enabled.
     ExpressionResults success = eExpressionSetupError;
     if (target->GetUseFrameVarToAccelerateExpr()
-        && !target->UseScratchTypesystemPerModule()
         && frame
         && (options.GetLanguage() == eLanguageTypeSwift
                   || (options.GetLanguage() == eLanguageTypeUnknown
