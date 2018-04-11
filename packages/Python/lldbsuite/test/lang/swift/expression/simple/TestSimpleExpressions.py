@@ -32,6 +32,7 @@ class TestSimpleSwiftExpressions(TestBase):
         self.do_test()
 
     @decorators.swiftTest
+    @decorators.add_test_categories(["swiftpr"])
     def test_frame_var_accelerator(self):
         self.build()
         self.do_locals_test()
