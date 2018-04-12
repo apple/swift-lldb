@@ -26,7 +26,7 @@
 #include "lldb/Breakpoint/BreakpointList.h"
 #include "lldb/Breakpoint/BreakpointName.h"
 #include "lldb/Breakpoint/WatchpointList.h"
-#include "lldb/Core/ArchSpec.h"
+#include "lldb/Core/Architecture.h"
 #include "lldb/Core/Broadcaster.h"
 #include "lldb/Core/Disassembler.h"
 #include "lldb/Core/ModuleList.h"
@@ -44,6 +44,7 @@
 #include "lldb/Target/PathMappingList.h"
 #include "lldb/Target/ProcessLaunchInfo.h"
 #include "lldb/Target/SectionLoadHistory.h"
+#include "lldb/Utility/ArchSpec.h"
 #include "lldb/Utility/Timeout.h"
 #include "lldb/lldb-public.h"
 
@@ -144,8 +145,6 @@ public:
 
   FileSpecList &GetSwiftModuleSearchPaths();
 
-  FileSpec &GetModuleCachePath();
-
   bool GetEnableAutoImportClangModules() const;
 
   bool GetUseAllCompilerFlags() const;
@@ -180,7 +179,7 @@ public:
 
   lldb::LanguageType GetLanguage() const;
 
-  const char *GetExpressionPrefixContentsAsCString();
+  llvm::StringRef GetExpressionPrefixContents();
 
   bool GetUseHexImmediates() const;
 
@@ -215,6 +214,8 @@ public:
   bool GetInjectLocalVariables(ExecutionContext *exe_ctx) const;
 
   void SetInjectLocalVariables(ExecutionContext *exe_ctx, bool b);
+
+  bool GetUseModernTypeLookup() const;
 
 private:
   //------------------------------------------------------------------
@@ -949,7 +950,7 @@ public:
   bool
   ModuleIsExcludedForUnconstrainedSearches(const lldb::ModuleSP &module_sp);
 
-  const ArchSpec &GetArchitecture() const { return m_arch; }
+  const ArchSpec &GetArchitecture() const { return m_arch.GetSpec(); }
 
   //------------------------------------------------------------------
   /// Set the architecture for this target.
@@ -979,6 +980,8 @@ public:
   bool SetArchitecture(const ArchSpec &arch_spec);
 
   bool MergeArchitecture(const ArchSpec &arch_spec);
+
+  Architecture *GetArchitecturePlugin() { return m_arch.GetPlugin(); }
 
   Debugger &GetDebugger() { return m_debugger; }
 
@@ -1089,6 +1092,9 @@ public:
   GetPersistentExpressionStateForLanguage(lldb::LanguageType language);
 #endif
 
+  SwiftPersistentExpressionState *
+  GetSwiftPersistentExpressionState(ExecutionContextScope &exe_scope);
+
   const TypeSystemMap &GetTypeSystemMap();
 
   // Creates a UserExpression for the given language, the rest of the parameters
@@ -1145,22 +1151,23 @@ public:
 #ifdef __clang_analyzer__
   // See GetScratchTypeSystemForLanguage()
   SwiftASTContext *
-  GetScratchSwiftASTContext(Status &error, bool create_on_demand = true,
+  GetScratchSwiftASTContext(Status &error, ExecutionContextScope &exe_scope,
+                            bool create_on_demand = true,
                             const char *extra_options = nullptr)
       __attribute__((always_inline)) {
-    SwiftASTContext *ret =
-        GetScratchSwiftASTContextImpl(error, create_on_demand, extra_options);
+    SwiftASTContext *ret = GetScratchSwiftASTContextImpl(
+        error, exe_scope, create_on_demand, extra_options);
 
     return ret ? ret : nullptr;
   }
 
   SwiftASTContext *
-  GetScratchSwiftASTContextImpl(Status &error, bool create_on_demand = true,
-                                const char *extra_options = nullptr);
+  GetScratchSwiftASTContextImpl(Status &error, ExecutionContextScope &exe_scope,
+                                bool create_on_demand = true);
 #else
-  SwiftASTContext *
-  GetScratchSwiftASTContext(Status &error, bool create_on_demand = true,
-                            const char *extra_options = nullptr);
+  SwiftASTContext *GetScratchSwiftASTContext(Status &error,
+                                             ExecutionContextScope &exe_scope,
+                                             bool create_on_demand = true);
 #endif
 
   //----------------------------------------------------------------------
@@ -1335,6 +1342,15 @@ public:
 
   void SetREPL(lldb::LanguageType language, lldb::REPLSP repl_sp);
 
+  /// Enable the use of a separate sscratch type system per lldb::Module.
+  void SetUseScratchTypesystemPerModule(bool value) {
+    m_use_scratch_typesystem_per_module = value;
+  }
+  bool UseScratchTypesystemPerModule() const {
+    return m_use_scratch_typesystem_per_module;
+  }
+
+
 protected:
   //------------------------------------------------------------------
   /// Implementing of ModuleList::Notifier.
@@ -1351,6 +1367,18 @@ protected:
                      const lldb::ModuleSP &new_module_sp) override;
   void WillClearList(const ModuleList &module_list) override;
 
+  class Arch {
+  public:
+    explicit Arch(const ArchSpec &spec);
+    const Arch &operator=(const ArchSpec &spec);
+
+    const ArchSpec &GetSpec() const { return m_spec; }
+    Architecture *GetPlugin() const { return m_plugin_up.get(); }
+
+  private:
+    ArchSpec m_spec;
+    std::unique_ptr<Architecture> m_plugin_up;
+  };
   //------------------------------------------------------------------
   // Member variables.
   //------------------------------------------------------------------
@@ -1358,7 +1386,7 @@ protected:
   lldb::PlatformSP m_platform_sp; ///< The platform for this target.
   std::recursive_mutex m_mutex; ///< An API mutex that is used by the lldb::SB*
                                 /// classes make the SB interface thread safe
-  ArchSpec m_arch;
+  Arch m_arch;
   ModuleList m_images; ///< The list of images for this process (shared
                        /// libraries and anything dynamically loaded).
   SectionLoadHistory m_section_load_history;
@@ -1393,6 +1421,11 @@ protected:
   bool m_valid;
   bool m_suppress_stop_hooks;
   bool m_is_dummy_target;
+
+  bool m_use_scratch_typesystem_per_module = false;
+  typedef std::pair<lldb_private::Module *, char> ModuleLanguage;
+  llvm::DenseMap<ModuleLanguage, lldb::TypeSystemSP>
+      m_scratch_typesystem_for_module;
 
   static void ImageSearchPathsChanged(const PathMappingList &path_list,
                                       void *baton);

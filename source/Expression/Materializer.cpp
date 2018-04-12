@@ -674,6 +674,12 @@ public:
                         extract_error);
 
       if (!extract_error.Success()) {
+        if (valobj_type.GetMinimumLanguage() == lldb::eLanguageTypeSwift &&
+            valobj_type.GetByteSize(frame_sp.get()) == 0) {
+          // We don't need to dematerialize empty structs in Swift.
+          return;
+        }
+        
         err.SetErrorStringWithFormat("couldn't get the data for variable %s",
                                      m_variable_sp->GetName().AsCString());
         return;
@@ -911,7 +917,13 @@ public:
             : lldb::eLanguageTypeObjC_plus_plus;
 
     Status type_system_error;
-    TypeSystem *type_system = target_sp->GetScratchTypeSystemForLanguage(
+    TypeSystem *type_system;
+    
+    if (lang == lldb::eLanguageTypeSwift) {
+      Status error;
+      type_system = target_sp->GetScratchSwiftASTContext(error, *frame_sp);
+    } else
+      type_system = target_sp->GetScratchTypeSystemForLanguage(
         &type_system_error, m_type.GetMinimumLanguage());
 
     if (!type_system) {
@@ -922,8 +934,12 @@ public:
       return;
     }
 
-    PersistentExpressionState *persistent_state =
-        type_system->GetPersistentExpressionState();
+    PersistentExpressionState *persistent_state;
+    if (lang == lldb::eLanguageTypeSwift)
+      persistent_state =
+        target_sp->GetSwiftPersistentExpressionState(*frame_sp);
+    else
+      persistent_state = type_system->GetPersistentExpressionState();
 
     if (!persistent_state) {
       err.SetErrorString("Couldn't dematerialize a result variable: "
@@ -942,7 +958,6 @@ public:
     if (lang == lldb::eLanguageTypeSwift) {
       SwiftLanguageRuntime *language_runtime =
           process_sp->GetSwiftLanguageRuntime();
-
       if (language_runtime && frame_sp)
         m_type = language_runtime->DoArchetypeBindingForType(*frame_sp, m_type);
     }

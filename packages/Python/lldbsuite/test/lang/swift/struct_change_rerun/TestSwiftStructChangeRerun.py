@@ -53,7 +53,7 @@ class TestSwiftStructChangeRerun(TestBase):
         print 'build with main1.swift'
         self.build()
         exe_name = "a.out"
-        exe = os.path.join(os.getcwd(), exe_name)
+        exe = self.getBuildArtifact(exe_name)
 
         # Create the target
         target = self.dbg.CreateTarget(exe)
@@ -103,7 +103,6 @@ class TestSwiftStructChangeRerun(TestBase):
         process = target.LaunchSimple(None, None, os.getcwd())
 
         self.assertTrue(process, PROCESS_IS_VALID)
-
         # Frame #0 should be at our breakpoint.
         threads = lldbutil.get_threads_stopped_at_breakpoint(
             process, breakpoint)

@@ -1333,10 +1333,6 @@ bool SwiftASTManipulator::AddExternalVariables(
       // The access pattern for these types is the same as for the referent
       // type, so it is fine to
       // just strip it off.
-      // FIXME: If this is a weak managed type, then it could ostensibly go away
-      // out from under us,
-      // but for now we aren't playing with reference counts to keep things
-      // alive in the expression parser.
       SwiftASTContext *swift_ast_ctx = llvm::dyn_cast_or_null<SwiftASTContext>(
           variable.m_type.GetTypeSystem());
 
@@ -1374,7 +1370,7 @@ bool SwiftASTManipulator::AddExternalVariables(
           is_static, specifier, is_capture_list, loc, name, var_type,
           containing_function);
       redirected_var_decl->setInterfaceType(
-          containing_function->mapTypeOutOfContext(var_type));
+          var_type->mapTypeOutOfContext());
       redirected_var_decl->setDebuggerVar(true);
       redirected_var_decl->setImplicit(true);
 
@@ -1383,8 +1379,8 @@ bool SwiftASTManipulator::AddExternalVariables(
 
       if (var_type->getAs<swift::WeakStorageType>()) {
         redirected_var_decl->getAttrs().add(
-            new (ast_context) swift::OwnershipAttr(swift::SourceRange(),
-                                                   swift::Ownership::Weak));
+            new (ast_context) swift::ReferenceOwnershipAttr(
+                swift::SourceRange(), swift::ReferenceOwnership::Weak));
       }
 
       if (is_self) {
@@ -1529,7 +1525,10 @@ swift::ValueDecl *SwiftASTManipulator::MakeGlobalTypealias(
   swift::TypeAliasDecl *type_alias_decl = new (ast_context)
       swift::TypeAliasDecl(source_loc, swift::SourceLoc(), name, source_loc,
                            nullptr, &m_source_file);
-  type_alias_decl->setUnderlyingType(GetSwiftType(type));
+  swift::Type underlying_type = GetSwiftType(type);
+  type_alias_decl->setUnderlyingType(underlying_type);
+  if (underlying_type->hasArchetype())
+    type_alias_decl->markAsDebuggerAlias(true);
 
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
   if (log) {

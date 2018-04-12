@@ -17,6 +17,7 @@
 #include "DWARFDeclContext.h"
 #include "DWARFDefines.h"
 #include "SymbolFileDWARF.h"
+#include "SymbolFileDWARFDwo.h"
 #include "SymbolFileDWARFDebugMap.h"
 #include "UniqueDWARFASTType.h"
 
@@ -39,8 +40,10 @@
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/StreamString.h"
 
+#include "clang/AST/CXXInheritance.h"
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclObjC.h"
+#include "clang/AST/DeclTemplate.h"
 
 #include <map>
 #include <vector>
@@ -123,57 +126,113 @@ ClangASTImporter &DWARFASTParserClang::GetClangASTImporter() {
   return *m_clang_ast_importer_ap;
 }
 
+/// Detect a forward declaration that is nested in a DW_TAG_module.
+static bool isClangModuleFwdDecl(const DWARFDIE &Die) {
+  if (!Die.GetAttributeValueAsUnsigned(DW_AT_declaration, 0))
+    return false;
+  auto Parent = Die.GetParent();
+  while (Parent.IsValid()) {
+    if (Parent.Tag() == DW_TAG_module)
+      return true;
+    Parent = Parent.GetParent();
+  }
+  return false;
+}
+
 TypeSP DWARFASTParserClang::ParseTypeFromDWO(const DWARFDIE &die, Log *log) {
   ModuleSP dwo_module_sp = die.GetContainingDWOModule();
-  if (dwo_module_sp) {
-    // This type comes from an external DWO module
-    std::vector<CompilerContext> dwo_context;
-    die.GetDWOContext(dwo_context);
-    TypeMap dwo_types;
-    if (dwo_module_sp->GetSymbolVendor()->FindTypes(dwo_context, true,
-                                                    dwo_types)) {
-      const size_t num_dwo_types = dwo_types.GetSize();
-      if (num_dwo_types == 1) {
-        // We found a real definition for this type elsewhere
-        // so lets use it and cache the fact that we found
-        // a complete type for this die
-        TypeSP dwo_type_sp = dwo_types.GetTypeAtIndex(0);
-        if (dwo_type_sp) {
-          lldb_private::CompilerType dwo_type =
-              dwo_type_sp->GetForwardCompilerType();
+  if (!dwo_module_sp)
+    return TypeSP();
 
-          lldb_private::CompilerType type =
-              GetClangASTImporter().CopyType(m_ast, dwo_type);
+  // This type comes from an external DWO module.
+  std::vector<CompilerContext> dwo_context;
+  die.GetDWOContext(dwo_context);
+  TypeMap dwo_types;
 
-          // printf ("copied_qual_type: ast = %p, clang_type = %p, name =
-          // '%s'\n", m_ast, copied_qual_type.getAsOpaquePtr(),
-          // external_type->GetName().GetCString());
-          if (type) {
-            SymbolFileDWARF *dwarf = die.GetDWARF();
-            TypeSP type_sp(new Type(die.GetID(), dwarf, dwo_type_sp->GetName(),
-                                    dwo_type_sp->GetByteSize(), NULL,
-                                    LLDB_INVALID_UID, Type::eEncodingInvalid,
-                                    &dwo_type_sp->GetDeclaration(), type,
-                                    Type::eResolveStateForward));
+  if (!dwo_module_sp->GetSymbolVendor()->FindTypes(dwo_context, true,
+                                                   dwo_types)) {
+    if (!isClangModuleFwdDecl(die))
+      return TypeSP();
 
-            dwarf->GetTypeList()->Insert(type_sp);
-            dwarf->GetDIEToType()[die.GetDIE()] = type_sp.get();
-            clang::TagDecl *tag_decl = ClangASTContext::GetAsTagDecl(type);
-            if (tag_decl)
-              LinkDeclContextToDIE(tag_decl, die);
-            else {
-              clang::DeclContext *defn_decl_ctx =
-                  GetCachedClangDeclContextForDIE(die);
-              if (defn_decl_ctx)
-                LinkDeclContextToDIE(defn_decl_ctx, die);
-            }
-            return type_sp;
-          }
-        }
-      }
+    // Since this this type is defined in one of the Clang modules
+    // imported by this symbol file, search all of them.
+    auto *SymFile = die.GetCU()->GetSymbolFileDWARF();
+    for (const auto &NameModule : SymFile->getExternalTypeModules()) {
+      if (!NameModule.second)
+        continue;
+      SymbolVendor *SymVendor = NameModule.second->GetSymbolVendor();
+      if (SymVendor->FindTypes(dwo_context, true, dwo_types))
+        break;
     }
   }
-  return TypeSP();
+
+  const size_t num_dwo_types = dwo_types.GetSize();
+  if (num_dwo_types != 1)
+    return TypeSP();
+
+  // We found a real definition for this type in the Clang module, so
+  // lets use it and cache the fact that we found a complete type for
+  // this die.
+  TypeSP dwo_type_sp = dwo_types.GetTypeAtIndex(0);
+  if (!dwo_type_sp)
+    return TypeSP();
+
+  lldb_private::CompilerType dwo_type = dwo_type_sp->GetForwardCompilerType();
+
+  lldb_private::CompilerType type =
+      GetClangASTImporter().CopyType(m_ast, dwo_type);
+
+  // printf ("copied_qual_type: ast = %p, clang_type = %p, name =
+  // '%s'\n", m_ast, copied_qual_type.getAsOpaquePtr(),
+  // external_type->GetName().GetCString());
+  if (!type)
+    return TypeSP();
+
+  SymbolFileDWARF *dwarf = die.GetDWARF();
+  TypeSP type_sp(new Type(
+      die.GetID(), dwarf, dwo_type_sp->GetName(), dwo_type_sp->GetByteSize(),
+      NULL, LLDB_INVALID_UID, Type::eEncodingInvalid,
+      &dwo_type_sp->GetDeclaration(), type, Type::eResolveStateForward));
+
+  dwarf->GetTypeList()->Insert(type_sp);
+  dwarf->GetDIEToType()[die.GetDIE()] = type_sp.get();
+  clang::TagDecl *tag_decl = ClangASTContext::GetAsTagDecl(type);
+  if (tag_decl)
+    LinkDeclContextToDIE(tag_decl, die);
+  else {
+    clang::DeclContext *defn_decl_ctx = GetCachedClangDeclContextForDIE(die);
+    if (defn_decl_ctx)
+      LinkDeclContextToDIE(defn_decl_ctx, die);
+  }
+
+  return type_sp;
+}
+
+static void CompleteExternalTagDeclType(ClangASTImporter &ast_importer,
+                                        clang::DeclContext *decl_ctx,
+                                        DWARFDIE die,
+                                        const char *type_name_cstr) {
+  auto *tag_decl_ctx = clang::dyn_cast<clang::TagDecl>(decl_ctx);
+  if (!tag_decl_ctx)
+    return;
+
+  // If this type was not imported from an external AST, there's
+  // nothing to do.
+  CompilerType type = ClangASTContext::GetTypeForDecl(tag_decl_ctx);
+  if (!type || !ast_importer.CanImport(type))
+    return;
+
+  auto qual_type = ClangUtil::GetQualType(type);
+  if (!ast_importer.RequireCompleteType(qual_type)) {
+    die.GetDWARF()->GetObjectFile()->GetModule()->ReportError(
+        "Unable to complete the Decl context for DIE '%s' at offset "
+        "0x%8.8x.\nPlease file a bug report.",
+        type_name_cstr ? type_name_cstr : "", die.GetOffset());
+    // We need to make the type look complete otherwise, we
+    // might crash in Clang when adding children.
+    if (ClangASTContext::StartTagDeclarationDefinition(type))
+      ClangASTContext::CompleteTagDeclarationDefinition(type);
+  }
 }
 
 TypeSP DWARFASTParserClang::ParseTypeFromDWARF(const SymbolContext &sc,
@@ -517,6 +576,9 @@ TypeSP DWARFASTParserClang::ParseTypeFromDWARF(const SymbolContext &sc,
 
         LanguageType class_language = eLanguageTypeUnknown;
         bool is_complete_objc_class = false;
+        size_t calling_convention 
+                = llvm::dwarf::CallingConvention::DW_CC_normal;
+        
         // bool struct_is_class = false;
         const size_t num_attributes = die.GetAttributes(attributes);
         if (num_attributes > 0) {
@@ -572,7 +634,10 @@ TypeSP DWARFASTParserClang::ParseTypeFromDWARF(const SymbolContext &sc,
               case DW_AT_APPLE_objc_complete_type:
                 is_complete_objc_class = form_value.Signed();
                 break;
-
+              case DW_AT_calling_convention:
+                calling_convention = form_value.Unsigned();
+                break;
+                
               case DW_AT_allocated:
               case DW_AT_associated:
               case DW_AT_data_location:
@@ -766,6 +831,16 @@ TypeSP DWARFASTParserClang::ParseTypeFromDWARF(const SymbolContext &sc,
         if (!clang_type) {
           clang::DeclContext *decl_ctx =
               GetClangDeclContextContainingDIE(die, nullptr);
+
+          // If your decl context is a record that was imported from
+          // another AST context (in the gmodules case), we need to
+          // make sure the type backing the Decl is complete before
+          // adding children to it. This is not an issue in the
+          // non-gmodules case because the debug info will always contain
+          // a full definition of parent types in that case.
+          CompleteExternalTagDeclType(GetClangASTImporter(), decl_ctx, die,
+                                      type_name_cstr);
+
           if (accessibility == eAccessNone && decl_ctx) {
             // Check the decl context that contains this class/struct/union.
             // If it is a class we must give it an accessibility.
@@ -786,7 +861,17 @@ TypeSP DWARFASTParserClang::ParseTypeFromDWARF(const SymbolContext &sc,
                   m_ast.ParseClassTemplateDecl(decl_ctx, accessibility,
                                                type_name_cstr, tag_decl_kind,
                                                template_param_infos);
-
+              if (!class_template_decl) {
+                if (log) {
+                  dwarf->GetObjectFile()->GetModule()->LogMessage(
+                    log, "SymbolFileDWARF(%p) - 0x%8.8x: %s type \"%s\" "
+                         "clang::ClassTemplateDecl failed to return a decl.",
+                    static_cast<void *>(this), die.GetOffset(),
+                    DW_TAG_value_to_name(tag), type_name_cstr);
+                }
+                return TypeSP();
+              }
+                
               clang::ClassTemplateSpecializationDecl
                   *class_specialization_decl =
                       m_ast.CreateClassTemplateSpecializationDecl(
@@ -808,7 +893,7 @@ TypeSP DWARFASTParserClang::ParseTypeFromDWARF(const SymbolContext &sc,
                                                 class_language, &metadata);
           }
         }
-
+        
         // Store a forward declaration to this class type in case any
         // parameters in any class methods need it for the clang
         // types for function prototypes.
@@ -921,12 +1006,27 @@ TypeSP DWARFASTParserClang::ParseTypeFromDWARF(const SymbolContext &sc,
             m_ast.SetHasExternalStorage(clang_type.GetOpaqueQualType(), true);
           }
         }
+        
+        // If we made a clang type, set the trivial abi if applicable:
+        // We only do this for pass by value - which implies the Trivial ABI.
+        // There isn't a way to assert that something that would normally be
+        // pass by value is pass by reference, so we ignore that attribute if
+        // set.
+        if (calling_convention == llvm::dwarf::DW_CC_pass_by_value) {
+          clang::CXXRecordDecl *record_decl =
+                  m_ast.GetAsCXXRecordDecl(clang_type.GetOpaqueQualType());
+          if (record_decl) {
+            record_decl->setHasTrivialSpecialMemberForCall();
+          }
+        }
+
       } break;
 
       case DW_TAG_enumeration_type: {
         // Set a bit that lets us know that we are currently parsing this
         dwarf->GetDIEToType()[die.GetDIE()] = DIE_IS_BEING_PARSED;
 
+        bool is_scoped = false;
         DWARFFormValue encoding_form;
 
         const size_t num_attributes = die.GetAttributes(attributes);
@@ -962,6 +1062,9 @@ TypeSP DWARFASTParserClang::ParseTypeFromDWARF(const SymbolContext &sc,
                        // DW_ACCESS_to_AccessType(form_value.Unsigned()); break;
               case DW_AT_declaration:
                 is_forward_declaration = form_value.Boolean();
+                break;
+              case DW_AT_enum_class:
+                is_scoped = form_value.Boolean();
                 break;
               case DW_AT_allocated:
               case DW_AT_associated:
@@ -1052,7 +1155,7 @@ TypeSP DWARFASTParserClang::ParseTypeFromDWARF(const SymbolContext &sc,
 
             clang_type = m_ast.CreateEnumerationType(
                 type_name_cstr, GetClangDeclContextContainingDIE(die, nullptr),
-                decl, enumerator_clang_type);
+                decl, enumerator_clang_type, is_scoped);
           } else {
             enumerator_clang_type =
                 m_ast.GetEnumerationIntegerType(clang_type.GetOpaqueQualType());
@@ -1729,8 +1832,8 @@ TypeSP DWARFASTParserClang::ParseTypeFromDWARF(const SymbolContext &sc,
                       "DWARF DW_TAG_array_type DIE at 0x%8.8x has a "
                       "class/union/struct element type DIE 0x%8.8x that is a "
                       "forward declaration, not a complete definition.\nTry "
-                      "compiling the source file with -fno-limit-debug-info or "
-                      "disable -gmodule",
+                      "compiling the source file with -fstandalone-debug or "
+                      "disable -gmodules",
                       die.GetOffset(), type_die_ref.die_offset);
                 else
                   module_sp->ReportError(
@@ -1942,6 +2045,7 @@ bool DWARFASTParserClang::ParseTemplateDIE(
     const DWARFDIE &die,
     ClangASTContext::TemplateParameterInfos &template_param_infos) {
   const dw_tag_t tag = die.Tag();
+  bool is_template_template_argument = false;
 
   switch (tag) {
   case DW_TAG_GNU_template_parameter_pack: {
@@ -1957,11 +2061,15 @@ bool DWARFASTParserClang::ParseTemplateDIE(
     }
     return true;
   }
+  case DW_TAG_GNU_template_template_param:
+    is_template_template_argument = true;
+    LLVM_FALLTHROUGH;
   case DW_TAG_template_type_parameter:
   case DW_TAG_template_value_parameter: {
     DWARFAttributes attributes;
     const size_t num_attributes = die.GetAttributes(attributes);
     const char *name = nullptr;
+    const char *template_name = nullptr;
     CompilerType clang_type;
     uint64_t uval64 = 0;
     bool uval64_valid = false;
@@ -1974,6 +2082,11 @@ bool DWARFASTParserClang::ParseTemplateDIE(
         case DW_AT_name:
           if (attributes.ExtractFormValueAtIndex(i, form_value))
             name = form_value.AsCString();
+          break;
+
+        case DW_AT_GNU_template_name:
+          if (attributes.ExtractFormValueAtIndex(i, form_value))
+            template_name = form_value.AsCString();
           break;
 
         case DW_AT_type:
@@ -1999,7 +2112,7 @@ bool DWARFASTParserClang::ParseTemplateDIE(
       if (!clang_type)
         clang_type = m_ast.GetBasicType(eBasicTypeVoid);
 
-      if (clang_type) {
+      if (!is_template_template_argument) {
         bool is_signed = false;
         if (name && name[0])
           template_param_infos.names.push_back(name);
@@ -2019,7 +2132,10 @@ bool DWARFASTParserClang::ParseTemplateDIE(
               clang::TemplateArgument(ClangUtil::GetQualType(clang_type)));
         }
       } else {
-        return false;
+        auto *tplt_type = m_ast.CreateTemplateTemplateParmDecl(template_name);
+        template_param_infos.names.push_back(name);
+        template_param_infos.args.push_back(
+            clang::TemplateArgument(clang::TemplateName(tplt_type)));
       }
     }
   }
@@ -2047,6 +2163,7 @@ bool DWARFASTParserClang::ParseTemplateParameterInfos(
     case DW_TAG_template_type_parameter:
     case DW_TAG_template_value_parameter:
     case DW_TAG_GNU_template_parameter_pack:
+    case DW_TAG_GNU_template_template_param:
       ParseTemplateDIE(die, template_param_infos);
       break;
 
@@ -2057,6 +2174,92 @@ bool DWARFASTParserClang::ParseTemplateParameterInfos(
   if (template_param_infos.args.empty())
     return false;
   return template_param_infos.args.size() == template_param_infos.names.size();
+}
+
+// Checks whether m1 is an overload of m2 (as opposed to an override).
+// This is called by addOverridesForMethod to distinguish overrides (which share
+// a vtable entry) from overloads (which require distinct entries).
+static bool isOverload(clang::CXXMethodDecl *m1, clang::CXXMethodDecl *m2) {
+  // FIXME: This should detect covariant return types, but currently doesn't.
+  lldbassert(&m1->getASTContext() == &m2->getASTContext() &&
+             "Methods should have the same AST context");
+  clang::ASTContext &context = m1->getASTContext();
+
+  const auto *m1Type =
+    llvm::cast<clang::FunctionProtoType>(
+      context.getCanonicalType(m1->getType()));
+
+  const auto *m2Type =
+    llvm::cast<clang::FunctionProtoType>(
+      context.getCanonicalType(m2->getType()));
+
+  auto compareArgTypes =
+    [&context](const clang::QualType &m1p, const clang::QualType &m2p) {
+      return context.hasSameType(m1p.getUnqualifiedType(),
+                                 m2p.getUnqualifiedType());
+    };
+
+  return !std::equal(m1Type->param_type_begin(), m1Type->param_type_end(),
+                     m2Type->param_type_begin(), compareArgTypes);
+}
+
+// If decl is a virtual method, walk the base classes looking for methods that
+// decl overrides. This table of overridden methods is used by IRGen to determine
+// the vtable layout for decl's parent class.
+static void addOverridesForMethod(clang::CXXMethodDecl *decl) {
+  if (!decl->isVirtual())
+    return;
+
+  clang::CXXBasePaths paths;
+
+  auto find_overridden_methods =
+    [decl](const clang::CXXBaseSpecifier *specifier, clang::CXXBasePath &path) {
+      if (auto *base_record =
+          llvm::dyn_cast<clang::CXXRecordDecl>(
+            specifier->getType()->getAs<clang::RecordType>()->getDecl())) {
+
+        clang::DeclarationName name = decl->getDeclName();
+
+        // If this is a destructor, check whether the base class destructor is
+        // virtual.
+        if (name.getNameKind() == clang::DeclarationName::CXXDestructorName)
+          if (auto *baseDtorDecl = base_record->getDestructor()) {
+            if (baseDtorDecl->isVirtual()) {
+              path.Decls = baseDtorDecl;
+              return true;
+            } else
+              return false;
+          }
+
+        // Otherwise, search for name in the base class.
+        for (path.Decls = base_record->lookup(name); !path.Decls.empty();
+             path.Decls = path.Decls.slice(1)) {
+          if (auto *method_decl =
+                llvm::dyn_cast<clang::CXXMethodDecl>(path.Decls.front()))
+            if (method_decl->isVirtual() && !isOverload(decl, method_decl)) {
+              path.Decls = method_decl;
+              return true;
+            }
+        }
+      }
+
+      return false;
+    };
+
+  if (decl->getParent()->lookupInBases(find_overridden_methods, paths)) {
+    for (auto *overridden_decl : paths.found_decls())
+      decl->addOverriddenMethod(
+        llvm::cast<clang::CXXMethodDecl>(overridden_decl));
+  }
+}
+
+// If clang_type is a CXXRecordDecl, builds the method override list for each
+// of its virtual methods.
+static void addMethodOverrides(ClangASTContext &ast, CompilerType &clang_type) {
+  if (auto *record =
+      ast.GetAsCXXRecordDecl(clang_type.GetOpaqueQualType()))
+    for (auto *method : record->methods())
+      addOverridesForMethod(method);
 }
 
 bool DWARFASTParserClang::CompleteTypeFromDWARF(const DWARFDIE &die,
@@ -2241,7 +2444,7 @@ bool DWARFASTParserClang::CompleteTypeFromDWARF(const DWARFDIE &die,
                 if (die.GetCU()->GetProducer() ==
                     DWARFCompileUnit::eProducerClang)
                   module->ReportError(":: Try compiling the source file with "
-                                      "-fno-limit-debug-info.");
+                                      "-fstandalone-debug.");
 
                 // We have no choice other than to pretend that the base class
                 // is complete. If we don't do this, clang will crash when we
@@ -2271,6 +2474,7 @@ bool DWARFASTParserClang::CompleteTypeFromDWARF(const DWARFDIE &die,
       }
     }
 
+    addMethodOverrides(m_ast, clang_type);
     ClangASTContext::BuildIndirectFields(clang_type);
     ClangASTContext::CompleteTagDeclarationDefinition(clang_type);
 
@@ -2741,8 +2945,6 @@ bool DWARFASTParserClang::ParseChildMembers(
                     form_value.BlockData() - debug_info_data.GetDataStart();
                 if (DWARFExpression::Evaluate(
                         nullptr, // ExecutionContext *
-                        nullptr, // ClangExpressionVariableList *
-                        nullptr, // ClangExpressionDeclMap *
                         nullptr, // RegisterContext *
                         module_sp, debug_info_data, die.GetCU(), block_offset,
                         block_length, eRegisterKindDWARF, &initialValue,
@@ -3083,7 +3285,7 @@ bool DWARFASTParserClang::ParseChildMembers(
                       "DWARF DIE at 0x%8.8x (class %s) has a member variable "
                       "0x%8.8x (%s) whose type is a forward declaration, not a "
                       "complete definition.\nTry compiling the source file "
-                      "with -fno-limit-debug-info",
+                      "with -fstandalone-debug",
                       parent_die.GetOffset(), parent_die.GetName(),
                       die.GetOffset(), name);
                 else
@@ -3214,11 +3416,11 @@ bool DWARFASTParserClang::ParseChildMembers(
                 uint32_t block_length = form_value.Unsigned();
                 uint32_t block_offset =
                     form_value.BlockData() - debug_info_data.GetDataStart();
-                if (DWARFExpression::Evaluate(
-                        nullptr, nullptr, nullptr, nullptr, module_sp,
-                        debug_info_data, die.GetCU(), block_offset,
-                        block_length, eRegisterKindDWARF, &initialValue,
-                        nullptr, memberOffset, nullptr)) {
+                if (DWARFExpression::Evaluate(nullptr, nullptr, module_sp,
+                                              debug_info_data, die.GetCU(),
+                                              block_offset, block_length,
+                                              eRegisterKindDWARF, &initialValue,
+                                              nullptr, memberOffset, nullptr)) {
                   member_byte_offset = memberOffset.ResolveValue(NULL).UInt();
                 }
               } else {

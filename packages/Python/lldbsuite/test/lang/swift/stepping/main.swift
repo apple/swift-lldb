@@ -169,7 +169,7 @@ func main () -> Void
     else
     {
         print ("I should get here.") // Step over the if should get here
-    }
+    } // Step over the print should get here.
 
     var b_object = ClassB(20)  // Stop here to step into B constructor.
     var do_something_result = call_overridden (b_object, 30) // Stop here to step into call_overridden.
@@ -182,7 +182,7 @@ func main () -> Void
 
     switch point  // At the beginning of the switch. 
     {
-        case (0, 0):  // Where swift currently thinks the switch begins...       
+        case (0, 0):
             print("(0, 0) is at the origin")
         case (_, 0):
             print("(\(point.0), 0) is on the x-axis")

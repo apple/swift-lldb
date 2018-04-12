@@ -61,6 +61,7 @@ class DWARFDIECollection;
 class DWARFFormValue;
 class SymbolFileDWARFDebugMap;
 class SymbolFileDWARFDwo;
+class SymbolFileDWARFDwp;
 
 #define DIE_IS_BEING_PARSED ((lldb_private::Type *)1)
 
@@ -286,8 +287,8 @@ public:
   GetCompUnitForDWARFCompUnit(DWARFCompileUnit *dwarf_cu,
                               uint32_t cu_idx = UINT32_MAX);
 
-  size_t GetObjCMethodDIEOffsets(lldb_private::ConstString class_name,
-                                 DIEArray &method_die_offsets);
+  virtual size_t GetObjCMethodDIEOffsets(lldb_private::ConstString class_name,
+                                         DIEArray &method_die_offsets);
 
   bool Supports_DW_AT_APPLE_objc_complete_type(DWARFCompileUnit *cu);
 
@@ -303,11 +304,24 @@ public:
 
   lldb::ModuleSP GetDWOModule(lldb_private::ConstString name);
 
+  typedef std::map<lldb_private::ConstString, lldb::ModuleSP>
+      ExternalTypeModuleMap;
+
+  /// Return the list of Clang modules imported by this SymbolFile.
+  const ExternalTypeModuleMap& getExternalTypeModules() const {
+      return m_external_type_modules;
+  }
+
   virtual DWARFDIE GetDIE(const DIERef &die_ref);
 
   virtual std::unique_ptr<SymbolFileDWARFDwo>
   GetDwoSymbolFileForCompileUnit(DWARFCompileUnit &dwarf_cu,
                                  const DWARFDebugInfoEntry &cu_die);
+
+  // For regular SymbolFileDWARF instances the method returns nullptr,
+  // for the instances of the subclass SymbolFileDWARFDwo
+  // the method returns a pointer to the base compile unit.
+  virtual DWARFCompileUnit *GetBaseCompileUnit();
 
 protected:
   typedef llvm::DenseMap<const DWARFDebugInfoEntry *, lldb_private::Type *>
@@ -402,13 +416,9 @@ protected:
   virtual lldb::TypeSP
   FindDefinitionTypeForDWARFDeclContext(const DWARFDeclContext &die_decl_ctx);
 
-  lldb::TypeSP FindCompleteObjCDefinitionTypeForDIE(
+  virtual lldb::TypeSP FindCompleteObjCDefinitionTypeForDIE(
       const DWARFDIE &die, const lldb_private::ConstString &type_name,
       bool must_be_implementation);
-
-  lldb::TypeSP
-  FindCompleteObjCDefinitionType(const lldb_private::ConstString &type_name,
-                                 bool header_definition_ok);
 
   lldb_private::Symbol *
   GetObjCClassSymbol(const lldb_private::ConstString &objc_class_name);
@@ -448,9 +458,6 @@ protected:
 
   typedef std::set<lldb_private::Type *> TypeSet;
 
-  typedef std::map<lldb_private::ConstString, lldb::ModuleSP>
-      ExternalTypeModuleMap;
-
   void GetTypes(const DWARFDIE &die, dw_offset_t min_die_offset,
                 dw_offset_t max_die_offset, uint32_t type_mask,
                 TypeSet &type_set);
@@ -484,8 +491,14 @@ protected:
     return m_forward_decl_clang_type_to_die;
   }
 
+  SymbolFileDWARFDwp *GetDwpSymbolFile();
+
   lldb::ModuleWP m_debug_map_module_wp;
   SymbolFileDWARFDebugMap *m_debug_map_symfile;
+
+  llvm::once_flag m_dwp_symfile_once_flag;
+  std::unique_ptr<SymbolFileDWARFDwp> m_dwp_symfile;
+
   lldb_private::DWARFDataExtractor m_dwarf_data;
 
   DWARFDataSegment m_data_debug_abbrev;

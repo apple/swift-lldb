@@ -47,10 +47,6 @@ public:
   class MetadataPromise;
   typedef std::shared_ptr<MetadataPromise> MetadataPromiseSP;
 
-  class MemberVariableOffsetResolver;
-  typedef std::shared_ptr<MemberVariableOffsetResolver>
-      MemberVariableOffsetResolverSP;
-
   //------------------------------------------------------------------
   // Static Functions
   //------------------------------------------------------------------
@@ -111,18 +107,6 @@ public:
 
     llvm::StringRef GetBasename();
 
-    llvm::StringRef GetContext();
-
-    llvm::StringRef GetMetatypeReference();
-
-    llvm::StringRef GetTemplateArguments();
-
-    llvm::StringRef GetArguments();
-
-    llvm::StringRef GetQualifiers();
-
-    llvm::StringRef GetReturnType();
-
     static bool ExtractFunctionBasenameFromMangled(const ConstString &mangled,
                                                    ConstString &basename,
                                                    bool &is_method);
@@ -163,24 +147,6 @@ public:
     FulfillKindPromise(Status *error = nullptr);
 
     bool IsStaticallyDetermined();
-  };
-
-  class MemberVariableOffsetResolver {
-    friend class SwiftLanguageRuntime;
-
-    MemberVariableOffsetResolver(swift::ASTContext *, SwiftLanguageRuntime *,
-                                 swift::TypeBase *);
-
-    swift::ASTContext *m_swift_ast;
-    std::unique_ptr<swift::remoteAST::RemoteASTContext> m_remote_ast;
-    SwiftLanguageRuntime *m_swift_runtime;
-    swift::TypeBase *m_swift_type;
-    std::unordered_map<const char *, uint64_t> m_offsets;
-
-  public:
-    llvm::Optional<uint64_t> ResolveOffset(ValueObject *valobj,
-                                           ConstString ivar_name,
-                                           Status * = nullptr);
   };
 
   class SwiftExceptionPrecondition : public Breakpoint::BreakpointPrecondition {
@@ -226,10 +192,6 @@ public:
   static bool IsSwiftMangledName(const char *name);
   
   static bool IsSwiftClassName(const char *name);
-  
-  static bool IsMetadataSymbol(const char *symbol);
-  
-  static bool IsIvarOffsetSymbol(const char *symbol);
   
   static const std::string GetCurrentMangledName(const char *mangled_name);
 
@@ -319,18 +281,6 @@ public:
 
   bool IsSymbolARuntimeThunk(const Symbol &symbol) override;
 
-  // in some cases, compilers will output different names for one same type.
-  // when tht happens, it might be impossible
-  // to construct SBType objects for a valid type, because the name that is
-  // available is not the same as the name that
-  // can be used as a search key in FindTypes(). the equivalents map here is
-  // meant to return possible alternative names
-  // for a type through which a search can be conducted. Currently, this is only
-  // enabled for C++ but can be extended
-  // to ObjC or other languages if necessary
-  static uint32_t FindEquivalentNames(ConstString type_name,
-                                      std::vector<ConstString> &equivalents);
-
   // this call should return true if it could set the name and/or the type
   virtual bool GetDynamicTypeAndAddress(ValueObject &in_value,
                                         lldb::DynamicValueType use_dynamic,
@@ -343,9 +293,8 @@ public:
 
   bool IsRuntimeSupportValue(ValueObject &valobj) override;
 
-  virtual CompilerType
-  DoArchetypeBindingForType(StackFrame &stack_frame, CompilerType base_type,
-                            SwiftASTContext *ast_context = nullptr);
+  virtual CompilerType DoArchetypeBindingForType(StackFrame &stack_frame,
+                                                 CompilerType base_type);
 
   virtual CompilerType GetConcreteType(ExecutionContextScope *exe_scope,
                                        ConstString abstract_type_name) override;
@@ -356,8 +305,19 @@ public:
   GetMetadataPromise(lldb::addr_t addr,
                      SwiftASTContext *swift_ast_ctx = nullptr);
 
-  virtual MemberVariableOffsetResolverSP
-  GetMemberVariableOffsetResolver(CompilerType compiler_type);
+  /// Retrieve the remote AST context for the given Swift AST context.
+  swift::remoteAST::RemoteASTContext &
+  GetRemoteASTContext(SwiftASTContext &swift_ast_ctx);
+
+  /// Retrieve the offset of the named member variable within an instance
+  /// of the given type.
+  ///
+  /// \param instance_type
+  llvm::Optional<uint64_t>
+  GetMemberVariableOffset(CompilerType instance_type,
+                          ValueObject *instance,
+                          ConstString member_name,
+                          Status *error = nullptr);
 
   void AddToLibraryNegativeCache(const char *library_name);
 
@@ -382,9 +342,6 @@ public:
   ConstString GetStandardLibraryName();
 
   ConstString GetStandardLibraryBaseName();
-
-  virtual bool GetReferenceCounts(ValueObject &valobj, size_t &strong,
-                                  size_t &weak);
 
   lldb::SyntheticChildrenSP
   GetBridgedSyntheticChildProvider(ValueObject &valobj);
@@ -484,11 +441,17 @@ protected:
 
   typename KeyHasher<swift::ASTContext *, lldb::addr_t,
                      MetadataPromiseSP>::MapType m_promises_map;
-  typename KeyHasher<swift::ASTContext *, swift::TypeBase *,
-                     MemberVariableOffsetResolverSP>::MapType m_resolvers_map;
+
+  std::unordered_map<swift::ASTContext *,
+                     std::unique_ptr<swift::remoteAST::RemoteASTContext>>
+    m_remote_ast_contexts;
 
   std::unordered_map<const char *, lldb::SyntheticChildrenSP>
       m_bridged_synthetics_map;
+
+  /// Cached member variable offsets.
+  typename KeyHasher<const swift::TypeBase *, const char *, uint64_t>::MapType
+    m_member_offsets;
 
   CompilerType m_box_metadata_type;
 

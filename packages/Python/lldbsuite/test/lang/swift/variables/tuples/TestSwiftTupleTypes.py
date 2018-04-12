@@ -24,6 +24,7 @@ class TestSwiftTupleTypes(TestBase):
     mydir = TestBase.compute_mydir(__file__)
 
     @decorators.swiftTest
+    @decorators.add_test_categories(["swiftpr"])
     def test_swift_tuple_types(self):
         """Test support for tuple types"""
         self.build()
@@ -37,7 +38,7 @@ class TestSwiftTupleTypes(TestBase):
     def do_test(self):
         """Tests that we can break and display simple types"""
         exe_name = "a.out"
-        exe = os.path.join(os.getcwd(), exe_name)
+        exe = self.getBuildArtifact(exe_name)
 
         # Create the target
         target = self.dbg.CreateTarget(exe)
@@ -82,11 +83,11 @@ class TestSwiftTupleTypes(TestBase):
         self.expect("frame variable --raw-output --show-types tuple4",
                     substrs=['(p1: ', 'Point, p2: ', '.Point) tuple4',
                              'Point) p1',
-                             '(Builtin.FPIEEE32)', 'value = 1.25',
-                             '(Builtin.FPIEEE32)', 'value = 2.125',
+                             'FPIEEE32)', 'value = 1.25',
+                             'FPIEEE32)', 'value = 2.125',
                              'Point) p2',
-                             '(Builtin.FPIEEE32)', 'value = 4.5',
-                             '(Builtin.FPIEEE32)', 'value = 8.75'])
+                             'FPIEEE32)', 'value = 4.5',
+                             'FPIEEE32)', 'value = 8.75'])
 
 if __name__ == '__main__':
     import atexit

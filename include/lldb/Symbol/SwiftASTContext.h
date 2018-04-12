@@ -35,15 +35,16 @@ namespace swift {
 enum class IRGenDebugInfoKind : unsigned;
 class CanType;
 class IRGenOptions;
+class NominalTypeDecl;
 struct PrintOptions;
 class SILModule;
+class VarDecl;
 namespace irgen {
 class FixedTypeInfo;
 class TypeInfo;
 }
 }
 
-struct CachedMemberInfo;
 class DWARFASTParser;
 class SwiftEnumDescriptor;
 
@@ -122,9 +123,18 @@ public:
 
   static ConstString GetPluginNameStatic();
 
+  /// Create a SwiftASTContext from a Module.  This context is used
+  /// for frame variable ans uses ClangImporter options specific to
+  /// this lldb::Module.  The optional target is to create a
+  /// module-specific scract context.
   static lldb::TypeSystemSP CreateInstance(lldb::LanguageType language,
-                                           Module *module, Target *target,
-                                           const char *compiler_options);
+                                           Module &module,
+                                           Target *target = nullptr);
+  /// Create a SwiftASTContext from a Target.  This context is global
+  /// and used for the expression evaluator.
+  static lldb::TypeSystemSP CreateInstance(lldb::LanguageType language,
+                                           Target &target,
+                                           const char *extra_options);
 
   static void EnumerateSupportedLanguages(
       std::set<lldb::LanguageType> &languages_for_types,
@@ -270,9 +280,6 @@ public:
 
   size_t FindTypesOrDecls(const char *name, swift::ModuleDecl *swift_module,
                           TypesOrDecls &results, bool append = true);
-
-  size_t FindContainedType(llvm::StringRef name, CompilerType container_type,
-                           std::set<CompilerType> &results, bool append = true);
 
   size_t FindContainedTypeOrDecl(llvm::StringRef name,
                                  TypeOrDecl container_type_or_decl,
@@ -498,13 +505,21 @@ public:
     bool m_is_objc;
     bool m_is_anyobject;
     bool m_is_errortype;
+
+    /// The superclass bound, which can only be non-null when this is
+    /// a class-bound existential.
+    CompilerType m_superclass;
+
+    /// The member index for the error value within an error
+    /// existential.
+    static constexpr uint32_t error_instance_index = 0;
+
+    /// Retrieve the index at which the instance type occurs.
+    uint32_t GetInstanceTypeIndex() const { return m_num_payload_words; }
   };
 
   static bool GetProtocolTypeInfo(const CompilerType &type,
                                   ProtocolInfo &protocol_info);
-
-  static bool IsOptionalChain(CompilerType type, CompilerType &payload_type,
-                              uint32_t &depth);
 
   enum class TypeAllocationStrategy { eInline, ePointer, eDynamic, eUnknown };
 
@@ -632,8 +647,10 @@ public:
 
   size_t GetNumTemplateArguments(void *type) override;
 
-  CompilerType GetTemplateArgument(void *type, size_t idx,
-                                   lldb::TemplateArgumentKind &kind) override;
+  lldb::GenericKind GetGenericArgumentKind(void *type, size_t idx) override;
+  CompilerType GetUnboundGenericType(void *type, size_t idx);
+  CompilerType GetBoundGenericType(void *type, size_t idx);
+  CompilerType GetGenericArgumentType(void *type, size_t idx) override;
 
   CompilerType GetTypeForFormatters(void *type) override;
 
@@ -748,9 +765,6 @@ public:
   bool IsReferenceType(void *type, CompilerType *pointee_type,
                        bool *is_rvalue) override;
 
-  static bool IsInoutType(const CompilerType &compiler_type,
-                          CompilerType *original_type);
-
   bool
   ShouldTreatScalarValueAsAddress(lldb::opaque_compiler_type_t type) override;
 
@@ -857,11 +871,26 @@ protected:
 
   ExtraTypeInformation GetExtraTypeInformation(void *type);
 
-  CachedMemberInfo *GetCachedMemberInfo(void *type);
+  /// Record the set of stored properties for each nominal type declaration
+  /// for which we've asked this question.
+  ///
+  /// All of the information in this DenseMap is easily re-constructed
+  /// with NominalTypeDecl::getStoredProperties(), but we cache the
+  /// result to provide constant-time indexed access.
+  llvm::DenseMap<swift::NominalTypeDecl *, std::vector<swift::VarDecl *>>
+    m_stored_properties;
+
+  /// Retrieve the stored properties for the given nominal type declaration.
+  llvm::ArrayRef<swift::VarDecl *> GetStoredProperties(
+                                               swift::NominalTypeDecl *nominal);
 
   SwiftEnumDescriptor *GetCachedEnumInfo(void *type);
 
   friend class CompilerType;
+
+  /// Apply a PathMappingList dictionary on all search paths in the
+  /// ClangImporterOptions.
+  void RemapClangImporterOptions(const PathMappingList &path_map);
 };
 
 class SwiftASTContextForExpressions : public SwiftASTContext {

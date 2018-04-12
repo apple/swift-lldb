@@ -11,10 +11,19 @@ include(LLDBStandalone)
 include(LLDBConfig)
 include(AddLLDB)
 
+# BEGIN - Swift Mods
 if(NOT LLDB_BUILT_STANDALONE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../swift)
    list(APPEND CMAKE_MODULE_PATH
         "${CMAKE_CURRENT_SOURCE_DIR}/../swift/cmake"
         "${CMAKE_CURRENT_SOURCE_DIR}/../swift/cmake/modules")
+endif()
+# END - Swift Mods
+
+# Define the LLDB_CONFIGURATION_xxx matching the build type
+if( uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG" )
+  add_definitions( -DLLDB_CONFIGURATION_DEBUG )
+else()
+  add_definitions( -DLLDB_CONFIGURATION_RELEASE )
 endif()
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows|Android")
@@ -30,6 +39,10 @@ if (LLDB_DISABLE_LIBEDIT)
   add_definitions( -DLLDB_DISABLE_LIBEDIT )
 endif()
 
+if(APPLE)
+  add_definitions(-DLLDB_USE_OS_LOG)
+endif()
+
 # add_subdirectory(include)
 add_subdirectory(docs)
 if (NOT LLDB_DISABLE_PYTHON)
@@ -38,26 +51,82 @@ if (NOT LLDB_DISABLE_PYTHON)
   endif()
 
   set(LLDB_PYTHON_TARGET_DIR ${LLDB_BINARY_DIR}/scripts)
+  set(LLDB_WRAP_PYTHON ${LLDB_BINARY_DIR}/scripts/LLDBWrapPython.cpp)
   if(LLDB_BUILD_FRAMEWORK)
     set(LLDB_PYTHON_TARGET_DIR
       ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LLDB_FRAMEWORK_INSTALL_DIR})
+    set(LLDB_WRAP_PYTHON ${LLDB_PYTHON_TARGET_DIR}/LLDBWrapPython.cpp)
   else()
     # Don't set -m when building the framework.
     set(FINISH_EXTRA_ARGS "-m")
   endif()
-  set(LLDB_WRAP_PYTHON ${LLDB_BINARY_DIR}/scripts/LLDBWrapPython.cpp)
+
 
   add_subdirectory(scripts)
 endif ()
+
 add_subdirectory(source)
-add_subdirectory(test)
 add_subdirectory(tools)
-add_subdirectory(unittests)
-add_subdirectory(lit)
+
+option(LLDB_INCLUDE_TESTS "Generate build targets for the LLDB unit tests."
+  ${LLVM_INCLUDE_TESTS})
+if(LLDB_INCLUDE_TESTS)
+  # BEGIN - Swift Mods
+  # The clang target is sometimes unavailable (rdar://38935299). Instead of
+  # failing the build when the target is missing, make the in-tree compiler the
+  # default compiler to test.
+
+  set(LLDB_DEFAULT_TEST_C_COMPILER "${LLVM_BINARY_DIR}/bin/clang${CMAKE_EXECUTABLE_SUFFIX}")
+  set(LLDB_DEFAULT_TEST_CXX_COMPILER "${LLVM_BINARY_DIR}/bin/clang++${CMAKE_EXECUTABLE_SUFFIX}")
+
+  # If the build would have failed due to a missing clang target, log some
+  # diagnostics.
+  message(STATUS "lldb: Found SwiftConfig: ${Swift_FOUND}")
+  message(STATUS "lldb: Found ClangConfig: ${Clang_FOUND}")
+  if (TARGET clang)
+    message(STATUS "lldb: Found the clang target.")
+  else()
+    message(WARNING "lldb: Could not find the clang target!")
+    message(STATUS "-> CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
+    message(STATUS "-> CMAKE_CURRENT_SOURCE_DIR: ${CMAKE_CURRENT_SOURCE_DIR}")
+    message(STATUS "-> LLVM_CONFIG: ${LLVM_CONFIG}")
+    message(STATUS "-> LLDB_PATH_TO_CLANG_SOURCE: ${LLDB_PATH_TO_CLANG_SOURCE}")
+    message(STATUS "-> LLVM_BINARY_DIR: ${LLVM_BINARY_DIR}")
+  endif()
+  # END - Swift Mods
+
+  set(LLDB_TEST_C_COMPILER "${LLDB_DEFAULT_TEST_C_COMPILER}" CACHE PATH "C Compiler to use for building LLDB test inferiors")
+  set(LLDB_TEST_CXX_COMPILER "${LLDB_DEFAULT_TEST_CXX_COMPILER}" CACHE PATH "C++ Compiler to use for building LLDB test inferiors")
+
+  if (("${LLDB_TEST_C_COMPILER}" STREQUAL "") OR
+      ("${LLDB_TEST_CXX_COMPILER}" STREQUAL ""))
+    message(FATAL_ERROR "LLDB test compilers not specified.  Tests will not run")
+  endif()
+
+  add_subdirectory(test)
+  add_subdirectory(unittests)
+  add_subdirectory(lit)
+endif()
 
 if (NOT LLDB_DISABLE_PYTHON)
     # Add a Post-Build Event to copy over Python files and create the symlink
     # to liblldb.so for the Python API(hardlink on Windows)
+    if (APPLE)
+        # FIXME. This replicates the xcode project. We should probably
+        # get rid of this special path and use the same script that
+        # every other platform is using.
+        add_custom_target(finish_swig ALL
+        COMMAND
+           ${CMAKE_CURRENT_SOURCE_DIR}/scripts/finish-swig-wrapper-classes.sh
+               ${LLDB_SOURCE_DIR}
+               ${LLDB_PYTHON_TARGET_DIR}
+               ${LLDB_PYTHON_TARGET_DIR}
+               ""
+        VERBATIM
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/finishSwigWrapperClasses.py
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/scripts/lldb.py
+        COMMENT "Python script sym-linking LLDB Python API")
+    else()
     add_custom_target(finish_swig ALL
         COMMAND
            ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/finishSwigWrapperClasses.py
@@ -73,6 +142,7 @@ if (NOT LLDB_DISABLE_PYTHON)
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/finishSwigWrapperClasses.py
         DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/scripts/lldb.py
         COMMENT "Python script sym-linking LLDB Python API")
+    endif()
     # We depend on liblldb being built before we can do this step.
     add_dependencies(finish_swig liblldb lldb-argdumper)
 

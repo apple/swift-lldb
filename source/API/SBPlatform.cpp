@@ -12,11 +12,11 @@
 #include "lldb/API/SBFileSpec.h"
 #include "lldb/API/SBLaunchInfo.h"
 #include "lldb/API/SBUnixSignals.h"
-#include "lldb/Core/ArchSpec.h"
 #include "lldb/Host/File.h"
 #include "lldb/Interpreter/Args.h"
 #include "lldb/Target/Platform.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/ArchSpec.h"
 #include "lldb/Utility/Status.h"
 
 #include "llvm/Support/FileSystem.h"
@@ -271,7 +271,7 @@ void SBPlatform::DisconnectRemote() {
 bool SBPlatform::IsConnected() {
   PlatformSP platform_sp(GetSP());
   if (platform_sp)
-    platform_sp->IsConnected();
+    return platform_sp->IsConnected();
   return false;
 }
 

@@ -26,6 +26,7 @@ class TestSwiftAddressOf(lldbtest.TestBase):
     NO_DEBUG_INFO_TESTCASE = True
 
     @decorators.swiftTest
+    @decorators.add_test_categories(["swiftpr"])
     def test_any_type(self):
         """Test the Any type"""
         self.build()
@@ -60,7 +61,7 @@ class TestSwiftAddressOf(lldbtest.TestBase):
     def do_test(self):
         """Test the Any type"""
         exe_name = "a.out"
-        exe = os.path.join(os.getcwd(), exe_name)
+        exe = self.getBuildArtifact(exe_name)
 
         # Create the target
         target = self.dbg.CreateTarget(exe)
@@ -113,7 +114,9 @@ class TestSwiftAddressOf(lldbtest.TestBase):
         self.thread = threads[0]
         self.frame = self.thread.frames[0]
 
-        self.check_variable("in_struct", True, 12345)
+        # Inout sugar is currently not preserved by the compiler so
+        # the inout type appears as direct.
+        self.check_variable("in_struct", False, 12345)
         
         
 
