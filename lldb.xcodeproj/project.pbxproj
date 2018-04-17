@@ -994,6 +994,7 @@
 		9AC703B1117675490086C050 /* SBInstructionList.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9AC703B0117675490086C050 /* SBInstructionList.cpp */; };
 		9AD9449F1E8DB26C004796ED /* RegisterContextNetBSD_x86_64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9AD9449B1E8DB267004796ED /* RegisterContextNetBSD_x86_64.cpp */; };
 		A36FF33C17D8E94600244D40 /* OptionParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A36FF33B17D8E94600244D40 /* OptionParser.cpp */; };
+		A68582A2207DB9E8008A279E /* lldb.1 in Copy Files */ = {isa = PBXBuildFile; fileRef = AF90106315AB7C5700FF120D /* lldb.1 */; };
 		AE44FB301BB07EB20033EB62 /* GoUserExpression.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AE44FB2C1BB07DD80033EB62 /* GoUserExpression.cpp */; };
 		AE44FB311BB07EB80033EB62 /* GoLexer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AE44FB2A1BB07DD80033EB62 /* GoLexer.cpp */; };
 		AE44FB321BB07EBC0033EB62 /* GoParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AE44FB2B1BB07DD80033EB62 /* GoParser.cpp */; };
@@ -1336,7 +1337,7 @@
 			dstPath = "/$(DT_VARIANT)/$(LLDB_TOOLS_INSTALL_DIR)/../share/man/man1";
 			dstSubfolderSpec = 0;
 			files = (
-				2F622B022064204300C2BDB4 /* lldb.1 in Copy Files */,
+				A68582A2207DB9E8008A279E /* lldb.1 in Copy Files */,
 			);
 			name = "Copy Files";
 			runOnlyForDeploymentPostprocessing = 1;
@@ -8843,7 +8844,7 @@
 				LLDB_COVERAGE_LDFLAGS_1 = "-fprofile-instr-generate";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_0 = "";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_1 = "-DLLDB_USE_OSS_VERSION_SCHEME";
-				LLDB_DISABLE_PYTHON = 1;
+				LLDB_DISABLE_PYTHON = 0;
 				"LLDB_DISABLE_PYTHON[sdk=iphoneos*]" = 1;
 				LLDB_ENABLE_COVERAGE = 0;
 				LLDB_FRAMEWORK_INSTALL_DIR = /Applications/Xcode.app/Contents/SharedFrameworks;
@@ -8891,8 +8892,9 @@
 					"-Wimplicit-fallthrough",
 				);
 				OTHER_LDFLAGS = (
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_COMPRESSION_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PYTHON_FRAMEWORK_PATH = "$(SDKROOT)/System/Library/Frameworks/Python.framework";
 				PYTHON_VERSION_MAJOR = 2;
@@ -8974,7 +8976,7 @@
 				LLDB_COVERAGE_LDFLAGS_1 = "-fprofile-instr-generate";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_0 = "";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_1 = "-DLLDB_USE_OSS_VERSION_SCHEME";
-				LLDB_DISABLE_PYTHON = 1;
+				LLDB_DISABLE_PYTHON = 0;
 				"LLDB_DISABLE_PYTHON[sdk=iphoneos*]" = 1;
 				LLDB_ENABLE_COVERAGE = 0;
 				LLDB_FRAMEWORK_INSTALL_DIR = /Applications/Xcode.app/Contents/SharedFrameworks;
@@ -9022,8 +9024,9 @@
 					"-Wimplicit-fallthrough",
 				);
 				OTHER_LDFLAGS = (
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_COMPRESSION_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PYTHON_FRAMEWORK_PATH = "$(SDKROOT)/System/Library/Frameworks/Python.framework";
 				PYTHON_VERSION_MAJOR = 2;
@@ -9313,7 +9316,7 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
@@ -9333,9 +9336,9 @@
 					"-framework",
 					ApplicationServices,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = LLDB;
 				SWIFT_BUILD_DIR_ARCH = "swift-macosx-$(CURRENT_ARCH)/";
@@ -9469,8 +9472,8 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(LLDB_ZLIB_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
 					"$(inherited)",
@@ -9488,9 +9491,9 @@
 					"-framework",
 					Security,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = "lldb-server";
 				SDKROOT = macosx;
@@ -9686,7 +9689,6 @@
 					Carbon,
 					"-framework",
 					Security,
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
 				);
 				"OTHER_LDFLAGS[sdk=iphoneos*][arch=*]" = (
 					"-filelist",
@@ -10309,7 +10311,7 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
@@ -10329,9 +10331,9 @@
 					"-framework",
 					ApplicationServices,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = LLDB;
 				SWIFT_BUILD_DIR_ARCH = "swift-macosx-$(CURRENT_ARCH)/";
@@ -10398,7 +10400,7 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
@@ -10418,9 +10420,9 @@
 					"-framework",
 					ApplicationServices,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = LLDB;
 				SWIFT_BUILD_DIR_ARCH = "swift-macosx-$(CURRENT_ARCH)/";
@@ -10709,7 +10711,7 @@
 				LLDB_COMPRESSION_LDFLAGS = "-lcompression";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_0 = "";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_1 = "-DLLDB_USE_OSS_VERSION_SCHEME";
-				LLDB_DISABLE_PYTHON = 1;
+				LLDB_DISABLE_PYTHON = 0;
 				"LLDB_DISABLE_PYTHON[sdk=iphoneos*]" = 1;
 				LLDB_FRAMEWORK_INSTALL_DIR = "/$(DT_VARIANT)/Applications/Xcode.app/Contents/SharedFrameworks";
 				"LLDB_FRAMEWORK_INSTALL_DIR[sdk=iphoneos*]" = "/$(DT_VARIANT)/System/Library/PrivateFrameworks";
@@ -10757,8 +10759,9 @@
 					"-DNDEBUG",
 				);
 				OTHER_LDFLAGS = (
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_COMPRESSION_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PYTHON_FRAMEWORK_PATH = "$(SDKROOT)/System/Library/Frameworks/Python.framework";
 				PYTHON_VERSION_MAJOR = 2;
@@ -10875,7 +10878,7 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
@@ -10895,8 +10898,9 @@
 					"-framework",
 					ApplicationServices,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = LLDB;
 				STRIP_INSTALLED_PRODUCT = YES;
@@ -11198,6 +11202,7 @@
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
 					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
 					"$(inherited)",
@@ -11215,9 +11220,9 @@
 					"-framework",
 					Security,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = "lldb-server";
 				SDKROOT = macosx;
@@ -11286,8 +11291,8 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(LLDB_ZLIB_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
 					"$(inherited)",
@@ -11305,9 +11310,9 @@
 					"-framework",
 					Security,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = "lldb-server";
 				SDKROOT = macosx;
@@ -11374,6 +11379,7 @@
 					"$(LLDB_COMPRESSION_LDFLAGS)",
 					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
 					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
 					"$(inherited)",
@@ -11391,9 +11397,9 @@
 					"-framework",
 					Security,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = "lldb-server";
 				SDKROOT = macosx;
@@ -11741,7 +11747,7 @@
 				LLDB_COMPRESSION_LDFLAGS = "-lcompression";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_0 = "";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_1 = "-DLLDB_USE_OSS_VERSION_SCHEME";
-				LLDB_DISABLE_PYTHON = 1;
+				LLDB_DISABLE_PYTHON = 0;
 				"LLDB_DISABLE_PYTHON[sdk=iphoneos*]" = 1;
 				LLDB_FRAMEWORK_INSTALL_DIR = /Applications/Xcode.app/Contents/SharedFrameworks;
 				LLDB_GUI_CFLAGS = "";
@@ -11787,8 +11793,9 @@
 					"$(LLDB_VERSION_SCHEME_CFLAGS)",
 				);
 				OTHER_LDFLAGS = (
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_COMPRESSION_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PYTHON_FRAMEWORK_PATH = "$(SDKROOT)/System/Library/Frameworks/Python.framework";
 				PYTHON_VERSION_MAJOR = 2;
@@ -11916,7 +11923,7 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
@@ -11936,8 +11943,9 @@
 					"-framework",
 					ApplicationServices,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = LLDB;
 				SWIFT_BUILD_DIR_ARCH = "swift-macosx-$(CURRENT_ARCH)/";
@@ -12073,7 +12081,8 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
 					"$(inherited)",
@@ -12091,9 +12100,9 @@
 					"-framework",
 					Security,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = "lldb-server";
 				SDKROOT = macosx;
@@ -12453,7 +12462,7 @@
 				LLDB_COVERAGE_LDFLAGS_1 = "-fprofile-instr-generate";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_0 = "";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_1 = "-DLLDB_USE_OSS_VERSION_SCHEME";
-				LLDB_DISABLE_PYTHON = 1;
+				LLDB_DISABLE_PYTHON = 0;
 				"LLDB_DISABLE_PYTHON[sdk=iphoneos*]" = 1;
 				LLDB_ENABLE_COVERAGE = 0;
 				LLDB_FRAMEWORK_INSTALL_DIR = /Applications/Xcode.app/Contents/SharedFrameworks;
@@ -12501,8 +12510,9 @@
 					"$(LLDB_VERSION_SCHEME_CFLAGS)",
 				);
 				OTHER_LDFLAGS = (
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_COMPRESSION_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PYTHON_FRAMEWORK_PATH = "$(SDKROOT)/System/Library/Frameworks/Python.framework";
 				PYTHON_VERSION_MAJOR = 2;
@@ -12630,7 +12640,7 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
@@ -12650,8 +12660,9 @@
 					"-framework",
 					ApplicationServices,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = LLDB;
 				SWIFT_BUILD_DIR_ARCH = "swift-macosx-$(CURRENT_ARCH)/";
@@ -12787,8 +12798,9 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_COVERAGE_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
 					"$(inherited)",
@@ -12806,9 +12818,9 @@
 					"-framework",
 					Security,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = "lldb-server";
 				SDKROOT = macosx;
@@ -13404,7 +13416,7 @@
 				LLDB_COMPRESSION_LDFLAGS = "-lcompression";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_0 = "";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_1 = "-DLLDB_USE_OSS_VERSION_SCHEME";
-				LLDB_DISABLE_PYTHON = 1;
+				LLDB_DISABLE_PYTHON = 0;
 				"LLDB_DISABLE_PYTHON[sdk=iphoneos*]" = 1;
 				LLDB_FRAMEWORK_INSTALL_DIR = "$(LLDB_TOOLCHAIN_PREFIX)/System/Library/PrivateFrameworks";
 				LLDB_GUI_CFLAGS = "";
@@ -13451,8 +13463,9 @@
 					"$(LLDB_VERSION_SCHEME_CFLAGS)",
 				);
 				OTHER_LDFLAGS = (
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_COMPRESSION_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PYTHON_FRAMEWORK_PATH = "$(SDKROOT)/System/Library/Frameworks/Python.framework";
 				PYTHON_VERSION_MAJOR = 2;
@@ -13465,7 +13478,16 @@
 				STRIP_STYLE = debugging;
 				SWIFT_FORCE_DYNAMIC_LINK_STDLIB = "";
 				SYMROOT = "$(PROJECT_DIR)/../build/Ninja-$(LLVM_CONFIGURATION)/lldb-macosx-x86_64";
-				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/include $(LLDB_PATH_TO_LLVM_SOURCE)/include $(LLDB_PATH_TO_CLANG_SOURCE)/include $(LLDB_PATH_TO_SWIFT_SOURCE)/include $(LLDB_PATH_TO_LLVM_BUILD)/include $(LLDB_PATH_TO_LLVM_BUILD)/tools/clang/include $(LLDB_PATH_TO_SWIFT_BUILD)/include $(SRCROOT)/source $(CONFIGURATION_BUILD_DIR)";
+				USER_HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/include",
+					"$(LLDB_PATH_TO_LLVM_SOURCE)/include",
+					"$(LLDB_PATH_TO_CLANG_SOURCE)/include",
+					"$(LLDB_PATH_TO_SWIFT_SOURCE)/include",
+					"$(LLDB_PATH_TO_LLVM_BUILD)/include",
+					"$(LLDB_PATH_TO_LLVM_BUILD)/tools/clang/include",
+					"$(LLDB_PATH_TO_SWIFT_BUILD)/include",
+					"$(SRCROOT)/source $(CONFIGURATION_BUILD_DIR)",
+				);
 				WARNING_CFLAGS = (
 					"-Wreorder",
 					"-Wno-newline-eof",
@@ -13581,7 +13603,7 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
@@ -13601,8 +13623,9 @@
 					"-framework",
 					ApplicationServices,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = LLDB;
 				SWIFT_BUILD_DIR_ARCH = "swift-macosx-$(CURRENT_ARCH)/";
@@ -13729,7 +13752,8 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
 					"$(inherited)",
@@ -13747,8 +13771,9 @@
 					"-framework",
 					Security,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = "lldb-server";
 				SDKROOT = macosx;
@@ -14004,7 +14029,7 @@
 				LLDB_COVERAGE_LDFLAGS_1 = "-fprofile-instr-generate";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_0 = "";
 				LLDB_DEFINES_FOR_USE_OSS_VERSION_SCHEME_1 = "-DLLDB_USE_OSS_VERSION_SCHEME";
-				LLDB_DISABLE_PYTHON = 1;
+				LLDB_DISABLE_PYTHON = 0;
 				"LLDB_DISABLE_PYTHON[sdk=iphoneos*]" = 1;
 				LLDB_ENABLE_COVERAGE = 0;
 				LLDB_FRAMEWORK_INSTALL_DIR = "$(LLDB_TOOLCHAIN_PREFIX)/System/Library/PrivateFrameworks";
@@ -14053,8 +14078,9 @@
 					"-Wimplicit-fallthrough",
 				);
 				OTHER_LDFLAGS = (
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_COMPRESSION_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PYTHON_FRAMEWORK_PATH = "$(SDKROOT)/System/Library/Frameworks/Python.framework";
 				PYTHON_VERSION_MAJOR = 2;
@@ -14176,7 +14202,7 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
@@ -14196,8 +14222,9 @@
 					"-framework",
 					ApplicationServices,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = LLDB;
 				SWIFT_BUILD_DIR_ARCH = "swift-macosx-$(CURRENT_ARCH)/";
@@ -14329,7 +14356,8 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
 					"$(inherited)",
@@ -14347,8 +14375,9 @@
 					"-framework",
 					Security,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(LLDB_GUI_LDFLAGS)",
+					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				PRODUCT_NAME = "lldb-server";
 				SDKROOT = macosx;
