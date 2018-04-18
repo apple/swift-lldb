@@ -1130,7 +1130,6 @@ static swift::ASTContext *SetupASTContext(
   // SetColorize colorize(swift_ast_context,
   // stream.GetFlags().Test(Stream::eANSIColor));
 
-  swift_ast_context->GetLanguageOptions().DebuggerSupport = true;
   swift_ast_context->GetLanguageOptions().EnableDollarIdentifiers =
       true; // No longer part of debugger support, set it separately.
   swift_ast_context->GetLanguageOptions().EnableAccessControl =
