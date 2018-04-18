@@ -1045,7 +1045,6 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
       target ? (new SwiftASTContextForExpressions(*target))
              : new SwiftASTContext());
 
-  swift_ast_sp->GetLanguageOptions().DebuggerSupport = true;
   swift_ast_sp->GetLanguageOptions().EnableAccessControl = false;
 
   if (!arch.IsValid())
@@ -2778,6 +2777,9 @@ swift::ASTContext *SwiftASTContext::GetASTContext() {
     m_ast_context_ap.reset(
         new swift::ASTContext(GetLanguageOptions(), GetSearchPathOptions(),
                               GetSourceManager(), GetDiagnosticEngine()));
+
+    m_ast_context_ap->LangOpts.DebuggerSupport = true;
+
     m_diagnostic_consumer_ap.reset(new StoringDiagnosticConsumer(*this));
 
     if (getenv("LLDB_SWIFT_DUMP_DIAGS")) {
