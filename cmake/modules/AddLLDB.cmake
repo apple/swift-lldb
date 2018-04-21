@@ -1,3 +1,25 @@
+# SWIFT_ENABLE_TENSORFLOW
+function(add_tensorflow_compiler_flags target)
+  # TODO: Handle Mac. Not urgent because lldb is built with Xcode by default on Mac.
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    # If INSTALL_PATH is already defined, append a path separater ":".
+    get_property(old_rpath TARGET "${target}" PROPERTY INSTALL_RPATH)
+    if(old_rpath)
+      set_property(TARGET "${target}" APPEND_STRING PROPERTY INSTALL_RPATH ":")
+    endif()
+    # FIXME: This is a hack: adding rpaths with many `..` that jump across
+    # frameworks is bad practice. It would be cleaner/more robust to copy
+    # the TensorFlow libraries to the lldb build subdirectory.
+    set(swift_lib_dir "../../swift-${HOST_VARIANT}-${HOST_VARIANT_ARCH}")
+    set(rpath_lldb_binary "${swift_lib_dir}/lib/swift/${HOST_VARIANT}")
+    set(rpath_toolchain_lldb_binary "../lib/swift/${HOST_VARIANT}")
+    set_property(TARGET "${target}" APPEND_STRING PROPERTY
+      INSTALL_RPATH "$ORIGIN/${rpath_lldb_binary}:$ORIGIN/${rpath_toolchain_lldb_binary}")
+    set_property(TARGET "${target}" APPEND_STRING PROPERTY
+      LINK_FLAGS " -L${LLDB_PATH_TO_SWIFT_BUILD}/lib/swift/${HOST_VARIANT} -ltensorflow -ltensorflow_framework")
+  endif()
+endfunction()
+
 function(add_lldb_library name)
   # only supported parameters to this macro are the optional
   # MODULE;SHARED;STATIC library type and source files
@@ -82,6 +104,11 @@ function(add_lldb_library name)
   target_compile_options(${name} PRIVATE ${PARAM_EXTRA_CXXFLAGS})
 
   set_target_properties(${name} PROPERTIES FOLDER "lldb libraries")
+
+  # SWIFT_ENABLE_TENSORFLOW
+  if(SWIFT_ENABLE_TENSORFLOW)
+    add_tensorflow_compiler_flags(${name})
+  endif()
 endfunction(add_lldb_library)
 
 function(add_lldb_executable name)
@@ -143,6 +170,11 @@ function(add_lldb_executable name)
   if(ARG_INCLUDE_IN_FRAMEWORK AND LLDB_BUILD_FRAMEWORK)
     add_llvm_tool_symlink(${name} ${name} ALWAYS_GENERATE SKIP_INSTALL
                             OUTPUT_DIR ${LLVM_RUNTIME_OUTPUT_INTDIR})
+  endif()
+
+  # SWIFT_ENABLE_TENSORFLOW
+  if(SWIFT_ENABLE_TENSORFLOW)
+    add_tensorflow_compiler_flags(${name})
   endif()
 endfunction(add_lldb_executable)
 
