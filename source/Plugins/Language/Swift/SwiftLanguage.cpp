@@ -492,12 +492,11 @@ static void LoadSwiftFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
       "TensorFlow.ArrayXD summary provider",
       ConstString("^TensorFlow.Array(Slice)?([2-9][0-9]*D)?<.+>$"),
       summary_flags, true);
-
   AddCXXSummary(
       swift_category_sp,
       lldb_private::formatters::swift::ObjectDescription_SummaryProvider,
-      "Python.PyValue summary provider",
-      ConstString("^Python.PyValue$"),
+      "Python.PythonObject summary provider",
+      ConstString("^Python.PythonObject$"),
       summary_flags, true);
 
   AddCXXSynthetic(
