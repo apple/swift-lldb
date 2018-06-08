@@ -1949,80 +1949,11 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Promise(
     return true;
   } break;
   case swift::MetadataKind::Existential: {
-    SwiftASTContext *swift_ast_ctx =
-        llvm::dyn_cast_or_null<SwiftASTContext>(var_type.GetTypeSystem());
-
-    CompilerType protocol_type(promise_sp->FulfillTypePromise());
-    if (swift_ast_ctx->IsErrorType(protocol_type)) {
-      if (swift_ast_ctx) {
-        Status error;
-        // the offset
-        size_t ptr_size = m_process->GetAddressByteSize();
-        size_t metadata_offset = ptr_size + 4 + (ptr_size == 8 ? 4 : 0);
-        metadata_offset += ptr_size + ptr_size + ptr_size;
-        lldb::addr_t archetype_ptr_value = in_value.GetValueAsUnsigned(0);
-        lldb::addr_t base_errortype_ptr =
-            m_process->ReadPointerFromMemory(archetype_ptr_value, error);
-        lldb::addr_t static_metadata_ptrptr =
-            base_errortype_ptr + metadata_offset;
-        lldb::addr_t static_metadata_ptr =
-            m_process->ReadPointerFromMemory(static_metadata_ptrptr, error);
-        MetadataPromiseSP promise_sp(
-            GetMetadataPromise(static_metadata_ptr, swift_ast_ctx));
-        if (promise_sp) {
-          lldb::addr_t load_addr = static_metadata_ptrptr + 2 * ptr_size;
-          if (promise_sp->FulfillKindPromise() &&
-              promise_sp->FulfillKindPromise().getValue() ==
-                  swift::MetadataKind::Class) {
-            load_addr = m_process->ReadPointerFromMemory(load_addr, error);
-            lldb::addr_t dynamic_metadata_location =
-                m_process->ReadPointerFromMemory(load_addr, error);
-            promise_sp =
-                GetMetadataPromise(dynamic_metadata_location, swift_ast_ctx);
-          }
-          CompilerType clang_type(promise_sp->FulfillTypePromise());
-          if (clang_type.IsValid() && load_addr != 0 &&
-              load_addr != LLDB_INVALID_ADDRESS) {
-            class_type_or_name.SetCompilerType(clang_type);
-            address.SetLoadAddress(load_addr, &m_process->GetTarget());
-            return true;
-          }
-        }
-      }
-    } else {
-      Status error;
-      lldb::addr_t ptr_to_instance_type = in_value.GetValueAsUnsigned(0) +
-                                          (3 * m_process->GetAddressByteSize());
-      lldb::addr_t metadata_of_impl_addr =
-          m_process->ReadPointerFromMemory(ptr_to_instance_type, error);
-      if (error.Fail() || metadata_of_impl_addr == 0 ||
-          metadata_of_impl_addr == LLDB_INVALID_ADDRESS)
-        return false;
-      MetadataPromiseSP promise_of_impl_sp(
-          GetMetadataPromise(metadata_of_impl_addr, swift_ast_ctx));
-      if (GetDynamicTypeAndAddress_Promise(in_value, promise_of_impl_sp,
-                                           use_dynamic, class_type_or_name,
-                                           address)) {
-        lldb::addr_t load_addr = in_value.GetValueAsUnsigned(0);
-        if (promise_of_impl_sp->FulfillKindPromise() &&
-            promise_of_impl_sp->FulfillKindPromise().getValue() ==
-                swift::MetadataKind::Class) {
-          load_addr = m_process->ReadPointerFromMemory(load_addr, error);
-          if (error.Fail() || load_addr == 0 ||
-              load_addr == LLDB_INVALID_ADDRESS)
-            return false;
-        } else if (promise_of_impl_sp->FulfillKindPromise() &&
-                   (promise_of_impl_sp->FulfillKindPromise().getValue() ==
-                        swift::MetadataKind::Enum ||
-                    promise_of_impl_sp->FulfillKindPromise().getValue() ==
-                        swift::MetadataKind::Struct)) {
-        } else
-          lldbassert(false && "class, enum and struct are the only protocol "
-                              "implementor types I know about");
-        address.SetLoadAddress(load_addr, &m_process->GetTarget());
-        return true;
-      }
-    }
+    CompilerType existential_type(promise_sp->FulfillTypePromise());
+    lldb::addr_t ptr_addr = in_value.GetPointerValue();
+    class_type_or_name.SetCompilerType(existential_type);
+    address.SetLoadAddress(ptr_addr, &m_process->GetTarget());
+    return true;
   } break;
   default:
     break;
