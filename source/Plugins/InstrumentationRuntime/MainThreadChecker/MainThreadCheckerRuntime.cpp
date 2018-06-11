@@ -112,6 +112,7 @@ static std::string TranslateObjCNameToSwiftName(std::string className,
       swift::ClassDecl *cls = llvm::dyn_cast<swift::ClassDecl>(VD);
       if (!cls)
         return;
+      cls->loadAllMembers();
       auto funcs = cls->lookupDirect(selectorToLookup, true);
       if (funcs.size() == 0)
         return;
