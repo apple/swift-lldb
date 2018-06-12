@@ -112,27 +112,15 @@ static std::string TranslateObjCNameToSwiftName(std::string className,
       swift::ClassDecl *cls = llvm::dyn_cast<swift::ClassDecl>(VD);
       if (!cls)
         return;
-      cls->loadAllMembers();
       auto funcs = cls->lookupDirect(selectorToLookup, true);
       if (funcs.size() == 0)
         return;
 
       // If the decl is actually an accessor, use the property name instead.
       swift::AbstractFunctionDecl *decl = funcs.front();
-      if (auto func = llvm::dyn_cast<swift::FuncDecl>(decl)) {
-        swift::DeclContext *funcCtx = func->getParent();
-        // We need to loadAllMembers(), otherwise 'isAccessor' returns false.
-        if (auto extension = llvm::dyn_cast<swift::ExtensionDecl>(funcCtx)) {
-          extension->loadAllMembers();
-        } else if (auto nominal =
-                       llvm::dyn_cast<swift::NominalTypeDecl>(funcCtx)) {
-          nominal->loadAllMembers();
-        }
-
-        if (auto accessor = llvm::dyn_cast<swift::AccessorDecl>(func)) {
-          result = accessor->getStorage()->getFullName();
-          return;
-        }
+      if (auto accessor = llvm::dyn_cast<swift::AccessorDecl>(decl)) {
+        result = accessor->getStorage()->getFullName();
+        return;
       }
 
       result = decl->getFullName();
