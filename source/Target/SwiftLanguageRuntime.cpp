@@ -1281,8 +1281,7 @@ bool SwiftLanguageRuntime::MetadataPromise::IsStaticallyDetermined() {
       return true;
     }
   }
-
-  return true;
+  llvm_unreachable("Unknown metadata kind");
 }
 
 static inline swift::Type GetSwiftType(const CompilerType &type) {
@@ -1587,12 +1586,6 @@ bool SwiftLanguageRuntime::IsValidErrorValue(
       return false;
 
     lldb::addr_t witness_table_location = metadata_location + ptr_size;
-    lldb::addr_t witness_table_ptr_value =
-        m_process->ReadPointerFromMemory(witness_table_location, error);
-    if (witness_table_ptr_value == 0 ||
-        witness_table_ptr_value == LLDB_INVALID_ADDRESS || error.Fail())
-      return false;
-
     lldb::addr_t payload_location = witness_table_location + ptr_size;
 
     if (out_error_descriptor) {
@@ -1601,8 +1594,6 @@ bool SwiftLanguageRuntime::IsValidErrorValue(
           SwiftErrorDescriptor::Kind::eSwiftPureNative;
       out_error_descriptor->m_pure_native.metadata_location =
           metadata_ptr_value;
-      out_error_descriptor->m_pure_native.witness_table_location =
-          witness_table_ptr_value;
       out_error_descriptor->m_pure_native.payload_ptr = payload_location;
     }
   }
@@ -2126,29 +2117,29 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Archetype(
   if (!GetDynamicTypeAndAddress_Promise(in_value, promise_sp, use_dynamic,
                                         class_type_or_name, address))
     return false;
-  if (promise_sp->FulfillKindPromise() &&
-      promise_sp->FulfillKindPromise().getValue() ==
-          swift::MetadataKind::Class) {
-    // when an archetype represents a class, it will represent the static type
-    // of the class
-    // but the dynamic type might be different
-    Status error;
-    lldb::addr_t addr_of_meta = address.GetLoadAddress(&m_process->GetTarget());
-    addr_of_meta = m_process->ReadPointerFromMemory(addr_of_meta, error);
-    if (addr_of_meta == LLDB_INVALID_ADDRESS || addr_of_meta == 0 ||
-        error.Fail())
-      return true; // my gut says we should fail here, but we seemed to be on a
-                   // good track before..
-    MetadataPromiseSP actual_type_promise(GetMetadataPromise(addr_of_meta));
-    if (actual_type_promise && actual_type_promise.get() != promise_sp.get()) {
-      CompilerType static_type(class_type_or_name.GetCompilerType());
-      class_type_or_name.SetCompilerType(
-          actual_type_promise->FulfillTypePromise());
-      if (error.Fail() ||
-          class_type_or_name.GetCompilerType().IsValid() == false)
-        class_type_or_name.SetCompilerType(static_type);
-    }
-  }
+  if (promise_sp->IsStaticallyDetermined())
+    return true;
+
+  // Ask RemoteAST about the dynamic type, as it might be different from the
+  // static one of the class.
+  Status error;
+  lldb::addr_t addr_of_meta = address.GetLoadAddress(&m_process->GetTarget());
+  addr_of_meta = m_process->ReadPointerFromMemory(addr_of_meta, error);
+  if (addr_of_meta == LLDB_INVALID_ADDRESS || addr_of_meta == 0 ||
+      error.Fail())
+    return true;
+  SwiftASTContext *swift_ast_ctx = llvm::dyn_cast_or_null<SwiftASTContext>(
+       in_value.GetCompilerType().GetTypeSystem());
+   auto &remote_ast = GetRemoteASTContext(*swift_ast_ctx);
+   swift::remote::RemoteAddress metadata_address(addr_of_meta);
+   auto instance_type =
+       remote_ast.getTypeForRemoteTypeMetadata(metadata_address,
+                                               /*skipArtificial*/ true);
+  if (!instance_type)
+    return false;
+  CompilerType result_type(swift_ast_ctx,
+                            instance_type.getValue().getPointer());
+  class_type_or_name.SetCompilerType(result_type);
   return true;
 }
 
