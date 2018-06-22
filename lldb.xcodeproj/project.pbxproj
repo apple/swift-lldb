@@ -11201,7 +11201,7 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
@@ -11377,8 +11377,7 @@
 					"-framework",
 					Foundation,
 					"$(LLDB_COMPRESSION_LDFLAGS)",
-					"$(LLDB_ZLIB_LDFLAGS)","-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework","-ltensorflow",
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
+					"$(LLDB_ZLIB_LDFLAGS)",
 					"$(EXTRA_OTHER_LDFLAGS)",
 				);
 				"OTHER_LDFLAGS[sdk=macosx*]" = (
@@ -13329,7 +13328,6 @@
 					Carbon,
 					"-framework",
 					Security,
-					"-L$HOME/tensorflow-src/bazel-bin/tensorflow", "-ltensorflow_framework", "-ltensorflow"
 				);
 				"OTHER_LDFLAGS[sdk=iphoneos*][arch=*]" = (
 					"-filelist",
