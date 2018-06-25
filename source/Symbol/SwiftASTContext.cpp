@@ -5947,6 +5947,8 @@ const swift::irgen::TypeInfo *SwiftASTContext::GetSwiftTypeInfo(void *type) {
   if (type) {
     auto &irgen_module = GetIRGenModule();
     swift::CanType swift_can_type(GetCanonicalSwiftType(type));
+    if (swift_can_type->hasTypeParameter())
+      return nullptr;
     swift::SILType swift_sil_type = irgen_module.getLoweredType(
         swift_can_type);
     return &irgen_module.getTypeInfo(swift_sil_type);
