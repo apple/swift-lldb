@@ -335,6 +335,49 @@ CanBeUsedForElementCountPrinting(ValueObject &valobj) {
   return Status();
 }
 
+lldb::ExpressionResults 
+CommandObjectExpression::SwiftTryLocalVariableLookup(const char *expr,
+                              Target *target, 
+                              StackFrame *frame,
+                              EvaluateExpressionOptions &options,
+                              lldb::ValueObjectSP &result_valobj_sp)
+{
+  ExpressionResults success = eExpressionSetupError;
+  // Don't do this if we are using the REPL, top level code, 
+  // or if the PlaygroundTransform is enabled.
+  if (!target 
+      || !frame
+      || !target->GetUseFrameVarToAccelerateExpr()
+      || !(options.GetLanguage() == eLanguageTypeSwift
+           || (options.GetLanguage() == eLanguageTypeUnknown
+               && frame->GetLanguage() == eLanguageTypeSwift))
+      || options.GetExecutionPolicy() == eExecutionPolicyTopLevel
+      || options.GetREPLEnabled()
+      || options.GetPlaygroundTransformEnabled())
+    return success;
+
+  // Note, Swift's type resolution rules are complex enough that even figuring
+  // out whether the dynamic and static versions of foo.bar are the same is
+  // tricky, so we only handle single identifiers.
+  if (swift::Lexer::isIdentifier(expr)) {
+    VariableSP var_sp;
+    Status error;
+    result_valobj_sp
+          = frame->GetValueForVariableExpressionPath(expr,
+                                                     eDynamicCanRunTarget,
+                                                     0,
+                                                     var_sp,
+                                                     error);
+    if (error.Success()
+        && result_valobj_sp
+        && result_valobj_sp->GetError().Success()) {
+      success = eExpressionCompleted;
+      result_valobj_sp = result_valobj_sp->Persist();
+    }
+  }
+  return success;
+}
+
 bool CommandObjectExpression::EvaluateExpression(const char *expr,
                                                  Stream *output_stream,
                                                  Stream *error_stream,
@@ -398,9 +441,20 @@ bool CommandObjectExpression::EvaluateExpression(const char *expr,
       options.SetTimeout(std::chrono::microseconds(m_command_options.timeout));
     else
       options.SetTimeout(llvm::None);
-
-    ExpressionResults success = target->EvaluateExpression(
-        expr, frame, result_valobj_sp, options, &m_fixed_expression);
+    
+    // Swift does not have an IR interpreter, so expression evaluation for
+    // simple variable access is quite slow.  Accelerate that by first seeing
+    // if the whole expression is a simple identifier, and if so look it up
+    // as a local variable.
+    ExpressionResults success = SwiftTryLocalVariableLookup(expr,
+                                                            target,
+                                                            frame,
+                                                            options,
+                                                            result_valobj_sp);
+    
+    if (success != eExpressionCompleted)
+        success = target->EvaluateExpression(
+            expr, frame, result_valobj_sp, options, &m_fixed_expression);
 
     // We only tell you about the FixIt if we applied it.  The compiler errors
     // will suggest the FixIt if it parsed.

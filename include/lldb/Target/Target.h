@@ -220,6 +220,10 @@ public:
 
   bool GetUseModernTypeLookup() const;
 
+  bool GetUseFrameVarToAccelerateExpr() const;
+
+  void SetUseFrameVarToAccelerateExpr(bool b);
+
 private:
   //------------------------------------------------------------------
   // Callbacks for m_launch_info.

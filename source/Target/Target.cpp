@@ -3759,6 +3759,10 @@ static PropertyDefinition g_properties[] = {
                        "support."},
     {"non-stop-mode", OptionValue::eTypeBoolean, false, 0, nullptr, nullptr,
      "Disable lock-step debugging, instead control threads independently."},
+    {"frame-var-accelerates-simple-expr", OptionValue::eTypeBoolean, false, true,
+     nullptr, nullptr,
+     "If true, use local variable lookup to accelerate "
+     "simple expression evaluation.  For swift only at present."},
     {nullptr, OptionValue::eTypeInvalid, false, 0, nullptr, nullptr, nullptr}};
 
 enum {
@@ -3808,6 +3812,7 @@ enum {
   ePropertySDKPath,
   ePropertyDisplayRuntimeSupportValues,
   ePropertyNonStopModeEnabled,
+  ePropertyFrameVarForExpr,
   ePropertyExperimental
 };
 
@@ -4438,6 +4443,16 @@ bool TargetProperties::GetNonStopModeEnabled() const {
 
 void TargetProperties::SetNonStopModeEnabled(bool b) {
   const uint32_t idx = ePropertyNonStopModeEnabled;
+  m_collection_sp->SetPropertyAtIndexAsBoolean(nullptr, idx, b);
+}
+
+bool TargetProperties::GetUseFrameVarToAccelerateExpr() const {
+  const uint32_t idx = ePropertyFrameVarForExpr;
+  return m_collection_sp->GetPropertyAtIndexAsBoolean(nullptr, idx, false);
+}
+
+void TargetProperties::SetUseFrameVarToAccelerateExpr(bool b) {
+  const uint32_t idx = ePropertyFrameVarForExpr;
   m_collection_sp->SetPropertyAtIndexAsBoolean(nullptr, idx, b);
 }
 

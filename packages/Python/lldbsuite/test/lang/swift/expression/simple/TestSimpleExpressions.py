@@ -31,14 +31,39 @@ class TestSimpleSwiftExpressions(TestBase):
         self.build()
         self.do_test()
 
+    @decorators.swiftTest
+    @decorators.add_test_categories(["swiftpr"])
+    def test_frame_var_accelerator(self):
+        self.build()
+        self.do_locals_test()
+
     def setUp(self):
         TestBase.setUp(self)
         self.main_source = "main.swift"
         self.main_source_spec = lldb.SBFileSpec(self.main_source)
 
+    def do_locals_test(self):
+        """Test simple swift expressions"""
+        (target, process, self.thread, breakpoint) = lldbutil.run_to_source_breakpoint(self, 
+                                                                                        "Set breakpoint here", 
+                                                                                        self.main_source_spec)
+        self.frame = self.thread.frames[0]
+        self.assertTrue(self.frame, "Frame 0 is valid.")
+        # This is a bit of an artificial test.  The intent is to ensure the current
+        # "look up expr as a local expression" works as intended.  We know at present
+        # that ALL swift expressions require JIT execution.  So even a simple variable
+        # access would fail if we don't allow JIT'ting.
+        
+        # This test ensures that we are currently accelerating simple local lookup
+        self.expect("expression --allow-jit 0 -- same_five", substrs=["Bool", "true"])
+        # This test ensures that we aren't accelerating anything but simple lookups.
+        self.expect("expression --allow-jit 0 -- b_struct.b_int", error=True)
+        
+
     def check_expression(self, expression, expected_result, use_summary=True):
         value = self.frame.EvaluateExpression(expression)
-        self.assertTrue(value.IsValid(), expression + "returned a valid value")
+        self.assertTrue(value.IsValid(), expression + "returned a invalid value")
+        
         if self.TraceOn():
             print value.GetSummary()
             print value.GetValue()
@@ -52,29 +77,9 @@ class TestSimpleSwiftExpressions(TestBase):
 
     def do_test(self):
         """Test simple swift expressions"""
-        exe_name = "a.out"
-        exe = self.getBuildArtifact(exe_name)
-
-        # Create the target
-        target = self.dbg.CreateTarget(exe)
-        self.assertTrue(target, VALID_TARGET)
-
-        # Set the breakpoints
-        breakpoint = target.BreakpointCreateBySourceRegex(
-            'Set breakpoint here', self.main_source_spec)
-        self.assertTrue(breakpoint.GetNumLocations() > 0, VALID_BREAKPOINT)
-
-        # Launch the process, and do not stop at the entry point.
-        process = target.LaunchSimple(None, None, os.getcwd())
-
-        self.assertTrue(process, PROCESS_IS_VALID)
-
-        # Frame #0 should be at our breakpoint.
-        threads = lldbutil.get_threads_stopped_at_breakpoint(
-            process, breakpoint)
-
-        self.assertTrue(len(threads) == 1)
-        self.thread = threads[0]
+        (target, process, self.thread, breakpoint) = lldbutil.run_to_source_breakpoint(self, 
+                                                                                        "Set breakpoint here", 
+                                                                                        self.main_source_spec)
         self.frame = self.thread.frames[0]
         self.assertTrue(self.frame, "Frame 0 is valid.")
 
