@@ -1088,6 +1088,7 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
 
   swift_ast_sp->GetLanguageOptions().DebuggerSupport = true;
   swift_ast_sp->GetLanguageOptions().EnableAccessControl = false;
+  swift_ast_sp->GetLanguageOptions().EnableTargetOSChecking = false;
 
   if (!arch.IsValid())
     return TypeSystemSP();
@@ -2911,6 +2912,9 @@ swift::ASTContext *SwiftASTContext::GetASTContext() {
       m_ast_context_ap->addModuleLoader(std::move(serialized_module_loader_ap));
     }
 
+    // Set up the required state for the evaluator in the TypeChecker.
+    registerTypeCheckerRequestFunctions(m_ast_context_ap->evaluator);
+
     GetASTMap().Insert(m_ast_context_ap.get(), this);
   }
 
@@ -3493,6 +3497,8 @@ void SwiftASTContext::LoadModule(swift::ModuleDecl *swift_module,
 
       // And then in the various framework search paths.
       std::unordered_set<std::string> seen_paths;
+      std::vector<std::string> uniqued_paths;
+      
       for (const auto &framework_search_dir :
            swift_module->getASTContext().SearchPathOpts.FrameworkSearchPaths) {
         // The framework search dir as it comes from the AST context often has
@@ -3500,25 +3506,39 @@ void SwiftASTContext::LoadModule(swift::ModuleDecl *swift_module,
 
         std::pair<std::unordered_set<std::string>::iterator, bool>
             insert_result = seen_paths.insert(framework_search_dir.Path);
-        if (!insert_result.second)
-          continue;
+        if (insert_result.second)
+        {
+          framework_path = framework_search_dir.Path;
+          framework_path.append("/");
+          framework_path.append(library_name);
+          framework_path.append(".framework/");
+          uniqued_paths.push_back(framework_path);
+        }
+      }
+        
+      uint32_t token = LLDB_INVALID_IMAGE_TOKEN;
+      PlatformSP platform_sp = process.GetTarget().GetPlatform();
+      
+      Status error;
+      FileSpec library_spec(library_name, false);
+      FileSpec found_path;
+      
+      if (platform_sp)
+        token = platform_sp->LoadImageUsingPaths(&process, library_spec,
+                                                 uniqued_paths, error,
+                                                 &found_path);
+                                                  
+      if (token != LLDB_INVALID_IMAGE_TOKEN) {
+        if (log)
+          log->Printf("Found framework at: %s.", framework_path.c_str());
 
-        framework_path = framework_search_dir.Path;
-        framework_path.append("/");
-        framework_path.append(library_name);
-        framework_path.append(".framework/");
-        framework_path.append(library_name);
-        framework_spec.SetFile(framework_path.c_str(), false);
-
-        if (LoadOneImage(process, framework_spec, load_image_error)) {
-          if (log)
-            log->Printf("Found framework at: %s.", framework_path.c_str());
-
-          return;
-        } else
-          all_dlopen_errors.Printf("Looking for \"%s\"\n,    error: %s\n",
-                                   framework_path.c_str(),
-                                   load_image_error.AsCString());
+        return;
+      } else {
+        all_dlopen_errors.Printf("Failed to find framework for \"%s\" looking"
+                                 " along paths:\n",
+                                 library_name);
+        for (const std::string &path : uniqued_paths)
+          all_dlopen_errors.Printf("  %s\n", path.c_str());
       }
 
       // Maybe we were told to add a link library that exists in the system.  I
@@ -3629,32 +3649,40 @@ bool SwiftASTContext::LoadLibraryUsingPaths(
     return true;
   }
 
-  FileSpec library_spec;
   std::string library_path;
   std::unordered_set<std::string> seen_paths;
   Status load_image_error;
-
+  std::vector<std::string> uniqued_paths;
+  
   for (const std::string &library_search_dir : search_paths) {
     // The library search dir as it comes from the AST context often has
-    // duplicate entries, don't try to load along the same path twice.
+    // duplicate entries, so lets unique the path list before we send it
+    // down to the target.
 
     std::pair<std::unordered_set<std::string>::iterator, bool> insert_result =
         seen_paths.insert(library_search_dir);
-    if (!insert_result.second)
-      continue;
+    if (insert_result.second)
+      uniqued_paths.push_back(library_search_dir);
+  }
 
-    library_path = library_search_dir;
-    library_path.append("/");
-    library_path.append(library_fullname);
-    library_spec.SetFile(library_path.c_str(), false);
-    if (LoadOneImage(process, library_spec, load_image_error)) {
+  FileSpec library_spec(library_fullname, false);
+  FileSpec found_library;
+  uint32_t token = LLDB_INVALID_IMAGE_TOKEN;
+  Status error;
+  if (platform_sp)
+    token = platform_sp->LoadImageUsingPaths(&process, library_spec, 
+                                             uniqued_paths,
+                                             error,
+                                             &found_library);
+  if (token != LLDB_INVALID_IMAGE_TOKEN) {
       if (log)
-        log->Printf("Found library at: %s.", library_path.c_str());
+        log->Printf("Found library at: %s.", found_library.GetCString());
       return true;
-    } else
-      all_dlopen_errors.Printf("Looking for \"%s\"\n,    error: %s\n",
-                               library_path.c_str(),
-                               load_image_error.AsCString());
+    } else {
+      all_dlopen_errors.Printf("Failed to find \"%s\" in paths:\n,",
+                               library_fullname.c_str());
+      for (const std::string &search_dir : uniqued_paths)
+        all_dlopen_errors.Printf("  %s\n", search_dir.c_str());
   }
 
   if (check_rpath) {
@@ -3666,11 +3694,11 @@ bool SwiftASTContext::LoadLibraryUsingPaths(
 
     if (LoadOneImage(process, link_lib_spec, load_image_error)) {
       if (log)
-        log->Printf("Found library at: %s.", library_path.c_str());
+        log->Printf("Found library using RPATH at: %s.", library_path.c_str());
       return true;
     } else
-      all_dlopen_errors.Printf("Looking for \"%s\", error: %s\n",
-                               library_path.c_str(),
+      all_dlopen_errors.Printf("Failed to find \"%s\" on RPATH, error: %s\n",
+                               library_fullname.c_str(),
                                load_image_error.AsCString());
   }
   return false;
@@ -4302,8 +4330,8 @@ CompilerType SwiftASTContext::ImportType(CompilerType &type, Status &error) {
   return CompilerType();
 }
 
-swift::IRGenDebugInfoKind SwiftASTContext::GetGenerateDebugInfo() {
-  return GetIRGenOptions().DebugInfoKind;
+swift::IRGenDebugInfoLevel SwiftASTContext::GetGenerateDebugInfo() {
+  return GetIRGenOptions().DebugInfoLevel;
 }
 
 swift::PrintOptions SwiftASTContext::GetUserVisibleTypePrintingOptions(
@@ -4324,8 +4352,8 @@ swift::PrintOptions SwiftASTContext::GetUserVisibleTypePrintingOptions(
   return print_options;
 }
 
-void SwiftASTContext::SetGenerateDebugInfo(swift::IRGenDebugInfoKind b) {
-  GetIRGenOptions().DebugInfoKind = b;
+void SwiftASTContext::SetGenerateDebugInfo(swift::IRGenDebugInfoLevel b) {
+  GetIRGenOptions().DebugInfoLevel = b;
 }
 
 llvm::TargetOptions *SwiftASTContext::getTargetOptions() {
@@ -4367,7 +4395,7 @@ SwiftASTContext::GetIRGenerator(swift::IRGenOptions &opts,
 swift::irgen::IRGenModule &SwiftASTContext::GetIRGenModule() {
   VALID_OR_RETURN(*m_ir_gen_module_ap);
 
-  if (m_ir_gen_module_ap.get() == NULL) {
+  llvm::call_once(m_ir_gen_module_once, [this]() {
     // Make sure we have a good ClangImporter.
     GetClangImporter();
 
@@ -4410,7 +4438,7 @@ swift::irgen::IRGenModule &SwiftASTContext::GetIRGenModule() {
         llvm_module->setTargetTriple(triple);
       }
     }
-  }
+  });
   return *m_ir_gen_module_ap;
 }
 
@@ -4717,11 +4745,11 @@ void SwiftASTContext::AddDebuggerClient(
 }
 
 SwiftASTContext::ExtraTypeInformation::ExtraTypeInformation()
-    : m_flags(false, false) {}
+    : m_flags(false) {}
 
 SwiftASTContext::ExtraTypeInformation::ExtraTypeInformation(
     swift::CanType swift_can_type)
-    : m_flags(false, false) {
+    : m_flags(false) {
   static ConstString g_rawValue("rawValue");
 
   swift::ASTContext &ast_ctx = swift_can_type->getASTContext();
@@ -4747,44 +4775,6 @@ SwiftASTContext::ExtraTypeInformation::ExtraTypeInformation(
         }
       }
     }
-  }
-
-  if (auto metatype_type = swift::dyn_cast_or_null<swift::MetatypeType>(
-          swift_can_type)) {
-    if (!metatype_type->hasRepresentation() ||
-        (swift::MetatypeRepresentation::Thin ==
-         metatype_type->getRepresentation()))
-      m_flags.m_is_zero_size = true;
-  } else if (auto enum_decl = swift_can_type->getEnumOrBoundGenericEnum()) {
-    size_t num_nopayload = 0, num_payload = 0;
-    for (auto the_case : enum_decl->getAllElements()) {
-      if (the_case->getArgumentInterfaceType()) {
-        num_payload = 1;
-        break;
-      } else {
-        if (++num_nopayload > 1)
-          break;
-      }
-    }
-    if (num_nopayload == 1 && num_payload == 0)
-      m_flags.m_is_zero_size = true;
-  } else if (auto struct_decl =
-                 swift_can_type->getStructOrBoundGenericStruct()) {
-    bool has_storage = false;
-    auto members = struct_decl->getMembers();
-    for (const auto &member : members) {
-      if (swift::VarDecl *var_decl =
-              swift::dyn_cast<swift::VarDecl>(member)) {
-        if (!var_decl->isStatic() && var_decl->hasStorage()) {
-          has_storage = true;
-          break;
-        }
-      }
-    }
-    m_flags.m_is_zero_size = !has_storage;
-  } else if (auto tuple_type = swift::dyn_cast_or_null<swift::TupleType>(
-                 swift_can_type)) {
-    m_flags.m_is_zero_size = (tuple_type->getNumElements() == 0);
   }
 }
 
@@ -5136,17 +5126,20 @@ bool SwiftASTContext::IsSelfArchetypeType(const CompilerType &compiler_type) {
 }
 
 bool SwiftASTContext::IsPossibleZeroSizeType(
-    const CompilerType &compiler_type) {
-  if (!compiler_type.IsValid())
+  const CompilerType &compiler_type) {
+  if (!SwiftASTContext::IsFullyRealized(compiler_type))
     return false;
-
-  if (auto ast = llvm::dyn_cast_or_null<SwiftASTContext>(
-          compiler_type.GetTypeSystem()))
-    return ast
-        ->GetExtraTypeInformation(
-            GetCanonicalSwiftType(compiler_type).getPointer())
-        .m_flags.m_is_zero_size;
-  return false;
+  auto ast =
+    llvm::dyn_cast_or_null<SwiftASTContext>(compiler_type.GetTypeSystem());
+  if (!ast)
+    return false;
+  const swift::irgen::TypeInfo *type_info =
+    ast->GetSwiftTypeInfo(compiler_type.GetOpaqueQualType());
+  if (!type_info->isFixedSize())
+    return false;
+  auto *fixed_type_info =
+    swift::cast<const swift::irgen::FixedTypeInfo>(type_info);
+  return fixed_type_info->getFixedSize().getValue() == 0;
 }
 
 bool SwiftASTContext::IsErrorType(const CompilerType &compiler_type) {
@@ -5218,9 +5211,9 @@ bool SwiftASTContext::GetProtocolTypeInfo(const CompilerType &type,
     protocol_info.m_is_anyobject = layout.isAnyObject();
     protocol_info.m_is_errortype = layout.isErrorExistential();
 
-    if (layout.superclass) {
+    if (auto superclass = layout.explicitSuperclass) {
       protocol_info.m_superclass =
-        CompilerType(ast->GetASTContext(), layout.superclass.getPointer());
+        CompilerType(ast->GetASTContext(), superclass.getPointer());
     }
 
     unsigned num_witness_tables = 0;
@@ -5924,25 +5917,6 @@ CompilerType SwiftASTContext::GetFloatTypeFromBitSize(size_t bit_size) {
 //----------------------------------------------------------------------
 // Exploring the type
 //----------------------------------------------------------------------
-
-const swift::irgen::TypeInfo *
-SwiftASTContext::GetSwiftTypeInfo(swift::Type container_type,
-                                  swift::VarDecl *item_decl) {
-  VALID_OR_RETURN(nullptr);
-
-  if (container_type && item_decl) {
-    auto &irgen_module = GetIRGenModule();
-    swift::CanType container_can_type(
-        GetCanonicalSwiftType(container_type.getPointer()));
-    swift::SILType lowered_container_type =
-        irgen_module.getLoweredType(container_can_type);
-    swift::SILType lowered_field_type =
-        lowered_container_type.getFieldType(item_decl, *GetSILModule());
-    return &irgen_module.getTypeInfo(lowered_field_type);
-  }
-
-  return nullptr;
-}
 
 const swift::irgen::TypeInfo *SwiftASTContext::GetSwiftTypeInfo(void *type) {
   VALID_OR_RETURN(nullptr);

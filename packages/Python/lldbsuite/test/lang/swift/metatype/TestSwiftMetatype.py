@@ -25,6 +25,7 @@ class TestSwiftMetatype(TestBase):
     mydir = TestBase.compute_mydir(__file__)
 
     @decorators.swiftTest
+    @decorators.add_test_categories(["swiftpr"])
     def test_with_dsym(self):
         """Test the formatting of Swift metatypes"""
         self.build()
@@ -65,9 +66,6 @@ class TestSwiftMetatype(TestBase):
 
         var_s = self.frame.FindVariable("s")
         var_c = self.frame.FindVariable("c")
-        # Enrico, there is no k var in the .swift file, and there is
-        # no check on the k below.  Commenting out for you to resolve.
-        # var_k = self.frame.FindVariable("k")
         var_f = self.frame.FindVariable("f")
         var_t = self.frame.FindVariable("t")
         var_p = self.frame.FindVariable("p")

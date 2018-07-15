@@ -27,12 +27,13 @@
 #include "lldb/Utility/Status.h"
 
 #include "llvm/ADT/Optional.h"
+#include "llvm/Support/Threading.h"
 
 #include <map>
 #include <set>
 
 namespace swift {
-enum class IRGenDebugInfoKind : unsigned;
+enum class IRGenDebugInfoLevel : unsigned;
 class CanType;
 class IRGenOptions;
 class NominalTypeDecl;
@@ -164,12 +165,12 @@ public:
 
   swift::ASTContext *GetASTContext();
 
-  swift::IRGenDebugInfoKind GetGenerateDebugInfo();
+  swift::IRGenDebugInfoLevel GetGenerateDebugInfo();
 
   static swift::PrintOptions
   GetUserVisibleTypePrintingOptions(bool print_help_if_available);
 
-  void SetGenerateDebugInfo(swift::IRGenDebugInfoKind b);
+  void SetGenerateDebugInfo(swift::IRGenDebugInfoLevel b);
 
   bool AddModuleSearchPath(const char *path);
 
@@ -388,12 +389,10 @@ public:
   union ExtraTypeInformation {
     uint64_t m_intValue;
     struct ExtraTypeInformationFlags {
-      ExtraTypeInformationFlags(bool is_trivial_option_set, bool is_zero_size)
-          : m_is_trivial_option_set(is_trivial_option_set),
-            m_is_zero_size(is_zero_size) {}
+      ExtraTypeInformationFlags(bool is_trivial_option_set)
+          : m_is_trivial_option_set(is_trivial_option_set) {}
 
       bool m_is_trivial_option_set : 1;
-      bool m_is_zero_size : 1;
     } m_flags;
 
     ExtraTypeInformation();
@@ -402,9 +401,6 @@ public:
   };
 
   const swift::irgen::TypeInfo *GetSwiftTypeInfo(void *type);
-
-  const swift::irgen::TypeInfo *GetSwiftTypeInfo(swift::Type container_type,
-                                                 swift::VarDecl *item_decl);
 
   const swift::irgen::FixedTypeInfo *GetSwiftFixedTypeInfo(void *type);
 
@@ -825,6 +821,7 @@ protected:
   std::unique_ptr<llvm::TargetOptions> m_target_options_ap;
   std::unique_ptr<swift::irgen::IRGenerator> m_ir_generator_ap;
   std::unique_ptr<swift::irgen::IRGenModule> m_ir_gen_module_ap;
+  llvm::once_flag m_ir_gen_module_once;
   std::unique_ptr<swift::DiagnosticConsumer> m_diagnostic_consumer_ap;
   std::unique_ptr<swift::CompilerInvocation> m_compiler_invocation_ap;
   std::unique_ptr<DWARFASTParser> m_dwarf_ast_parser_ap;

@@ -1146,8 +1146,8 @@ CreateMainFile(SwiftASTContext &swift_ast_context, StringRef filename,
                StringRef text, const EvaluateExpressionOptions &options) {
   const bool generate_debug_info = options.GetGenerateDebugInfo();
   swift_ast_context.SetGenerateDebugInfo(generate_debug_info
-                                             ? swift::IRGenDebugInfoKind::Normal
-                                             : swift::IRGenDebugInfoKind::None);
+                                           ? swift::IRGenDebugInfoLevel::Normal
+                                           : swift::IRGenDebugInfoLevel::None);
   swift::IRGenOptions &ir_gen_options = swift_ast_context.GetIRGenOptions();
 
   if (generate_debug_info) {
@@ -1757,8 +1757,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
               llvm::cast<SwiftExpressionVariable>(persistent_variable.get())
                   ->SetIsModifiable(false);
             }
-            if (decl->getStorageKind() ==
-                swift::VarDecl::StorageKindTy::Computed) {
+            if (!decl->hasStorage()) {
               llvm::cast<SwiftExpressionVariable>(persistent_variable.get())
                   ->SetIsComputed(true);
             }

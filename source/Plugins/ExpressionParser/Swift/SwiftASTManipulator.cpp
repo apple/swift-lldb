@@ -127,13 +127,13 @@ void SwiftASTManipulator::WrapExpression(
 
   if (playground) {
     const char *playground_prefix = R"(
-@_silgen_name ("playground_logger_initialize") func $builtin_logger_initialize ()
-@_silgen_name ("playground_log_hidden") func $builtin_log_with_id<T> (_ object : T, _ name : String, _ id : Int, _ sl : Int, _ el : Int, _ sc : Int, _ ec: Int) -> AnyObject
-@_silgen_name ("playground_log_scope_entry") func $builtin_log_scope_entry (_ sl : Int, _ el : Int, _ sc : Int, _ ec: Int) -> AnyObject
-@_silgen_name ("playground_log_scope_exit") func $builtin_log_scope_exit (_ sl : Int, _ el : Int, _ sc : Int, _ ec: Int) -> AnyObject
-@_silgen_name ("playground_log_postprint") func $builtin_postPrint (_ sl : Int, _ el : Int, _ sc : Int, _ ec: Int) -> AnyObject
-@_silgen_name ("DVTSendPlaygroundLogData") func $builtin_send_data (_ :  AnyObject!)
-$builtin_logger_initialize()
+@_silgen_name ("playground_logger_initialize") func __builtin_logger_initialize ()
+@_silgen_name ("playground_log_hidden") func __builtin_log_with_id<T> (_ object : T, _ name : String, _ id : Int, _ sl : Int, _ el : Int, _ sc : Int, _ ec: Int) -> AnyObject
+@_silgen_name ("playground_log_scope_entry") func __builtin_log_scope_entry (_ sl : Int, _ el : Int, _ sc : Int, _ ec: Int) -> AnyObject
+@_silgen_name ("playground_log_scope_exit") func __builtin_log_scope_exit (_ sl : Int, _ el : Int, _ sc : Int, _ ec: Int) -> AnyObject
+@_silgen_name ("playground_log_postprint") func __builtin_postPrint (_ sl : Int, _ el : Int, _ sc : Int, _ ec: Int) -> AnyObject
+@_silgen_name ("DVTSendPlaygroundLogData") func __builtin_send_data (_ :  AnyObject!)
+__builtin_logger_initialize()
 )";
     if (pound_file && pound_line) {
       wrapped_stream.Printf("%s#sourceLocation(file: \"%s\", line: %u)\n%s\n",
@@ -219,7 +219,7 @@ $builtin_logger_initialize()
 
     const char *optional_extension =
         (language_flags & SwiftUserExpression::eLanguageFlagIsWeakSelf)
-            ? "Optional where Wrapped: "
+            ? "Swift.Optional where Wrapped: "
             : "";
 
     if (generic_info.class_bindings.size()) {
@@ -506,7 +506,7 @@ swift::Stmt *SwiftASTManipulator::ConvertExpressionToTmpReturnVarAccess(
       swift::StaticSpellingKind::KeywordStatic;
   result_loc_info.binding_decl = swift::PatternBindingDecl::create(
       ast_context, source_loc, static_spelling_kind, source_loc, var_pattern,
-      expr, new_decl_context);
+      swift::SourceLoc(), expr, new_decl_context);
   result_loc_info.binding_decl->setImplicit();
   result_loc_info.binding_decl->setStatic(false);
 
@@ -767,6 +767,11 @@ void SwiftASTManipulator::MakeDeclarationsPublic() {
           var_decl->overwriteSetterAccess(access);
       }
 
+      // FIXME: Remove this once LLDB has proper support for resilience.
+      if (swift::VarDecl *var_decl =
+              llvm::dyn_cast<swift::VarDecl>(decl)) {
+        var_decl->setREPLVar(true);
+      }
       return true;
     }
   };
@@ -1140,10 +1145,9 @@ GetPatternBindingForVarDecl(swift::VarDecl *var_decl,
       named_pattern, swift::TypeLoc::withoutLoc(type));
 
   swift::PatternBindingDecl *pattern_binding =
-      swift::PatternBindingDecl::create(
-          ast_context, swift::SourceLoc(), swift::StaticSpellingKind::None,
-          var_decl->getLoc(), typed_pattern, nullptr, containing_context);
-  pattern_binding->setImplicit(true);
+      swift::PatternBindingDecl::createImplicit(
+          ast_context, swift::StaticSpellingKind::None, typed_pattern, nullptr,
+          containing_context, var_decl->getLoc());
 
   return pattern_binding;
 }
@@ -1405,8 +1409,10 @@ bool SwiftASTManipulator::FixCaptures() {
     if (!variable.m_decl)
       continue;
 
-    if (variable.m_decl->getStorageKind() !=
-        swift::AbstractStorageDecl::Computed)
+    auto impl = variable.m_decl->getImplInfo();
+    if (impl.getReadImpl() != swift::ReadImplKind::Get ||
+        (impl.getWriteImpl() != swift::WriteImplKind::Set &&
+         impl.getWriteImpl() != swift::WriteImplKind::Immutable))
       continue;
 
     swift::FuncDecl *getter_decl = variable.m_decl->getGetter();
