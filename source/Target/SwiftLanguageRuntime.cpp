@@ -1467,6 +1467,9 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Class(
   // use the scratch context where such operations are legal and safe.
   SwiftASTContext *swift_ast_ctx = GetScratchSwiftASTContext();
 
+  if (!swift_ast_ctx || swift_ast_ctx->HasFatalErrors())
+    return false;
+
   Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_TYPES));
 
   auto &remote_ast = GetRemoteASTContext(*swift_ast_ctx);
@@ -3179,7 +3182,7 @@ ValueObjectSP SwiftLanguageRuntime::CalculateErrorValueFromFirstArgument(
 
     SwiftASTContext *ast_context = target->GetScratchSwiftASTContext(
         error, *frame_sp);
-    if (!ast_context || error.Fail())
+    if (!ast_context || ast_context->HasFatalErrors() || error.Fail())
       return error_valobj_sp;
 
     CompilerType swift_error_proto_type = ast_context->GetErrorType();
