@@ -25,6 +25,7 @@
 #include "lldb/Symbol/CompileUnit.h"
 #include "lldb/Symbol/Function.h"
 #include "lldb/Symbol/ObjectFile.h"
+#include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Symbol/SwiftASTContext.h"
 #include "lldb/Symbol/Type.h"
 #include "lldb/Target/SwiftLanguageRuntime.h"
@@ -94,16 +95,6 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
       swift::ModuleDecl *swift_module = m_ast.GetModule(decl.GetFile(), error);
       if (swift_module)
         compiler_type = m_ast.FindType(type_name_cstr, swift_module);
-
-      if (!compiler_type) {
-        // Anything from the swift module might be in a DW_TAG_typedef with a
-        // name of "Int"
-        // so we shuld also check the swift module if we fail to find our type
-        // until we get
-        // <rdar://problem/15290346> fixed.
-        compiler_type =
-            m_ast.FindFirstType(type_name_cstr, ConstString("Swift"));
-      }
     }
   }
 
@@ -116,6 +107,18 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
     // otherwise figure it out yourself
     compiler_type =
         m_ast.GetTypeFromMangledTypename(mangled_name.GetCString(), error);
+  }
+
+  if (!compiler_type && die.Tag() == DW_TAG_structure_type &&
+      mangled_name.GetStringRef().startswith("$SSo")) {
+    // When we failed to look up the type because no .swiftmodule is
+    // present or it couldn't be read, fall back to presenting objects
+    // that look like they might be come from Objective-C as Clang
+    // types. LLDB's Objective-C part is very robust against malformed
+    // object pointers, so this isn't very risky.
+    if (auto *clang_ctx = llvm::dyn_cast_or_null<ClangASTContext>(
+            sc.module_sp->GetTypeSystemForLanguage(eLanguageTypeObjC)))
+      compiler_type = clang_ctx->GetBasicType(eBasicTypeObjCClass);
   }
 
   if (!compiler_type && name) {
