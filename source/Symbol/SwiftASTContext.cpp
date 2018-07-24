@@ -1319,6 +1319,8 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
   if (!arch.IsValid())
     return TypeSystemSP();
 
+  swift_ast_sp->GetLanguageOptions().EnableTargetOSChecking = false;
+
   bool handled_sdk_path = false;
   bool handled_resource_dir = false;
   const size_t num_images = target.GetImages().GetSize();
@@ -3388,9 +3390,8 @@ static void
 GetLibrarySearchPaths(std::vector<std::string> &paths,
                       const swift::SearchPathOptions &search_path_opts) {
   paths.clear();
-  paths.resize(search_path_opts.LibrarySearchPaths.size() + 1);
-  std::copy(search_path_opts.LibrarySearchPaths.begin(),
-            search_path_opts.LibrarySearchPaths.end(), paths.begin());
+  paths.assign(search_path_opts.LibrarySearchPaths.begin(),
+            search_path_opts.LibrarySearchPaths.end());
   paths.push_back(search_path_opts.RuntimeLibraryPath);
 }
 
