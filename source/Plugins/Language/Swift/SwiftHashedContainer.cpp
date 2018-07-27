@@ -363,14 +363,15 @@ SwiftHashedContainerBufferHandler::CreateBufferHandler(
     SyntheticCreatorFunction Synthetic, ConstString mangled,
     ConstString demangled) {
   static ConstString g__variantStorage("_variantStorage");
-  static ConstString g__variantBuffer("_variantBuffer");
+  static ConstString g__variantBuffer("_variantBuffer"); // Swift 4 & 4.2
+  static ConstString g__variant("_variant"); // Swift 5
   static ConstString g_Native("native");
   static ConstString g_Cocoa("cocoa");
   static ConstString g_nativeStorage("nativeStorage");
   static ConstString g_nativeBuffer("nativeBuffer");
   static ConstString g_buffer("buffer");
   static ConstString g_storage("storage");
-  static ConstString g__storage("_storage");
+  static ConstString g__storage("_storage"); // Swift 4, 5
   static ConstString g_Some("some");
 
   Status error;
@@ -394,14 +395,16 @@ SwiftHashedContainerBufferHandler::CreateBufferHandler(
       valobj.GetSP()->GetQualifiedRepresentationIfAvailable(
           lldb::eDynamicCanRunTarget, false);
 
-  ValueObjectSP _variantStorageSP(
-      valobj_sp->GetChildMemberWithName(g__variantStorage, true));
+  ValueObjectSP variantSP(
+      valobj_sp->GetChildMemberWithName(g__variant, true));
 
-  if (!_variantStorageSP)
-    _variantStorageSP =
-        valobj_sp->GetChildMemberWithName(g__variantBuffer, true);
+  if (!variantSP)
+    variantSP = valobj_sp->GetChildMemberWithName(g__variantBuffer, true);
 
-  if (!_variantStorageSP) {
+  if (!variantSP)
+    variantSP = valobj_sp->GetChildMemberWithName(g__variantStorage, true);
+
+  if (!variantSP) {
     static ConstString g__SwiftDeferredNSDictionary(
         "Swift._SwiftDeferredNSDictionary");
     if (type_name_cs.GetStringRef().startswith(
@@ -422,14 +425,14 @@ SwiftHashedContainerBufferHandler::CreateBufferHandler(
     return nullptr;
   }
 
-  ConstString storage_kind(_variantStorageSP->GetValueAsCString());
+  ConstString storage_kind(variantSP->GetValueAsCString());
 
   if (!storage_kind)
     return nullptr;
 
   if (g_Cocoa == storage_kind) {
     ValueObjectSP child_sp(
-        _variantStorageSP->GetChildMemberWithName(g_Native, true));
+        variantSP->GetChildMemberWithName(g_Native, true));
     if (!child_sp)
       return nullptr;
     // it's an NSDictionary in disguise
@@ -457,7 +460,7 @@ SwiftHashedContainerBufferHandler::CreateBufferHandler(
     if (classname &&
         classname.GetStringRef().startswith(mangled.GetCString())) {
       return CreateBufferHandlerForNativeStorageOwner(
-          *_variantStorageSP, cocoa_storage_ptr, true, Native);
+          *variantSP, cocoa_storage_ptr, true, Native);
     } else {
       auto handler = std::unique_ptr<SwiftHashedContainerBufferHandler>(
           Synthetic(cocoarr_sp));
@@ -467,15 +470,14 @@ SwiftHashedContainerBufferHandler::CreateBufferHandler(
     }
   }
   if (g_Native == storage_kind) {
-    ValueObjectSP native_sp(_variantStorageSP->GetChildAtNamePath({g_Native}));
-    ValueObjectSP nativeStorage_sp(
-        _variantStorageSP->GetChildAtNamePath({g_Native, g_nativeStorage}));
-    if (!native_sp)
+    ValueObjectSP nativeSP(variantSP->GetChildAtNamePath({g_Native}));
+    ValueObjectSP nativeStorageSP(
+        variantSP->GetChildAtNamePath({g_Native, g__storage}));
+    if (!nativeSP)
       return nullptr;
-    if (!nativeStorage_sp)
-      nativeStorage_sp =
-          _variantStorageSP->GetChildAtNamePath({g_Native, g__storage});
-    if (!nativeStorage_sp)
+    if (!nativeStorageSP)
+      nativeStorageSP = variantSP->GetChildAtNamePath({g_Native, g_nativeStorage});
+    if (!nativeStorageSP)
       return nullptr;
 
     CompilerType child_type(valobj.GetCompilerType());
@@ -484,7 +486,7 @@ SwiftHashedContainerBufferHandler::CreateBufferHandler(
     CompilerType value_type(child_type.GetGenericArgumentType(1));
 
     auto handler = std::unique_ptr<SwiftHashedContainerBufferHandler>(
-        Native(nativeStorage_sp, key_type, value_type));
+        Native(nativeStorageSP, key_type, value_type));
     if (handler && handler->IsValid())
       return handler;
     return nullptr;
