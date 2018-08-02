@@ -1465,7 +1465,14 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Class(
 
   // Dynamic type resolution in RemoteAST might pull in other Swift modules, so
   // use the scratch context where such operations are legal and safe.
-  SwiftASTContext *swift_ast_ctx = GetScratchSwiftASTContext();
+  Status error;
+  SwiftASTContext *swift_ast_ctx;
+
+  if (auto frame = in_value.GetFrameSP())
+    swift_ast_ctx =
+        m_process->GetTarget().GetScratchSwiftASTContext(error, *frame);
+  else
+    swift_ast_ctx = GetScratchSwiftASTContext();
 
   if (!swift_ast_ctx || swift_ast_ctx->HasFatalErrors())
     return false;
@@ -1497,6 +1504,15 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Class(
                   instance_type.getFailure().render().c_str());
     }
 
+    if (swift_ast_ctx->HasFatalErrors()) {
+      // Retry exactly once using the per-module fallback scratch context.
+      auto &target = m_process->GetTarget();
+      if (!target.UseScratchTypesystemPerModule()) {
+        target.SetUseScratchTypesystemPerModule(true);
+        return GetDynamicTypeAndAddress_Class(in_value, use_dynamic,
+                                              class_type_or_name, address);
+      }
+    }
     return false;
   }
 
