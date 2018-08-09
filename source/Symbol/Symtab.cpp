@@ -309,12 +309,11 @@ void Symtab::InitNameIndexes() {
       Mangled &mangled = symbol->GetMangled();
       entry.cstring = mangled.GetMangledName();
       if (entry.cstring) {
-        m_name_to_index.Append(entry);
-
         // Now try and figure out the basename and figure out if the
         // basename is a method, function, etc and put that in the
         // appropriate table.
-        llvm::StringRef name = entry.cstring.GetStringRef();
+        m_name_to_index.Append(entry);
+
         if (symbol->ContainsLinkerAnnotations()) {
           // If the symbol has linker annotations, also add the version without
           // the annotations.
@@ -326,15 +325,15 @@ void Symtab::InitNameIndexes() {
         const SymbolType type = symbol->GetType();
         if (type == eSymbolTypeCode || type == eSymbolTypeResolver) {
           // Other schemes are not relevant in the Swift use case.
-          bool is_relevant_itanium =
-              !lldb_skip_name(entry.cstring.GetStringRef(),
-                              Mangled::eManglingSchemeItanium);
+          bool is_relevant_itanium = !lldb_skip_name(
+              entry.cstring.GetStringRef(), Mangled::eManglingSchemeItanium);
 
           if (is_relevant_itanium) {
             if (mangled.DemangleWithRichManglingInfo(rmc, lldb_skip_name)) {
               RegisterMangledNameEntry(entry, class_contexts, backlog, rmc);
             }
-          } else if (SwiftLanguageRuntime::IsSwiftMangledName(name.str().c_str())) {
+          } else if (SwiftLanguageRuntime::IsSwiftMangledName(
+                         entry.cstring.GetCString())) {
             lldb_private::ConstString basename;
             bool is_method = false;
             ConstString mangled_name = mangled.GetMangledName();
