@@ -121,11 +121,16 @@ public:
         const uint8_t h = hash(string_ref);
         llvm::sys::SmartScopedWriter<false> wlock(m_string_pools[h].m_mutex);
 
-        // Make string pool entry with the mangled counterpart already set
-        StringPoolEntryType &entry =
-            *m_string_pools[h]
-                 .m_string_map.insert(std::make_pair(string_ref, mangled_ccstr))
-                 .first;
+        // Make or update string pool entry with the mangled counterpart
+        StringPool &map = m_string_pools[h].m_string_map;
+        StringPoolEntryType &entry = *map.try_emplace(demangled).first;
+
+        assert((entry.second == nullptr || entry.second == mangled_ccstr ||
+                strlen(entry.second) == 0) &&
+              "The demangled string must have a unique counterpart or otherwise "
+              "it must be empty");
+
+        entry.second = mangled_ccstr;
 
         // Extract the const version of the demangled_cstr
         demangled_ccstr = entry.getKeyData();
