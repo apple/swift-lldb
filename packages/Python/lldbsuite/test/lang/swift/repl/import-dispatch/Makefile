@@ -1,4 +1,4 @@
-LEVEL = ../../make
+LEVEL = ../../../../make
 SWIFT_SOURCES := input.swift
 SWIFT_OBJC_INTEROP := 1
 
