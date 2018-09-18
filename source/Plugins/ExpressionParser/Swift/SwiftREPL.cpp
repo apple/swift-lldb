@@ -101,9 +101,9 @@ lldb::REPLSP SwiftREPL::CreateInstanceFromDebugger(Status &err,
                                                    const char *repl_options) {
   const char *bp_name = "repl_main";
 
-  FileSpec repl_executable;
+  FileSpec repl_executable = HostInfo::GetSupportExeDir();
 
-  if (!HostInfo::GetLLDBPath(ePathTypeSupportExecutableDir, repl_executable)) {
+  if (!repl_executable) {
     err.SetErrorString("unable to locate REPL executable");
     return nullptr;
   }
@@ -123,10 +123,9 @@ lldb::REPLSP SwiftREPL::CreateInstanceFromDebugger(Status &err,
   // Use the most generic sub-architecture.
   target_triple.setArch(target_triple.getArch());
   // Override the stub's minimum deployment target to the host os version.
-  uint32_t major, minor, patch;
-  HostInfo::GetOSVersion(major, minor, patch);
+  llvm::VersionTuple version = HostInfo::GetOSVersion();
   os << llvm::Triple::getOSTypeName(target_triple.getOS());
-  os << major << '.' << minor << '.' << patch;
+  os << version.getAsString();
   target_triple.setOSName(os.str());
 
   bool add_dependent_modules = true;
@@ -256,7 +255,7 @@ lldb::REPLSP SwiftREPL::CreateInstanceFromDebugger(Status &err,
   cleanup.disable();
 
   std::string swift_full_version(swift::version::getSwiftFullVersion());
-  printf("Welcome to %s. Type :help for assistance.\n",
+  printf("Welcome to %s.\nType :help for assistance.\n",
          swift_full_version.c_str());
 
   return repl_sp;
@@ -301,7 +300,8 @@ bool SwiftREPL::SourceIsComplete(const std::string &source) {
   std::unique_ptr<llvm::MemoryBuffer> source_buffer_ap(
       llvm::MemoryBuffer::getMemBuffer(source));
   swift::ide::SourceCompleteResult result =
-      swift::ide::isSourceInputComplete(std::move(source_buffer_ap));
+      swift::ide::isSourceInputComplete(std::move(source_buffer_ap),
+                                        swift::SourceFileKind::REPL);
   return result.IsComplete;
 }
 
@@ -335,7 +335,8 @@ lldb::offset_t SwiftREPL::GetDesiredIndentation(const StringList &lines,
   std::unique_ptr<llvm::MemoryBuffer> source_buffer_ap(
       llvm::MemoryBuffer::getMemBuffer(source_string));
   swift::ide::SourceCompleteResult result =
-      swift::ide::isSourceInputComplete(std::move(source_buffer_ap));
+      swift::ide::isSourceInputComplete(std::move(source_buffer_ap),
+                                        swift::SourceFileKind::REPL);
 
   int desired_indent =
       (result.IndentLevel * tab_size) + result.IndentPrefix.length();

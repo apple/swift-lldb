@@ -14,7 +14,6 @@ if(LLVM_HOST_TRIPLE MATCHES "^((\\?!linux).)*$")
     message("Building for non-linux host, setting reflection lib to ${REFLECTION_LIB}")
 endif()
 
-
 add_lldb_library(lldbTarget
   ABI.cpp
   CPPLanguageRuntime.cpp

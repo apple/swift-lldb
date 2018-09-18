@@ -57,7 +57,7 @@ public:
 
 private:
   struct EitherComparator {
-    bool operator()(const TypeOrDecl &r1, const TypeOrDecl &r2) {
+    bool operator()(const TypeOrDecl &r1, const TypeOrDecl &r2) const {
       auto r1_as1 = r1.GetAs<CompilerType>();
       auto r1_as2 = r1.GetAs<swift::Decl *>();
 
@@ -294,6 +294,9 @@ public:
   CompilerType GetTypeFromMangledTypename(const char *mangled_typename,
                                           Status &error);
 
+  // Retrieve the Swift.AnyObject type.
+  CompilerType GetAnyObjectType();
+
   // Get a function type that returns nothing and take no parameters
   CompilerType GetVoidFunctionType();
 
@@ -332,9 +335,6 @@ public:
   };
 
   CompilerType CreateTupleType(const std::vector<TupleElement> &elements);
-
-  CompilerType CreateFunctionType(CompilerType arg_type, CompilerType ret_type,
-                                  bool throws = false);
 
   CompilerType GetErrorType();
 
@@ -405,10 +405,6 @@ public:
   const swift::irgen::FixedTypeInfo *GetSwiftFixedTypeInfo(void *type);
 
   DWARFASTParser *GetDWARFParser() override;
-
-  CompilerType GetIntTypeFromBitSize(size_t bit_size, bool is_signed);
-
-  CompilerType GetFloatTypeFromBitSize(size_t bit_size);
 
   //----------------------------------------------------------------------
   // CompilerDecl functions
