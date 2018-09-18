@@ -1,4 +1,4 @@
-LEVEL := ../../make
+LEVEL := ../../../../make
 
 DYLIB_NAME := CppLib
 DYLIB_CXX_SOURCES := CppLib/CppLib.cpp CppLib/CppLibWrapper.cpp
