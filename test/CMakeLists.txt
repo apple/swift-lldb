@@ -82,6 +82,7 @@ set(LLDB_TEST_COMMON_ARGS
   --arch=${LLDB_TEST_ARCH}
   --executable $<TARGET_FILE:lldb>
   --dsymutil $<TARGET_FILE:llvm-dsymutil>
+  --filecheck $<TARGET_FILE:FileCheck>
   -s
   ${CMAKE_BINARY_DIR}/lldb-test-traces
   --build-dir
