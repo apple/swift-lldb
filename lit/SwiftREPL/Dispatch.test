@@ -3,3 +3,7 @@
 // CHECK: Welcome to Swift
 
 import Dispatch
+
+let concurrentQueue = DispatchQueue(label: "queuename", attributes: .concurrent)
+// CHECK: {{concurrentQueue}}: DispatchQueue = {
+// CHECK-NEXT:  Dispatch.DispatchObject = {
