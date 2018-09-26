@@ -1,0 +1,5 @@
+// Test that we can import libDispatch in the repl.
+// RUN: %lldb --repl < %s | FileCheck %s
+// CHECK: Welcome to Swift
+
+import Dispatch
