@@ -1640,173 +1640,34 @@ bool SwiftLanguageRuntime::IsValidErrorValue(
 bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_ErrorType(
     ValueObject &in_value, lldb::DynamicValueType use_dynamic,
     TypeAndOrName &class_type_or_name, Address &address) {
-  // layout of error type
-  // pointer to -------> SwiftError {
-  // --------------
-  // CFRuntimeBase
-  // CFIndex
-  // CFStringRef
-  // CFDictionaryRef
-  // --------------
-  // Metadata
-  // WitnessTable
-  // hashable Metadata
-  // hashable WitnessTable
-  // --------------
-  // tail allocated actual object data *
-  // }
-  // * for a struct, it's the inline data
-  // * for a class, it's the inline pointer-to-the-data (aka, the swift class
-  // instance)
-  SwiftErrorDescriptor error_descriptor;
-  if (!IsValidErrorValue(in_value, &error_descriptor))
+  lldb::addr_t existential_address = in_value.GetAddressOf();
+  if (!existential_address || existential_address == LLDB_INVALID_ADDRESS)
     return false;
 
-  Status error;
   CompilerType var_type(in_value.GetStaticValue()->GetCompilerType());
-  size_t ptr_size = m_process->GetAddressByteSize();
   SwiftASTContext *swift_ast_ctx =
       llvm::dyn_cast_or_null<SwiftASTContext>(var_type.GetTypeSystem());
-  if (!swift_ast_ctx)
+  if (!swift_ast_ctx || swift_ast_ctx->HasFatalErrors())
     return false;
 
-  switch (error_descriptor.m_kind) {
-  case SwiftErrorDescriptor::Kind::eNotAnError:
+  auto &remote_ast = GetRemoteASTContext(*swift_ast_ctx);
+  swift::remote::RemoteAddress remote_existential(existential_address);
+  auto dyn_result = remote_ast.getDynamicTypeAndAddressForExistential(
+      swift::remote::RemoteAddress(remote_existential),
+      GetSwiftType(in_value.GetCompilerType()));
+  if (!dyn_result)
     return false;
-  case SwiftErrorDescriptor::Kind::eSwiftBridgeableNative: {
-    MetadataPromiseSP promise_sp(GetMetadataPromise(
-        error_descriptor.m_bridgeable_native.metadata_ptr_value, in_value));
-    if (!promise_sp)
-      return false;
-    error_descriptor.m_bridgeable_native.metadata_location += 4 * ptr_size;
-    if (!promise_sp->IsStaticallyDetermined()) {
-      // figure out the actual dynamic type via the metadata at the "isa"
-      // pointer
-      error_descriptor.m_bridgeable_native.metadata_location =
-          m_process->ReadPointerFromMemory(
-              error_descriptor.m_bridgeable_native.metadata_location, error);
-      if (error_descriptor.m_bridgeable_native.metadata_location == 0 ||
-          error_descriptor.m_bridgeable_native.metadata_location ==
-              LLDB_INVALID_ADDRESS ||
-          error.Fail())
-        return false;
-      error_descriptor.m_bridgeable_native.metadata_ptr_value =
-          m_process->ReadPointerFromMemory(
-              error_descriptor.m_bridgeable_native.metadata_location, error);
-      if (error_descriptor.m_bridgeable_native.metadata_ptr_value == 0 ||
-          error_descriptor.m_bridgeable_native.metadata_ptr_value ==
-              LLDB_INVALID_ADDRESS ||
-          error.Fail())
-        return false;
-      promise_sp = GetMetadataPromise(
-          error_descriptor.m_bridgeable_native.metadata_ptr_value, in_value);
-      if (!promise_sp || !promise_sp->FulfillTypePromise()) {
-        // this could still be a random ObjC object
-        if (auto objc_runtime = GetObjCRuntime()) {
-          DataExtractor extractor(
-              &error_descriptor.m_bridgeable_native.metadata_location,
-              sizeof(error_descriptor.m_bridgeable_native.metadata_location),
-              GetProcess()->GetByteOrder(), GetProcess()->GetAddressByteSize());
-          ExecutionContext exe_ctx(GetProcess());
-          auto scratch_ast =
-              GetProcess()->GetTarget().GetScratchClangASTContext();
-          if (scratch_ast) {
-            auto valobj_sp = ValueObject::CreateValueObjectFromData(
-                in_value.GetName().AsCString(), extractor, exe_ctx,
-                scratch_ast->GetBasicType(eBasicTypeObjCID));
-            if (valobj_sp) {
-              Value::ValueType value_type;
-              if (objc_runtime->GetDynamicTypeAndAddress(
-                      *valobj_sp, use_dynamic, class_type_or_name, address,
-                      value_type)) {
-                address.SetLoadAddress(
-                    error_descriptor.m_bridgeable_native.metadata_location,
-                    &GetProcess()->GetTarget());
-                if (!class_type_or_name.GetCompilerType().IsPointerType()) {
-                  // the language runtimes do not return pointer-to-types when
-                  // doing dynamic type resolution
-                  // what usually happens is that the static type has
-                  // pointer-like traits that ValueObjectDynamic
-                  // then preserves in the dynamic value - since the static type
-                  // here is a Swift protocol object
-                  // the dynamic type won't know to pointerize. But we truly
-                  // need an ObjCObjectPointer here or else
-                  // type printing WILL be confused. Hence, make the pointer
-                  // type ourselves if we didn't get one already
-                  class_type_or_name.SetCompilerType(
-                      class_type_or_name.GetCompilerType().GetPointerType());
-                }
-                return true;
-              }
-            }
-          }
-        }
-
-        return false;
-      }
-    }
-
-    if (!promise_sp)
-      return false;
-    address.SetLoadAddress(
-        error_descriptor.m_bridgeable_native.metadata_location,
-        &m_process->GetTarget());
-    CompilerType metadata_type(promise_sp->FulfillTypePromise());
-    if (metadata_type.IsValid() && error.Success()) {
-      class_type_or_name.SetCompilerType(metadata_type);
-      return true;
-    }
-  } break;
-  case SwiftErrorDescriptor::Kind::eBridged: {
-    if (error_descriptor.m_bridged.instance_ptr_value != 0 &&
-        error_descriptor.m_bridged.instance_ptr_value != LLDB_INVALID_ADDRESS) {
-      Status error_type_lookup_error;
-      if (CompilerType error_type =
-              swift_ast_ctx->GetNSErrorType(error_type_lookup_error)) {
-        class_type_or_name.SetCompilerType(error_type);
-        address.SetRawAddress(error_descriptor.m_bridged.instance_ptr_value);
-        return true;
-      }
-    }
-  } break;
-  case SwiftErrorDescriptor::Kind::eSwiftPureNative: {
-    Status error;
-    if (MetadataPromiseSP promise_sp = GetMetadataPromise(
-            error_descriptor.m_pure_native.metadata_location, in_value)) {
-      if (promise_sp->IsStaticallyDetermined()) {
-        if (CompilerType compiler_type = promise_sp->FulfillTypePromise()) {
-          class_type_or_name.SetCompilerType(compiler_type);
-          address.SetRawAddress(error_descriptor.m_pure_native.payload_ptr);
-          return true;
-        }
-      } else {
-        error_descriptor.m_pure_native.metadata_location =
-            m_process->ReadPointerFromMemory(
-                error_descriptor.m_pure_native.payload_ptr, error);
-        if (error_descriptor.m_pure_native.metadata_location == 0 ||
-            error_descriptor.m_pure_native.metadata_location ==
-                LLDB_INVALID_ADDRESS ||
-            error.Fail())
-          return false;
-        error_descriptor.m_pure_native.payload_ptr =
-            error_descriptor.m_pure_native.metadata_location;
-        error_descriptor.m_pure_native.metadata_location =
-            m_process->ReadPointerFromMemory(
-                error_descriptor.m_pure_native.payload_ptr, error);
-        if (MetadataPromiseSP promise_sp = GetMetadataPromise(
-                error_descriptor.m_pure_native.metadata_location, in_value)) {
-          if (CompilerType compiler_type = promise_sp->FulfillTypePromise()) {
-            class_type_or_name.SetCompilerType(compiler_type);
-            address.SetRawAddress(error_descriptor.m_pure_native.payload_ptr);
-            return true;
-          }
-        }
-      }
-    }
-  } break;
-  }
-
-  return false;
+  auto swift_dynamic_type = dyn_result.getValue().first.getPointer();
+  CompilerType result_type(swift_ast_ctx,
+                           dyn_result.getValue().first.getPointer());
+  class_type_or_name.SetCompilerType(result_type);
+  Status error;
+  lldb::addr_t value_address = dyn_result.getValue().second.getAddressData();
+  // If this is a class, walk the `isa` pointer to get the dynamic type.
+  if (swift_dynamic_type->getClassOrBoundGenericClass())
+    value_address = m_process->ReadPointerFromMemory(value_address, error);
+  address.SetRawAddress(value_address);
+  return true;
 }
 
 bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Protocol(
