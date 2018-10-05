@@ -84,8 +84,8 @@ SwiftExpressionParser::SwiftExpressionParser(
     const EvaluateExpressionOptions &options)
     : ExpressionParser(exe_scope, expr, options.GetGenerateDebugInfo()),
       m_expr(expr), m_triple(), m_llvm_context(), m_module(),
-      m_execution_unit_sp(), m_swift_ast_context(NULL), m_sc(),
-      m_exe_scope(exe_scope), m_stack_frame_wp(), m_options(options) {
+      m_execution_unit_sp(), m_sc(), m_exe_scope(exe_scope), m_stack_frame_wp(),
+      m_options(options) {
   assert(expr.Language() == lldb::eLanguageTypeSwift);
 
   // TODO This code is copied from ClangExpressionParser.cpp.
@@ -125,7 +125,7 @@ SwiftExpressionParser::SwiftExpressionParser(
 
   if (target_sp) {
     Status error;
-    m_swift_ast_context = llvm::cast_or_null<SwiftASTContext>(
+    m_swift_ast_context = llvm::make_unique<SwiftASTContextReader>(
         target_sp->GetScratchSwiftASTContext(error, *exe_scope, true));
   }
 }
@@ -907,8 +907,8 @@ static void CountLocals(
     for (size_t vi = 0, ve = variables.GetSize(); vi != ve; ++vi) {
       lldb::VariableSP variable_sp(variables.GetVariableAtIndex(vi));
 
-      const ConstString &name(variable_sp->GetName());
-      const char *name_cstring = variable_sp->GetName().GetCString();
+      const ConstString &name(variable_sp->GetUnqualifiedName());
+      const char *name_cstring = variable_sp->GetUnqualifiedName().GetCString();
 
       if (name.IsEmpty())
         continue;
@@ -971,9 +971,9 @@ static void CountLocals(
           target_type = language_runtime->DoArchetypeBindingForType(
               *stack_frame_sp, target_type);
 
-        target_type =
-            ast_context.MapIntoContext(stack_frame_sp,
-                                       target_type.GetOpaqueQualType());
+        if (auto *ts = target_type.GetTypeSystem())
+          target_type =
+            ts->MapIntoContext(stack_frame_sp, target_type.GetOpaqueQualType());
       }
 
       // If we couldn't fully realize the type, then we aren't going to get very
@@ -1494,7 +1494,7 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
       SetupASTContext(swift_ast_context, diagnostic_manager,
                       should_disable_objc_runtime, repl, playground);
   if (!ast_context)
-    return make_error<PropagatedError>();
+    return make_error<SwiftASTContextError>();
 
   // If we are using the playground, hand import the necessary modules.
   // FIXME: We won't have to do this once the playground adds import statements
@@ -1550,7 +1550,7 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
   // them in.
   swift_ast_context->AddDebuggerClient(external_lookup);
 
-  swift::PersistentParserState persistent_state;
+  swift::PersistentParserState persistent_state(*ast_context);
 
   while (!done) {
     swift::parseIntoSourceFile(*source_file, buffer_id, &done, nullptr,
@@ -1672,12 +1672,13 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   SwiftExpressionParser::SILVariableMap variable_map;
+  auto *swift_ast_ctx = m_swift_ast_context->get();
 
   // Helper function to diagnose errors in m_swift_ast_context.
   unsigned buffer_id = UINT32_MAX;
   auto DiagnoseSwiftASTContextError = [&]() {
-    assert(m_swift_ast_context->HasErrors() && "error expected");
-    m_swift_ast_context->PrintDiagnostics(diagnostic_manager, buffer_id,
+    assert(swift_ast_ctx->HasErrors() && "error expected");
+    swift_ast_ctx->PrintDiagnostics(diagnostic_manager, buffer_id,
                                           first_line, last_line, line_offset);
   };
 
@@ -1689,15 +1690,16 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     return false;
 
   // Parse the expression an import all nececssary swift modules.
-  auto parsed_expr = ParseAndImport(
-      m_swift_ast_context, m_expr, variable_map, buffer_id, diagnostic_manager,
-      *this, m_stack_frame_wp, m_sc, *m_exe_scope, m_options, repl, playground);
+  auto parsed_expr =
+      ParseAndImport(m_swift_ast_context->get(), m_expr, variable_map,
+                     buffer_id, diagnostic_manager, *this, m_stack_frame_wp,
+                     m_sc, *m_exe_scope, m_options, repl, playground);
 
   if (!parsed_expr) {
     bool retry = false;
     handleAllErrors(parsed_expr.takeError(),
                     [&](const ModuleImportError &MIE) {
-                      if (m_sc.target_sp->UseScratchTypesystemPerModule())
+                      if (swift_ast_ctx->GetClangImporter())
                         // Already on backup power.
                         diagnostic_manager.PutString(eDiagnosticSeverityError,
                                                      MIE.Message);
@@ -1706,7 +1708,11 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
                         retry = true;
                     },
                     [&](const SwiftASTContextError &SACE) {
-                      DiagnoseSwiftASTContextError();
+                      if (swift_ast_ctx->GetClangImporter())
+                        DiagnoseSwiftASTContextError();
+                      else
+                        // Discard the shared scratch context and retry.
+                        retry = true;
                     },
                     [&](const StringError &SE) {
                       diagnostic_manager.PutString(eDiagnosticSeverityError,
@@ -1733,7 +1739,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   swift::performTypeChecking(parsed_expr->source_file, top_level_context,
                              type_checking_options);
 
-  if (m_swift_ast_context->HasErrors()) {
+  if (swift_ast_ctx->HasErrors()) {
     DiagnoseSwiftASTContextError();
     return 1;
   }
@@ -1788,7 +1794,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     }
 
     Status error;
-    SwiftASTContext *scratch_ast_context = m_swift_ast_context;
+    SwiftASTContext *scratch_ast_context = m_swift_ast_context->get();
 
     if (scratch_ast_context) {
       auto *persistent_state =
@@ -1902,7 +1908,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
 
   // SWIFT_ENABLE_TENSORFLOW
   // Set optimization mode to -O for REPL/Playgrounds.
-  auto &options = m_swift_ast_context->GetSILOptions();
+  auto &options = swift_ast_ctx->GetSILOptions();
   options.OptMode = swift::OptimizationMode::ForSpeed;
   std::unique_ptr<swift::SILModule> sil_module(swift::performSILGeneration(
       parsed_expr->source_file, options));
@@ -1918,7 +1924,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     log->PutCString(s.c_str());
   }
 
-  if (m_swift_ast_context->HasErrors()) {
+  if (swift_ast_ctx->HasErrors()) {
     DiagnoseSwiftASTContextError();
     return 1;
   }
@@ -1961,7 +1967,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     log->PutCString(s.c_str());
   }
 
-  if (m_swift_ast_context->HasErrors()) {
+  if (swift_ast_ctx->HasErrors()) {
     DiagnoseSwiftASTContextError();
     return 1;
   }
@@ -1971,13 +1977,13 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
         IRExecutionUnit::GetLLVMGlobalContextMutex());
 
     m_module = swift::performIRGeneration(
-        m_swift_ast_context->GetIRGenOptions(), &parsed_expr->module,
+        swift_ast_ctx->GetIRGenOptions(), &parsed_expr->module,
         std::move(sil_module), "lldb_module",
         swift::PrimarySpecificPaths("", parsed_expr->main_filename),
         SwiftASTContext::GetGlobalLLVMContext(), llvm::ArrayRef<std::string>());
   }
 
-  if (m_swift_ast_context->HasErrors()) {
+  if (swift_ast_ctx->HasErrors()) {
     DiagnoseSwiftASTContextError();
     return 1;
   }
@@ -2007,7 +2013,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
                      nullptr);
   }
 
-  if (m_swift_ast_context->HasErrors())
+  if (swift_ast_ctx->HasErrors())
     return 1;
 
   // The Parse succeeded!  Now put this module into the context's
@@ -2016,8 +2022,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   // lookup object into the SwiftPersistentExpressionState.
   swift::ModuleDecl *module = &parsed_expr->module;
   parsed_expr->ast_context.LoadedModules.insert({module->getName(), module});
-  if (m_swift_ast_context)
-    m_swift_ast_context->CacheModule(module);
+  swift_ast_ctx->CacheModule(module);
   if (m_sc.target_sp) {
     auto *persistent_state =
         m_sc.target_sp->GetSwiftPersistentExpressionState(*m_exe_scope);
@@ -2147,13 +2152,14 @@ bool SwiftExpressionParser::RewriteExpression(
     DiagnosticManager &diagnostic_manager) {
   // There isn't a Swift equivalent to clang::Rewriter, so we'll just use
   // that...
-  if (!m_swift_ast_context)
+  auto *swift_ast_ctx = m_swift_ast_context->get();
+  if (!swift_ast_ctx)
     return false;
 
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   swift::SourceManager &source_manager =
-      m_swift_ast_context->GetSourceManager();
+      swift_ast_ctx->GetSourceManager();
 
   const DiagnosticList &diagnostics = diagnostic_manager.Diagnostics();
   size_t num_diags = diagnostics.size();

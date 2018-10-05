@@ -179,9 +179,8 @@ lldb::ExpressionResults UserExpression::Evaluate(
     execution_policy = eExecutionPolicyNever;
 
   // We need to set the expression execution thread here, turns out parse can
-  // call functions in the process of
-  // looking up symbols, which will escape the context set by exe_ctx passed to
-  // Execute.
+  // call functions in the process of looking up symbols, which will escape the
+  // context set by exe_ctx passed to Execute.
   lldb::ThreadSP thread_sp = exe_ctx.GetThreadSP();
   ThreadList::ExpressionExecutionThreadPusher execution_thread_pusher(
       thread_sp);
@@ -198,9 +197,9 @@ lldb::ExpressionResults UserExpression::Evaluate(
   else
     full_prefix = option_prefix;
 
-  // If the language was not specified in the expression command,
-  // set it to the language in the target's properties if
-  // specified, else default to the langage for the frame.
+  // If the language was not specified in the expression command, set it to the
+  // language in the target's properties if specified, else default to the
+  // langage for the frame.
   if (language == lldb::eLanguageTypeUnknown) {
     if (target->GetLanguage() != lldb::eLanguageTypeUnknown)
       language = target->GetLanguage();
@@ -262,6 +261,11 @@ lldb::ExpressionResults UserExpression::Evaluate(
     execution_results = lldb::eExpressionParseError;
     if (fixed_expression && !fixed_expression->empty() &&
         options.GetAutoApplyFixIts()) {
+      // Swift: temporarily release scratch context lock held by
+      // SwiftUserExpression, so the context can be restored if necessary.
+      if (expr == *fixed_expression)
+        user_expression_sp = nullptr;
+
       lldb::UserExpressionSP fixed_expression_sp(
           target->GetUserExpressionForLanguage(exe_ctx,
                                                fixed_expression->c_str(),
