@@ -1908,7 +1908,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
 
   // SWIFT_ENABLE_TENSORFLOW
   // Set optimization mode to -O for REPL/Playgrounds.
-  auto &options = swift_ast_context->GetSILOptions();
+  auto &options = swift_ast_ctx->GetSILOptions();
   options.OptMode = swift::OptimizationMode::ForSpeed;
   std::unique_ptr<swift::SILModule> sil_module(swift::performSILGeneration(
       parsed_expr->source_file, options));
