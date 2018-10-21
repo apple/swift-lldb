@@ -28,4 +28,7 @@ add_lldb_library(lldbPluginSwiftLanguage PLUGIN
   LINK_COMPONENTS
     Support
 )
+if(NOT LLDB_BUILT_STANDALONE)
+  add_dependencies(lldbPluginSwiftLanguage swift-syntax-generated-headers)
+endif()
 

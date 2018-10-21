@@ -41,3 +41,6 @@ add_lldb_library(lldbPluginExpressionParserSwift PLUGIN
     Support
     Core
   )
+if(NOT LLDB_BUILT_STANDALONE)
+  add_dependencies(lldbPluginExpressionParserSwift swift-syntax-generated-headers)
+endif()

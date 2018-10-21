@@ -82,6 +82,9 @@ add_lldb_library(lldbCore
     Support
     Demangle
   )
+if(NOT LLDB_BUILT_STANDALONE)
+  add_dependencies(lldbCore swift-syntax-generated-headers)
+endif()
 
 # Needed to properly resolve references in a debug build.
 # TODO: Remove once we have better layering

@@ -129,3 +129,6 @@ add_lldb_library(lldbTarget
   LINK_COMPONENTS
     Support
   )
+if(NOT LLDB_BUILT_STANDALONE)
+  add_dependencies(lldbTarget swift-syntax-generated-headers)
+endif()

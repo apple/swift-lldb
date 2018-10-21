@@ -11,3 +11,7 @@ add_lldb_library(lldbPluginInstrumentationRuntimeMainThreadChecker PLUGIN
   LINK_COMPONENTS
     Support
   )
+if(NOT LLDB_BUILT_STANDALONE)
+  add_dependencies(lldbPluginInstrumentationRuntimeMainThreadChecker
+    swift-syntax-generated-headers)
+endif()
