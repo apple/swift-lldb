@@ -28,12 +28,15 @@
 #include "swift/AST/Types.h"
 #include "swift/Demangling/Demangle.h"
 #include "swift/Demangling/Demangler.h"
+#include "swift/Reflection/ReflectionContext.h"
+#include "swift/Reflection/TypeRefBuilder.h"
 #include "swift/Remote/MemoryReader.h"
+#include "swift/Remote/RemoteAddress.h"
 #include "swift/RemoteAST/RemoteAST.h"
+#include "swift/Runtime/Metadata.h"
 
 #include "lldb/Breakpoint/StoppointCallbackContext.h"
 #include "lldb/Core/Debugger.h"
-#include "lldb/Utility/Status.h"
 #include "lldb/Core/Mangled.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/PluginManager.h"
@@ -52,6 +55,7 @@
 #include "lldb/Interpreter/OptionValueBoolean.h"
 #include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Symbol/CompileUnit.h"
+#include "lldb/Symbol/ObjectFile.h"
 #include "lldb/Symbol/SwiftASTContext.h"
 #include "lldb/Symbol/Symbol.h"
 #include "lldb/Symbol/TypeList.h"
@@ -64,6 +68,7 @@
 #include "lldb/Target/ThreadPlanRunToAddress.h"
 #include "lldb/Target/ThreadPlanStepInRange.h"
 #include "lldb/Target/ThreadPlanStepOverRange.h"
+#include "lldb/Utility/Status.h"
 
 #include "lldb/Utility/CleanUp.h"
 #include "lldb/Utility/DataBuffer.h"
@@ -82,12 +87,41 @@ using namespace lldb_private;
 //----------------------------------------------------------------------
 SwiftLanguageRuntime::~SwiftLanguageRuntime() {}
 
+void SwiftLanguageRuntime::SetupReflection() {
+  auto &target = m_process->GetTarget();
+  auto M = target.GetExecutableModule();
+  auto *obj_file = M->GetObjectFile();
+  Address start_address = obj_file->GetHeaderAddress();
+  auto load_ptr = static_cast<uintptr_t>(start_address.GetLoadAddress(&target));
+
+  // Bail out if we can't read the executable instead of crashing.
+  if (load_ptr == 0 || load_ptr == LLDB_INVALID_ADDRESS)
+    return;
+
+  reflection_ctx = new NativeReflectionContext(this->GetMemoryReader());
+  reflection_ctx->addImage(swift::remote::RemoteAddress(load_ptr));
+
+  auto module_list = GetTargetRef().GetImages();
+  module_list.ForEach([&](const ModuleSP &module_sp) -> bool {
+    std::string module_path = module_sp->GetFileSpec().GetPath();
+    auto *obj_file = module_sp->GetObjectFile();
+    Address start_address = obj_file->GetHeaderAddress();
+    auto load_ptr = static_cast<uintptr_t>(
+        start_address.GetLoadAddress(&(m_process->GetTarget())));
+    if (load_ptr == 0 || load_ptr == LLDB_INVALID_ADDRESS)
+      return false;
+    reflection_ctx->addImage(swift::remote::RemoteAddress(load_ptr));
+    return true;
+  });
+}
+
 SwiftLanguageRuntime::SwiftLanguageRuntime(Process *process)
     : LanguageRuntime(process), m_negative_cache_mutex(),
       m_SwiftNativeNSErrorISA(), m_memory_reader_sp(), m_promises_map(),
       m_bridged_synthetics_map(), m_box_metadata_type() {
   SetupSwiftError();
   SetupExclusivity();
+  SetupReflection();
 }
 
 static llvm::Optional<lldb::addr_t>
@@ -665,19 +699,6 @@ static bool StringHasAnyOf(const llvm::StringRef &s,
   return false;
 }
 
-bool StringHasAnyOf(const llvm::StringRef &s, const char *which,
-                    size_t &where) {
-  for (const char *c = which; *c != 0; c++) {
-    size_t where_item = s.find(*c);
-    if (where_item != llvm::StringRef::npos) {
-      where = where_item;
-      return true;
-    }
-  }
-  where = llvm::StringRef::npos;
-  return false;
-}
-
 static bool UnpackTerminatedSubstring(const llvm::StringRef &s,
                                       const char start, const char stop,
                                       llvm::StringRef &dest) {
@@ -1037,7 +1058,7 @@ std::shared_ptr<swift::remote::MemoryReader>
 SwiftLanguageRuntime::GetMemoryReader() {
   class MemoryReader : public swift::remote::MemoryReader {
   public:
-    MemoryReader(Process *p, size_t max_read_amount = 50 * 1024)
+    MemoryReader(Process *p, size_t max_read_amount = INT32_MAX)
         : m_process(p) {
       lldbassert(m_process && "MemoryReader requires a valid Process");
       m_max_read_amount = max_read_amount;
@@ -1163,7 +1184,8 @@ SwiftLanguageRuntime::GetMemoryReader() {
             "[MemoryReader] asked to read string data at address 0x%" PRIx64,
             address.getAddressData());
 
-      std::vector<char> storage(m_max_read_amount, 0);
+      uint32_t read_size = 50 * 1024;
+      std::vector<char> storage(read_size, 0);
       Target &target(m_process->GetTarget());
       Address addr(address.getAddressData());
       Status error;
@@ -1311,13 +1333,6 @@ SwiftLanguageRuntime::GetMetadataPromise(lldb::addr_t addr,
 
   if (addr == 0 || addr == LLDB_INVALID_ADDRESS)
     return nullptr;
-
-  if (auto objc_runtime = GetObjCRuntime()) {
-    if (objc_runtime->GetRuntimeVersion() ==
-        ObjCLanguageRuntime::ObjCRuntimeVersions::eAppleObjC_V2) {
-      addr = ((AppleObjCRuntimeV2 *)objc_runtime)->GetPointerISA(addr);
-    }
-  }
 
   typename decltype(m_promises_map)::key_type key{
       swift_ast_ctx->GetASTContext(), addr};
@@ -1959,6 +1974,7 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Promise(
     address.SetLoadAddress(val_ptr_addr, &m_process->GetTarget());
     return true;
   } break;
+  case swift::MetadataKind::Optional:
   case swift::MetadataKind::Struct:
   case swift::MetadataKind::Tuple: {
     CompilerType dyn_type(promise_sp->FulfillTypePromise());
@@ -1985,57 +2001,28 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Promise(
   } break;
   case swift::MetadataKind::Existential: {
     CompilerType protocol_type(promise_sp->FulfillTypePromise());
-    // Error has a special, NSError-compatible layout.
     SwiftASTContext *swift_ast_ctx =
         llvm::dyn_cast_or_null<SwiftASTContext>(protocol_type.GetTypeSystem());
-    if (swift_ast_ctx && swift_ast_ctx->IsErrorType(protocol_type)) {
-      Status error;
-      lldb::addr_t archetype_ptr_value = in_value.GetValueAsUnsigned(0);
-      lldb::addr_t metadata_ptr =
-          m_process->ReadPointerFromMemory(archetype_ptr_value, error);
-      MetadataPromiseSP promise_sp(GetMetadataPromise(metadata_ptr, in_value));
-      if (!promise_sp)
-        return false;
-      CompilerType dynamic_type(promise_sp->FulfillTypePromise());
-      if (dynamic_type.IsValid()) {
-        class_type_or_name.SetCompilerType(dynamic_type);
-        address.SetLoadAddress(archetype_ptr_value, &m_process->GetTarget());
-        return true;
-      }
-    } else {
-      Status error;
-      lldb::addr_t ptr_to_instance_type = in_value.GetValueAsUnsigned(0) +
-                                          (3 * m_process->GetAddressByteSize());
-      lldb::addr_t metadata_of_impl_addr =
-          m_process->ReadPointerFromMemory(ptr_to_instance_type, error);
-      if (error.Fail() || metadata_of_impl_addr == 0 ||
-          metadata_of_impl_addr == LLDB_INVALID_ADDRESS)
-        return false;
-      MetadataPromiseSP promise_of_impl_sp(
-          GetMetadataPromise(metadata_of_impl_addr, in_value));
-      if (GetDynamicTypeAndAddress_Promise(in_value, promise_of_impl_sp,
-                                           use_dynamic, class_type_or_name,
-                                           address)) {
-        lldb::addr_t load_addr = in_value.GetValueAsUnsigned(0);
-        if (promise_of_impl_sp->FulfillKindPromise() &&
-            promise_of_impl_sp->FulfillKindPromise().getValue() ==
-                swift::MetadataKind::Class) {
-          load_addr = m_process->ReadPointerFromMemory(load_addr, error);
-          if (error.Fail() || load_addr == 0 ||
-              load_addr == LLDB_INVALID_ADDRESS)
-            return false;
-        } else if (promise_of_impl_sp->FulfillKindPromise() &&
-                   (promise_of_impl_sp->FulfillKindPromise().getValue() ==
-                        swift::MetadataKind::Enum ||
-                    promise_of_impl_sp->FulfillKindPromise().getValue() ==
-                        swift::MetadataKind::Struct)) {
-        } else
-          lldbassert(false && "class, enum and struct are the only protocol "
-                              "implementor types I know about");
-        address.SetLoadAddress(load_addr, &m_process->GetTarget());
-        return true;
-      }
-    }
+    lldb::addr_t existential_address = in_value.GetPointerValue();
+    if (!existential_address || existential_address == LLDB_INVALID_ADDRESS)
+      return false;
+    auto &target = m_process->GetTarget();
+    assert(IsScratchContextLocked(target) &&
+           "Swift scratch context not locked ahead");
+    auto scratch_ctx = in_value.GetSwiftASTContext();
+    auto &remote_ast = GetRemoteASTContext(*scratch_ctx);
+    swift::remote::RemoteAddress remote_existential(existential_address);
+    auto result = remote_ast.getDynamicTypeAndAddressForExistential(
+        remote_existential, GetSwiftType(protocol_type));
+    if (!result.isSuccess())
+      return false;
+    auto type_and_address = result.getValue();
+    CompilerType dynamic_type(scratch_ctx->GetASTContext(),
+                              type_and_address.first);
+    class_type_or_name.SetCompilerType(dynamic_type);
+    address.SetLoadAddress(type_and_address.second.getAddressData(),
+                           &m_process->GetTarget());
+    return true;
   } break;
   default:
     break;
@@ -2223,16 +2210,14 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Struct(
     ValueObject &in_value, CompilerType &bound_type,
     lldb::DynamicValueType use_dynamic, TypeAndOrName &class_type_or_name,
     Address &address) {
-  std::vector<CompilerType> generic_args;
   class_type_or_name.SetCompilerType(bound_type);
 
   lldb::addr_t struct_address = in_value.GetPointerValue();
   if (!struct_address || struct_address == LLDB_INVALID_ADDRESS)
     struct_address = in_value.GetAddressOf(true, nullptr);
-  if (!struct_address || struct_address == LLDB_INVALID_ADDRESS) {
+  if (!struct_address || struct_address == LLDB_INVALID_ADDRESS)
     if (!SwiftASTContext::IsPossibleZeroSizeType(bound_type))
       return false;
-  }
 
   address.SetLoadAddress(struct_address, in_value.GetTargetSP().get());
   return true;
@@ -2242,17 +2227,14 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Enum(
     ValueObject &in_value, CompilerType &bound_type,
     lldb::DynamicValueType use_dynamic, TypeAndOrName &class_type_or_name,
     Address &address) {
-  std::vector<CompilerType> generic_args;
   class_type_or_name.SetCompilerType(bound_type);
 
   lldb::addr_t enum_address = in_value.GetPointerValue();
   if (!enum_address || LLDB_INVALID_ADDRESS == enum_address)
     enum_address = in_value.GetAddressOf(true, nullptr);
-  if (!enum_address || LLDB_INVALID_ADDRESS == enum_address) {
-    if (false == SwiftASTContext::IsPossibleZeroSizeType(
-                     class_type_or_name.GetCompilerType()))
+  if (!enum_address || LLDB_INVALID_ADDRESS == enum_address)
+    if (!SwiftASTContext::IsPossibleZeroSizeType(bound_type))
       return false;
-  }
 
   address.SetLoadAddress(enum_address, in_value.GetTargetSP().get());
   return true;
@@ -2562,18 +2544,6 @@ SwiftLanguageRuntime::FixUpDynamicType(const TypeAndOrName &type_and_or_name,
     else if (should_be_made_into_ref)
       corrected_type = orig_type.GetLValueReferenceType();
     ret.SetCompilerType(corrected_type);
-  } else /*if (m_dynamic_type_info.HasName())*/
-  {
-    // If we are here we need to adjust our dynamic type name to include the
-    // correct & or * symbol
-    std::string corrected_name(type_and_or_name.GetName().GetCString());
-    if (should_be_made_into_ptr)
-      corrected_name.append(" *");
-    else if (should_be_made_into_ref)
-      corrected_name.append(" &");
-    // the parent type should be a correctly pointer'ed or referenc'ed type
-    ret.SetCompilerType(static_value.GetCompilerType());
-    ret.SetName(corrected_name.c_str());
   }
   return ret;
 }
@@ -4014,7 +3984,7 @@ SwiftDemangleNodeKindToCString(const swift::Demangle::Node::Kind node_kind) {
 
 static OptionDefinition g_swift_demangle_options[] = {
   // clang-format off
-  {LLDB_OPT_SET_1, false, "expand", 'e', OptionParser::eNoArgument, nullptr, nullptr, 0, eArgTypeNone, "Whether LLDB should print the demangled tree"},
+  {LLDB_OPT_SET_1, false, "expand", 'e', OptionParser::eNoArgument, nullptr, {}, 0, eArgTypeNone, "Whether LLDB should print the demangled tree"},
   // clang-format on
 };
 

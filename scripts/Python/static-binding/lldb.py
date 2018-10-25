@@ -4944,6 +4944,17 @@ class SBFrame(_object):
         """
         return _lldb.SBFrame_IsInlined(self, *args)
 
+    def IsArtificial(self, *args):
+        """
+        IsArtificial(self) -> bool
+        IsArtificial(self) -> bool
+
+        Return true if this frame is artificial (e.g a frame synthesized to
+        capture a tail call). Local variables may not be available in an artificial
+        frame.
+        """
+        return _lldb.SBFrame_IsArtificial(self, *args)
+
     def EvaluateExpression(self, *args):
         """
         EvaluateExpression(self, str expr) -> SBValue
@@ -9579,6 +9590,8 @@ class SBTarget(_object):
         BreakpointCreateByLocation(self, SBFileSpec file_spec, uint32_t line, addr_t offset) -> SBBreakpoint
         BreakpointCreateByLocation(self, SBFileSpec file_spec, uint32_t line, addr_t offset, 
             SBFileSpecList module_list) -> SBBreakpoint
+        BreakpointCreateByLocation(self, SBFileSpec file_spec, uint32_t line, uint32_t column, 
+            addr_t offset, SBFileSpecList module_list) -> SBBreakpoint
         """
         return _lldb.SBTarget_BreakpointCreateByLocation(self, *args)
 
@@ -9842,6 +9855,14 @@ class SBTarget(_object):
     def SetLaunchInfo(self, *args):
         """SetLaunchInfo(self, SBLaunchInfo launch_info)"""
         return _lldb.SBTarget_SetLaunchInfo(self, *args)
+
+    def SetCollectingStats(self, *args):
+        """SetCollectingStats(self, bool v)"""
+        return _lldb.SBTarget_SetCollectingStats(self, *args)
+
+    def GetCollectingStats(self):
+        """GetCollectingStats(self) -> bool"""
+        return _lldb.SBTarget_GetCollectingStats(self)
 
     def GetStatistics(self):
         """GetStatistics(self) -> SBStructuredData"""
