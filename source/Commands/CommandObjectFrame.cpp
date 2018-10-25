@@ -61,11 +61,11 @@ using namespace lldb_private;
 // CommandObjectFrameDiagnose
 //-------------------------------------------------------------------------
 
-static OptionDefinition g_frame_diag_options[] = {
+static constexpr OptionDefinition g_frame_diag_options[] = {
     // clang-format off
-  { LLDB_OPT_SET_1, false, "register", 'r', OptionParser::eRequiredArgument, nullptr, nullptr, 0, eArgTypeRegisterName,    "A register to diagnose." },
-  { LLDB_OPT_SET_1, false, "address",  'a', OptionParser::eRequiredArgument, nullptr, nullptr, 0, eArgTypeAddress,         "An address to diagnose." },
-  { LLDB_OPT_SET_1, false, "offset",   'o', OptionParser::eRequiredArgument, nullptr, nullptr, 0, eArgTypeOffset,          "An optional offset.  Requires --register." }
+  { LLDB_OPT_SET_1, false, "register", 'r', OptionParser::eRequiredArgument, nullptr, {}, 0, eArgTypeRegisterName,    "A register to diagnose." },
+  { LLDB_OPT_SET_1, false, "address",  'a', OptionParser::eRequiredArgument, nullptr, {}, 0, eArgTypeAddress,         "An address to diagnose." },
+  { LLDB_OPT_SET_1, false, "offset",   'o', OptionParser::eRequiredArgument, nullptr, {}, 0, eArgTypeOffset,          "An optional offset.  Requires --register." }
     // clang-format on
 };
 
@@ -251,7 +251,7 @@ protected:
 
 static OptionDefinition g_frame_select_options[] = {
     // clang-format off
-  { LLDB_OPT_SET_1, false, "relative", 'r', OptionParser::eRequiredArgument, nullptr, nullptr, 0, eArgTypeOffset, "A relative frame index offset from the current frame index." },
+  { LLDB_OPT_SET_1, false, "relative", 'r', OptionParser::eRequiredArgument, nullptr, {}, 0, eArgTypeOffset, "A relative frame index offset from the current frame index." },
     // clang-format on
 };
 
@@ -427,7 +427,17 @@ public:
             "arguments and local variables in scope. Names of argument, "
             "local, file static and file global variables can be specified. "
             "Children of aggregate variables can be specified such as "
-            "'var->child.x'.",
+            "'var->child.x'.  The -> and [] operators in 'frame variable' do "
+            "not invoke operator overloads if they exist, but directly access "
+            "the specified element.  If you want to trigger operator overloads "
+            "use the expression command to print the variable instead."
+            "\nIt is worth noting that except for overloaded "
+            "operators, when printing local variables 'expr local_var' and "
+            "'frame var local_var' produce the same "
+            "results.  However, 'frame variable' is more efficient, since it "
+            "uses debug information and memory reads directly, rather than "
+            "parsing and evaluating an expression, which may even involve "
+            "JITing and running code in the target program.",
             nullptr, eCommandRequiresFrame | eCommandTryTargetAPILock |
                          eCommandProcessMustBeLaunched |
                          eCommandProcessMustBePaused | eCommandRequiresProcess),
