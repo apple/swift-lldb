@@ -1,9 +1,0 @@
-framework module aTestFramework [system] {
-  umbrella header "aTestFramework.h"
-  
-  export *
-  module * { 
-    export *
-  }
-
-}
