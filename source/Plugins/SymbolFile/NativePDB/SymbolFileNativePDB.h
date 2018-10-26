@@ -103,22 +103,29 @@ public:
 
   size_t ParseFunctionBlocks(const SymbolContext &sc) override;
 
+  uint32_t FindGlobalVariables(const ConstString &name,
+                               const CompilerDeclContext *parent_decl_ctx,
+                               uint32_t max_matches,
+                               VariableList &variables) override;
+
   size_t ParseTypes(const SymbolContext &sc) override;
   size_t ParseVariablesForContext(const SymbolContext &sc) override {
     return 0;
   }
   Type *ResolveTypeUID(lldb::user_id_t type_uid) override;
   bool CompleteType(CompilerType &compiler_type) override;
-  uint32_t ResolveSymbolContext(const Address &so_addr, uint32_t resolve_scope,
+  uint32_t ResolveSymbolContext(const Address &so_addr,
+                                lldb::SymbolContextItem resolve_scope,
                                 SymbolContext &sc) override;
 
-  size_t GetTypes(SymbolContextScope *sc_scope, uint32_t type_mask,
+  size_t GetTypes(SymbolContextScope *sc_scope, lldb::TypeClass type_mask,
                   TypeList &type_list) override;
 
   uint32_t FindFunctions(const ConstString &name,
                          const CompilerDeclContext *parent_decl_ctx,
-                         uint32_t name_type_mask, bool include_inlines,
-                         bool append, SymbolContextList &sc_list) override;
+                         lldb::FunctionNameType name_type_mask,
+                         bool include_inlines, bool append,
+                         SymbolContextList &sc_list) override;
 
   uint32_t FindFunctions(const RegularExpression &regex, bool include_inlines,
                          bool append, SymbolContextList &sc_list) override;
@@ -173,11 +180,13 @@ private:
   lldb::CompUnitSP GetOrCreateCompileUnit(const CompilandIndexItem &cci);
   lldb::TypeSP GetOrCreateType(PdbSymUid type_uid);
   lldb::TypeSP GetOrCreateType(llvm::codeview::TypeIndex ti);
+  lldb::VariableSP GetOrCreateGlobalVariable(PdbSymUid var_uid);
 
   lldb::FunctionSP CreateFunction(PdbSymUid func_uid, const SymbolContext &sc);
   lldb::CompUnitSP CreateCompileUnit(const CompilandIndexItem &cci);
   lldb::TypeSP CreateType(PdbSymUid type_uid);
   lldb::TypeSP CreateAndCacheType(PdbSymUid type_uid);
+  lldb::VariableSP CreateGlobalVariable(PdbSymUid var_uid);
 
   llvm::BumpPtrAllocator m_allocator;
 
@@ -191,6 +200,7 @@ private:
 
   llvm::DenseMap<lldb::user_id_t, clang::TagDecl *> m_uid_to_decl;
 
+  llvm::DenseMap<lldb::user_id_t, lldb::VariableSP> m_global_vars;
   llvm::DenseMap<lldb::user_id_t, lldb::FunctionSP> m_functions;
   llvm::DenseMap<lldb::user_id_t, lldb::CompUnitSP> m_compilands;
   llvm::DenseMap<lldb::user_id_t, lldb::TypeSP> m_types;
