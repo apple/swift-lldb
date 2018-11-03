@@ -57,7 +57,9 @@ configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/lit.cfg.py)
 configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/Unit/lit.site.cfg.py.in
-  ${CMAKE_CURRENT_BINARY_DIR}/Unit/lit.site.cfg.py)
+  ${CMAKE_CURRENT_BINARY_DIR}/Unit/lit.site.cfg.py
+  MAIN_CONFIG
+  ${CMAKE_CURRENT_SOURCE_DIR}/Unit/lit.cfg.py)
 configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/Suite/lit.site.cfg.in
   ${CMAKE_CURRENT_BINARY_DIR}/Suite/lit.site.cfg)
@@ -83,6 +85,6 @@ if (TARGET clang)
 endif()
 
 add_lit_testsuites(LLDB
-  ${CMAKE_CURRENT_BINARY_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}
   DEPENDS ${LLDB_TEST_DEPS}
   )
