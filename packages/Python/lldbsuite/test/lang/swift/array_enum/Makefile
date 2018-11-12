@@ -1,3 +1,3 @@
 LEVEL = ../../../make
-C_SOURCES := main.c
+SWIFT_SOURCES := main.swift
 include $(LEVEL)/Makefile.rules
