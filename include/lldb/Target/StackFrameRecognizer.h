@@ -34,6 +34,9 @@ public:
   virtual lldb::ValueObjectListSP GetRecognizedArguments() {
     return m_arguments;
   }
+  virtual lldb::ValueObjectSP GetExceptionObject() {
+    return lldb::ValueObjectSP();
+  }
   virtual ~RecognizedStackFrame(){};
 
 protected:
@@ -101,7 +104,8 @@ private:
 class StackFrameRecognizerManager {
 public:
   static void AddRecognizer(lldb::StackFrameRecognizerSP recognizer,
-                            ConstString &module, ConstString &symbol,
+                            const ConstString &module,
+                            const ConstString &symbol,
                             bool first_instruction_only = true);
 
   static void AddRecognizer(lldb::StackFrameRecognizerSP recognizer,
