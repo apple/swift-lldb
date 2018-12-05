@@ -4,6 +4,18 @@ set(LLDB_PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(LLDB_SOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/source")
 set(LLDB_INCLUDE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+set(LLDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(LLDB_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
+  message(FATAL_ERROR
+    "In-source builds are not allowed. CMake would overwrite the makefiles "
+    "distributed with LLDB. Please create a directory and run cmake from "
+    "there, passing the path to this source directory as the last argument. "
+    "This process created the file `CMakeCache.txt' and the directory "
+    "`CMakeFiles'. Please delete them.")
+endif()
+
 set(LLDB_LINKER_SUPPORTS_GROUPS OFF)
 if (LLVM_COMPILER_IS_GCC_COMPATIBLE AND NOT "${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
   # The Darwin linker doesn't understand --start-group/--end-group.
@@ -46,6 +58,19 @@ if(LLDB_BUILD_FRAMEWORK)
   # CMake 3.6 did not correctly emit POST_BUILD commands for Apple Framework targets
   if(CMAKE_VERSION VERSION_LESS 3.7)
     message(FATAL_ERROR "LLDB_BUILD_FRAMEWORK is not supported on CMake < 3.7")
+  endif()
+
+  set(LLDB_FRAMEWORK_VERSION A CACHE STRING "LLDB.framework version (default is A)")
+  set(LLDB_FRAMEWORK_BUILD_DIR bin CACHE STRING "Output directory for LLDB.framework")
+  set(LLDB_FRAMEWORK_INSTALL_DIR Library/Frameworks CACHE STRING "Install directory for LLDB.framework")
+  set(LLDB_FRAMEWORK_TOOLS darwin-debug;debugserver;lldb-argdumper;lldb-server CACHE INTERNAL
+      "List of tools to include in LLDB.framework/Resources")
+
+  # Set designated directory for all dSYMs. Essentially, this emits the
+  # framework's dSYM outside of the framework directory.
+  if(LLVM_EXTERNALIZE_DEBUGINFO)
+    set(LLVM_EXTERNALIZE_DEBUGINFO_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/bin CACHE STRING
+        "Directory to emit dSYM files stripped from executables and libraries (Darwin Only)")
   endif()
 endif()
 
@@ -279,20 +304,20 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     add_definitions( -D_UNICODE -DUNICODE )
 endif()
 
-set(LLDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(LLDB_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
-
-if (CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
-  message(FATAL_ERROR "In-source builds are not allowed. CMake would overwrite "
-"the makefiles distributed with LLDB. Please create a directory and run cmake "
-"from there, passing the path to this source directory as the last argument. "
-"This process created the file `CMakeCache.txt' and the directory "
-"`CMakeFiles'. Please delete them.")
+# If LLDB_VERSION_* is specified, use it, if not use LLVM_VERSION_*.
+if(NOT DEFINED LLDB_VERSION_MAJOR)
+  set(LLDB_VERSION_MAJOR ${LLVM_VERSION_MAJOR})
 endif()
-
-# Compute the LLDB version from the LLVM version.
-string(REGEX MATCH "[0-9]+\\.[0-9]+(\\.[0-9]+)?" LLDB_VERSION
-  ${PACKAGE_VERSION})
+if(NOT DEFINED LLDB_VERSION_MINOR)
+  set(LLDB_VERSION_MINOR ${LLVM_VERSION_MINOR})
+endif()
+if(NOT DEFINED LLDB_VERSION_PATCH)
+  set(LLDB_VERSION_PATCH ${LLVM_VERSION_PATCH})
+endif()
+if(NOT DEFINED LLDB_VERSION_SUFFIX)
+  set(LLDB_VERSION_SUFFIX ${LLVM_VERSION_SUFFIX})
+endif()
+set(LLDB_VERSION "${LLDB_VERSION_MAJOR}.${LLDB_VERSION_MINOR}.${LLDB_VERSION_PATCH}${LLDB_VERSION_SUFFIX}")
 message(STATUS "LLDB version: ${LLDB_VERSION}")
 
 include_directories(BEFORE
@@ -347,11 +372,6 @@ if (APPLE)
   find_library(FOUNDATION_LIBRARY Foundation)
   find_library(CORE_FOUNDATION_LIBRARY CoreFoundation)
   find_library(SECURITY_LIBRARY Security)
-
-  set(LLDB_FRAMEWORK_INSTALL_DIR Library/Frameworks CACHE STRING "Output directory for LLDB.framework")
-  set(LLDB_FRAMEWORK_VERSION A CACHE STRING "LLDB.framework version (default is A)")
-  set(LLDB_FRAMEWORK_RESOURCE_DIR
-    LLDB.framework/Versions/${LLDB_FRAMEWORK_VERSION}/Resources)
 
   add_definitions( -DLIBXML2_DEFINED )
   list(APPEND system_libs xml2

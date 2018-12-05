@@ -24,4 +24,7 @@ if ( CMAKE_SYSTEM_NAME MATCHES "Windows" )
   add_definitions( -DIMPORT_LIBLLDB )
 endif()
 
-add_dependencies(lldb ${LLDB_SUITE_TARGET})
+add_dependencies(lldb
+  LLDBOptionsTableGen
+  ${tablegen_deps}
+)
