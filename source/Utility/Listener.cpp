@@ -7,11 +7,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "lldb/Core/Listener.h"
+#include "lldb/Utility/Listener.h"
 
-#include "lldb/Core/Broadcaster.h"
-#include "lldb/Core/Event.h"
+#include "lldb/Utility/Broadcaster.h"
 #include "lldb/Utility/ConstString.h"
+#include "lldb/Utility/Event.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/Logging.h"
 
@@ -251,9 +251,7 @@ public:
         return false;
     }
 
-    if (m_event_type_mask == 0 || m_event_type_mask & event_sp->GetType())
-      return true;
-    return false;
+    return m_event_type_mask == 0 || m_event_type_mask & event_sp->GetType();
   }
 
 private:
