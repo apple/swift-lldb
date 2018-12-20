@@ -1882,23 +1882,16 @@ ValueObjectSP ABISysV_x86_64::GetReturnValueObjectImpl(
 
       for (uint32_t idx = 0; idx < num_children; idx++) {
         std::string name;
-        uint64_t field_bit_offset = 0;
         bool is_signed;
         bool is_complex;
         bool already_copied = false;
         uint32_t count;
 
-        CompilerType field_compiler_type = return_compiler_type.GetFieldAtIndex(
-            idx, name, &field_bit_offset, nullptr, nullptr);
-        const size_t field_bit_width = field_compiler_type.GetBitSize(&thread);
-
-        bool child_is_base_class = false;
-        int32_t child_byte_offset = 0;
-
-        {
           const bool transparent_pointers = false;
           const bool omit_empty_base_classes = true;
           const bool ignore_array_bounds = false;
+          bool child_is_base_class = false;
+          int32_t child_byte_offset = 0;
           uint32_t child_byte_size = 0;
           uint32_t child_bitfield_bit_size = 0;
           uint32_t child_bitfield_bit_offset = 0;
@@ -1911,17 +1904,19 @@ ValueObjectSP ABISysV_x86_64::GetReturnValueObjectImpl(
                   child_bitfield_bit_size, child_bitfield_bit_offset,
                   child_is_base_class, child_is_deref_of_parent, nullptr,
                   language_flags);
-        }
+          const size_t field_bit_width =
+              field_compiler_type.GetBitSize(&thread);
+          uint64_t field_bit_offset = child_byte_offset * 8;
 
-        // if we don't know the size of the field (e.g. invalid type), just
-        // bail out
-        if (field_bit_width == 0)
-          break;
+          // if we don't know the size of the field (e.g. invalid type), just
+          // bail out
+          if (field_bit_width == 0)
+            break;
 
-        // If there are any unaligned fields, this is stored in memory.
-        if (field_bit_offset % field_bit_width != 0) {
-          is_memory = true;
-          break;
+          // If there are any unaligned fields, this is stored in memory.
+          if (field_bit_offset % field_bit_width != 0) {
+            is_memory = true;
+            break;
         }
 
         uint32_t field_byte_width = field_bit_width / 8;

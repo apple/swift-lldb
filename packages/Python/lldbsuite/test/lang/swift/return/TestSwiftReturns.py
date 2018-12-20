@@ -31,7 +31,6 @@ class TestSwiftReturns(TestBase):
         oslist=["ios"],
         archs=["arm64"],
         bugnumber="rdar://27002915")
-    @decorators.skipIfOutOfTreeDebugserver
     def test_swift_returns(self):
         """Test getting return values"""
         self.build()
@@ -173,6 +172,7 @@ class TestSwiftReturns(TestBase):
         error_value = self.thread.GetStopErrorValue()
         if line_before_fin == self.thread.frame[0].line_entry.line:
             self.thread.StepOver()
+        self.thread.StepOver()
         self.verify_return_value_against_local_variable(error_value, "err")
 
         # Now run the returnBigStruct and step out.  We don't know how
