@@ -1270,8 +1270,7 @@ public:
 
   lldb::ValueObjectSP GetCurrentException();
 
-  // TODO(kubamracek): Extract backtrace from ValueObjectSP into ThreadSP
-  // lldb::ThreadSP GetCurrentExceptionBacktrace();
+  lldb::ThreadSP GetCurrentExceptionBacktrace();
 
 protected:
   friend class ThreadPlan;
