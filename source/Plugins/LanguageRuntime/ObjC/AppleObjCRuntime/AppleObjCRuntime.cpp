@@ -585,7 +585,7 @@ ThreadSP AppleObjCRuntime::GetBacktraceThreadFromException(
 std::tuple<FileSpec, ConstString>
 AppleObjCRuntime::GetExceptionThrowLocation() {
   return std::make_tuple(
-      FileSpec("libobjc.A.dylib"), ConstString("objc_exception_throw"));
+      FileSpec("libobjc.A.dylib", false), ConstString("objc_exception_throw"));
 }
 
 void AppleObjCRuntime::ReadObjCLibraryIfNeeded(const ModuleList &module_list) {
