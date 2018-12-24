@@ -315,21 +315,22 @@ protected:
                      ///number information.
     uint16_t column; ///< The column number of the source line, or zero if there
                      ///is no column information.
-    uint16_t file_idx : 11, ///< The file index into CompileUnit's file table,
-                            ///or zero if there is no file information.
-        is_start_of_statement : 1, ///< Indicates this entry is the beginning of
-                                   ///a statement.
-        is_start_of_basic_block : 1, ///< Indicates this entry is the beginning
-                                     ///of a basic block.
-        is_prologue_end : 1, ///< Indicates this entry is one (of possibly many)
-                             ///where execution should be suspended for an entry
-                             ///breakpoint of a function.
-        is_epilogue_begin : 1, ///< Indicates this entry is one (of possibly
-                               ///many) where execution should be suspended for
-                               ///an exit breakpoint of a function.
-        is_terminal_entry : 1; ///< Indicates this entry is that of the first
-                               ///byte after the end of a sequence of target
-                               ///machine instructions.
+    uint16_t file_idx; ///< The file index into CompileUnit's file table,
+                       /// or zero if there is no file information.
+    bool is_start_of_statement;   ///< Indicates this entry is the beginning of
+                                  /// a statement.
+    bool is_start_of_basic_block; ///< Indicates this entry is the
+                                  ///< beginning
+                                  /// of a basic block.
+    bool is_prologue_end; ///< Indicates this entry is one (of possibly many)
+                          /// where execution should be suspended for an
+                          /// entry breakpoint of a function.
+    bool is_epilogue_begin; ///< Indicates this entry is one (of possibly
+                            /// many) where execution should be suspended for
+                            /// an exit breakpoint of a function.
+    bool is_terminal_entry; ///< Indicates this entry is that of the first
+                            /// byte after the end of a sequence of target
+                            /// machine instructions.
   };
 
   struct EntrySearchInfo {
