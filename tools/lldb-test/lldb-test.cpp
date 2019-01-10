@@ -518,6 +518,7 @@ Error opts::symbols::dumpModule(lldb_private::Module &Module) {
 
 Error opts::symbols::dumpAST(lldb_private::Module &Module) {
   SymbolVendor &plugin = *Module.GetSymbolVendor();
+   Module.ParseAllDebugSymbols();
 
   auto symfile = plugin.GetSymbolFile();
   if (!symfile)
@@ -535,9 +536,6 @@ Error opts::symbols::dumpAST(lldb_private::Module &Module) {
   auto tu = ast_ctx->getTranslationUnitDecl();
   if (!tu)
     return make_string_error("Can't retrieve translation unit declaration.");
-
-  symfile->ParseDeclsForContext(CompilerDeclContext(
-      clang_ast_ctx, static_cast<clang::DeclContext *>(tu)));
 
   tu->print(outs());
 
@@ -787,6 +785,8 @@ static int dumpObjectFiles(Debugger &Dbg) {
     Printer.formatLine("Stripped: {0}", ObjectPtr->IsStripped());
     Printer.formatLine("Type: {0}", ObjectPtr->GetType());
     Printer.formatLine("Strata: {0}", ObjectPtr->GetStrata());
+    Printer.formatLine("Base VM address: {0:x}",
+                       ObjectPtr->GetBaseAddress().GetFileAddress());
 
     dumpSectionList(Printer, *Sections, /*is_subsection*/ false);
 
