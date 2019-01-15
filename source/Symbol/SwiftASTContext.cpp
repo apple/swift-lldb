@@ -1194,6 +1194,23 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
         log->Printf("No resource dir available for module's SwiftASTContext.");
     }
 
+    // Create a unique directory where we put serialized modules from REPL.
+    if (!swift_ast_sp->GetReplExprModulesDir()) {
+      llvm::SmallString<256> module_dir;
+      std::error_code err =
+          llvm::sys::fs::createUniqueDirectory("repl-swift-modules", module_dir);
+      if (err)  {
+        if (log)
+          log->Printf("Unable to create serialized modules directory.");
+      } else {
+        if (log) {
+          log->Printf("Setting serialized module directory to %s",
+                      module_dir.c_str());
+        }
+        swift_ast_sp->SetReplExprModulesDir(module_dir.c_str());
+      }
+    }
+
     if (!got_serialized_options) {
 
       std::vector<std::string> framework_search_paths;
@@ -1341,6 +1358,27 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
     }
     pool.wait();
   }
+
+
+  // Create a unique directory where we put serialized modules from REPL.
+  if (!swift_ast_sp->GetReplExprModulesDir()) {
+    llvm::SmallString<256> module_dir;
+    std::error_code err =
+        llvm::sys::fs::createUniqueDirectory("repl-swift-modules", module_dir);
+    if (err)  {
+      llvm::dbgs() << "Unable to create serialized modules directory.";
+      if (log)
+        log->Printf("Unable to create serialized modules directory.");
+    } else {
+      if (log) {
+        log->Printf("Setting serialized module directory to %s",
+                    module_dir.c_str());
+      }
+      llvm::dbgs() << "Setting serialized module directory to " << module_dir;
+      swift_ast_sp->SetReplExprModulesDir(module_dir.c_str());
+    }
+  }
+
 
   Status module_error;
   for (size_t mi = 0; mi != num_images; ++mi) {
@@ -2530,6 +2568,11 @@ swift::SearchPathOptions &SwiftASTContext::GetSearchPathOptions() {
       if (resource_dir.Exists())
         ConfigureResourceDirs(GetCompilerInvocation(), resource_dir, triple);
     }
+
+    if (auto repl_modules_dir = GetReplExprModulesDir()) {
+      search_path_opts.ImportSearchPaths.emplace_back(repl_modules_dir);
+    }
+
   }
 
   return search_path_opts;

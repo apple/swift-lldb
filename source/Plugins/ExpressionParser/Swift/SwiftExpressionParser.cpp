@@ -71,6 +71,7 @@
 #include "swift/SIL/SILFunction.h"
 #include "swift/SIL/SILModule.h"
 #include "swift/SILOptimizer/PassManager/Passes.h"
+#include "swift/Serialization/SerializationOptions.h"
 #include "swift/Serialization/SerializedModuleLoader.h"
 #include "swift/Subsystems.h"
 
@@ -90,7 +91,6 @@ SwiftExpressionParser::SwiftExpressionParser(
 
   // TODO This code is copied from ClangExpressionParser.cpp.
   // Factor this out into common code.
-
   lldb::TargetSP target_sp;
   if (exe_scope) {
     target_sp = exe_scope->CalculateTarget();
@@ -1847,7 +1847,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
           variable_info.m_metadata.reset(
               new VariableMetadataPersistent(persistent_variable));
 
-          persistent_state->RegisterSwiftPersistentDecl(decl);
+          //persistent_state->RegisterSwiftPersistentDecl(decl);
         }
       }
 
@@ -1857,7 +1857,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
             non_variables);
 
         for (swift::ValueDecl *decl : non_variables) {
-          persistent_state->RegisterSwiftPersistentDecl(decl);
+          //persistent_state->RegisterSwiftPersistentDecl(decl);
         }
       }
     }
@@ -1955,6 +1955,45 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   runSILTFPartitionPass(*sil_module);
   // SWIFT_ENABLE_TENSORFLOW
 
+  // Serialize the file and add it to the list of hand loaded modules!
+  if (auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir()) {
+    llvm::SmallString<256> filename(expr_module_dir);
+    std::string module_name;
+    GetNameFromModule(&parsed_expr->module, module_name);
+    // module_name += "ser";
+    llvm::sys::path::append(filename, module_name);
+    llvm::sys::path::replace_extension(filename, ".swiftmodule");
+    // // TODO: Check language is swift
+    // llvm::StringRef file_prefix;
+    // if (playground)
+    //   file_prefix = "ser_playground";
+    // else if (repl)
+    //   file_prefix = "ser_repl";
+    // else
+    //   file_prefix = "ser_expr";
+    // llvm::Twine prefix =
+    //     llvm::Twine(file_prefix)
+    //         .concat(llvm::Twine(m_options.GetExpressionNumber()));
+    // int temp_fd;
+    // std::error_code err = llvm::sys::fs::createTemporaryFile(
+    //     prefix, "swiftmodule", temp_fd, buffer);
+    // if (err) {
+    //   diagnostic_manager.PutString(
+    //       eDiagnosticSeverityError,
+    //       "Unable to serialize SIL module, no additional error");
+    //   return 1;
+    // }
+    // if (!err) {
+    swift::SerializationOptions serializationOpts;
+    //std::string output_path = buffer.str().str();
+    serializationOpts.OutputPath = filename.c_str();
+    serializationOpts.SerializeAllSIL = true;
+    serializationOpts.IsSIB = true;
+    llvm::outs() << "Serializing module to " << serializationOpts.OutputPath
+                 << "\n";
+    swift::serialize(sil_module->getSwiftModule(), serializationOpts,
+                     sil_module.get());
+  }
 
   if (log) {
     std::string s;
@@ -2021,13 +2060,21 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   // as part of the parse from the staging area in the external
   // lookup object into the SwiftPersistentExpressionState.
   swift::ModuleDecl *module = &parsed_expr->module;
-  parsed_expr->ast_context.LoadedModules.insert({module->getName(), module});
-  swift_ast_ctx->CacheModule(module);
+  // parsed_expr->ast_context.LoadedModules.insert({module->getName(), module});
+  // swift_ast_ctx->CacheModule(module);
   if (m_sc.target_sp) {
     auto *persistent_state =
         m_sc.target_sp->GetSwiftPersistentExpressionState(*m_exe_scope);
-    persistent_state->CopyInSwiftPersistentDecls(
-        parsed_expr->external_lookup.GetStagedDecls());
+    // persistent_state->CopyInSwiftPersistentDecls(
+    //     parsed_expr->external_lookup.GetStagedDecls());
+    // Add currently parsed module as a hand-loaded module for subsequent use.
+    {
+      std::string module_name = module->getName().str();
+      if (!module_name.empty()) {
+        ConstString module_const_str(module_name);
+        persistent_state->AddHandLoadedModule(module_const_str);
+      }
+    }
   }
   return 0;
 }
