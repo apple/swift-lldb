@@ -4668,9 +4668,6 @@ void SwiftASTContext::DumpConfiguration(Log *log) {
               m_ast_context_ap->SearchPathOpts.RuntimeResourcePath.c_str());
   log->Printf("  Runtime library path         : %s",
               m_ast_context_ap->SearchPathOpts.RuntimeLibraryPath.c_str());
-  log->Printf(
-      "  Runtime library import path  : %s",
-      m_ast_context_ap->SearchPathOpts.RuntimeLibraryImportPath.c_str());
 
   log->Printf("  Framework search paths       : (%llu items)",
               (unsigned long long)
