@@ -538,15 +538,18 @@ public:
         Status extract_error;
         valobj_sp->GetData(data, extract_error);
         if (!extract_error.Success()) {
-          if (valobj_type.GetMinimumLanguage() == lldb::eLanguageTypeSwift &&
-              valobj_type.GetByteSize(frame_sp.get()) == 0) {
+          if (valobj_type.GetMinimumLanguage() == lldb::eLanguageTypeSwift) {
+            auto size = valobj_type.GetByteSize(frame_sp.get());
+            if (*size) {
+              err.SetErrorStringWithFormat("couldn't get the value of %s: %s",
+                                           m_variable_sp->GetName().AsCString(),
+                                           extract_error.AsCString());
+              return;
+            }
             // We don't need to materialize empty structs in Swift.
-            return;
+            if (*size == 0)
+              return;
           }
-          err.SetErrorStringWithFormat("couldn't get the value of %s: %s",
-                                       m_variable_sp->GetName().AsCString(),
-                                       extract_error.AsCString());
-          return;
         }
 
         if (m_temporary_allocation != LLDB_INVALID_ADDRESS) {
@@ -687,15 +690,18 @@ public:
                         extract_error);
 
       if (!extract_error.Success()) {
-        if (valobj_type.GetMinimumLanguage() == lldb::eLanguageTypeSwift &&
-            valobj_type.GetByteSize(frame_sp.get()) == 0) {
-          // We don't need to dematerialize empty structs in Swift.
-          return;
-        }
-        
-        err.SetErrorStringWithFormat("couldn't get the data for variable %s",
+        if (valobj_type.GetMinimumLanguage() == lldb::eLanguageTypeSwift) {
+          auto size = valobj_type.GetByteSize(frame_sp.get());
+          if (!size) {
+            err.SetErrorStringWithFormat("couldn't get the data for variable %s",
                                      m_variable_sp->GetName().AsCString());
-        return;
+            return;
+
+          }
+          // We don't need to dematerialize empty structs in Swift.
+          if (*size == 0)
+            return;
+        }
       }
 
       bool actually_write = true;

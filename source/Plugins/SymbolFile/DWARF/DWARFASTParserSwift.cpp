@@ -216,14 +216,17 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
   }
 
   if (compiler_type) {
-    type_sp = TypeSP(new Type(
-        die.GetID(), die.GetDWARF(), compiler_type.GetTypeName(),
-        is_clang_type ? dwarf_byte_size : compiler_type.GetByteSize(nullptr),
-        NULL, LLDB_INVALID_UID, Type::eEncodingIsUID, &decl, compiler_type,
-        is_clang_type ? Type::eResolveStateForward : Type::eResolveStateFull));
-    // FIXME: This ought to work lazily, too.
-    if (is_clang_type)
-      type_sp->GetFullCompilerType();
+    auto byte_size = compiler_type.GetByteSize(nullptr);
+    if (byte_size) {
+      type_sp = TypeSP(new Type(
+          die.GetID(), die.GetDWARF(), compiler_type.GetTypeName(),
+          is_clang_type ? dwarf_byte_size : *byte_size,
+          NULL, LLDB_INVALID_UID, Type::eEncodingIsUID, &decl, compiler_type,
+          is_clang_type ? Type::eResolveStateForward : Type::eResolveStateFull));
+      // FIXME: This ought to work lazily, too.
+      if (is_clang_type)
+        type_sp->GetFullCompilerType();
+    }
   }
 
   // Cache this type.
