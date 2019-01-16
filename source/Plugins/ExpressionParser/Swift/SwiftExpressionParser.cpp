@@ -1847,7 +1847,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
           variable_info.m_metadata.reset(
               new VariableMetadataPersistent(persistent_variable));
 
-          //persistent_state->RegisterSwiftPersistentDecl(decl);
+          persistent_state->RegisterSwiftPersistentDecl(decl);
         }
       }
 
@@ -1857,7 +1857,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
             non_variables);
 
         for (swift::ValueDecl *decl : non_variables) {
-          //persistent_state->RegisterSwiftPersistentDecl(decl);
+          persistent_state->RegisterSwiftPersistentDecl(decl);
         }
       }
     }
@@ -1939,21 +1939,9 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     log->Printf("Generated SIL module:");
     log->PutCString(s.c_str());
   }
-
-  runSILDiagnosticPasses(*sil_module);
-
-  // SWIFT_ENABLE_TENSORFLOW
-  // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
-  // stop running the optimization passes and drop the explicit call of the partitioning
-  // pass.
-  sil_module->setSerializeSILAction([]{});
-  runSILOptPreparePasses(*sil_module);
-  runSILOptimizationPasses(*sil_module);
-
-  // FIXME: These passes should be moved to the mandatory pass pipeline that
-  // runs at -O0.  We need a proper deabstraction pass to do that though.
-  runSILTFPartitionPass(*sil_module);
-  // SWIFT_ENABLE_TENSORFLOW
+  llvm::outs() << "Generated SIL Module:";
+  sil_module->print(llvm::outs(), false, &parsed_expr->module);
+  parsed_expr->module.dump(llvm::outs());
 
   // Serialize the file and add it to the list of hand loaded modules!
   if (auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir()) {
@@ -1995,6 +1983,25 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
                      sil_module.get());
   }
 
+  runSILDiagnosticPasses(*sil_module);
+
+  llvm::outs() << "SIL Module after diagnostic passes:";
+  sil_module->print(llvm::outs(), false, &parsed_expr->module);
+  parsed_expr->module.dump(llvm::outs());
+  
+  // SWIFT_ENABLE_TENSORFLOW
+  // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
+  // stop running the optimization passes and drop the explicit call of the partitioning
+  // pass.
+  sil_module->setSerializeSILAction([]{});
+  runSILOptPreparePasses(*sil_module);
+  runSILOptimizationPasses(*sil_module);
+
+  // FIXME: These passes should be moved to the mandatory pass pipeline that
+  // runs at -O0.  We need a proper deabstraction pass to do that though.
+  runSILTFPartitionPass(*sil_module);
+  // SWIFT_ENABLE_TENSORFLOW
+
   if (log) {
     std::string s;
     llvm::raw_string_ostream ss(s);
@@ -2005,6 +2012,9 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     log->Printf("SIL module after diagnostic passes:");
     log->PutCString(s.c_str());
   }
+  llvm::outs() << "SIL Module after optimization passes:";
+  sil_module->print(llvm::outs(), false, &parsed_expr->module);
+  parsed_expr->module.dump(llvm::outs());
 
   if (swift_ast_ctx->HasErrors()) {
     DiagnoseSwiftASTContextError();
@@ -2059,22 +2069,39 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   // list of loaded modules, and copy the Decls that were globalized
   // as part of the parse from the staging area in the external
   // lookup object into the SwiftPersistentExpressionState.
-  swift::ModuleDecl *module = &parsed_expr->module;
-  // parsed_expr->ast_context.LoadedModules.insert({module->getName(), module});
-  // swift_ast_ctx->CacheModule(module);
+  // swift::ModuleDecl *module = &parsed_expr->module;
+  swift::ModuleDecl *module = nullptr;
+  if (std::getenv("LLDB_USE_SERIALIZATION")) {
+    llvm::outs() << "Adding serialized module to LoadedModules.\n";
+    // TODO: is this scope needed for the lock?
+    lldb::StackFrameSP this_frame_sp(m_stack_frame_wp.lock());
+
+    if (this_frame_sp) {
+      lldb::ProcessSP process_sp(this_frame_sp->CalculateProcess());
+      Status error;
+      std::string module_name = parsed_expr->module.getName().str();
+      if (process_sp && !module_name.empty()) {
+        ConstString module_const_str(module_name);
+        module = swift_ast_ctx->FindAndLoadModule(module_const_str, *process_sp.get(), error);
+      }
+    }
+
+    if (!module || swift_ast_ctx->HasErrors()) {
+      diagnostic_manager.PutString(
+          eDiagnosticSeverityError,
+          "Couldn't load the serialized module file.");
+      return 1;
+    }
+  } else {
+    module = &parsed_expr->module;
+  }
+  parsed_expr->ast_context.LoadedModules.insert({module->getName(), module});
+  swift_ast_ctx->CacheModule(module);
   if (m_sc.target_sp) {
     auto *persistent_state =
         m_sc.target_sp->GetSwiftPersistentExpressionState(*m_exe_scope);
-    // persistent_state->CopyInSwiftPersistentDecls(
-    //     parsed_expr->external_lookup.GetStagedDecls());
-    // Add currently parsed module as a hand-loaded module for subsequent use.
-    {
-      std::string module_name = module->getName().str();
-      if (!module_name.empty()) {
-        ConstString module_const_str(module_name);
-        persistent_state->AddHandLoadedModule(module_const_str);
-      }
-    }
+    persistent_state->CopyInSwiftPersistentDecls(
+        parsed_expr->external_lookup.GetStagedDecls());
   }
   return 0;
 }
