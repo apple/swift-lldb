@@ -515,6 +515,10 @@ Status Value::GetValueAsData(ExecutionContext *exe_ctx, DataExtractor &data,
   if (error.Fail())
     return error;
 
+  // No memory to read for zero-sized types.
+  if (byte_size == 0)
+    return error;
+
   // Make sure we have enough room within "data", and if we don't make
   // something large enough that does
   if (!data.ValidOffsetForDataOfSize(data_offset, byte_size)) {
