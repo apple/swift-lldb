@@ -214,12 +214,35 @@ public:
       m_resource_dir.clear();
   }
 
+  // Returns true if successful, false otherwise.
+  bool InitializeReplExprModulesDir() {
+    // Return if we should not use serialization.
+    if (getenv("LLDB_DONT_USE_SERIALIZATION"))
+      return true;
+    // Return if this is already initialized!
+    if (GetReplExprModulesDir())
+      return true;
+    // Initialize now!
+    llvm::SmallString<256> module_dir;
+    std::error_code err =
+        llvm::sys::fs::createUniqueDirectory("repl-swift-modules", module_dir);
+    if (err) {
+      return false;
+    }
+    SetReplExprModulesDir(module_dir.c_str());
+    return true;
+  }
+
+  // Returns the directory containing the serialized modules for lldb
+  // expressions.
   const char *GetReplExprModulesDir() const {
     if (m_repl_expr_modules_dir.empty())
       return NULL;
     return m_repl_expr_modules_dir.c_str();
   }
 
+  // Updates the directory containing the serialized modules for lldb
+  // expressions.
   void SetReplExprModulesDir(const char *path) {
     if (path)
       m_repl_expr_modules_dir = path;

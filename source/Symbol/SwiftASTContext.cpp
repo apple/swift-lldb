@@ -1194,21 +1194,12 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
         log->Printf("No resource dir available for module's SwiftASTContext.");
     }
 
-    // Create a unique directory where we put serialized modules from REPL.
-    if (!swift_ast_sp->GetReplExprModulesDir()) {
-      llvm::SmallString<256> module_dir;
-      std::error_code err =
-          llvm::sys::fs::createUniqueDirectory("repl-swift-modules", module_dir);
-      if (err)  {
-        if (log)
-          log->Printf("Unable to create serialized modules directory.");
-      } else {
-        if (log) {
-          log->Printf("Setting serialized module directory to %s",
-                      module_dir.c_str());
-        }
-        swift_ast_sp->SetReplExprModulesDir(module_dir.c_str());
-      }
+    // If we need to use serialization and the directory is not created already,
+    // create a unique directory where we put serialized modules from REPL.
+    if (!swift_ast_sp->InitializeReplExprModulesDir()) {
+      if (log)
+        log->Printf("Unable to create directory for serialized modules.");
+      return TypeSystemSP();
     }
 
     if (!got_serialized_options) {
@@ -1361,24 +1352,10 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
 
 
   // Create a unique directory where we put serialized modules from REPL.
-  if (!swift_ast_sp->GetReplExprModulesDir()) {
-    llvm::SmallString<256> module_dir;
-    std::error_code err =
-        llvm::sys::fs::createUniqueDirectory("repl-swift-modules", module_dir);
-    if (err)  {
-      llvm::dbgs() << "Unable to create serialized modules directory.";
-      if (log)
-        log->Printf("Unable to create serialized modules directory.");
-    } else {
-      if (log) {
-        log->Printf("Setting serialized module directory to %s",
-                    module_dir.c_str());
-      }
-      llvm::dbgs() << "Setting serialized module directory to " << module_dir;
-      swift_ast_sp->SetReplExprModulesDir(module_dir.c_str());
-    }
+  if (!swift_ast_sp->InitializeReplExprModulesDir()) {
+    logError("Unable to create directory for serialized modules.");
+    return lldb::TypeSystemSP();
   }
-
 
   Status module_error;
   for (size_t mi = 0; mi != num_images; ++mi) {
@@ -2569,7 +2546,14 @@ swift::SearchPathOptions &SwiftASTContext::GetSearchPathOptions() {
         ConfigureResourceDirs(GetCompilerInvocation(), resource_dir, triple);
     }
 
+    // Update search path if we are serializing the expressions.
     if (auto repl_modules_dir = GetReplExprModulesDir()) {
+      Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_TYPES));
+      if (log) {
+        log->Printf(
+            "[SERIALIZATION] Using %s for serialized expression modules",
+            repl_modules_dir);
+      }
       search_path_opts.ImportSearchPaths.emplace_back(repl_modules_dir);
     }
 

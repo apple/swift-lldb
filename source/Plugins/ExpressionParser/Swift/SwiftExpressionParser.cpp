@@ -1939,55 +1939,28 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     log->Printf("Generated SIL module:");
     log->PutCString(s.c_str());
   }
-  llvm::outs() << "Generated SIL Module:";
-  sil_module->print(llvm::outs(), false, &parsed_expr->module);
-  parsed_expr->module.dump(llvm::outs());
 
-  // Serialize the file and add it to the list of hand loaded modules!
+  // Serialize the file if modules directory is set.
   if (auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir()) {
     llvm::SmallString<256> filename(expr_module_dir);
     std::string module_name;
     GetNameFromModule(&parsed_expr->module, module_name);
-    // module_name += "ser";
     llvm::sys::path::append(filename, module_name);
     llvm::sys::path::replace_extension(filename, ".swiftmodule");
-    // // TODO: Check language is swift
-    // llvm::StringRef file_prefix;
-    // if (playground)
-    //   file_prefix = "ser_playground";
-    // else if (repl)
-    //   file_prefix = "ser_repl";
-    // else
-    //   file_prefix = "ser_expr";
-    // llvm::Twine prefix =
-    //     llvm::Twine(file_prefix)
-    //         .concat(llvm::Twine(m_options.GetExpressionNumber()));
-    // int temp_fd;
-    // std::error_code err = llvm::sys::fs::createTemporaryFile(
-    //     prefix, "swiftmodule", temp_fd, buffer);
-    // if (err) {
-    //   diagnostic_manager.PutString(
-    //       eDiagnosticSeverityError,
-    //       "Unable to serialize SIL module, no additional error");
-    //   return 1;
-    // }
-    // if (!err) {
+    // TODO: Check language is swift
     swift::SerializationOptions serializationOpts;
-    //std::string output_path = buffer.str().str();
     serializationOpts.OutputPath = filename.c_str();
     serializationOpts.SerializeAllSIL = true;
     serializationOpts.IsSIB = true;
-    llvm::outs() << "Serializing module to " << serializationOpts.OutputPath
-                 << "\n";
+    if (log) {
+      log->Printf("Serializing module %s to %s\n", module_name.c_str(),
+                  serializationOpts.OutputPath);
+    }
     swift::serialize(sil_module->getSwiftModule(), serializationOpts,
                      sil_module.get());
   }
 
   runSILDiagnosticPasses(*sil_module);
-
-  llvm::outs() << "SIL Module after diagnostic passes:";
-  sil_module->print(llvm::outs(), false, &parsed_expr->module);
-  parsed_expr->module.dump(llvm::outs());
   
   // SWIFT_ENABLE_TENSORFLOW
   // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
@@ -2012,9 +1985,6 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     log->Printf("SIL module after diagnostic passes:");
     log->PutCString(s.c_str());
   }
-  llvm::outs() << "SIL Module after optimization passes:";
-  sil_module->print(llvm::outs(), false, &parsed_expr->module);
-  parsed_expr->module.dump(llvm::outs());
 
   if (swift_ast_ctx->HasErrors()) {
     DiagnoseSwiftASTContextError();
@@ -2069,11 +2039,18 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   // list of loaded modules, and copy the Decls that were globalized
   // as part of the parse from the staging area in the external
   // lookup object into the SwiftPersistentExpressionState.
-  // swift::ModuleDecl *module = &parsed_expr->module;
+  // SWIFT_ENABLE_TENSORFLOW: 
   swift::ModuleDecl *module = nullptr;
-  if (std::getenv("LLDB_USE_SERIALIZATION")) {
-    llvm::outs() << "Adding serialized module to LoadedModules.\n";
-    // TODO: is this scope needed for the lock?
+  if (!swift_ast_ctx->GetReplExprModulesDir()) {
+    // Just reuse the module if no serialization is requested.
+    module = &parsed_expr->module;
+  } else {
+    // Reload the serialized module so that we can look
+    // into SIL functions in subsequent cells if needed (e.g., differentiation).
+    if (log) {
+      log->Printf("Reloading the serialized module.\n");
+    }
+
     lldb::StackFrameSP this_frame_sp(m_stack_frame_wp.lock());
 
     if (this_frame_sp) {
@@ -2082,18 +2059,16 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
       std::string module_name = parsed_expr->module.getName().str();
       if (process_sp && !module_name.empty()) {
         ConstString module_const_str(module_name);
-        module = swift_ast_ctx->FindAndLoadModule(module_const_str, *process_sp.get(), error);
+        module = swift_ast_ctx->FindAndLoadModule(module_const_str,
+                                                  *process_sp.get(), error);
       }
     }
 
     if (!module || swift_ast_ctx->HasErrors()) {
-      diagnostic_manager.PutString(
-          eDiagnosticSeverityError,
-          "Couldn't load the serialized module file.");
+      diagnostic_manager.PutString(eDiagnosticSeverityError,
+                                   "Couldn't reload the serialized module file.");
       return 1;
     }
-  } else {
-    module = &parsed_expr->module;
   }
   parsed_expr->ast_context.LoadedModules.insert({module->getName(), module});
   swift_ast_ctx->CacheModule(module);
