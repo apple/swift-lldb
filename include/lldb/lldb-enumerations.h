@@ -54,9 +54,10 @@ enum StateType {
   eStateCrashed,   ///< Process or thread has crashed and can be examined.
   eStateDetached,  ///< Process has been detached and can't be examined.
   eStateExited,    ///< Process has exited and can't be examined.
-  eStateSuspended  ///< Process or thread is in a suspended state as far
+  eStateSuspended, ///< Process or thread is in a suspended state as far
                    ///< as the debugger is concerned while other processes
                    ///< or threads get the chance to run.
+  kLastStateType = eStateSuspended  
 };
 
 //----------------------------------------------------------------------
@@ -254,6 +255,17 @@ enum ExpressionResults {
   eExpressionTimedOut,
   eExpressionResultUnavailable,
   eExpressionStoppedForDebug
+};
+
+enum SearchDepth {
+    eSearchDepthInvalid = 0,
+    eSearchDepthTarget,
+    eSearchDepthModule,
+    eSearchDepthCompUnit,
+    eSearchDepthFunction,
+    eSearchDepthBlock,
+    eSearchDepthAddress,
+    kLastSearchDepthKind = eSearchDepthAddress
 };
 
 //----------------------------------------------------------------------

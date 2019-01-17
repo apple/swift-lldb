@@ -1,15 +1,14 @@
 LEVEL = ../../../../make
 SRCDIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 SWIFT_OBJC_INTEROP := 1
-SWIFT_SOURCES = Foo.swift Bar.swift
 # This Makefile overwrites the default rules.
-EXE=None
+USESWIFTDRIVER := 0
+EXE := a.out
+
+all: a.out
 
 # This test builds an Objective-C main program that imports two Swift
 # .dylibs with conflicting ClangImporter search paths.
-
-first: a.out.dSYM
-a.out.dSYM: a.out
 
 include $(LEVEL)/Makefile.rules
 
@@ -17,6 +16,9 @@ a.out: main.o
 	$(SWIFTC) $(SWIFTFLAGS) $< -lFoo -lBar -L$(shell pwd) -o $@ \
 	    -Xlinker -add_ast_path -Xlinker $(shell pwd)/Foo.swiftmodule \
 	    -Xlinker -add_ast_path -Xlinker $(shell pwd)/Bar.swiftmodule
+ifneq "$(CODESIGN)" ""
+	$(CODESIGN) -s - "$@"
+endif
 
 main.o: main.m libFoo.a libBar.a
 	$(CC) $(CFLAGS) $(MANDATORY_MODULE_BUILD_CFLAGS) -c -o $@ $< \

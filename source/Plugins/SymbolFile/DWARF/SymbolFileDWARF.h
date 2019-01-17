@@ -75,9 +75,6 @@ public:
   friend class DWARFDIE;
   friend class DWARFASTParserClang;
   friend class DWARFASTParserSwift;
-  friend class DWARFASTParserGo;
-  friend class DWARFASTParserJava;
-  friend class DWARFASTParserOCaml;
 
   //------------------------------------------------------------------
   // Static Functions
@@ -146,6 +143,9 @@ public:
   ParseVariablesForContext(const lldb_private::SymbolContext &sc) override;
 
   lldb_private::Type *ResolveTypeUID(lldb::user_id_t type_uid) override;
+  llvm::Optional<ArrayInfo> GetDynamicArrayInfoForUID(
+      lldb::user_id_t type_uid,
+      const lldb_private::ExecutionContext *exe_ctx) override;
 
   bool CompleteType(lldb_private::CompilerType &compiler_type) override;
 
@@ -238,6 +238,8 @@ public:
 
   void PreloadSymbols() override;
 
+  std::recursive_mutex &GetModuleMutex() const override;
+
   //------------------------------------------------------------------
   // PluginInterface protocol
   //------------------------------------------------------------------
@@ -326,6 +328,9 @@ public:
   static bool
   DIEInDeclContext(const lldb_private::CompilerDeclContext *parent_decl_ctx,
                    const DWARFDIE &die);
+
+  std::vector<lldb_private::CallEdge>
+  ParseCallEdgesInFunction(UserID func_id) override;
 
   void Dump(lldb_private::Stream &s) override;
 

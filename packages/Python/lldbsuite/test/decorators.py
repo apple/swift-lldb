@@ -616,28 +616,6 @@ def swiftTest(func):
             return None
     return skipTestIfFn(is_not_swift_compatible)(func)
 
-def skipUnlessGoInstalled(func):
-    """Decorate the item to skip tests when no Go compiler is available."""
-
-    def is_go_missing(self):
-        compiler = self.getGoCompilerVersion()
-        if not compiler:
-            return "skipping because go compiler not found"
-        match_version = re.search(r"(\d+\.\d+(\.\d+)?)", compiler)
-        if not match_version:
-            # Couldn't determine version.
-            return "skipping because go version could not be parsed out of {}".format(
-                compiler)
-        else:
-            min_strict_version = StrictVersion("1.4.0")
-            compiler_strict_version = StrictVersion(match_version.group(1))
-            if compiler_strict_version < min_strict_version:
-                return "skipping because available version ({}) does not meet minimum required version ({})".format(
-                    compiler_strict_version, min_strict_version)
-        return None
-    return skipTestIfFn(is_go_missing)(func)
-
-
 def skipIfHostIncompatibleWithRemote(func):
     """Decorate the item to skip tests if binaries built on this host are incompatible."""
 
@@ -702,6 +680,30 @@ def skipUnlessSupportedTypeAttribute(attr):
             return "Compiler does not support attribute %s"%(attr)
         return None
     return skipTestIfFn(compiler_doesnt_support_struct_attribute)
+
+def skipUnlessHasCallSiteInfo(func):
+    """Decorate the function to skip testing unless call site info from clang is available."""
+
+    def is_compiler_clang_with_call_site_info(self):
+        compiler_path = self.getCompiler()
+        compiler = os.path.basename(compiler_path)
+        if not compiler.startswith("clang"):
+            return "Test requires clang as compiler"
+
+        f = tempfile.NamedTemporaryFile()
+        cmd = "echo 'int main() {}' | " \
+              "%s -g -glldb -O1 -S -emit-llvm -x c -o %s -" % (compiler_path, f.name)
+        if os.popen(cmd).close() is not None:
+            return "Compiler can't compile with call site info enabled"
+
+        with open(f.name, 'r') as ir_output_file:
+            buf = ir_output_file.read()
+
+        if 'DIFlagAllCallsDescribed' not in buf:
+            return "Compiler did not introduce DIFlagAllCallsDescribed IR flag"
+
+        return None
+    return skipTestIfFn(is_compiler_clang_with_call_site_info)(func)
 
 def skipUnlessThreadSanitizer(func):
     """Decorate the item to skip test unless Clang -fsanitize=thread is supported."""

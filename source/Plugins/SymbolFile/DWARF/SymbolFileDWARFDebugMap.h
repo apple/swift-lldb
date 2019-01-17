@@ -78,6 +78,10 @@ public:
   ParseVariablesForContext(const lldb_private::SymbolContext &sc) override;
 
   lldb_private::Type *ResolveTypeUID(lldb::user_id_t type_uid) override;
+  llvm::Optional<ArrayInfo> GetDynamicArrayInfoForUID(
+      lldb::user_id_t type_uid,
+      const lldb_private::ExecutionContext *exe_ctx) override;
+
   lldb_private::CompilerDeclContext
   GetDeclContextForUID(lldb::user_id_t uid) override;
   lldb_private::CompilerDeclContext
@@ -123,6 +127,8 @@ public:
   size_t GetTypes(lldb_private::SymbolContextScope *sc_scope,
                   uint32_t type_mask,
                   lldb_private::TypeList &type_list) override;
+  std::vector<lldb_private::CallEdge>
+  ParseCallEdgesInFunction(lldb_private::UserID func_id) override;
 
   std::vector<lldb::DataBufferSP>
   GetASTData(lldb::LanguageType language) override;

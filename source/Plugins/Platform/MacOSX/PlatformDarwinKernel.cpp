@@ -129,6 +129,7 @@ PlatformSP PlatformDarwinKernel::CreateInstance(bool force,
       case llvm::Triple::IOS:
       case llvm::Triple::WatchOS:
       case llvm::Triple::TvOS:
+      // NEED_BRIDGEOS_TRIPLE case llvm::Triple::BridgeOS:
         break;
       // Only accept "vendor" for vendor if the host is Apple and it "unknown"
       // wasn't specified (it was just returned because it was NOT specified)
@@ -186,14 +187,13 @@ const char *PlatformDarwinKernel::GetDescriptionStatic() {
 /// Code to handle the PlatformDarwinKernel settings
 //------------------------------------------------------------------
 
-static PropertyDefinition g_properties[] = {
+static constexpr PropertyDefinition g_properties[] = {
     {"search-locally-for-kexts", OptionValue::eTypeBoolean, true, true, NULL,
-     NULL, "Automatically search for kexts on the local system when doing "
+     {}, "Automatically search for kexts on the local system when doing "
            "kernel debugging."},
-    {"kext-directories", OptionValue::eTypeFileSpecList, false, 0, NULL, NULL,
+    {"kext-directories", OptionValue::eTypeFileSpecList, false, 0, NULL, {},
      "Directories/KDKs to search for kexts in when starting a kernel debug "
-     "session."},
-    {NULL, OptionValue::eTypeInvalid, false, 0, NULL, NULL, NULL}};
+     "session."}};
 
 enum { ePropertySearchForKexts = 0, ePropertyKextDirectories };
 
@@ -354,6 +354,8 @@ void PlatformDarwinKernel::CollectKextAndKernelDirectories() {
                                "/Platforms/AppleTVOS.platform/Developer/SDKs");
     AddSDKSubdirsToSearchPaths(developer_dir +
                                "/Platforms/WatchOS.platform/Developer/SDKs");
+    AddSDKSubdirsToSearchPaths(developer_dir +
+                               "/Platforms/BridgeOS.platform/Developer/SDKs");
   }
   if (m_ios_debug_session != eLazyBoolYes) {
     AddSDKSubdirsToSearchPaths(developer_dir +

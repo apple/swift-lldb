@@ -34,7 +34,6 @@ BUILDDIR := $(shell pwd)
 THIS_FILE_DIR := $(shell dirname $(lastword $(MAKEFILE_LIST)))/
 LLDB_BASE_DIR := $(THIS_FILE_DIR)../../../../../
 
-
 #----------------------------------------------------------------------
 # If OS is not defined, use 'uname -s' to determine the OS name.
 #
@@ -66,6 +65,7 @@ ifneq "$(TRIPLE)" ""
 	TRIPLE_SWIFTFLAGS :=-target $(TRIPLE)
 	ifeq "$(TRIPLE_VENDOR)" "apple"
 		ifeq "$(TRIPLE_OS)" "ios"
+		    CODESIGN := codesign
 		    ifeq "$(SDKROOT)" ""
 				# Set SDKROOT if it wasn't set
 				ifneq (,$(findstring arm,$(ARCH)))
@@ -87,7 +87,8 @@ ifneq "$(TRIPLE)" ""
 			endif
 		endif
 		ifeq "$(TRIPLE_OS)" "watchos"
-		    ifeq "$(SDKROOT)" ""
+			CODESIGN := codesign
+			ifeq "$(SDKROOT)" ""
 				# Set SDKROOT if it wasn't set
 				ifneq (,$(findstring arm,$(ARCH)))
 					SDKROOT = $(shell xcrun --sdk watchos --show-sdk-path)
@@ -262,8 +263,9 @@ DEBUG_INFO_FLAG ?= -g
 CFLAGS ?= $(DEBUG_INFO_FLAG) -O0 -fno-builtin
 SWIFTFLAGS ?= -g -Onone -Xfrontend -serialize-debugging-options
 
+STATIC_STDLIB = 
 ifneq (,$(findstring arm,$(ARCH)))
-	SWIFTFLAGS += -static-stdlib
+	STATIC_STDLIB = -static-stdlib
 endif
 
 ifeq "$(OS)" "Darwin"
@@ -294,7 +296,17 @@ ifeq "$(MAKE_DWO)" "YES"
 	CFLAGS += -gsplit-dwarf
 endif
 
+# Use a shared module cache when building in the default test build directory.
+ifeq "$(findstring lldb-test-build.noindex, $(BUILDDIR))" ""
 CLANG_MODULE_CACHE_DIR := $(BUILDDIR)/module-cache
+else
+CLANG_MODULE_CACHE_DIR := $(shell echo "$(BUILDDIR)" | sed 's/lldb-test-build.noindex.*/lldb-test-build.noindex\/module-cache-clang/')
+endif
+
+ifeq "$(CLANG_MODULE_CACHE_DIR)" ""
+$(error failed to set the shared clang module cache dir)
+endif
+
 SWIFT_MODULE_CACHE_FLAGS = -module-cache-path $(CLANG_MODULE_CACHE_DIR)
 SWIFTFLAGS += $(SWIFT_MODULE_CACHE_FLAGS)
 
@@ -479,12 +491,20 @@ endif
 #----------------------------------------------------------------------
 ifneq "$(strip $(SWIFT_SOURCES))" ""
 	OBJECTS +=$(strip $(SWIFT_SOURCES:.swift=.o))
+	USESWIFTDRIVER = 1
+endif
+
+ifneq "$(strip $(DYLIB_SWIFT_SOURCES))" ""
+	DYLIB_OBJECTS +=$(strip $(DYLIB_OBJC_SOURCES:.swift=.o))
+	USESWIFTDRIVER = 1
+endif
+
+ifeq "$(USESWIFTDRIVER)" "1"
 	LDFLAGS +=-L"$(SWIFTLIBS)"
 	ifneq "$(TRIPLE)" ""
 		SWIFTFLAGS += -target $(TRIPLE)
 	endif
 	SWIFTFLAGS += -sdk "$(SWIFTSDKROOT)"
-	USESWIFTDRIVER = 1
 endif
 
 #----------------------------------------------------------------------
@@ -594,7 +614,16 @@ endif
 #----------------------------------------------------------------------
 ifeq "$(USESWIFTDRIVER)" "1"
 #----------------------------------------------------------------------
+ifeq "$(DYLIB_NAME)" ""
 MODULENAME=$(shell basename $(EXE) .out)
+SWIFT_OBJECTS=$(patsubst %.swift,%.o,$(SWIFT_SOURCES))
+else
+EXE = $(DYLIB_FILENAME)
+MODULENAME=$(DYLIB_NAME)
+SWIFT_OBJECTS=$(patsubst %.swift,%.o,$(DYLIB_SWIFT_SOURCES))
+DYLIB_OBJECTS=$(SWIFT_OBJECTS)
+endif
+
 VPATHSOURCES=$(patsubst %,$(VPATH)/%,$(SWIFT_SOURCES))
 %.o: %.swift
 	@echo "### Compiling" $<
@@ -605,28 +634,32 @@ VPATHSOURCES=$(patsubst %,$(VPATH)/%,$(SWIFT_SOURCES))
 	  -o $(BUILDDIR)/$@
 
 ifeq "$(OS)" "Darwin"
-$(EXE): $(EXE).swiftmodule $(patsubst %.swift,%.o,$(SWIFT_SOURCES))
+$(EXE): $(MODULENAME).swiftmodule $(SWIFT_OBJECTS)
 	@echo "### Linking" $(EXE)
-	$(SWIFTC) \
+	$(SWIFTC) $(STATIC_STDLIB) $(LD_EXTRAS) \
 	  $(patsubst $<,-Xlinker -add_ast_path -Xlinker $(BUILDDIR)/$<,$^) \
 	  $(patsubst -g,,$(SWIFTFLAGS)) -o "$(EXE)"
+ifneq "$(CODESIGN)" ""
+	$(CODESIGN) -s - "$(EXE)"
+endif
 else # OS = Linux
-$(EXE): $(EXE).swiftmodule.o $(patsubst %.swift,%.o,$(SWIFT_SOURCES))
+$(EXE): $(MODULENAME).swiftmodule.o $(SWIFT_OBJECTS)
 	@echo "### Linking" $(EXE)
-	$(SWIFTC) $^ $(patsubst -g,,$(SWIFTFLAGS)) -o "$(EXE)"
+	$(SWIFTC) $(LD_EXTRAS) $^ $(patsubst -g,,$(SWIFTFLAGS)) -o "$(EXE)"
 
-$(EXE).swiftmodule.o: $(EXE).swiftmodule
+$(MODULENAME).swiftmodule.o: $(MODULENAME).swiftmodule
 	@echo "### Wrapping swift module"
 	$(SWIFT) -modulewrap $^ -o $(BUILDDIR)/$@
 endif
-$(EXE).swiftmodule: $(patsubst %.swift,%.o,$(SWIFT_SOURCES))
-	@echo "### Merging swift modules"
+$(MODULENAME).swiftmodule: $(SWIFT_OBJECTS)
+	@echo "### Merging swift modules for $(MODULENAME)"
 	$(SWIFT_FE) $(SWIFT_FEFLAGS) -merge-modules \
 	  -emit-module $(patsubst %.o,%.partial.swiftmodule,$^) \
 	  -parse-as-library -sil-merge-partial-modules \
 	  -disable-diagnostic-passes -disable-sil-perf-optzns \
 	  -module-name $(MODULENAME) \
 	  -o $(BUILDDIR)/$@
+
 else # USESWIFTDRIVER = 0
 #----------------------------------------------------------------------
 
@@ -640,6 +673,9 @@ endif
 else
 $(EXE) : $(OBJECTS) $(ARCHIVE_NAME)
 	$(LD) $(OBJECTS) $(LDFLAGS) $(ARCHIVE_NAME) -o "$(EXE)"
+ifneq "$(CODESIGN)" ""
+	$(CODESIGN) -s - "$(EXE)"
+endif
 endif
 endif
 #----------------------------------------------------------------------
@@ -674,6 +710,13 @@ endif
 #----------------------------------------------------------------------
 # Make the dylib
 #----------------------------------------------------------------------
+ifeq "$(USESWIFTDRIVER)" "1"
+$(DYLIB_FILENAME) : $(DYLIB_OBJECTS)
+	@echo "### Linking dynamic library $(DYLIB_NAME)"
+	$(SWIFTC) $(LD_EXTRAS) -o $@ $^ -Xlinker -dylib \
+	  -Xlinker -add_ast_path -Xlinker $(DYLIB_NAME).swiftmodule \
+	  -Xlinker -install_name -Xlinker @executable_path/$(shell basename $@)
+else
 $(DYLIB_OBJECTS) : CFLAGS += -DCOMPILING_LLDB_TEST_DLL
 
 ifneq "$(OS)" "Windows_NT"
@@ -684,6 +727,9 @@ endif
 $(DYLIB_FILENAME) : $(DYLIB_OBJECTS)
 ifeq "$(OS)" "Darwin"
 	$(LD) $(DYLIB_OBJECTS) $(LDFLAGS) -install_name "$(DYLIB_EXECUTABLE_PATH)/$(DYLIB_FILENAME)" -dynamiclib -o "$(DYLIB_FILENAME)"
+ifneq "$(CODESIGN)" ""
+	$(CODESIGN) -s - "$(DYLIB_FILENAME)"
+endif
 ifneq "$(MAKE_DSYM)" "NO"
 ifneq "$(DS)" ""
 	"$(DS)" $(DSFLAGS) "$(DYLIB_FILENAME)"
@@ -696,7 +742,7 @@ ifeq "$(SPLIT_DEBUG_SYMBOLS)" "YES"
 	$(OBJCOPY) --strip-debug --add-gnu-debuglink="$(DYLIB_FILENAME).debug" "$(DYLIB_FILENAME)" "$(DYLIB_FILENAME)"
 endif
 endif
-
+endif
 #----------------------------------------------------------------------
 # Make the precompiled header and compile C++ sources against it
 #----------------------------------------------------------------------

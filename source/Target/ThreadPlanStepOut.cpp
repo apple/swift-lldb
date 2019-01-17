@@ -54,17 +54,35 @@ ThreadPlanStepOut::ThreadPlanStepOut(
       m_stop_others(stop_others), m_immediate_step_from_function(nullptr),
       m_is_swift_error_value(false),
       m_calculate_return_value(gather_return_value) {
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_STEP));
   SetFlagsToDefault();
   SetupAvoidNoDebug(step_out_avoids_code_without_debug_info);
 
   m_step_from_insn = m_thread.GetRegisterContext()->GetPC(0);
 
-  StackFrameSP return_frame_sp(m_thread.GetStackFrameAtIndex(frame_idx + 1));
+  uint32_t return_frame_index = frame_idx + 1;
+  StackFrameSP return_frame_sp(
+      m_thread.GetStackFrameAtIndex(return_frame_index));
   StackFrameSP immediate_return_from_sp(
       m_thread.GetStackFrameAtIndex(frame_idx));
 
   if (!return_frame_sp || !immediate_return_from_sp)
     return; // we can't do anything here.  ValidatePlan() will return false.
+
+  // While stepping out, behave as-if artificial frames are not present.
+  while (return_frame_sp->IsArtificial()) {
+    m_stepped_past_frames.push_back(return_frame_sp);
+
+    ++return_frame_index;
+    return_frame_sp = m_thread.GetStackFrameAtIndex(return_frame_index);
+
+    // We never expect to see an artificial frame without a regular ancestor.
+    // If this happens, log the issue and defensively refuse to step out.
+    if (!return_frame_sp) {
+      LLDB_LOG(log, "Can't step out of frame with artificial ancestors");
+      return;
+    }
+  }
 
   m_step_out_to_id = return_frame_sp->GetStackID();
   m_immediate_step_from_id = immediate_return_from_sp->GetStackID();
@@ -73,7 +91,7 @@ ThreadPlanStepOut::ThreadPlanStepOut(
   // have to be a little more careful.  It is non-trivial to determine the real
   // "return code address" for an inlined frame, so we have to work our way to
   // that frame and then step out.
-  if (immediate_return_from_sp && immediate_return_from_sp->IsInlined()) {
+  if (immediate_return_from_sp->IsInlined()) {
     if (frame_idx > 0) {
       // First queue a plan that gets us to this inlined frame, and when we get
       // there we'll queue a second plan that walks us out of this frame.
@@ -88,7 +106,7 @@ ThreadPlanStepOut::ThreadPlanStepOut(
       // just do that now.
       QueueInlinedStepPlan(false);
     }
-  } else if (return_frame_sp) {
+  } else {
     // Find the return address and set a breakpoint there:
     // FIXME - can we do this more securely if we know first_insn?
 
@@ -121,7 +139,10 @@ ThreadPlanStepOut::ThreadPlanStepOut(
     Breakpoint *return_bp = m_thread.CalculateTarget()
                                 ->CreateBreakpoint(m_return_addr, true, false)
                                 .get();
+
     if (return_bp != nullptr) {
+      if (return_bp->IsHardware() && !return_bp->HasResolvedLocations())
+        m_could_not_resolve_hw_bp = true;
       return_bp->SetThreadID(m_thread.GetID());
       m_return_bp_id = return_bp->GetID();
       return_bp->SetBreakpointKind("step-out");
@@ -239,19 +260,35 @@ void ThreadPlanStepOut::GetDescription(Stream *s,
         s->Printf(" using breakpoint site %d", m_return_bp_id);
     }
   }
+
+  s->Printf("\n");
+  for (StackFrameSP frame_sp : m_stepped_past_frames) {
+    s->Printf("Stepped out past: ");
+    frame_sp->DumpUsingSettingsFormat(s);
+  }
 }
 
 bool ThreadPlanStepOut::ValidatePlan(Stream *error) {
   if (m_step_out_to_inline_plan_sp)
     return m_step_out_to_inline_plan_sp->ValidatePlan(error);
-  else if (m_step_through_inline_plan_sp)
+
+  if (m_step_through_inline_plan_sp)
     return m_step_through_inline_plan_sp->ValidatePlan(error);
-  else if (m_return_bp_id == LLDB_INVALID_BREAK_ID) {
+
+  if (m_could_not_resolve_hw_bp) {
+    if (error)
+      error->PutCString(
+          "Could not create hardware breakpoint for thread plan.");
+    return false;
+  }
+
+  if (m_return_bp_id == LLDB_INVALID_BREAK_ID) {
     if (error)
       error->PutCString("Could not create return address breakpoint.");
     return false;
-  } else
-    return true;
+  }
+
+  return true;
 }
 
 bool ThreadPlanStepOut::DoPlanExplainsStop(Event *event_ptr) {
@@ -299,7 +336,7 @@ bool ThreadPlanStepOut::DoPlanExplainsStop(Event *event_ptr) {
 
         if (done) {
           CalculateReturnValue();
-          if (InvokeShouldStopHereCallback(eFrameCompareOlder)) {
+          if (InvokeShouldStopHereCallback(eFrameCompareOlder, m_status)) {
             SetPlanComplete();
           }
         }
@@ -361,17 +398,17 @@ bool ThreadPlanStepOut::ShouldStop(Event *event_ptr) {
 
   if (done) {
     CalculateReturnValue();
-    if (InvokeShouldStopHereCallback(eFrameCompareOlder)) {
+    if (InvokeShouldStopHereCallback(eFrameCompareOlder, m_status)) {
       SetPlanComplete();
     } else {
       m_step_out_further_plan_sp =
-          QueueStepOutFromHerePlan(m_flags, eFrameCompareOlder);
+          QueueStepOutFromHerePlan(m_flags, eFrameCompareOlder, m_status);
       if (m_step_out_further_plan_sp->GetKind() == eKindStepOut)
       {
         // If we are planning to step out further, then the frame we are going
         // to step out to is about to go away, so we need to reset the frame
         // we are stepping out to to the one our step out plan is aiming for.
-        ThreadPlanStepOut *as_step_out 
+        ThreadPlanStepOut *as_step_out
           = static_cast<ThreadPlanStepOut *>(m_step_out_further_plan_sp.get());
         m_step_out_to_id = as_step_out->m_step_out_to_id;
       }
@@ -518,7 +555,7 @@ void ThreadPlanStepOut::CalculateReturnValue() {
       StackFrameSP frame_sp = m_thread.GetStackFrameAtIndex(0);
       if (!frame_sp)
           return;
-      
+
       m_swift_error_return =
             swift_runtime->GetErrorReturnLocationAfterReturn(frame_sp);
     }

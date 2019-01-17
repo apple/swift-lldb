@@ -80,6 +80,7 @@ private:
                                                  // if ShouldStopHere told us
                                                  // to.
   Function *m_immediate_step_from_function;
+  std::vector<lldb::StackFrameSP> m_stepped_past_frames;
   lldb::ValueObjectSP m_return_valobj_sp;
   bool m_is_swift_error_value;
   bool m_calculate_return_value;
@@ -87,7 +88,7 @@ private:
   friend lldb::ThreadPlanSP Thread::QueueThreadPlanForStepOut(
       bool abort_other_plans, SymbolContext *addr_context, bool first_insn,
       bool stop_others, Vote stop_vote, Vote run_vote, uint32_t frame_idx,
-      LazyBool step_out_avoids_code_without_debug_info);
+      Status &status, LazyBool step_out_avoids_code_without_debug_info);
 
   void SetupAvoidNoDebug(LazyBool step_out_avoids_code_without_debug_info);
   // Need an appropriate marker for the current stack so we can tell step out
