@@ -88,19 +88,6 @@ public:
     return is_error ? "$E" : "$R";
   }
 
-  const char *GetReplExprModulesDir() const {
-    if (m_repl_expr_modules_dir.empty())
-      return NULL;
-    return m_repl_expr_modules_dir.c_str();
-  }
-
-  void SetReplExprModulesDir(const char *path) {
-    if (path)
-      m_repl_expr_modules_dir = path;
-    else
-      m_repl_expr_modules_dir.clear();
-  }
-
   void RemovePersistentVariable(lldb::ExpressionVariableSP variable) override;
 
   void RegisterSwiftPersistentDecl(swift::ValueDecl *value_decl);
@@ -143,8 +130,6 @@ private:
 
   SwiftDeclMap m_swift_persistent_decls; ///< The persistent functions declared
                                          ///by the user.
-
-  std::string m_repl_expr_modules_dir;
 
   typedef std::set<lldb_private::ConstString> HandLoadedModuleSet;
   HandLoadedModuleSet m_hand_loaded_modules; ///< These are the names of modules
