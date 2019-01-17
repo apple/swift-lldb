@@ -1941,6 +1941,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     log->PutCString(s.c_str());
   }
 
+  // SWIFT_ENABLE_TENSORFLOW
   // Serialize the file if modules directory is set.
   if (auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir()) {
     llvm::SmallString<256> filename(expr_module_dir);
@@ -2041,7 +2042,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   // list of loaded modules, and copy the Decls that were globalized
   // as part of the parse from the staging area in the external
   // lookup object into the SwiftPersistentExpressionState.
-  // SWIFT_ENABLE_TENSORFLOW: 
+  // SWIFT_ENABLE_TENSORFLOW
   swift::ModuleDecl *module = nullptr;
   if (!swift_ast_ctx->GetReplExprModulesDir()) {
     // Just reuse the module if no serialization is requested.

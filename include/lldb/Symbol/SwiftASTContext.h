@@ -214,6 +214,7 @@ public:
       m_resource_dir.clear();
   }
 
+  // SWIFT_ENABLE_TENSORFLOW
   // Returns true if successful, false otherwise.
   bool InitializeReplExprModulesDir() {
     // Return if we should not use serialization.
@@ -883,7 +884,7 @@ protected:
                                     // target's process pointer be filled in
   std::string m_platform_sdk_path;
   std::string m_resource_dir;
-  std::string m_repl_expr_modules_dir;
+  std::string m_repl_expr_modules_dir;  // SWIFT_ENABLE_TENSORFLOW
   typedef std::map<Module *, std::vector<lldb::DataBufferSP>> ASTFileDataMap;
   ASTFileDataMap m_ast_file_data_map;
   // FIXME: this vector is needed because the LLDBNameLookup debugger clients
