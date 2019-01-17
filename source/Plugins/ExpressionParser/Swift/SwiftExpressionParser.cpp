@@ -1943,6 +1943,12 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
 
   // SWIFT_ENABLE_TENSORFLOW
   // Serialize the file if modules directory is set.
+  // Note that the serialization should be done immediately after
+  // SILGen and before any other passes run. This is important
+  // because of the following reasons:
+  //  - passes like differentation need to see the code before optimizations.
+  //  - Some passes may create new functions, but only the functions defined in
+  //    the lldb repl line should be serialized.
   if (auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir()) {
     llvm::SmallString<256> filename(expr_module_dir);
     std::string module_name;
