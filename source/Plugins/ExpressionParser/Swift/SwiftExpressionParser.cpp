@@ -91,6 +91,7 @@ SwiftExpressionParser::SwiftExpressionParser(
 
   // TODO This code is copied from ClangExpressionParser.cpp.
   // Factor this out into common code.
+
   lldb::TargetSP target_sp;
   if (exe_scope) {
     target_sp = exe_scope->CalculateTarget();
@@ -1961,7 +1962,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   }
 
   runSILDiagnosticPasses(*sil_module);
-  
+
   // SWIFT_ENABLE_TENSORFLOW
   // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
   // stop running the optimization passes and drop the explicit call of the partitioning
@@ -1974,6 +1975,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   // runs at -O0.  We need a proper deabstraction pass to do that though.
   runSILTFPartitionPass(*sil_module);
   // SWIFT_ENABLE_TENSORFLOW
+
 
   if (log) {
     std::string s;
