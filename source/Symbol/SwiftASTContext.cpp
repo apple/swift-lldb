@@ -1194,6 +1194,15 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
         log->Printf("No resource dir available for module's SwiftASTContext.");
     }
 
+    // SWIFT_ENABLE_TENSORFLOW
+    // If we need to use serialization and the directory is not created already,
+    // create a unique directory where we put serialized modules from REPL.
+    if (!swift_ast_sp->InitializeReplExprModulesDir()) {
+      if (log)
+        log->Printf("Unable to create directory for serialized modules.");
+      return TypeSystemSP();
+    }
+
     if (!got_serialized_options) {
 
       std::vector<std::string> framework_search_paths;
@@ -1340,6 +1349,13 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
 	});
     }
     pool.wait();
+  }
+
+  // SWIFT_ENABLE_TENSORFLOW
+  // Create a unique directory where we put serialized modules from REPL.
+  if (!swift_ast_sp->InitializeReplExprModulesDir()) {
+    logError("Unable to create directory for serialized modules.");
+    return lldb::TypeSystemSP();
   }
 
   Status module_error;
@@ -2530,6 +2546,19 @@ swift::SearchPathOptions &SwiftASTContext::GetSearchPathOptions() {
       if (resource_dir.Exists())
         ConfigureResourceDirs(GetCompilerInvocation(), resource_dir, triple);
     }
+
+    // SWIFT_ENABLE_TENSORFLOW
+    // Update search path if we are serializing the expressions.
+    if (auto repl_modules_dir = GetReplExprModulesDir()) {
+      Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_TYPES));
+      if (log) {
+        log->Printf(
+            "[SERIALIZATION] Using %s for serialized expression modules",
+            repl_modules_dir);
+      }
+      search_path_opts.ImportSearchPaths.emplace_back(repl_modules_dir);
+    }
+
   }
 
   return search_path_opts;

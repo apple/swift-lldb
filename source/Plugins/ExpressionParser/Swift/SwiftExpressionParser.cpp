@@ -71,6 +71,7 @@
 #include "swift/SIL/SILFunction.h"
 #include "swift/SIL/SILModule.h"
 #include "swift/SILOptimizer/PassManager/Passes.h"
+#include "swift/Serialization/SerializationOptions.h"
 #include "swift/Serialization/SerializedModuleLoader.h"
 #include "swift/Subsystems.h"
 
@@ -1940,6 +1941,33 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     log->PutCString(s.c_str());
   }
 
+  // SWIFT_ENABLE_TENSORFLOW
+  // Serialize the file if modules directory is set.
+  // Note that the serialization should be done immediately after
+  // SILGen and before any other passes run. This is important
+  // because of the following reasons:
+  //  - passes like differentation need to see the code before optimizations.
+  //  - Some passes may create new functions, but only the functions defined in
+  //    the lldb repl line should be serialized.
+  if (auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir()) {
+    llvm::SmallString<256> filename(expr_module_dir);
+    std::string module_name;
+    GetNameFromModule(&parsed_expr->module, module_name);
+    llvm::sys::path::append(filename, module_name);
+    llvm::sys::path::replace_extension(filename, ".swiftmodule");
+    // TODO: Check language is swift
+    swift::SerializationOptions serializationOpts;
+    serializationOpts.OutputPath = filename.c_str();
+    serializationOpts.SerializeAllSIL = true;
+    serializationOpts.IsSIB = true;
+    if (log) {
+      log->Printf("Serializing module %s to %s\n", module_name.c_str(),
+                  serializationOpts.OutputPath);
+    }
+    swift::serialize(sil_module->getSwiftModule(), serializationOpts,
+                     sil_module.get());
+  }
+
   runSILDiagnosticPasses(*sil_module);
 
   // SWIFT_ENABLE_TENSORFLOW
@@ -2020,7 +2048,37 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   // list of loaded modules, and copy the Decls that were globalized
   // as part of the parse from the staging area in the external
   // lookup object into the SwiftPersistentExpressionState.
-  swift::ModuleDecl *module = &parsed_expr->module;
+  // SWIFT_ENABLE_TENSORFLOW
+  swift::ModuleDecl *module = nullptr;
+  if (!swift_ast_ctx->GetReplExprModulesDir()) {
+    // Just reuse the module if no serialization is requested.
+    module = &parsed_expr->module;
+  } else {
+    // Reload the serialized module so that we can look
+    // into SIL functions in subsequent cells if needed (e.g., differentiation).
+    if (log) {
+      log->Printf("Reloading the serialized module.\n");
+    }
+
+    lldb::StackFrameSP this_frame_sp(m_stack_frame_wp.lock());
+
+    if (this_frame_sp) {
+      lldb::ProcessSP process_sp(this_frame_sp->CalculateProcess());
+      Status error;
+      std::string module_name = parsed_expr->module.getName().str();
+      if (process_sp && !module_name.empty()) {
+        ConstString module_const_str(module_name);
+        module = swift_ast_ctx->FindAndLoadModule(module_const_str,
+                                                  *process_sp.get(), error);
+      }
+    }
+
+    if (!module || swift_ast_ctx->HasErrors()) {
+      diagnostic_manager.PutString(eDiagnosticSeverityError,
+                                   "Couldn't reload the serialized module file.");
+      return 1;
+    }
+  }
   parsed_expr->ast_context.LoadedModules.insert({module->getName(), module});
   swift_ast_ctx->CacheModule(module);
   if (m_sc.target_sp) {
