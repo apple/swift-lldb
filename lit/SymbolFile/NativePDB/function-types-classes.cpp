@@ -117,11 +117,11 @@ auto incomplete = &three<Incomplete*, Incomplete**, const Incomplete*>;
 // CHECK: |-VarDecl {{.*}} c 'U (*)(volatile E *, volatile S &, volatile C &&)'
 // CHECK: |-VarDecl {{.*}} d 'C (*)(const volatile U *, const volatile E &, const volatile S &&)'
 // CHECK: |-CXXRecordDecl {{.*}} struct B
-// CHECK: | |-CXXRecordDecl {{.*}} struct A
-// CHECK: | | |-CXXRecordDecl {{.*}} struct S
+// CHECK: | `-CXXRecordDecl {{.*}} struct A
+// CHECK: |   `-CXXRecordDecl {{.*}} struct S
 // CHECK: |-NamespaceDecl {{.*}} A
 // CHECK: | |-CXXRecordDecl {{.*}} struct C
-// CHECK: | | |-CXXRecordDecl {{.*}} struct S
+// CHECK: | | `-CXXRecordDecl {{.*}} struct S
 // CHECK: | `-NamespaceDecl {{.*}} B
 // CHECK: |   `-CXXRecordDecl {{.*}} struct S
 // CHECK: |-VarDecl {{.*}} e 'A::B::S *(*)(B::A::S *, A::C::S &)'
