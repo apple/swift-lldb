@@ -218,7 +218,7 @@ public:
   // Returns true if successful, false otherwise.
   bool InitializeReplExprModulesDir() {
     // Return if we should not use serialization.
-    if (getenv("LLDB_DONT_USE_SERIALIZATION"))
+    if (!getenv("LLDB_USE_SERIALIZATION"))
       return true;
     // Return if this is already initialized!
     if (GetReplExprModulesDir())
