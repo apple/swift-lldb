@@ -13,8 +13,10 @@ function(add_tensorflow_compiler_flags target)
     set(swift_lib_dir "../../swift-${HOST_VARIANT}-${HOST_VARIANT_ARCH}")
     set(rpath_lldb_binary "${swift_lib_dir}/lib/swift/${HOST_VARIANT}")
     set(rpath_toolchain_lldb_binary "../lib/swift/${HOST_VARIANT}")
+    set(rpath_lldb_python_lib "../../../${rpath_lldb_binary}")
+    set(rpath_toolchain_lldb_python_lib "../../../${rpath_lldb_binary}")
     set_property(TARGET "${target}" APPEND_STRING PROPERTY
-      INSTALL_RPATH "$ORIGIN/${rpath_lldb_binary}:$ORIGIN/${rpath_toolchain_lldb_binary}")
+      INSTALL_RPATH "$ORIGIN/${rpath_lldb_binary}:$ORIGIN/${rpath_toolchain_lldb_binary}:$ORIGIN/${rpath_lldb_python_lib}:$ORIGIN/${rpath_toolchain_lldb_python_lib}")
     set_property(TARGET "${target}" APPEND_STRING PROPERTY
       LINK_FLAGS " -L${LLDB_PATH_TO_SWIFT_BUILD}/lib/swift/${HOST_VARIANT} -ltensorflow -ltensorflow_framework")
   endif()

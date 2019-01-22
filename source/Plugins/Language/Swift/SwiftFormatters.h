@@ -60,8 +60,14 @@ bool StaticString_SummaryProvider(
     ValueObject &valobj, Stream &stream, const TypeSummaryOptions &,
     StringPrinter::ReadStringAndDumpToStreamOptions);
 
-bool NSContiguousString_SummaryProvider(ValueObject &valobj, Stream &stream,
-                                        const TypeSummaryOptions &options);
+bool SwiftSharedString_SummaryProvider(ValueObject &valobj, Stream &stream,
+                                       const TypeSummaryOptions &options);
+bool SwiftSharedString_SummaryProvider_2(
+    ValueObject &valobj, Stream &stream, const TypeSummaryOptions &,
+    StringPrinter::ReadStringAndDumpToStreamOptions);
+
+bool SwiftStringStorage_SummaryProvider(ValueObject &valobj, Stream &stream,
+                                        const TypeSummaryOptions &);
 
 bool Bool_SummaryProvider(ValueObject &valobj, Stream &stream,
                           const TypeSummaryOptions &options);
@@ -90,6 +96,8 @@ bool AccelerateSIMD_SummaryProvider(ValueObject &valobj, Stream &stream,
 // SWIFT_ENABLE_TENSORFLOW
 bool ObjectDescription_SummaryProvider(ValueObject &valobj, Stream &stream,
                                        const TypeSummaryOptions &options);
+bool GLKit_SummaryProvider(ValueObject &valobj, Stream &stream,
+                           const TypeSummaryOptions &options);
 
 // TODO: this is a transient workaround for the fact that
 // ObjC types are totally opaque in Swift for LLDB

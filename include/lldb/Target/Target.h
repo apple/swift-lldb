@@ -51,7 +51,7 @@
 
 namespace lldb_private {
 
-extern OptionEnumValueElement g_dynamic_value_types[];
+OptionEnumValues GetDynamicValueTypes();
 
 typedef enum InlineStrategy {
   eInlineBreakpointsNever = 0,
@@ -221,6 +221,10 @@ public:
   void SetInjectLocalVariables(ExecutionContext *exe_ctx, bool b);
 
   bool GetUseModernTypeLookup() const;
+
+  void SetRequireHardwareBreakpoints(bool b);
+
+  bool GetRequireHardwareBreakpoints() const;
 
 private:
   //------------------------------------------------------------------
@@ -415,6 +419,10 @@ public:
 
   void SetIsForUtilityExpr(bool b) { m_running_utility_expression = b; }
 
+  void SetPreparePlaygroundStubFunctions(bool b) { m_prepare_playground_stub_functions = b; }
+
+  bool GetPreparePlaygroundStubFunctions() const { return m_prepare_playground_stub_functions; }
+
 private:
   ExecutionPolicy m_execution_policy = default_execution_policy;
   lldb::LanguageType m_language = lldb::eLanguageTypeUnknown;
@@ -450,6 +458,7 @@ private:
   // originates
   mutable std::string m_pound_line_file;
   mutable uint32_t m_pound_line_line;
+  bool m_prepare_playground_stub_functions = true;
 };
 
 //----------------------------------------------------------------------
@@ -656,6 +665,15 @@ public:
                             bool throw_bp, bool internal,
                             Args *additional_args = nullptr,
                             Status *additional_args_error = nullptr);
+
+  lldb::BreakpointSP
+  CreateScriptedBreakpoint(const llvm::StringRef class_name,
+                           const FileSpecList *containingModules,
+                           const FileSpecList *containingSourceFiles,
+                           bool internal,
+                           bool request_hardware,
+                           StructuredData::ObjectSP extra_args_sp,
+                           Status *creation_error = nullptr);
 
   // This is the same as the func_name breakpoint except that you can specify a
   // vector of names.  This is cheaper than a regular expression breakpoint in

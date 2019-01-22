@@ -642,7 +642,8 @@ public:
 
   lldb::Format GetFormat(void *type) override;
 
-  uint32_t GetNumChildren(void *type, bool omit_empty_base_classes) override;
+  uint32_t GetNumChildren(void *type, bool omit_empty_base_classes,
+                          const ExecutionContext *exe_ctx) override;
 
   lldb::BasicType GetBasicTypeEnumeration(void *type) override;
 
@@ -885,6 +886,8 @@ protected:
   std::string m_platform_sdk_path;
   std::string m_resource_dir;
   std::string m_repl_expr_modules_dir;  // SWIFT_ENABLE_TENSORFLOW
+
+
   typedef std::map<Module *, std::vector<lldb::DataBufferSP>> ASTFileDataMap;
   ASTFileDataMap m_ast_file_data_map;
   // FIXME: this vector is needed because the LLDBNameLookup debugger clients
@@ -932,6 +935,22 @@ protected:
   /// Apply a PathMappingList dictionary on all search paths in the
   /// ClangImporterOptions.
   void RemapClangImporterOptions(const PathMappingList &path_map);
+
+  /// Infer the appropriate Swift resource directory for a target triple.
+  llvm::StringRef GetResourceDir(const llvm::Triple &target);
+
+  /// Implementation of \c GetResourceDir.
+  static std::string GetResourceDir(llvm::StringRef platform_sdk_path,
+                                    llvm::StringRef swift_stdlib_os_dir,
+                                    std::string swift_dir,
+                                    std::string xcode_contents_path,
+                                    std::string toolchain_path,
+                                    std::string cl_tools_path);
+
+  /// Return the name of the OS-specific subdirectory containing the
+  /// Swift stdlib needed for \p target.
+  static llvm::StringRef GetSwiftStdlibOSDir(const llvm::Triple &target,
+                                             const llvm::Triple &host);
 };
 
 class SwiftASTContextForExpressions : public SwiftASTContext {

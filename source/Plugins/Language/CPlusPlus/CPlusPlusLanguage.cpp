@@ -39,6 +39,7 @@
 #include "CxxStringTypes.h"
 #include "LibCxx.h"
 #include "LibCxxAtomic.h"
+#include "LibCxxVariant.h"
 #include "LibStdcpp.h"
 
 using namespace lldb;
@@ -404,8 +405,17 @@ static void LoadLibCxxFormatters(lldb::TypeCategoryImplSP cpp_category_sp) {
 
 #ifndef LLDB_DISABLE_PYTHON
   lldb::TypeSummaryImplSP std_string_summary_sp(new CXXFunctionSummaryFormat(
-      stl_summary_flags, lldb_private::formatters::LibcxxStringSummaryProvider,
+      stl_summary_flags,
+      lldb_private::formatters::LibcxxStringSummaryProviderASCII,
       "std::string summary provider"));
+  lldb::TypeSummaryImplSP std_stringu16_summary_sp(new CXXFunctionSummaryFormat(
+      stl_summary_flags,
+      lldb_private::formatters::LibcxxStringSummaryProviderUTF16,
+      "std::u16string summary provider"));
+  lldb::TypeSummaryImplSP std_stringu32_summary_sp(new CXXFunctionSummaryFormat(
+      stl_summary_flags,
+      lldb_private::formatters::LibcxxStringSummaryProviderUTF32,
+      "std::u32string summary provider"));
   lldb::TypeSummaryImplSP std_wstring_summary_sp(new CXXFunctionSummaryFormat(
       stl_summary_flags, lldb_private::formatters::LibcxxWStringSummaryProvider,
       "std::wstring summary provider"));
@@ -418,6 +428,16 @@ static void LoadLibCxxFormatters(lldb::TypeCategoryImplSP cpp_category_sp) {
       ConstString("std::__1::basic_string<char, std::__1::char_traits<char>, "
                   "std::__1::allocator<char> >"),
       std_string_summary_sp);
+  cpp_category_sp->GetTypeSummariesContainer()->Add(
+      ConstString(
+          "std::__1::basic_string<char16_t, std::__1::char_traits<char16_t>, "
+          "std::__1::allocator<char16_t> >"),
+      std_stringu16_summary_sp);
+  cpp_category_sp->GetTypeSummariesContainer()->Add(
+      ConstString(
+          "std::__1::basic_string<char32_t, std::__1::char_traits<char32_t>, "
+          "std::__1::allocator<char32_t> >"),
+      std_stringu32_summary_sp);
   cpp_category_sp->GetTypeSummariesContainer()->Add(
       ConstString("std::__ndk1::basic_string<char, "
                   "std::__ndk1::char_traits<char>, "
@@ -516,6 +536,10 @@ static void LoadLibCxxFormatters(lldb::TypeCategoryImplSP cpp_category_sp) {
                   "libc++ std::optional synthetic children",
                   ConstString("^std::__(ndk)?1::optional<.+>(( )?&)?$"),
                   stl_synth_flags, true);
+  AddCXXSynthetic(cpp_category_sp, LibcxxVariantFrontEndCreator,
+                  "libc++ std::variant synthetic children",
+                  ConstString("^std::__(ndk)?1::variant<.+>(( )?&)?$"),
+                  stl_synth_flags, true);
   AddCXXSynthetic(
       cpp_category_sp,
       lldb_private::formatters::LibcxxAtomicSyntheticFrontEndCreator,
@@ -541,6 +565,11 @@ static void LoadLibCxxFormatters(lldb::TypeCategoryImplSP cpp_category_sp) {
       "weak_ptr synthetic children",
       ConstString("^(std::__(ndk)?1::)weak_ptr<.+>(( )?&)?$"), stl_synth_flags,
       true);
+
+  AddCXXSummary(
+      cpp_category_sp, lldb_private::formatters::LibcxxFunctionSummaryProvider,
+      "libc++ std::function summary provider",
+      ConstString("^std::__(ndk)?1::function<.+>$"), stl_summary_flags, true);
 
   stl_summary_flags.SetDontShowChildren(false);
   stl_summary_flags.SetSkipPointers(false);
@@ -612,6 +641,11 @@ static void LoadLibCxxFormatters(lldb::TypeCategoryImplSP cpp_category_sp) {
                 "libc++ std::optional summary provider",
                 ConstString("^std::__(ndk)?1::optional<.+>(( )?&)?$"),
                 stl_summary_flags, true);
+  AddCXXSummary(cpp_category_sp,
+                lldb_private::formatters::LibcxxVariantSummaryProvider,
+                "libc++ std::variant summary provider",
+                ConstString("^std::__(ndk)?1::variant<.+>(( )?&)?$"),
+                stl_summary_flags, true);
 
   stl_summary_flags.SetSkipPointers(true);
 
@@ -638,11 +672,6 @@ static void LoadLibCxxFormatters(lldb::TypeCategoryImplSP cpp_category_sp) {
       "std::map iterator synthetic children",
       ConstString("^std::__(ndk)?1::__map_iterator<.+>$"), stl_synth_flags,
       true);
-
-  AddCXXSynthetic(
-      cpp_category_sp, lldb_private::formatters::LibcxxFunctionFrontEndCreator,
-      "std::function synthetic value provider",
-      ConstString("^std::__(ndk)?1::function<.+>$"), stl_synth_flags, true);
 #endif
 }
 

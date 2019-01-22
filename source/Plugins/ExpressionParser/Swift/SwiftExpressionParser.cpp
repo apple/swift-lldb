@@ -212,9 +212,7 @@ static bool PerformAutoImport(SwiftASTContext &swift_ast_context,
     cu_modules = &compile_unit->GetImportedModules();
 
   llvm::SmallVector<swift::ModuleDecl::ImportedModule, 2> imported_modules;
-  llvm::SmallVector<std::pair<swift::ModuleDecl::ImportedModule,
-                              swift::SourceFile::ImportOptions>,
-                    2>
+  llvm::SmallVector<swift::SourceFile::ImportedModuleDesc, 2>
       additional_imports;
 
   source_file.getImportedModules(imported_modules,
@@ -271,7 +269,7 @@ static bool PerformAutoImport(SwiftASTContext &swift_ast_context,
       }
     }
 
-    additional_imports.push_back(std::make_pair(
+    additional_imports.push_back(swift::SourceFile::ImportedModuleDesc(
         std::make_pair(swift::ModuleDecl::AccessPathTy(), swift_module),
         swift::SourceFile::ImportOptions()));
     imported_modules.push_back(
@@ -1185,13 +1183,8 @@ static swift::ASTContext *SetupASTContext(
   if (disable_objc_runtime())
     swift_ast_context->GetLanguageOptions().EnableObjCInterop = false;
 
-  if (repl || playground) {
-    swift_ast_context->GetLanguageOptions().Playground = true;
-    swift_ast_context->GetIRGenOptions().Playground = true;
-  } else {
-    swift_ast_context->GetLanguageOptions().Playground = true;
-    swift_ast_context->GetIRGenOptions().Playground = false;
-  }
+  swift_ast_context->GetLanguageOptions().Playground = repl || playground;
+  swift_ast_context->GetIRGenOptions().Playground = repl || playground;
 
   // For the expression parser and REPL we want to relax the
   // requirement that you put "try" in front of every expression that
@@ -1570,7 +1563,10 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
   if (repl || !playground) {
     code_manipulator =
         llvm::make_unique<SwiftASTManipulator>(*source_file, repl);
-    code_manipulator->RewriteResult();
+
+    if (!playground) {
+      code_manipulator->RewriteResult();
+    }
   }
 
   Status auto_import_error;
@@ -1787,13 +1783,6 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
 
   // Allow variables to be re-used from previous REPL statements.
   if (m_sc.target_sp && (repl || !playground)) {
-    // Do this first so we don't pollute the persistent variable
-    // namespace.
-    if (!parsed_expr->code_manipulator->CheckPatternBindings()) {
-      DiagnoseSwiftASTContextError();
-      return 1;
-    }
-
     Status error;
     SwiftASTContext *scratch_ast_context = m_swift_ast_context->get();
 

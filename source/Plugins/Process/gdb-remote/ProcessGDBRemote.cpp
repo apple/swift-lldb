@@ -110,12 +110,11 @@ void DumpProcessGDBRemotePacketHistory(void *p, const char *path) {
 
 namespace {
 
-static PropertyDefinition g_properties[] = {
-    {"packet-timeout", OptionValue::eTypeUInt64, true, 1, NULL, NULL,
+static constexpr PropertyDefinition g_properties[] = {
+    {"packet-timeout", OptionValue::eTypeUInt64, true, 1, NULL, {},
      "Specify the default packet timeout in seconds."},
-    {"target-definition-file", OptionValue::eTypeFileSpec, true, 0, NULL, NULL,
-     "The file that provides the description for remote target registers."},
-    {NULL, OptionValue::eTypeInvalid, false, 0, NULL, NULL, NULL}};
+    {"target-definition-file", OptionValue::eTypeFileSpec, true, 0, NULL, {},
+     "The file that provides the description for remote target registers."}};
 
 enum { ePropertyPacketTimeout, ePropertyTargetDefinitionFile };
 
@@ -689,7 +688,9 @@ Status ProcessGDBRemote::DoConnectRemote(Stream *strm,
         if (m_gdb_comm.GetProcessArchitecture().IsValid()) {
           target.SetArchitecture(m_gdb_comm.GetProcessArchitecture());
         } else {
-          target.SetArchitecture(m_gdb_comm.GetHostArchitecture());
+          if (m_gdb_comm.GetHostArchitecture().IsValid()) {
+            target.SetArchitecture(m_gdb_comm.GetHostArchitecture());
+          }
         }
       }
 
@@ -4509,10 +4510,17 @@ bool ProcessGDBRemote::GetGDBServerRegisterInfo(ArchSpec &arch_to_use) {
       //   <architecture>arm</architecture> (seen from Segger JLink on unspecified arm board)
       // use that if we don't have anything better.
       if (!arch_to_use.IsValid() && !target_info.arch.empty()) {
-        if (target_info.arch == "i386:x86-64")
-        {
+        if (target_info.arch == "i386:x86-64") {
           // We don't have any information about vendor or OS.
           arch_to_use.SetTriple("x86_64--");
+          GetTarget().MergeArchitecture(arch_to_use);
+        }
+
+        // SEGGER J-Link jtag boards send this very-generic arch name,
+        // we'll need to use this if we have absolutely nothing better
+        // to work with or the register definitions won't be accepted.
+        if (target_info.arch == "arm") {
+          arch_to_use.SetTriple("arm--");
           GetTarget().MergeArchitecture(arch_to_use);
         }
       }

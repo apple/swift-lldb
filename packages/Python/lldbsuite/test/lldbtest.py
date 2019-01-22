@@ -1302,18 +1302,6 @@ class Base(unittest2.TestCase):
                 version = m.group(1)
         return version
 
-    def getGoCompilerVersion(self):
-        """ Returns a string that represents the go compiler version, or None if go is not found.
-        """
-        compiler = which("go")
-        if compiler:
-            version_output = system([[compiler, "version"]])[0]
-            for line in version_output.split(os.linesep):
-                m = re.search('go version (devel|go\\S+)', line)
-                if m:
-                    return m.group(1)
-        return None
-
     def platformIsDarwin(self):
         """Returns true if the OS triple for the selected platform is any valid apple OS"""
         return lldbplatformutil.platformIsDarwin()
@@ -1582,12 +1570,6 @@ class Base(unittest2.TestCase):
                                     dictionary, testdir, testname):
             raise Exception("Don't know how to build binary with gmodules")
 
-    def buildGo(self):
-        """Build the default go binary.
-        """
-        exe = self.getBuildArtifact("a.out")
-        system([[which('go'), 'build -gcflags "-N -l" -o %s main.go' % exe]])
-
     def signBinary(self, binary_path):
         if sys.platform.startswith("darwin"):
             codesign_cmd = "codesign --force --sign \"%s\" %s" % (
@@ -1600,6 +1582,7 @@ class Base(unittest2.TestCase):
             # Begin Swift modifications
             "llvm-build/Ninja-DebugAssert/llvm-macosx-x86_64/bin/clang",
             "llvm-build/Ninja-ReleaseAssert/llvm-macosx-x86_64/bin/clang",
+            "llvm-build/Ninja-RelWithDebInfoAssert/llvm-macosx-x86_64/bin/clang",
             # End Swift modifications
             "llvm-build/Release+Asserts/x86_64/bin/clang",
             "llvm-build/Debug+Asserts/x86_64/bin/clang",
@@ -1879,8 +1862,9 @@ class TestBase(Base):
         # decorators.
         Base.setUp(self)
 
-        # Set the clang modules cache path.
-        mod_cache = os.path.join(self.getBuildDir(), "module-cache-lldb")
+        # Set the clang modules cache path used by LLDB.
+        mod_cache = os.path.join(os.path.join(os.environ["LLDB_BUILD"],
+                                              "module-cache-lldb"))
         self.runCmd('settings set symbols.clang-modules-cache-path "%s"'
                     % mod_cache)
 
@@ -2167,6 +2151,8 @@ class TestBase(Base):
 
         # Run FileCheck.
         filecheck_bin = configuration.get_filecheck_path()
+        if not filecheck_bin:
+            self.assertTrue(False, "No valid FileCheck executable specified")
         filecheck_args = [filecheck_bin, check_file_abs]
         if filecheck_options:
             filecheck_args.append(filecheck_options)
