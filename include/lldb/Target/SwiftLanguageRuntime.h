@@ -50,6 +50,15 @@ class TypeBase;
 
 namespace lldb_private {
 
+/// Statically cast an opaque type to a Swift type.
+swift::Type GetSwiftType(void *opaque_ptr);
+/// Statically cast an opaque type to a Swift type and get its canonical form.
+swift::CanType GetCanonicalSwiftType(void *opaque_ptr);
+/// Statically cast a CompilerType to a Swift type.
+swift::Type GetSwiftType(const CompilerType &type);
+/// Statically cast a CompilerType to a Swift type and get its canonical form.
+swift::CanType GetCanonicalSwiftType(const CompilerType &type);
+
 class SwiftLanguageRuntime : public LanguageRuntime {
 public:
   class MetadataPromise;
@@ -200,7 +209,9 @@ public:
   static bool IsSwiftMangledName(const char *name);
   
   static bool IsSwiftClassName(const char *name);
-  
+
+  static bool IsSymbolARuntimeThunk(const Symbol &symbol);
+
   static const std::string GetCurrentMangledName(const char *mangled_name);
 
   struct SwiftErrorDescriptor {
@@ -285,8 +296,6 @@ public:
   virtual lldb::ThreadPlanSP GetStepThroughTrampolinePlan(Thread &thread,
                                                           bool stop_others);
 
-  bool IsSymbolARuntimeThunk(const Symbol &symbol) override;
-
   // this call should return true if it could set the name and/or the type
   virtual bool GetDynamicTypeAndAddress(ValueObject &in_value,
                                         lldb::DynamicValueType use_dynamic,
@@ -296,6 +305,8 @@ public:
 
   virtual TypeAndOrName FixUpDynamicType(const TypeAndOrName &type_and_or_name,
                                          ValueObject &static_value) override;
+
+  virtual bool FixupReference(lldb::addr_t &addr, CompilerType type) override;
 
   bool IsRuntimeSupportValue(ValueObject &valobj) override;
 

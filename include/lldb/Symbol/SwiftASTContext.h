@@ -29,17 +29,20 @@
 #include "llvm/ADT/Optional.h"
 #include "llvm/Support/Threading.h"
 
+#include "swift/AST/Module.h"
+
 #include <map>
 #include <set>
 
 namespace swift {
 enum class IRGenDebugInfoLevel : unsigned;
 class CanType;
+class DWARFImporter;
 class IRGenOptions;
 class NominalTypeDecl;
-struct PrintOptions;
 class SILModule;
 class VarDecl;
+struct PrintOptions;
 namespace irgen {
 class FixedTypeInfo;
 class TypeInfo;
@@ -105,9 +108,7 @@ public:
     return ts->getKind() == TypeSystem::eKindSwift;
   }
 
-  //------------------------------------------------------------------
-  // Provide a global LLVMContext
-  //------------------------------------------------------------------
+  /// Provide the global LLVMContext.
   static llvm::LLVMContext &GetGlobalLLVMContext();
 
   //------------------------------------------------------------------
@@ -180,9 +181,13 @@ public:
 
   bool AddFrameworkSearchPath(const char *path);
 
-  bool AddClangArgument(std::string arg, bool force = false);
+  bool AddClangArgument(std::string arg, bool unique = true);
 
   bool AddClangArgumentPair(const char *arg1, const char *arg2);
+
+  /// Add a list of Clang arguments to the ClangImporter options and
+  /// apply the working directory to any relative paths.
+  void AddExtraClangArgs(std::vector<std::string> ExtraArgs);
 
   const char *GetPlatformSDKPath() const {
     if (m_platform_sdk_path.empty())
@@ -259,9 +264,8 @@ public:
 
   const char *GetFrameworkSearchPathAtIndex(size_t idx) const;
 
-  size_t GetNumClangArguments();
-
-  const char *GetClangArgumentAtIndex(size_t idx);
+  /// \return the ExtraArgs of the ClangImporterOptions.
+  const std::vector<std::string> &GetClangArguments();
 
   swift::ModuleDecl *CreateModule(const ConstString &module_basename,
                                   Status &error);
@@ -522,8 +526,6 @@ public:
 
   static bool IsSelfArchetypeType(const CompilerType &compiler_type);
 
-  static bool IsPossibleZeroSizeType(const CompilerType &compiler_type);
-
   bool IsTrivialOptionSetType(const CompilerType &compiler_type);
 
   bool IsErrorType(const CompilerType &compiler_type);
@@ -633,8 +635,9 @@ public:
   // Exploring the type
   //----------------------------------------------------------------------
 
-  uint64_t GetBitSize(lldb::opaque_compiler_type_t type,
-                      ExecutionContextScope *exe_scope) override;
+  llvm::Optional<uint64_t>
+  GetBitSize(lldb::opaque_compiler_type_t type,
+             ExecutionContextScope *exe_scope) override;
 
   uint64_t GetByteStride(lldb::opaque_compiler_type_t type) override;
 
@@ -819,6 +822,25 @@ public:
 
   void SetCachedType(const ConstString &mangled, const lldb::TypeSP &type_sp);
 
+  static bool
+  LoadOneModule(const ConstString &module_name,
+                SwiftASTContext &swift_ast_context,
+                lldb::StackFrameWP &stack_frame_wp,
+                llvm::SmallVectorImpl<swift::SourceFile::ImportedModuleDesc>
+                    &additional_imports,
+                Status &error);
+
+  static bool PerformUserImport(SwiftASTContext &swift_ast_context,
+                                SymbolContext &sc,
+                                ExecutionContextScope &exe_scope,
+                                lldb::StackFrameWP &stack_frame_wp,
+                                swift::SourceFile &source_file, Status &error);
+
+  static bool PerformAutoImport(SwiftASTContext &swift_ast_context,
+                                SymbolContext &sc,
+                                lldb::StackFrameWP &stack_frame_wp,
+                                swift::SourceFile *source_file, Status &error);
+
 protected:
   // This map uses the string value of ConstStrings as the key, and the TypeBase
   // * as the value. Since the ConstString strings are uniqued, we can use
@@ -853,6 +875,8 @@ protected:
 
   std::vector<lldb::DataBufferSP> &GetASTVectorForModule(const Module *module);
 
+  /// Data members.
+  /// @{
   std::unique_ptr<swift::CompilerInvocation> m_compiler_invocation_ap;
   std::unique_ptr<swift::SourceManager> m_source_manager_ap;
   std::unique_ptr<swift::DiagnosticEngine> m_diagnostic_engine_ap;
@@ -868,21 +892,24 @@ protected:
   std::unique_ptr<DWARFASTParser> m_dwarf_ast_parser_ap;
   Status m_error; // Any errors that were found while creating or using the AST
                  // context
-  swift::ModuleDecl *m_scratch_module;
+  swift::ModuleDecl *m_scratch_module = nullptr;
   std::unique_ptr<swift::SILModule> m_sil_module_ap;
-  swift::SerializedModuleLoader *m_serialized_module_loader; // Owned by the AST
-  swift::ClangImporter *m_clang_importer;
+  /// Owned by the AST.
+  swift::SerializedModuleLoader *m_serialized_module_loader = nullptr;
+  swift::ClangImporter *m_clang_importer = nullptr;
+  swift::DWARFImporter *m_dwarf_importer = nullptr;
   SwiftModuleMap m_swift_module_cache;
   SwiftTypeFromMangledNameMap m_mangled_name_to_type_map;
   SwiftMangledNameFromTypeMap m_type_to_mangled_name_map;
-  uint32_t m_pointer_byte_size;
-  uint32_t m_pointer_bit_align;
+  uint32_t m_pointer_byte_size = 0;
+  uint32_t m_pointer_bit_align = 0;
   CompilerType m_void_function_type;
-  lldb::TargetWP m_target_wp; // Only if this AST belongs to a target will this
-                              // contain a valid target weak pointer
-  lldb_private::Process *m_process; // Only if this AST belongs to a target, and
-                                    // an expression has been evaluated will the
-                                    // target's process pointer be filled in
+  /// Only if this AST belongs to a target will this contain a valid
+  /// target weak pointer.
+  lldb::TargetWP m_target_wp;
+  /// Only if this AST belongs to a target, and an expression has been
+  /// evaluated will the target's process pointer be filled in
+  lldb_private::Process *m_process = nullptr;
   std::string m_platform_sdk_path;
   std::string m_resource_dir;
   std::string m_repl_expr_modules_dir;  // SWIFT_ENABLE_TENSORFLOW
@@ -897,10 +924,10 @@ protected:
   // Since we use the same Target SwiftASTContext for all our compilations,
   // holding them here will keep them alive as long as we need.
   std::vector<std::unique_ptr<swift::DebuggerClient>> m_debugger_clients;
-  bool m_initialized_language_options;
-  bool m_initialized_search_path_options;
-  bool m_initialized_clang_importer_options;
-  bool m_reported_fatal_error;
+  bool m_initialized_language_options = false;
+  bool m_initialized_search_path_options = false;
+  bool m_initialized_clang_importer_options = false;
+  bool m_reported_fatal_error = false;
   Status m_fatal_errors;
 
   typedef ThreadSafeDenseSet<const char *> SwiftMangledNameSet;
@@ -912,6 +939,7 @@ protected:
 
   typedef ThreadSafeDenseMap<const char *, lldb::TypeSP> SwiftTypeMap;
   SwiftTypeMap m_swift_type_map;
+  /// @}
 
   ExtraTypeInformation GetExtraTypeInformation(void *type);
 
