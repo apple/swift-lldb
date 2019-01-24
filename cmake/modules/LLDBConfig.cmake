@@ -78,9 +78,8 @@ if(LLDB_BUILD_FRAMEWORK)
   endif()
 
   # BEGIN SWIFT CODE
-  # FIXME: We should override these from cmake config/cache!
-  set(LLDB_FRAMEWORK_TOOLS "darwin-debug;lldb-argdumper;lldb-server;repl_swift" CACHE INTERNAL "" FORCE)
-  set(LLDB_USE_SYSTEM_DEBUGSERVER ON CACHE BOOL "" FORCE)
+  set(LLDB_FRAMEWORK_TOOLS "darwin-debug;lldb-argdumper;lldb-server;repl_swift" CACHE INTERNAL "")
+  set(LLDB_USE_SYSTEM_DEBUGSERVER ON CACHE BOOL "")
   # END SWIFT CODE
 endif()
 
