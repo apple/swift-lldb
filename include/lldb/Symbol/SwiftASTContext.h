@@ -215,10 +215,13 @@ public:
   }
 
   // SWIFT_ENABLE_TENSORFLOW
+  bool UseSerialization() { return getenv("LLDB_USE_SERIALIZATION"); }
+
+  // SWIFT_ENABLE_TENSORFLOW
   // Returns true if successful, false otherwise.
   bool InitializeReplExprModulesDir() {
     // Return if we should not use serialization.
-    if (!getenv("LLDB_USE_SERIALIZATION"))
+    if (!UseSerialization())
       return true;
     // Return if this is already initialized!
     if (GetReplExprModulesDir())

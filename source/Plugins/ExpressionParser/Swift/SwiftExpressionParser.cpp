@@ -1938,7 +1938,9 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   //  - passes like differentation need to see the code before optimizations.
   //  - Some passes may create new functions, but only the functions defined in
   //    the lldb repl line should be serialized.
-  if (auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir()) {
+  if (swift_ast_ctx->UseSerialization()) {
+    auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir();
+    assert(expr_module_dir != nullptr);
     llvm::SmallString<256> filename(expr_module_dir);
     std::string module_name;
     GetNameFromModule(&parsed_expr->module, module_name);
@@ -1960,8 +1962,8 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   runSILDiagnosticPasses(*sil_module);
 
   // SWIFT_ENABLE_TENSORFLOW
-  sil_module->setSerializeSILAction([]{});
-  if (!swift_ast_ctx->GetReplExprModulesDir()) {
+  sil_module->setSerializeSILAction([] {});
+  if (!swift_ast_ctx->UseSerialization()) {
     // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
     // stop running the optimization passes and drop the explicit call of the partitioning
     // pass.
@@ -2041,7 +2043,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   // lookup object into the SwiftPersistentExpressionState.
   // SWIFT_ENABLE_TENSORFLOW
   swift::ModuleDecl *module = nullptr;
-  if (!swift_ast_ctx->GetReplExprModulesDir()) {
+  if (!swift_ast_ctx->UseSerialization()) {
     // Just reuse the module if no serialization is requested.
     module = &parsed_expr->module;
   } else {
