@@ -1960,12 +1960,14 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   runSILDiagnosticPasses(*sil_module);
 
   // SWIFT_ENABLE_TENSORFLOW
-  // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
-  // stop running the optimization passes and drop the explicit call of the partitioning
-  // pass.
   sil_module->setSerializeSILAction([]{});
-  runSILOptPreparePasses(*sil_module);
-  runSILOptimizationPasses(*sil_module);
+  if (!swift_ast_ctx->GetReplExprModulesDir()) {
+    // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
+    // stop running the optimization passes and drop the explicit call of the partitioning
+    // pass.
+    runSILOptPreparePasses(*sil_module);
+    runSILOptimizationPasses(*sil_module);
+  }
 
   // FIXME: These passes should be moved to the mandatory pass pipeline that
   // runs at -O0.  We need a proper deabstraction pass to do that though.
@@ -2066,6 +2068,20 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
       diagnostic_manager.PutString(eDiagnosticSeverityError,
                                    "Couldn't reload the serialized module file.");
       return 1;
+    }
+
+    // Update persistent non-variable decls to the ones in the serialized module.
+    // Otherwise, we will have deserialization errors.
+    auto *persistent_state =
+        m_sc.target_sp->GetSwiftPersistentExpressionState(*m_exe_scope);
+    llvm::SmallVector<swift::Decl*, 8> decls;
+    module->getTopLevelDecls(decls);
+    for (swift::Decl *decl : decls) {
+      if (swift::ValueDecl *value_decl = llvm::dyn_cast<swift::ValueDecl>(decl)) {
+        if (!llvm::isa<swift::VarDecl>(value_decl) && value_decl->hasName()) {
+          persistent_state->RegisterSwiftPersistentDecl(value_decl);
+        }
+      }
     }
   }
   parsed_expr->ast_context.LoadedModules.insert({module->getName(), module});
