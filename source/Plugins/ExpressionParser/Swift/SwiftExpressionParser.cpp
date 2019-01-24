@@ -1938,7 +1938,9 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   //  - passes like differentation need to see the code before optimizations.
   //  - Some passes may create new functions, but only the functions defined in
   //    the lldb repl line should be serialized.
-  if (auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir()) {
+  if (swift_ast_ctx->UseSerialization()) {
+    auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir();
+    assert(expr_module_dir != nullptr);
     llvm::SmallString<256> filename(expr_module_dir);
     std::string module_name;
     GetNameFromModule(&parsed_expr->module, module_name);
@@ -1960,12 +1962,14 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   runSILDiagnosticPasses(*sil_module);
 
   // SWIFT_ENABLE_TENSORFLOW
-  // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
-  // stop running the optimization passes and drop the explicit call of the partitioning
-  // pass.
-  sil_module->setSerializeSILAction([]{});
-  runSILOptPreparePasses(*sil_module);
-  runSILOptimizationPasses(*sil_module);
+  sil_module->setSerializeSILAction([] {});
+  if (!swift_ast_ctx->UseSerialization()) {
+    // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
+    // stop running the optimization passes and drop the explicit call of the partitioning
+    // pass.
+    runSILOptPreparePasses(*sil_module);
+    runSILOptimizationPasses(*sil_module);
+  }
 
   // FIXME: These passes should be moved to the mandatory pass pipeline that
   // runs at -O0.  We need a proper deabstraction pass to do that though.
@@ -2039,7 +2043,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   // lookup object into the SwiftPersistentExpressionState.
   // SWIFT_ENABLE_TENSORFLOW
   swift::ModuleDecl *module = nullptr;
-  if (!swift_ast_ctx->GetReplExprModulesDir()) {
+  if (!swift_ast_ctx->UseSerialization()) {
     // Just reuse the module if no serialization is requested.
     module = &parsed_expr->module;
   } else {
@@ -2066,6 +2070,20 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
       diagnostic_manager.PutString(eDiagnosticSeverityError,
                                    "Couldn't reload the serialized module file.");
       return 1;
+    }
+
+    // Update persistent non-variable decls to the ones in the serialized module.
+    // Otherwise, we will have deserialization errors.
+    auto *persistent_state =
+        m_sc.target_sp->GetSwiftPersistentExpressionState(*m_exe_scope);
+    llvm::SmallVector<swift::Decl*, 8> decls;
+    module->getTopLevelDecls(decls);
+    for (swift::Decl *decl : decls) {
+      if (swift::ValueDecl *value_decl = llvm::dyn_cast<swift::ValueDecl>(decl)) {
+        if (!llvm::isa<swift::VarDecl>(value_decl) && value_decl->hasName()) {
+          persistent_state->RegisterSwiftPersistentDecl(value_decl);
+        }
+      }
     }
   }
   parsed_expr->ast_context.LoadedModules.insert({module->getName(), module});
