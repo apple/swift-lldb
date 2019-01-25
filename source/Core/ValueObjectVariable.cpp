@@ -118,7 +118,8 @@ uint64_t ValueObjectVariable::GetByteSize() {
   if (!type.IsValid())
     return 0;
 
-  return type.GetByteSize(exe_ctx.GetBestExecutionContextScope());
+  auto size = type.GetByteSize(exe_ctx.GetBestExecutionContextScope());
+  return size ? *size : 0;
 }
 
 lldb::ValueType ValueObjectVariable::GetValueType() const {
@@ -144,7 +145,10 @@ bool ValueObjectVariable::UpdateValue() {
     } else {
       CompilerType var_type(GetCompilerTypeImpl());
       if (var_type.IsValid()) {
-        if (SwiftASTContext::IsPossibleZeroSizeType(var_type))
+        ExecutionContext exe_ctx(GetExecutionContextRef());
+        llvm::Optional<uint64_t> size =
+            var_type.GetByteSize(exe_ctx.GetBestExecutionContextScope());
+        if (size && *size == 0)
           m_value.SetCompilerType(var_type);
         else
           m_error.SetErrorString("empty constant data");
