@@ -8095,7 +8095,7 @@ static void DescribeFileUnit(Stream &s, swift::FileUnit *file_unit) {
 
 // Gets the full module name from the module passed in.
 
-static void GetNameFromModule(swift::ModuleDecl *module, std::string &result) {
+void lldb_private::GetNameFromModule(swift::ModuleDecl *module, std::string &result) {
   result.clear();
   if (module) {
     const char *name = module->getName().get();

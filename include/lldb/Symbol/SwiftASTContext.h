@@ -58,6 +58,8 @@ class SwiftEnumDescriptor;
 
 namespace lldb_private {
 
+void GetNameFromModule(swift::ModuleDecl *module, std::string &result);
+
 class SwiftASTContext : public TypeSystem {
 public:
   typedef lldb_utility::Either<CompilerType, swift::Decl *> TypeOrDecl;
