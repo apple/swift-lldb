@@ -33,13 +33,13 @@ struct FlatMapper<Type>
             ValueAndIndices(originalIndex: 0, filteredIndex: 0, value: values[0]),
         ]
         
-        let _ = tuples.flatMap { tuple in
+        let _ = tuples.compactMap { tuple in
             return tuple //% self.expect('po tuple', substrs=['originalIndex : 0', 'filteredIndex : 0', 'name : "Coffee"', 'ID : "1"'])
             //% self.expect('expr -d run -- tuple', substrs=['originalIndex = 0', 'filteredIndex = 0', 'name = "Coffee"', 'ID = "1"'])
             //% self.expect('frame var -d run -- tuple', substrs=['originalIndex = 0', 'filteredIndex = 0', 'name = "Coffee"', 'ID = "1"'])
         }
         
-       let _ = values.flatMap { value in
+       let _ = values.compactMap { value in
             return value //% self.expect('po value', substrs=['name : "Coffee"', 'ID : "1"'])
             //% self.expect('expr -d run -- value', substrs=['name = "Coffee"', 'ID = "1"'])
             //% self.expect('frame var -d run -- value', substrs=['name = "Coffee"', 'ID = "1"'])
