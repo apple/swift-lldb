@@ -1035,6 +1035,21 @@ public:
     lldb::SBValue
     EvaluateExpression (const char *expr, const lldb::SBExpressionOptions &options);
 
+    // SWIFT_ENABLE_TENSORFLOW
+    %feature("docstring", "
+    Complete code.
+    Parameters:
+      language          -- the language to use
+      symbol_context    -- the context in which to do the completion
+      current_code      -- the code to complete
+    Returns an SBCompletionResponse with completions that fit immediately after
+    the last character of `current_code`.
+    ") CompleteCode;
+    lldb::SBCompletionResponse
+    CompleteCode (lldb::LanguageType language,
+                  const lldb::SBSymbolContext *symbol_context,
+                  const char *current_code);
+
     %pythoncode %{
         class modules_access(object):
             '''A helper object that will lazily hand out lldb.SBModule objects for a target when supplied an index, or by full or partial path.'''

@@ -893,6 +893,12 @@ public:
   lldb::SBValue EvaluateExpression(const char *expr,
                                    const SBExpressionOptions &options);
 
+  // SWIFT_ENABLE_TENSORFLOW
+  SBCompletionResponse
+  CompleteCode(lldb::LanguageType language,
+               const lldb::SBSymbolContext *symbol_context,
+               const char *current_code);
+
   lldb::addr_t GetStackRedZoneSize();
 
   lldb::SBLaunchInfo GetLaunchInfo() const;

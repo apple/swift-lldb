@@ -58,6 +58,9 @@
 #include "lldb/API/SBStream.h"
 #include "lldb/API/SBStringList.h"
 #include "lldb/API/SBStructuredData.h"
+// SWIFT_ENABLE_TENSORFLOW
+#include "lldb/API/SBCompletionMatch.h"
+#include "lldb/API/SBCompletionResponse.h"
 #include "lldb/API/SBSymbol.h"
 #include "lldb/API/SBSymbolContext.h"
 #include "lldb/API/SBSymbolContextList.h"

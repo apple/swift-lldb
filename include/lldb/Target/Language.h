@@ -25,6 +25,8 @@
 #include "lldb/DataFormatters/DumpValueObjectOptions.h"
 #include "lldb/DataFormatters/FormatClasses.h"
 #include "lldb/DataFormatters/StringPrinter.h"
+// SWIFT_ENABLE_TENSORFLOW
+#include "lldb/Target/CompletionResponse.h"
 #include "lldb/lldb-private.h"
 #include "lldb/lldb-public.h"
 
@@ -230,6 +232,10 @@ public:
 
   static void GetDefaultExceptionResolverDescription(bool catch_on,
                                                      bool throw_on, Stream &s);
+
+  // SWIFT_ENABLE_TENSORFLOW
+  virtual CompletionResponse CompleteCode(Target &target,
+                                          std::string entered_code);
 
   // These are accessors for general information about the Languages lldb knows
   // about:

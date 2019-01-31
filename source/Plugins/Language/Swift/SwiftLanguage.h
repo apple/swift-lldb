@@ -74,6 +74,9 @@ public:
   void GetExceptionResolverDescription(bool catch_on, bool throw_on,
                                        Stream &s) override;
 
+  // SWIFT_ENABLE_TENSORFLOW
+  CompletionResponse CompleteCode(Target &target, std::string entered_code);
+
   //------------------------------------------------------------------
   // Static Functions
   //------------------------------------------------------------------

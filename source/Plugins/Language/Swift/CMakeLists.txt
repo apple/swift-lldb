@@ -5,6 +5,8 @@ add_lldb_library(lldbPluginSwiftLanguage PLUGIN
   ObjCRuntimeSyntheticProvider.cpp
   SwiftArray.cpp
   SwiftBasicTypes.cpp
+  # SWIFT_ENABLE_TENSORFLOW
+  SwiftCodeCompletion.cpp
   SwiftDictionary.cpp
   SwiftFormatters.cpp
   SwiftHashedContainer.cpp
