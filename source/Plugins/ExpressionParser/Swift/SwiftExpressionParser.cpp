@@ -1939,6 +1939,9 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   //  - Some passes may create new functions, but only the functions defined in
   //    the lldb repl line should be serialized.
   if (swift_ast_ctx->UseSerialization()) {
+    // Run all the passes before differentiation before we serialize.
+    runSILMandatoryOptPreDiffPasses(*sil_module);
+    // Serialize the module now.
     auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir();
     assert(expr_module_dir != nullptr);
     llvm::SmallString<256> filename(expr_module_dir);
@@ -1959,6 +1962,8 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
                      sil_module.get());
   }
 
+  // TODO(https://bugs.swift.org/browse/SR-9805): We should avoid re-running all
+  // the passses in runSILMandatoryOptPreDiffPasses(...) here.
   runSILDiagnosticPasses(*sil_module);
 
   // SWIFT_ENABLE_TENSORFLOW
