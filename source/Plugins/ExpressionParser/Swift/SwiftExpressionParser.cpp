@@ -1938,36 +1938,40 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   //  - passes like differentation need to see the code before optimizations.
   //  - Some passes may create new functions, but only the functions defined in
   //    the lldb repl line should be serialized.
+  bool done_serialization = false;
   if (swift_ast_ctx->UseSerialization()) {
-    // Run all the passes before differentiation before we serialize.
-    runSILMandatoryOptPreDiffPasses(*sil_module);
-    // Serialize the module now.
-    auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir();
-    assert(expr_module_dir != nullptr);
-    llvm::SmallString<256> filename(expr_module_dir);
-    std::string module_name;
-    GetNameFromModule(&parsed_expr->module, module_name);
-    llvm::sys::path::append(filename, module_name);
-    llvm::sys::path::replace_extension(filename, ".swiftmodule");
-    // TODO: Check language is swift
-    swift::SerializationOptions serializationOpts;
-    serializationOpts.OutputPath = filename.c_str();
-    serializationOpts.SerializeAllSIL = true;
-    serializationOpts.IsSIB = true;
-    if (log) {
-      log->Printf("Serializing module %s to %s\n", module_name.c_str(),
-                  serializationOpts.OutputPath);
-    }
-    swift::serialize(sil_module->getSwiftModule(), serializationOpts,
-                     sil_module.get());
+    sil_module->setSerializeSILAction(
+        [&sil_module, &parsed_expr, &done_serialization, log, swift_ast_ctx]() {
+          if (done_serialization)
+            return;
+          // Serialize the module now.
+          auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir();
+          assert(expr_module_dir != nullptr);
+          llvm::SmallString<256> filename(expr_module_dir);
+          std::string module_name;
+          GetNameFromModule(&parsed_expr->module, module_name);
+          llvm::sys::path::append(filename, module_name);
+          llvm::sys::path::replace_extension(filename, ".swiftmodule");
+          // TODO: Check language is swift
+          swift::SerializationOptions serializationOpts;
+          serializationOpts.OutputPath = filename.c_str();
+          serializationOpts.SerializeAllSIL = true;
+          serializationOpts.IsSIB = true;
+          if (log) {
+            log->Printf("Serializing module %s to %s\n", module_name.c_str(),
+                        serializationOpts.OutputPath);
+          }
+          swift::serialize(sil_module->getSwiftModule(), serializationOpts,
+                           sil_module.get());
+          done_serialization = true;
+        });
+  } else {
+    sil_module->setSerializeSILAction([] {});
   }
 
-  // TODO(https://bugs.swift.org/browse/SR-9805): We should avoid re-running all
-  // the passses in runSILMandatoryOptPreDiffPasses(...) here.
   runSILDiagnosticPasses(*sil_module);
 
   // SWIFT_ENABLE_TENSORFLOW
-  sil_module->setSerializeSILAction([] {});
   if (!swift_ast_ctx->UseSerialization()) {
     // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
     // stop running the optimization passes and drop the explicit call of the partitioning
