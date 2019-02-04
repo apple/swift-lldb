@@ -2488,7 +2488,11 @@ swift::DiagnosticEngine &SwiftASTContext::GetDiagnosticEngine() {
 }
 
 swift::SILOptions &SwiftASTContext::GetSILOptions() {
-  return GetCompilerInvocation().getSILOptions();
+  swift::SILOptions& options = GetCompilerInvocation().getSILOptions();
+  if (UseSerialization()) {
+    options.SerializeForDifferentiation = true;
+  }
+  return options;
 }
 
 bool SwiftASTContext::TargetHasNoSDK() {
