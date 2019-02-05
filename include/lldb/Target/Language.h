@@ -235,7 +235,7 @@ public:
 
   // SWIFT_ENABLE_TENSORFLOW
   virtual CompletionResponse CompleteCode(Target &target,
-                                          std::string entered_code);
+                                          const std::string &entered_code);
 
   // These are accessors for general information about the Languages lldb knows
   // about:

@@ -75,7 +75,8 @@ public:
                                        Stream &s) override;
 
   // SWIFT_ENABLE_TENSORFLOW
-  CompletionResponse CompleteCode(Target &target, std::string entered_code);
+  CompletionResponse CompleteCode(Target &target,
+                                  const std::string &entered_code);
 
   //------------------------------------------------------------------
   // Static Functions

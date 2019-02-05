@@ -25,7 +25,7 @@ struct CompletionResponse {
   std::string Prefix;
   std::vector<CompletionMatch> Matches;
 
-  static CompletionResponse error(std::string ErrorMessage) {
+  static CompletionResponse error(const std::string &ErrorMessage) {
     CompletionResponse Response;
     Response.ErrorMessage = ErrorMessage;
     return Response;

@@ -1667,8 +1667,8 @@ void SwiftLanguage::GetExceptionResolverDescription(bool catch_on,
   s.Printf("Swift Error breakpoint");
 }
 
-CompletionResponse SwiftLanguage::CompleteCode(Target &target,
-                                               std::string entered_code) {
+CompletionResponse
+SwiftLanguage::CompleteCode(Target &target, const std::string &entered_code) {
   Status error;
   SwiftASTContext *swift_ast =
       target.GetScratchSwiftASTContext(error, nullptr).get();
