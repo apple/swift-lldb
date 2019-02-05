@@ -195,8 +195,166 @@ doCodeCompletion(SourceFile &SF, StringRef EnteredCode,
   return BufferID;
 }
 
-CompletionResponse SwiftCompleteCode(SourceFile &SF, StringRef EnteredCode) {
-  ASTContext &Ctx = SF.getASTContext();
+static void AddSourceFile(ASTContext &Ctx, ModuleDecl *Module,
+                          SourceFileKind Kind) {
+  Optional<unsigned> BufferID;
+  SourceFile *SF = new (Ctx) SourceFile(
+      *Module, Kind, BufferID, SourceFile::ImplicitModuleImportKind::Stdlib,
+      /*Keep tokens*/ false);
+  SF->ASTStage = SourceFile::TypeChecked;
+  Module->addFile(*SF);
+}
+
+static SourceFile *GetSingleSourceFile(ModuleDecl *Module,
+                                       SourceFileKind Kind) {
+  SourceFile *Result = nullptr;
+  for (auto *File : Module->getFiles()) {
+    auto *SF = dyn_cast<SourceFile>(File);
+    if (!SF)
+      continue;
+    if (SF->Kind != Kind)
+      continue;
+    assert(!Result && "multiple source files of the requested kind");
+    Result = SF;
+  }
+  return Result;
+}
+
+CompletionResponse
+SwiftCompleteCode(SwiftASTContext &SwiftCtx,
+                  SwiftPersistentExpressionState &PersistentExpressionState,
+                  StringRef EnteredCode) {
+  Status Error;
+  ASTContext &Ctx = *SwiftCtx.GetASTContext();
+
+  // == Prepare a module and source files ==
+
+  // Get or create the module that we do completions in.
+  static ConstString CompletionsModuleName("completions");
+  ModuleDecl *CompletionsModule =
+      SwiftCtx.GetModule(CompletionsModuleName, Error);
+  if (!CompletionsModule) {
+    CompletionsModule = SwiftCtx.CreateModule(CompletionsModuleName, Error);
+    if (!CompletionsModule)
+      return CompletionResponse::error("could not make completions module");
+
+    // This file accumulates all of the "hand imports" (imports that the user
+    // made in previous executions). We also put the current entered code in
+    // this file.
+    AddSourceFile(Ctx, CompletionsModule, SourceFileKind::REPL);
+
+    // We reset this file with the persistent decls every completion request.
+    AddSourceFile(Ctx, CompletionsModule, SourceFileKind::Library);
+  }
+
+  // This file accumulates all of the "hand imports" (imports that the user
+  // made in previous executions). We also put the current entered code in
+  // this file.
+  SourceFile *EnteredCodeFile =
+      GetSingleSourceFile(CompletionsModule, SourceFileKind::REPL);
+  assert(EnteredCodeFile);
+
+  // Accumulate new hand imports into the file.
+  {
+    // First, construct a set of imports that we already have, so that we can
+    // avoid duplicate imports.
+    std::set<ModuleDecl *> ExistingImportSet;
+    SmallVector<ModuleDecl::ImportedModule, 8> ExistingImports;
+    EnteredCodeFile->getImportedModules(ExistingImports,
+                                        ModuleDecl::ImportFilter::All);
+    for (auto &ExistingImport : ExistingImports)
+      ExistingImportSet.insert(std::get<1>(ExistingImport));
+
+    // Next, add new imports into the file.
+    SmallVector<SourceFile::ImportedModuleDesc, 8> NewImports;
+    PersistentExpressionState.RunOverHandLoadedModules(
+        [&](const ConstString ModuleName) -> bool {
+          // Skip these modules, to prevent "TestSwiftCompletions.py" from
+          // segfaulting.
+          // TODO: Investigate why this happens.
+          if (ModuleName == ConstString("SwiftOnoneSupport"))
+            return true;
+          if (ModuleName == ConstString("a"))
+            return true;
+
+          ModuleDecl *Module = SwiftCtx.GetModule(ModuleName, Error);
+          if (!Module)
+            return true;
+          if (ExistingImportSet.find(Module) != ExistingImportSet.end())
+            return true;
+          NewImports.push_back(SourceFile::ImportedModuleDesc(
+              std::make_pair(ModuleDecl::AccessPathTy(), Module),
+              SourceFile::ImportOptions()));
+        });
+    EnteredCodeFile->addImports(NewImports);
+  }
+
+  // We reset this file with the persistent decls every completion request.
+  SourceFile *PreviousDeclsFile =
+      GetSingleSourceFile(CompletionsModule, SourceFileKind::Library);
+  assert(PreviousDeclsFile);
+
+  // Reset the decls to the persistent decls.
+  {
+    std::vector<Decl *> PersistentDecls;
+    PersistentExpressionState.GetAllDecls(PersistentDecls);
+    PreviousDeclsFile->Decls.clear();
+    for (auto *PersistentDecl : PersistentDecls)
+      PreviousDeclsFile->Decls.push_back(PersistentDecl);
+    PreviousDeclsFile->clearLookupCache();
+  }
+
+  // `PreviousDeclsFile` might now contain decls that a re-defined in
+  // `EnteredCode`. We want to remove these so that the completion results only
+  // include results from the new definitions. To do this, we parse the
+  // `EnteredCode` to get a list of decls and then remove these decls from
+  // `PreviousDeclsFile`.
+  {
+    // Parse `EnteredCode` to populate `NewDecls`.
+    DenseMap<Identifier, SmallVector<ValueDecl *, 1>> NewDecls;
+    DiagnosticTransaction DelayedDiags(Ctx.Diags);
+    std::string AugmentedCode = EnteredCode.str();
+    AugmentedCode += '\0';
+    const unsigned BufferID =
+        Ctx.SourceMgr.addMemBufferCopy(AugmentedCode, "<REPL Input>");
+    const unsigned OriginalDeclCount = EnteredCodeFile->Decls.size();
+    PersistentParserState PersistentState(Ctx);
+    bool Done;
+    do {
+      parseIntoSourceFile(*EnteredCodeFile, BufferID, &Done, nullptr,
+                          &PersistentState, nullptr);
+    } while (!Done);
+    for (auto it = EnteredCodeFile->Decls.begin() + OriginalDeclCount;
+         it != EnteredCodeFile->Decls.end(); it++)
+      if (auto *NewValueDecl = dyn_cast<ValueDecl>(*it))
+        NewDecls.FindAndConstruct(NewValueDecl->getBaseName().getIdentifier())
+            .second.push_back(NewValueDecl);
+    EnteredCodeFile->Decls.resize(OriginalDeclCount);
+    DelayedDiags.abort();
+
+    // Subtract `NewDecls` from the decls in `PreviousDeclsFile`.
+    auto ContainedInNewDecls = [&](Decl *OldDecl) -> bool {
+      auto *OldValueDecl = dyn_cast<ValueDecl>(OldDecl);
+      if (!OldValueDecl)
+        return false;
+      auto NewDeclsLookup =
+          NewDecls.find(OldValueDecl->getBaseName().getIdentifier());
+      if (NewDeclsLookup == NewDecls.end())
+        return false;
+      for (auto *NewDecl : NewDeclsLookup->second)
+        if (conflicting(NewDecl->getOverloadSignature(),
+                        OldValueDecl->getOverloadSignature()))
+          return true;
+      return false;
+    };
+    PreviousDeclsFile->Decls.erase(
+        std::remove_if(PreviousDeclsFile->Decls.begin(),
+                       PreviousDeclsFile->Decls.end(), ContainedInNewDecls),
+        PreviousDeclsFile->Decls.end());
+    PreviousDeclsFile->clearLookupCache();
+  }
+
+  // == Compute the completions ==
 
   // Set up `Response` to collect results, and set up a callback handler that
   // puts the results into `Response`.
@@ -210,8 +368,8 @@ CompletionResponse SwiftCompleteCode(SourceFile &SF, StringRef EnteredCode) {
   // Not sure what this first call to `doCodeCompletion` is for. It seems not to
   // return any results, but perhaps it prepares the buffer in some useful way
   // so that the next call works.
-  const unsigned BufferID =
-      doCodeCompletion(SF, EnteredCode, CompletionCallbacksFactory.get());
+  const unsigned BufferID = doCodeCompletion(*EnteredCodeFile, EnteredCode,
+                                             CompletionCallbacksFactory.get());
 
   // Now we tokenize it, and we treat the last token as a prefix for the
   // completion that we are looking for. We request completions for the code
@@ -227,7 +385,7 @@ CompletionResponse SwiftCompleteCode(SourceFile &SF, StringRef EnteredCode) {
       Response.Prefix = LastToken.getText();
       const unsigned Offset =
           Ctx.SourceMgr.getLocOffsetInBuffer(LastToken.getLoc(), BufferID);
-      doCodeCompletion(SF, EnteredCode.substr(0, Offset),
+      doCodeCompletion(*EnteredCodeFile, EnteredCode.substr(0, Offset),
                        CompletionCallbacksFactory.get());
 
       std::vector<CompletionMatch> FilteredMatches;

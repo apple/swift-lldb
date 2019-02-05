@@ -446,7 +446,7 @@ void Language::GetDefaultExceptionResolverDescription(bool catch_on,
            catch_on ? "on" : "off", throw_on ? "on" : "off");
 }
 
-CompletionResponse Language::CompleteCode(Target &target,
+CompletionResponse Language::CompleteCode(ExecutionContextScope &exe_scope,
                                           const std::string &entered_code) {
   return CompletionResponse::error("completion unsupported for this language");
 }
