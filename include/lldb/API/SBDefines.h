@@ -42,6 +42,8 @@ class LLDB_API SBCommandPluginInterface;
 class LLDB_API SBCommandReturnObject;
 class LLDB_API SBCommunication;
 class LLDB_API SBCompileUnit;
+class LLDB_API SBCompletionMatch;
+class LLDB_API SBCompletionResponse;
 class LLDB_API SBData;
 class LLDB_API SBDebugger;
 class LLDB_API SBDeclaration;

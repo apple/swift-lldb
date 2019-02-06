@@ -13,6 +13,8 @@
 
 #include "lldb/API/SBBreakpoint.h"
 #include "lldb/API/SBDebugger.h"
+// SWIFT_ENABLE_TENSORFLOW
+#include "lldb/API/SBCompletionResponse.h"
 #include "lldb/API/SBEvent.h"
 #include "lldb/API/SBExpressionOptions.h"
 #include "lldb/API/SBFileSpec.h"
@@ -2302,6 +2304,15 @@ lldb::SBValue SBTarget::EvaluateExpression(const char *expr,
 #endif
 
   return expr_result;
+}
+
+// SWIFT_ENABLE_TENSORFLOW
+SBCompletionResponse
+SBTarget::CompleteCode(lldb::LanguageType language,
+                       const lldb::SBSymbolContext *symbol_context,
+                       const char *current_code) {
+  auto response = GetSP()->CompleteCode(language, current_code);
+  return SBCompletionResponse(&response);
 }
 
 lldb::addr_t SBTarget::GetStackRedZoneSize() {

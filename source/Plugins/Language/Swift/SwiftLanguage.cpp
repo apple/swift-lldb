@@ -30,6 +30,7 @@
 #include "lldb/Target/SwiftLanguageRuntime.h"
 
 #include "ObjCRuntimeSyntheticProvider.h"
+#include "SwiftCodeCompletion.h"
 #include "SwiftFormatters.h"
 
 #include <functional>
@@ -1664,6 +1665,36 @@ bool SwiftLanguage::GetFunctionDisplayName(
 void SwiftLanguage::GetExceptionResolverDescription(bool catch_on,
                                                     bool throw_on, Stream &s) {
   s.Printf("Swift Error breakpoint");
+}
+
+CompletionResponse
+SwiftLanguage::CompleteCode(Target &target, const std::string &entered_code) {
+  Status error;
+  SwiftASTContext *swift_ast =
+      target.GetScratchSwiftASTContext(error, nullptr).get();
+  if (!swift_ast)
+    return CompletionResponse::error("could not get Swift ASTContext");
+
+  swift::ASTContext *ast = swift_ast->GetASTContext();
+  static ConstString g_repl_module_name("repl");
+  swift::ModuleDecl *repl_module =
+      swift_ast->GetModule(g_repl_module_name, error);
+  if (!repl_module) {
+    repl_module = swift_ast->CreateModule(g_repl_module_name, error);
+    const swift::SourceFile::ImplicitModuleImportKind implicit_import_kind =
+        swift::SourceFile::ImplicitModuleImportKind::Stdlib;
+    llvm::Optional<unsigned> bufferID;
+    swift::SourceFile *repl_source_file = new (*ast)
+        swift::SourceFile(*repl_module, swift::SourceFileKind::REPL, bufferID,
+                          implicit_import_kind, /*Keep tokens*/ false);
+    repl_module->addFile(*repl_source_file);
+  }
+  if (!repl_module)
+    return CompletionResponse::error("could not get repl module");
+
+  swift::SourceFile &repl_source_file =
+      repl_module->getMainSourceFile(swift::SourceFileKind::REPL);
+  return SwiftCompleteCode(repl_source_file, entered_code);
 }
 
 //------------------------------------------------------------------
