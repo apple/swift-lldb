@@ -26,54 +26,57 @@ using namespace swift;
 using namespace ide;
 
 static std::string toInsertableString(CodeCompletionResult *Result) {
+  using ChunkKind = CodeCompletionString::Chunk::ChunkKind;
   std::string Str;
-  for (auto C : Result->getCompletionString()->getChunks()) {
-    switch (C.getKind()) {
-    case CodeCompletionString::Chunk::ChunkKind::AccessControlKeyword:
-    case CodeCompletionString::Chunk::ChunkKind::OverrideKeyword:
-    case CodeCompletionString::Chunk::ChunkKind::ThrowsKeyword:
-    case CodeCompletionString::Chunk::ChunkKind::RethrowsKeyword:
-    case CodeCompletionString::Chunk::ChunkKind::DeclAttrKeyword:
-    case CodeCompletionString::Chunk::ChunkKind::DeclIntroducer:
-    case CodeCompletionString::Chunk::ChunkKind::Text:
-    case CodeCompletionString::Chunk::ChunkKind::LeftParen:
-    case CodeCompletionString::Chunk::ChunkKind::RightParen:
-    case CodeCompletionString::Chunk::ChunkKind::LeftBracket:
-    case CodeCompletionString::Chunk::ChunkKind::RightBracket:
-    case CodeCompletionString::Chunk::ChunkKind::LeftAngle:
-    case CodeCompletionString::Chunk::ChunkKind::RightAngle:
-    case CodeCompletionString::Chunk::ChunkKind::Dot:
-    case CodeCompletionString::Chunk::ChunkKind::Ellipsis:
-    case CodeCompletionString::Chunk::ChunkKind::Comma:
-    case CodeCompletionString::Chunk::ChunkKind::ExclamationMark:
-    case CodeCompletionString::Chunk::ChunkKind::QuestionMark:
-    case CodeCompletionString::Chunk::ChunkKind::Ampersand:
-    case CodeCompletionString::Chunk::ChunkKind::Equal:
-    case CodeCompletionString::Chunk::ChunkKind::Whitespace:
-    case CodeCompletionString::Chunk::ChunkKind::DynamicLookupMethodCallTail:
-    case CodeCompletionString::Chunk::ChunkKind::OptionalMethodCallTail:
-      if (!C.isAnnotation())
-        Str += C.getText();
-      break;
+  auto chunks = Result->getCompletionString()->getChunks();
+  for (unsigned i = 0; i < chunks.size(); ++i) {
+    auto outerChunk = chunks[i];
 
-    case CodeCompletionString::Chunk::ChunkKind::CallParameterName:
-    case CodeCompletionString::Chunk::ChunkKind::CallParameterInternalName:
-    case CodeCompletionString::Chunk::ChunkKind::CallParameterColon:
-    case CodeCompletionString::Chunk::ChunkKind::DeclAttrParamKeyword:
-    case CodeCompletionString::Chunk::ChunkKind::DeclAttrParamColon:
-    case CodeCompletionString::Chunk::ChunkKind::CallParameterType:
-    case CodeCompletionString::Chunk::ChunkKind::CallParameterClosureType:
-    case CodeCompletionString::Chunk::ChunkKind::OptionalBegin:
-    case CodeCompletionString::Chunk::ChunkKind::CallParameterBegin:
-    case CodeCompletionString::Chunk::ChunkKind::GenericParameterBegin:
-    case CodeCompletionString::Chunk::ChunkKind::GenericParameterName:
-    case CodeCompletionString::Chunk::ChunkKind::TypeAnnotation:
-      return Str;
+    // Consume the whole call parameter, keep track of which piece of the call
+    // parameter we are in, and emit only pieces of the call parameter that
+    // should be inserted into the code buffer.
+    if (outerChunk.is(ChunkKind::CallParameterBegin)) {
+      ++i;
+      auto callParameterSection = ChunkKind::CallParameterBegin;
+      bool hasParameterName = false;
+      for (; i < chunks.size(); ++i) {
+        auto innerChunk = chunks[i];
 
-    case CodeCompletionString::Chunk::ChunkKind::BraceStmtWithCursor:
-      Str += " {";
-      break;
+        // Exit this loop when we're at the end of the call parameter.
+        if (innerChunk.endsPreviousNestedGroup(outerChunk.getNestingLevel())) {
+          --i;
+          break;
+        }
+
+        // Keep track of what part of the call parameter we are in.
+        if (innerChunk.is(ChunkKind::CallParameterName) ||
+            innerChunk.is(ChunkKind::CallParameterInternalName) ||
+            innerChunk.is(ChunkKind::CallParameterColon) ||
+            innerChunk.is(ChunkKind::CallParameterType) ||
+            innerChunk.is(ChunkKind::CallParameterClosureType))
+          callParameterSection = innerChunk.getKind();
+
+        if (callParameterSection == ChunkKind::CallParameterName)
+          hasParameterName = true;
+
+        // Never emit these parts of the call parameter.
+        if (callParameterSection == ChunkKind::CallParameterInternalName ||
+            callParameterSection == ChunkKind::CallParameterType ||
+            callParameterSection == ChunkKind::CallParameterClosureType)
+          continue;
+
+        // Do not emit a colon when the parameter is unnamed.
+        if (!hasParameterName && callParameterSection == ChunkKind::CallParameterColon)
+          continue;
+
+        if (innerChunk.hasText() && !innerChunk.isAnnotation())
+          Str += innerChunk.getText();
+      }
+      continue;
     }
+
+    if (outerChunk.hasText() && !outerChunk.isAnnotation())
+      Str += outerChunk.getText();
   }
   return Str;
 }
