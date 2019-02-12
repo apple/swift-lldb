@@ -100,6 +100,7 @@
 		4C848DFF18D2873500EC6DD0 /* SwiftASTManipulator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C848DFC18D2873500EC6DD0 /* SwiftASTManipulator.cpp */; };
 		948C86D11B97764D00F3CAC3 /* SwiftArray.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 948C86BD1B97763200F3CAC3 /* SwiftArray.cpp */; };
 		948C86D21B97764D00F3CAC3 /* SwiftBasicTypes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 948C86BF1B97763200F3CAC3 /* SwiftBasicTypes.cpp */; };
+		9CF59E2A221225E300185F84 /* SwiftCodeCompletion.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9CF59E26221225DD00185F84 /* SwiftCodeCompletion.cpp */; };
 		948C86D31B97764D00F3CAC3 /* SwiftDictionary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 948C86C11B97763200F3CAC3 /* SwiftDictionary.cpp */; };
 		4C848E0018D2873500EC6DD0 /* SwiftExpressionParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C848DFD18D2873500EC6DD0 /* SwiftExpressionParser.cpp */; };
 		492E8B021BA37DC80034B4D7 /* SwiftExpressionVariable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 492E8B001BA37DC80034B4D7 /* SwiftExpressionVariable.cpp */; };
@@ -766,6 +767,10 @@
 		2668021F115FD13D008E1FE4 /* SBCommunication.h in Headers */ = {isa = PBXBuildFile; fileRef = 260223E7115F06D500A601A2 /* SBCommunication.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		26DE205F1161901B00A093E2 /* SBCompileUnit.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 26DE205E1161901B00A093E2 /* SBCompileUnit.cpp */; };
 		26DE205511618FB800A093E2 /* SBCompileUnit.h in Headers */ = {isa = PBXBuildFile; fileRef = 26DE205411618FB800A093E2 /* SBCompileUnit.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		9CF59E25221225B600185F84 /* SBCompletionMatch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9CF59E23221225B500185F84 /* SBCompletionMatch.cpp */; };
+		9CF59E192212254600185F84 /* SBCompletionMatch.h in Headers */ = {isa = PBXBuildFile; fileRef = 9CF59E172212254600185F84 /* SBCompletionMatch.h */; };
+		9CF59E24221225B600185F84 /* SBCompletionResponse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9CF59E22221225B500185F84 /* SBCompletionResponse.cpp */; };
+		9CF59E182212254600185F84 /* SBCompletionResponse.h in Headers */ = {isa = PBXBuildFile; fileRef = 9CF59E162212254500185F84 /* SBCompletionResponse.h */; };
 		9443B122140C18C40013457C /* SBData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9443B121140C18C10013457C /* SBData.cpp */; };
 		9443B123140C26AB0013457C /* SBData.h in Headers */ = {isa = PBXBuildFile; fileRef = 9443B120140C18A90013457C /* SBData.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		26680330116005E7008E1FE4 /* SBDebugger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9A9830FA1125FC5800A56CB0 /* SBDebugger.cpp */; };
@@ -1416,6 +1421,8 @@
 		948C86BE1B97763200F3CAC3 /* SwiftArray.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SwiftArray.h; path = Language/Swift/SwiftArray.h; sourceTree = "<group>"; };
 		948C86BF1B97763200F3CAC3 /* SwiftBasicTypes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SwiftBasicTypes.cpp; path = Language/Swift/SwiftBasicTypes.cpp; sourceTree = "<group>"; };
 		948C86C01B97763200F3CAC3 /* SwiftBasicTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SwiftBasicTypes.h; path = Language/Swift/SwiftBasicTypes.h; sourceTree = "<group>"; };
+		9CF59E26221225DD00185F84 /* SwiftCodeCompletion.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SwiftCodeCompletion.cpp; path = Language/Swift/SwiftCodeCompletion.cpp; sourceTree = "<group>"; };
+		9CF59E27221225DD00185F84 /* SwiftCodeCompletion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SwiftCodeCompletion.h; path = Language/Swift/SwiftCodeCompletion.h; sourceTree = "<group>"; };
 		948C86C11B97763200F3CAC3 /* SwiftDictionary.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SwiftDictionary.cpp; path = Language/Swift/SwiftDictionary.cpp; sourceTree = "<group>"; };
 		948C86C21B97763200F3CAC3 /* SwiftDictionary.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SwiftDictionary.h; path = Language/Swift/SwiftDictionary.h; sourceTree = "<group>"; };
 		4C848DFD18D2873500EC6DD0 /* SwiftExpressionParser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SwiftExpressionParser.cpp; path = ExpressionParser/Swift/SwiftExpressionParser.cpp; sourceTree = "<group>"; };
@@ -1769,8 +1776,10 @@
 		2657AFB51B8690EC00958979 /* CompilerDeclContext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CompilerDeclContext.h; path = include/lldb/Symbol/CompilerDeclContext.h; sourceTree = "<group>"; };
 		49E45FAD11F660FE008F7B28 /* CompilerType.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CompilerType.cpp; path = source/Symbol/CompilerType.cpp; sourceTree = "<group>"; };
 		49E45FA911F660DC008F7B28 /* CompilerType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CompilerType.h; path = include/lldb/Symbol/CompilerType.h; sourceTree = "<group>"; };
+		9CF59E1A2212257000185F84 /* CompletionMatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CompletionMatch.h; path = include/lldb/Target/CompletionMatch.h; sourceTree = "<group>"; };
 		58EC744020EAEB5200695209 /* CompletionRequest.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CompletionRequest.cpp; path = source/Utility/CompletionRequest.cpp; sourceTree = "<group>"; };
 		58EC744220EAEB6C00695209 /* CompletionRequest.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CompletionRequest.h; path = include/lldb/Utility/CompletionRequest.h; sourceTree = "<group>"; };
+		9CF59E1B2212257000185F84 /* CompletionResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CompletionResponse.h; path = include/lldb/Target/CompletionResponse.h; sourceTree = "<group>"; };
 		266F5CBB12FC846200DFCE33 /* Config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Config.h; path = include/lldb/Host/Config.h; sourceTree = "<group>"; };
 		3FDFE53C19A293CA009756A7 /* Config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Config.h; path = include/lldb/Host/freebsd/Config.h; sourceTree = "<group>"; };
 		3FDFE56319AF9B77009756A7 /* Config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Config.h; path = include/lldb/Host/linux/Config.h; sourceTree = SOURCE_ROOT; };
@@ -2772,6 +2781,12 @@
 		26DE205E1161901B00A093E2 /* SBCompileUnit.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SBCompileUnit.cpp; path = source/API/SBCompileUnit.cpp; sourceTree = "<group>"; };
 		26DE205411618FB800A093E2 /* SBCompileUnit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SBCompileUnit.h; path = include/lldb/API/SBCompileUnit.h; sourceTree = "<group>"; };
 		2611FEF7142D83060017FEA3 /* SBCompileUnit.i */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c.preprocessed; path = SBCompileUnit.i; sourceTree = "<group>"; };
+		9CF59E23221225B500185F84 /* SBCompletionMatch.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SBCompletionMatch.cpp; path = source/API/SBCompletionMatch.cpp; sourceTree = "<group>"; };
+		9CF59E172212254600185F84 /* SBCompletionMatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SBCompletionMatch.h; path = include/lldb/API/SBCompletionMatch.h; sourceTree = "<group>"; };
+		9CF59E1E2212259700185F84 /* SBCompletionMatch.i */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c.preprocessed; path = SBCompletionMatch.i; sourceTree = "<group>"; };
+		9CF59E22221225B500185F84 /* SBCompletionResponse.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SBCompletionResponse.cpp; path = source/API/SBCompletionResponse.cpp; sourceTree = "<group>"; };
+		9CF59E162212254500185F84 /* SBCompletionResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SBCompletionResponse.h; path = include/lldb/API/SBCompletionResponse.h; sourceTree = "<group>"; };
+		9CF59E1F2212259700185F84 /* SBCompletionResponse.i */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c.preprocessed; path = SBCompletionResponse.i; sourceTree = "<group>"; };
 		9443B121140C18C10013457C /* SBData.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SBData.cpp; path = source/API/SBData.cpp; sourceTree = "<group>"; };
 		9443B120140C18A90013457C /* SBData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SBData.h; path = include/lldb/API/SBData.h; sourceTree = "<group>"; };
 		2611FEF8142D83060017FEA3 /* SBData.i */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c.preprocessed; path = SBData.i; sourceTree = "<group>"; };
@@ -4150,6 +4165,8 @@
 		2611FEEE142D83060017FEA3 /* interface */ = {
 			isa = PBXGroup;
 			children = (
+				9CF59E1E2212259700185F84 /* SBCompletionMatch.i */,
+				9CF59E1F2212259700185F84 /* SBCompletionResponse.i */,
 				2611FEEF142D83060017FEA3 /* SBAddress.i */,
 				254FBBA61A91672800BD6378 /* SBAttachInfo.i */,
 				2611FEF0142D83060017FEA3 /* SBBlock.i */,
@@ -4230,6 +4247,10 @@
 		262D3190111B4341004E6F88 /* API */ = {
 			isa = PBXGroup;
 			children = (
+				9CF59E23221225B500185F84 /* SBCompletionMatch.cpp */,
+				9CF59E22221225B500185F84 /* SBCompletionResponse.cpp */,
+				9CF59E172212254600185F84 /* SBCompletionMatch.h */,
+				9CF59E162212254500185F84 /* SBCompletionResponse.h */,
 				2611FEEE142D83060017FEA3 /* interface */,
 				26BC7C2510F1B3BC00F91463 /* lldb-defines.h */,
 				26BC7C2610F1B3BC00F91463 /* lldb-enumerations.h */,
@@ -5574,6 +5595,8 @@
 		26BC7DEF10F1B80200F91463 /* Target */ = {
 			isa = PBXGroup;
 			children = (
+				9CF59E1A2212257000185F84 /* CompletionMatch.h */,
+				9CF59E1B2212257000185F84 /* CompletionResponse.h */,
 				230EC4571D63C3A7008DF59F /* CMakeLists.txt */,
 				8CF02AE019DCBF3B00B14BE0 /* InstrumentationRuntime.h */,
 				8CF02ADF19DCBF3B00B14BE0 /* InstrumentationRuntime.cpp */,
@@ -6436,6 +6459,8 @@
 		942612ED1B94D30100EF842E /* Swift */ = {
 			isa = PBXGroup;
 			children = (
+				9CF59E26221225DD00185F84 /* SwiftCodeCompletion.cpp */,
+				9CF59E27221225DD00185F84 /* SwiftCodeCompletion.h */,
 				948C86BC1B97762700F3CAC3 /* Formatters */,
 				942612EF1B94D32900EF842E /* SwiftLanguage.h */,
 				942612EE1B94D32900EF842E /* SwiftLanguage.cpp */,
@@ -6958,12 +6983,14 @@
 				26DE204311618ACA00A093E2 /* SBAddress.h in Headers */,
 				26151DC31B41E4A200FF7F1C /* SharingPtr.h in Headers */,
 				26DE205711618FC500A093E2 /* SBBlock.h in Headers */,
+				9CF59E192212254600185F84 /* SBCompletionMatch.h in Headers */,
 				332CCB181AFF41620034D4C4 /* SBLanguageRuntime.h in Headers */,
 				26680219115FD13D008E1FE4 /* SBBreakpoint.h in Headers */,
 				2668021A115FD13D008E1FE4 /* SBBreakpointLocation.h in Headers */,
 				2668021B115FD13D008E1FE4 /* SBBroadcaster.h in Headers */,
 				2668021D115FD13D008E1FE4 /* SBCommandInterpreter.h in Headers */,
 				2668021E115FD13D008E1FE4 /* SBCommandReturnObject.h in Headers */,
+				9CF59E182212254600185F84 /* SBCompletionResponse.h in Headers */,
 				2668021F115FD13D008E1FE4 /* SBCommunication.h in Headers */,
 				26DE205511618FB800A093E2 /* SBCompileUnit.h in Headers */,
 				9443B123140C26AB0013457C /* SBData.h in Headers */,
@@ -7803,8 +7830,10 @@
 				26DE205D1161901400A093E2 /* SBFunction.cpp in Sources */,
 				26DE205F1161901B00A093E2 /* SBCompileUnit.cpp in Sources */,
 				AF0EBBE9185940FB0059E52F /* SBQueueItem.cpp in Sources */,
+				9CF59E25221225B600185F84 /* SBCompletionMatch.cpp in Sources */,
 				AF0EBBE8185940FB0059E52F /* SBQueue.cpp in Sources */,
 				964381701C8D6B8200023D59 /* SBLanguageRuntime.cpp in Sources */,
+				9CF59E24221225B600185F84 /* SBCompletionResponse.cpp in Sources */,
 				26DE20611161902700A093E2 /* SBBlock.cpp in Sources */,
 				26DE20631161904200A093E2 /* SBLineEntry.cpp in Sources */,
 				26DE20651161904E00A093E2 /* SBSymbol.cpp in Sources */,
@@ -8166,6 +8195,7 @@
 				268900C913353E5F00698AC0 /* NameToDIE.cpp in Sources */,
 				94CD7D0919A3FBA300908B7C /* AppleObjCClassDescriptorV2.cpp in Sources */,
 				268900CA13353E5F00698AC0 /* SymbolFileDWARF.cpp in Sources */,
+				9CF59E2A221225E300185F84 /* SwiftCodeCompletion.cpp in Sources */,
 				4CAA19E61F5A40040099E692 /* BreakpointName.cpp in Sources */,
 				268900CB13353E5F00698AC0 /* LogChannelDWARF.cpp in Sources */,
 				268900CC13353E5F00698AC0 /* SymbolFileDWARFDebugMap.cpp in Sources */,
