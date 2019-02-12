@@ -269,14 +269,6 @@ SwiftCompleteCode(SwiftASTContext &SwiftCtx,
     SmallVector<SourceFile::ImportedModuleDesc, 8> NewImports;
     PersistentExpressionState.RunOverHandLoadedModules(
         [&](const ConstString ModuleName) -> bool {
-          // Skip these modules, to prevent "TestSwiftCompletions.py" from
-          // segfaulting.
-          // TODO: Investigate why this happens.
-          if (ModuleName == ConstString("SwiftOnoneSupport"))
-            return true;
-          if (ModuleName == ConstString("a"))
-            return true;
-
           ModuleDecl *Module = SwiftCtx.GetModule(ModuleName, Error);
           if (!Module)
             return true;
@@ -285,6 +277,7 @@ SwiftCompleteCode(SwiftASTContext &SwiftCtx,
           NewImports.push_back(SourceFile::ImportedModuleDesc(
               std::make_pair(ModuleDecl::AccessPathTy(), Module),
               SourceFile::ImportOptions()));
+          return true;
         });
     EnteredCodeFile->addImports(NewImports);
   }
