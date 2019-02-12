@@ -820,22 +820,19 @@ void DWARFUnit::ComputeCompDirAndGuessPathStyle() {
   if (!die)
     return;
 
-  auto guess = [](llvm::StringRef str) {
-    if (str.startswith("/"))
-      return FileSpec::Style::posix;
-    if (str.size() > 3 && llvm::isAlpha(str[0]) && str.substr(1, 2) == ":\\")
-      return FileSpec::Style::windows;
-    return FileSpec::Style::native;
-  };
   llvm::StringRef comp_dir = removeHostnameFromPathname(
       die->GetAttributeValueAsString(m_dwarf, this, DW_AT_comp_dir, NULL));
   if (!comp_dir.empty()) {
-    m_comp_dir = resolveCompDir(FileSpec(comp_dir, guess(comp_dir)));
+    FileSpec::Style comp_dir_style =
+        FileSpec::GuessPathStyle(comp_dir).getValueOr(FileSpec::Style::native);
+    m_comp_dir = resolveCompDir(FileSpec(comp_dir, comp_dir_style));
   } else {
     // Try to detect the style based on the DW_AT_name attribute, but just store
     // the detected style in the m_comp_dir field.
-    m_comp_dir = FileSpec("", guess(die->GetAttributeValueAsString(
-                                  m_dwarf, this, DW_AT_name, NULL)));
+    const char *name =
+        die->GetAttributeValueAsString(m_dwarf, this, DW_AT_name, NULL);
+    m_comp_dir = FileSpec(
+        "", FileSpec::GuessPathStyle(name).getValueOr(FileSpec::Style::native));
   }
 }
 
@@ -846,7 +843,7 @@ SymbolFileDWARFDwo *DWARFUnit::GetDwoSymbolFile() const {
 dw_offset_t DWARFUnit::GetBaseObjOffset() const { return m_base_obj_offset; }
 
 const DWARFDebugAranges &DWARFUnit::GetFunctionAranges() {
-  if (m_func_aranges_ap.get() == NULL) {
+  if (m_func_aranges_ap == NULL) {
     m_func_aranges_ap.reset(new DWARFDebugAranges());
     Log *log(LogChannelDWARF::GetLogIfAll(DWARF_LOG_DEBUG_ARANGES));
 
@@ -873,6 +870,6 @@ const DWARFDebugAranges &DWARFUnit::GetFunctionAranges() {
     const bool minimize = false;
     m_func_aranges_ap->Sort(minimize);
   }
-  return *m_func_aranges_ap.get();
+  return *m_func_aranges_ap;
 }
 
