@@ -22,8 +22,10 @@
 
 namespace lldb_private {
 
-CompletionResponse SwiftCompleteCode(swift::SourceFile &SF,
-                                     llvm::StringRef EnteredCode);
+CompletionResponse
+SwiftCompleteCode(SwiftASTContext &SwiftCtx,
+                  SwiftPersistentExpressionState &PersistentExpressionState,
+                  llvm::StringRef EnteredCode);
 
 } // namespace lldb_private
 

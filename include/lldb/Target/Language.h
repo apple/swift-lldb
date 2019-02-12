@@ -234,7 +234,7 @@ public:
                                                      bool throw_on, Stream &s);
 
   // SWIFT_ENABLE_TENSORFLOW
-  virtual CompletionResponse CompleteCode(Target &target,
+  virtual CompletionResponse CompleteCode(ExecutionContextScope &exe_scope,
                                           const std::string &entered_code);
 
   // These are accessors for general information about the Languages lldb knows

@@ -1668,33 +1668,19 @@ void SwiftLanguage::GetExceptionResolverDescription(bool catch_on,
 }
 
 CompletionResponse
-SwiftLanguage::CompleteCode(Target &target, const std::string &entered_code) {
+SwiftLanguage::CompleteCode(ExecutionContextScope &exe_scope,
+                            const std::string &entered_code) {
+  Target &target = *exe_scope.CalculateTarget();
   Status error;
   SwiftASTContext *swift_ast =
       target.GetScratchSwiftASTContext(error, nullptr).get();
   if (!swift_ast)
     return CompletionResponse::error("could not get Swift ASTContext");
+  auto persistent_expression_state =
+      target.GetSwiftPersistentExpressionState(exe_scope);
 
-  swift::ASTContext *ast = swift_ast->GetASTContext();
-  static ConstString g_repl_module_name("repl");
-  swift::ModuleDecl *repl_module =
-      swift_ast->GetModule(g_repl_module_name, error);
-  if (!repl_module) {
-    repl_module = swift_ast->CreateModule(g_repl_module_name, error);
-    const swift::SourceFile::ImplicitModuleImportKind implicit_import_kind =
-        swift::SourceFile::ImplicitModuleImportKind::Stdlib;
-    llvm::Optional<unsigned> bufferID;
-    swift::SourceFile *repl_source_file = new (*ast)
-        swift::SourceFile(*repl_module, swift::SourceFileKind::REPL, bufferID,
-                          implicit_import_kind, /*Keep tokens*/ false);
-    repl_module->addFile(*repl_source_file);
-  }
-  if (!repl_module)
-    return CompletionResponse::error("could not get repl module");
-
-  swift::SourceFile &repl_source_file =
-      repl_module->getMainSourceFile(swift::SourceFileKind::REPL);
-  return SwiftCompleteCode(repl_source_file, entered_code);
+  return SwiftCompleteCode(*swift_ast, *persistent_expression_state,
+                           entered_code);
 }
 
 //------------------------------------------------------------------

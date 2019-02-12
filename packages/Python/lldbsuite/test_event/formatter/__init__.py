@@ -80,7 +80,7 @@ def create_results_formatter(config):
         read_bytes = sock.recv(1)
         if read_bytes is None or (
                 len(read_bytes) < 1) or (
-                read_bytes[0] != SOCKET_ACK_BYTE_VALUE):
+                read_bytes != b'*'):
             raise Exception(
                 "listening socket did not respond with ack byte: response={}".format(read_bytes))
 
