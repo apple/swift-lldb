@@ -35,22 +35,29 @@ class TestSwiftCompletions(TestBase):
           raise Exception("while evaluating:\n%s\n\nerror: %s" % (
               code, str(result.error)))
 
-    def assertCompletions(self, code, expected_completions):
+    def assertCompletions(self, code, expected_completions, check_order=False):
         sbcompletions = self.target.CompleteCode(self.swift_lang, None, code)
-        completions = set()
+        completions = []
         for i in range(sbcompletions.GetNumMatches()):
-            completions.add(
+            completions.append(
                 sbcompletions.GetMatchAtIndex(i).GetInsertable())
+        if not check_order:
+            completions.sort()
+            expected_completions.sort()
         self.assertTrue(completions == expected_completions,
                         "expected: %s, got: %s" % (str(expected_completions),
                                                    str(completions)))
 
-    def assertDisplayCompletions(self, code, expected_completions):
+    def assertDisplayCompletions(self, code, expected_completions,
+                                 check_order=False):
         sbcompletions = self.target.CompleteCode(self.swift_lang, None, code)
-        completions = set()
+        completions = []
         for i in range(sbcompletions.GetNumMatches()):
-            completions.add(
+            completions.append(
                 sbcompletions.GetMatchAtIndex(i).GetDisplay())
+        if not check_order:
+            completions.sort()
+            expected_completions.sort()
         self.assertTrue(completions == expected_completions,
                         "expected: %s, got: %s" % (str(expected_completions),
                                                    str(completions)))
@@ -86,15 +93,15 @@ class TestSwiftCompletions(TestBase):
                       }""")
         self.assertCompletions(
             """let s = SimpleSt""",
-            set(["ruct"]))
+            ["ruct"])
 
         self.evaluate("""let simpleValue = SimpleStruct()""")
         self.assertCompletions(
             """simpleVa""",
-            set(["lue"]))
+            ["lue"])
         self.assertCompletions(
             """simpleValue.""",
-            set(["intfield", "strfield", "self"]))
+            ["intfield", "strfield", "self"])
 
         # === Redefining a value ===
 
@@ -110,11 +117,11 @@ class TestSwiftCompletions(TestBase):
             """
             let replacedValue = DifferentStruct()
             replacedValue.""",
-            set(["differentfield", "self"]))
+            ["differentfield", "self"])
         self.evaluate("""let replacedValue = DifferentStruct()""")
         self.assertCompletions(
             """replacedValue.""",
-            set(["differentfield", "self"]))
+            ["differentfield", "self"])
 
         # === Redefining a type ===
 
@@ -129,7 +136,7 @@ class TestSwiftCompletions(TestBase):
               let field2: Int = 2
             }
             ReplacedStruct().""",
-            set(["field2", "self"]))
+            ["field2", "self"])
         self.evaluate("""
                       struct ReplacedStruct {
                         let field2: Int = 2
@@ -137,7 +144,7 @@ class TestSwiftCompletions(TestBase):
                       """)
         self.assertCompletions(
             """ReplacedStruct().""",
-            set(["field2", "self"]))
+            ["field2", "self"])
 
         # === Redefining a func ===
 
@@ -148,13 +155,13 @@ class TestSwiftCompletions(TestBase):
             """
             func replacedFunc(arglabel: Int) -> Int { return 42 }
             replacedFun""",
-            set(["replacedFunc(arglabel: Int) -> Int"]))
+            ["replacedFunc(arglabel: Int) -> Int"])
         self.assertDisplayCompletions(
             """
             func replacedFunc(differentArglabel: Int) {}
             replacedFun""",
-            set(["replacedFunc(arglabel: Int) -> Void",
-                 "replacedFunc(differentArglabel: Int) -> Void"]))
+            ["replacedFunc(arglabel: Int) -> Void",
+             "replacedFunc(differentArglabel: Int) -> Void"])
         self.evaluate("""
                       func replacedFunc(arglabel: Int) -> Int { return 42 }
                       """)
@@ -163,15 +170,92 @@ class TestSwiftCompletions(TestBase):
         # later why it happens.
         self.assertDisplayCompletions(
             """replacedFun""",
-            set(["replacedFunc(arglabel: Int) -> Void",
-                 "replacedFunc(arglabel: Int) -> Int"]))
+            ["replacedFunc(arglabel: Int) -> Void",
+             "replacedFunc(arglabel: Int) -> Int"])
         self.evaluate("""
                       func replacedFunc(differentArglabel: Int) {}
                       """)
         self.assertDisplayCompletions(
             """replacedFun""",
-            set(["replacedFunc(arglabel: Int) -> Void",
-                 "replacedFunc(arglabel: Int) -> Int",
-                 "replacedFunc(differentArglabel: Int) -> Void"]))
+            ["replacedFunc(arglabel: Int) -> Void",
+             "replacedFunc(arglabel: Int) -> Int",
+             "replacedFunc(differentArglabel: Int) -> Void"])
+
+        # === Redefining a func in an extension ===
+
+        # This has bad behavior, explained inline in comments below. These tests
+        # document the behavior and we will investigate later.
+
+        self.evaluate("""struct Base {}""")
+        self.evaluate("""
+                      extension Base {
+                        func replacedFunc() {}
+                      }
+                      """)
+        self.assertCompletions(
+            """
+            extension Base {
+              func replacedFunc () {}
+            }
+            Base().""",
+            ["replacedFunc()", "self"])
+        # Asking for completions multiple times when an extension is defined in
+        # your cell causes the extenion's function to appear multiple times in
+        # the completion.
+        self.assertCompletions(
+            """
+            extension Base {
+              func replacedFunc () {}
+            }
+            Base().""",
+            ["replacedFunc", "replacedFunc()", "self"])
+        self.evaluate("""
+                      extension Base {
+                        func replacedFunc() {}
+                      }
+                      """)
+        self.assertCompletions(
+            """Base().""",
+            ["replacedFunc", "replacedFunc()", "self"])
+
+        # === Redefining a func in an extension ===
+
+        # This has bad behavior, explained inline in comments below. These tests
+        # document the behavior and we will investigate later.
+
+        self.evaluate("""struct Base {}""")
+        self.evaluate("""
+                      extension Base {
+                        struct ReplacedStruct {}
+                      }
+                      """)
+        # Asking for a completion in a cell that redefines an extension type
+        # gives you an extra copy of the type.
+        self.assertCompletions(
+            """
+            extension Base {
+              struct ReplacedStruct {}
+            }
+            Base.""",
+            ["ReplacedStruct", "ReplacedStruct", "init()", "self"])
+        # Asking for a completion again adds another copy of the type.
+        self.assertCompletions(
+            """
+            extension Base {
+              struct ReplacedStruct {}
+            }
+            Base.""",
+            ["ReplacedStruct", "ReplacedStruct", "ReplacedStruct", "init()",
+             "self"])
+        # Executing the extension adds another copy of the type.
+        self.evaluate("""
+                      extension Base {
+                        struct ReplacedStruct {}
+                      }
+                      """)
+        self.assertCompletions(
+            """Base.""",
+            ["ReplacedStruct", "ReplacedStruct", "ReplacedStruct",
+             "ReplacedStruct", "init()", "self"])
 
         # TODO: Test imports.
