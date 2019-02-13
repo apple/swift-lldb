@@ -14,6 +14,7 @@
 #include "lldb/API/SBBreakpoint.h"
 #include "lldb/API/SBDebugger.h"
 // SWIFT_ENABLE_TENSORFLOW
+#include "lldb/API/SBCompletionOptions.h"
 #include "lldb/API/SBCompletionResponse.h"
 #include "lldb/API/SBEvent.h"
 #include "lldb/API/SBExpressionOptions.h"
@@ -2308,10 +2309,10 @@ lldb::SBValue SBTarget::EvaluateExpression(const char *expr,
 
 // SWIFT_ENABLE_TENSORFLOW
 SBCompletionResponse
-SBTarget::CompleteCode(lldb::LanguageType language,
+SBTarget::CompleteCode(const lldb::SBCompletionOptions &options,
                        const lldb::SBSymbolContext *symbol_context,
                        const char *current_code) {
-  auto response = GetSP()->CompleteCode(language, current_code);
+  auto response = GetSP()->CompleteCode(*options.GetPointer(), current_code);
   return SBCompletionResponse(&response);
 }
 

@@ -895,7 +895,7 @@ public:
 
   // SWIFT_ENABLE_TENSORFLOW
   SBCompletionResponse
-  CompleteCode(lldb::LanguageType language,
+  CompleteCode(const lldb::SBCompletionOptions &options,
                const lldb::SBSymbolContext *symbol_context,
                const char *current_code);
 

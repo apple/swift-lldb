@@ -1039,14 +1039,14 @@ public:
     %feature("docstring", "
     Complete code.
     Parameters:
-      language          -- the language to use
+      options           -- the options to use
       symbol_context    -- the context in which to do the completion
       current_code      -- the code to complete
     Returns an SBCompletionResponse with completions that fit immediately after
     the last character of `current_code`.
     ") CompleteCode;
     lldb::SBCompletionResponse
-    CompleteCode (lldb::LanguageType language,
+    CompleteCode (const lldb::SBCompletionOptions &options,
                   const lldb::SBSymbolContext *symbol_context,
                   const char *current_code);
 

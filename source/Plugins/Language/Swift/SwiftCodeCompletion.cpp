@@ -25,10 +25,33 @@ using namespace llvm;
 using namespace swift;
 using namespace ide;
 
-static std::string toInsertableString(CodeCompletionResult *Result) {
+/// Applies any escaping necessary to include `text` in an insertable string
+/// result. This depends on the `options`: for example, when the insertable
+/// strings are LSP Snippets, then we need to escape LSP Snippet special chars.
+static std::string escapeForInsertableString(
+    const lldb_private::CompletionOptions &Options, StringRef Text) {
+  if (!Options.InsertableLSPSnippets)
+    return Text;
+
+  static const char LSPSnippetMetachars[] = "\\$}";
+  std::string Result;
+  for (unsigned i = 0; i < Text.size(); ++i) {
+    if (strchr(LSPSnippetMetachars, Text[i]))
+      Result += "\\";
+    Result += Text[i];
+  }
+  return Result;
+}
+
+static std::string toInsertableString(const lldb_private::CompletionOptions &Options, CodeCompletionResult *Result) {
   using ChunkKind = CodeCompletionString::Chunk::ChunkKind;
   std::string Str;
+  llvm::raw_string_ostream Stream(Str);
   auto chunks = Result->getCompletionString()->getChunks();
+
+  // The index of the next LSP Snippet placeholder to insert.
+  unsigned lspSnippetPlaceholderIndex = 1;
+
   for (unsigned i = 0; i < chunks.size(); ++i) {
     auto outerChunk = chunks[i];
 
@@ -37,8 +60,18 @@ static std::string toInsertableString(CodeCompletionResult *Result) {
     // should be inserted into the code buffer.
     if (outerChunk.is(ChunkKind::CallParameterBegin)) {
       ++i;
+
+      // Keeps track of which section of the call parameter the inner loop is
+      // in.
       auto callParameterSection = ChunkKind::CallParameterBegin;
+
+      // Keeps track of whether the call parameter has a name.
       bool hasParameterName = false;
+
+      // Accumulates text that should be inserted as an LSP Snippet placeholder
+      // for the call parameter.
+      std::string PlaceholderText;
+
       for (; i < chunks.size(); ++i) {
         auto innerChunk = chunks[i];
 
@@ -59,6 +92,17 @@ static std::string toInsertableString(CodeCompletionResult *Result) {
         if (callParameterSection == ChunkKind::CallParameterName)
           hasParameterName = true;
 
+        // These parts of the call parameter go into the LSP Snippet
+        // placeholder.
+        if (Options.InsertableLSPSnippets && (
+                callParameterSection == ChunkKind::CallParameterInternalName ||
+                (!hasParameterName &&
+                    callParameterSection == ChunkKind::CallParameterColon) ||
+                callParameterSection == ChunkKind::CallParameterType ||
+                callParameterSection == ChunkKind::CallParameterClosureType))
+          PlaceholderText += escapeForInsertableString(Options,
+                                                       innerChunk.getText());
+
         // Never emit these parts of the call parameter.
         if (callParameterSection == ChunkKind::CallParameterInternalName ||
             callParameterSection == ChunkKind::CallParameterType ||
@@ -70,13 +114,21 @@ static std::string toInsertableString(CodeCompletionResult *Result) {
           continue;
 
         if (innerChunk.hasText() && !innerChunk.isAnnotation())
-          Str += innerChunk.getText();
+          Stream << escapeForInsertableString(Options, innerChunk.getText());
       }
+
+      if (Options.InsertableLSPSnippets && !PlaceholderText.empty()) {
+        Stream << "${" << lspSnippetPlaceholderIndex << ":"
+               << escapeForInsertableString(Options, PlaceholderText)
+               << "}";
+        ++lspSnippetPlaceholderIndex;
+      }
+
       continue;
     }
 
     if (outerChunk.hasText() && !outerChunk.isAnnotation())
-      Str += outerChunk.getText();
+      Stream << escapeForInsertableString(Options, outerChunk.getText());
   }
   return Str;
 }
@@ -144,23 +196,25 @@ static std::string toDisplayString(CodeCompletionResult *Result) {
 namespace lldb_private {
 
 class CodeCompletionConsumer : public SimpleCachingCodeCompletionConsumer {
+  const CompletionOptions &Options;
   CompletionResponse &Response;
 
 public:
-  CodeCompletionConsumer(CompletionResponse &Response) : Response(Response) {}
+  CodeCompletionConsumer(const CompletionOptions &Options, CompletionResponse &Response) : Options(Options), Response(Response) {}
 
   void handleResults(MutableArrayRef<CodeCompletionResult *> Results) override {
     CodeCompletionContext::sortCompletionResults(Results);
     for (auto *Result : Results) {
       Response.Matches.push_back(
-          {toDisplayString(Result), toInsertableString(Result)});
+          {toDisplayString(Result), toInsertableString(Options, Result)});
     }
   }
 };
 
 /// Calculates completions at the end of `EnteredCode`.
 static unsigned
-doCodeCompletion(SourceFile &SF, StringRef EnteredCode,
+doCodeCompletion(SourceFile &SF,
+                 StringRef EnteredCode,
                  CodeCompletionCallbacksFactory *CompletionCallbacksFactory) {
   ASTContext &Ctx = SF.getASTContext();
   DiagnosticTransaction DelayedDiags(Ctx.Diags);
@@ -221,7 +275,8 @@ static SourceFile *GetSingleSourceFile(ModuleDecl *Module,
 }
 
 CompletionResponse
-SwiftCompleteCode(SwiftASTContext &SwiftCtx,
+SwiftCompleteCode(const CompletionOptions &Options,
+                  SwiftASTContext &SwiftCtx,
                   SwiftPersistentExpressionState &PersistentExpressionState,
                   StringRef EnteredCode) {
   Status Error;
@@ -352,7 +407,7 @@ SwiftCompleteCode(SwiftASTContext &SwiftCtx,
   // Set up `Response` to collect results, and set up a callback handler that
   // puts the results into `Response`.
   CompletionResponse Response;
-  CodeCompletionConsumer Consumer(Response);
+  CodeCompletionConsumer Consumer(Options, Response);
   CodeCompletionCache CompletionCache;
   CodeCompletionContext CompletionContext(CompletionCache);
   std::unique_ptr<CodeCompletionCallbacksFactory> CompletionCallbacksFactory(

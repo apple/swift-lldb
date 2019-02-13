@@ -1668,7 +1668,8 @@ void SwiftLanguage::GetExceptionResolverDescription(bool catch_on,
 }
 
 CompletionResponse
-SwiftLanguage::CompleteCode(ExecutionContextScope &exe_scope,
+SwiftLanguage::CompleteCode(const CompletionOptions &options,
+                            ExecutionContextScope &exe_scope,
                             const std::string &entered_code) {
   Target &target = *exe_scope.CalculateTarget();
   Status error;
@@ -1679,7 +1680,7 @@ SwiftLanguage::CompleteCode(ExecutionContextScope &exe_scope,
   auto persistent_expression_state =
       target.GetSwiftPersistentExpressionState(exe_scope);
 
-  return SwiftCompleteCode(*swift_ast, *persistent_expression_state,
+  return SwiftCompleteCode(options, *swift_ast, *persistent_expression_state,
                            entered_code);
 }
 

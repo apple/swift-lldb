@@ -42,7 +42,9 @@ class LLDB_API SBCommandPluginInterface;
 class LLDB_API SBCommandReturnObject;
 class LLDB_API SBCommunication;
 class LLDB_API SBCompileUnit;
+// SWIFT_ENABLE_TENSORFLOW
 class LLDB_API SBCompletionMatch;
+class LLDB_API SBCompletionOptions;
 class LLDB_API SBCompletionResponse;
 class LLDB_API SBData;
 class LLDB_API SBDebugger;

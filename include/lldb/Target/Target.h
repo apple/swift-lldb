@@ -40,6 +40,7 @@
 #include "lldb/Symbol/TypeSystem.h"
 #include "lldb/Target/ABI.h"
 // SWIFT_ENABLE_TENSORFLOW
+#include "lldb/Target/CompletionOptions.h"
 #include "lldb/Target/CompletionResponse.h"
 #include "lldb/Target/ExecutionContextScope.h"
 #include "lldb/Target/PathMappingList.h"
@@ -1220,8 +1221,9 @@ public:
       std::string *fixed_expression = nullptr);
 
   // SWIFT_ENABLE_TENSORFLOW
-  CompletionResponse CompleteCode(lldb::LanguageType language,
-                                  llvm::StringRef current_code);
+  CompletionResponse CompleteCode(
+      const lldb_private::CompletionOptions &options,
+      llvm::StringRef current_code);
 
   // Look up a symbol by name and type in both the target's symbols and the
   // persistent symbols from the

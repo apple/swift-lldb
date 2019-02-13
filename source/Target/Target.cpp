@@ -2645,12 +2645,12 @@ ExpressionResults Target::EvaluateExpression(
 }
 
 // SWIFT_ENABLE_TENSORFLOW
-CompletionResponse Target::CompleteCode(lldb::LanguageType language,
+CompletionResponse Target::CompleteCode(const CompletionOptions &options,
                                         llvm::StringRef current_code) {
-  auto *plugin = Language::FindPlugin(language);
+  auto *plugin = Language::FindPlugin(options.Language);
   if (!plugin)
     return CompletionResponse::error("language plugin not found");
-  return plugin->CompleteCode(*this, current_code);
+  return plugin->CompleteCode(options, *this, current_code);
 }
 
 lldb::ExpressionVariableSP

@@ -27,6 +27,7 @@
 #include "lldb/DataFormatters/StringPrinter.h"
 // SWIFT_ENABLE_TENSORFLOW
 #include "lldb/Target/CompletionResponse.h"
+#include "lldb/Target/CompletionOptions.h"
 #include "lldb/lldb-private.h"
 #include "lldb/lldb-public.h"
 
@@ -234,7 +235,8 @@ public:
                                                      bool throw_on, Stream &s);
 
   // SWIFT_ENABLE_TENSORFLOW
-  virtual CompletionResponse CompleteCode(ExecutionContextScope &exe_scope,
+  virtual CompletionResponse CompleteCode(const CompletionOptions &options,
+                                          ExecutionContextScope &exe_scope,
                                           const std::string &entered_code);
 
   // These are accessors for general information about the Languages lldb knows

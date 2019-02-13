@@ -90,6 +90,7 @@ import six
 #include "lldb/API/SBCompileUnit.h"
 // SWIFT_ENABLE_TENSORFLOW
 #include "lldb/API/SBCompletionMatch.h"
+#include "lldb/API/SBCompletionOptions.h"
 #include "lldb/API/SBCompletionResponse.h"
 #include "lldb/API/SBData.h"
 #include "lldb/API/SBDebugger.h"
@@ -180,6 +181,7 @@ import six
 %include "./interface/SBCompileUnit.i"
 // SWIFT_ENABLE_TENSORFLOW
 %include "./interface/SBCompletionMatch.i"
+%include "./interface/SBCompletionOptions.i"
 %include "./interface/SBCompletionResponse.i"
 %include "./interface/SBData.i"
 %include "./interface/SBDebugger.i"

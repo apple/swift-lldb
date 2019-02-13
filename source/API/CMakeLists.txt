@@ -23,6 +23,7 @@ add_lldb_library(liblldb SHARED
   SBCommunication.cpp
   SBCompileUnit.cpp
   SBCompletionMatch.cpp
+  SBCompletionOptions.cpp
   SBCompletionResponse.cpp
   SBData.cpp
   SBDebugger.cpp
