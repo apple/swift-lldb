@@ -98,8 +98,7 @@ static std::string toInsertableString(const lldb_private::CompletionOptions &Opt
                 callParameterSection == ChunkKind::CallParameterInternalName ||
                 (!hasParameterName &&
                     callParameterSection == ChunkKind::CallParameterColon) ||
-                callParameterSection == ChunkKind::CallParameterType ||
-                callParameterSection == ChunkKind::CallParameterClosureType))
+                callParameterSection == ChunkKind::CallParameterType))
           PlaceholderText += escapeForInsertableString(Options,
                                                        innerChunk.getText());
 
