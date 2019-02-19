@@ -41,80 +41,51 @@ using namespace lldb;
 using namespace lldb_private;
 using namespace minidump;
 
-namespace {
-
-/// A minimal ObjectFile implementation providing a dummy object file for the
-/// cases when the real module binary is not available. This allows the module
-/// to show up in "image list" and symbols to be added to it.
-class PlaceholderObjectFile : public ObjectFile {
+//------------------------------------------------------------------
+/// A placeholder module used for minidumps, where the original
+/// object files may not be available (so we can't parse the object
+/// files to extract the set of sections/segments)
+///
+/// This placeholder module has a single synthetic section (.module_image)
+/// which represents the module memory range covering the whole module.
+//------------------------------------------------------------------
+class PlaceholderModule : public Module {
 public:
-  PlaceholderObjectFile(const lldb::ModuleSP &module_sp,
-                        const ModuleSpec &module_spec, lldb::offset_t base,
-                        lldb::offset_t size)
-      : ObjectFile(module_sp, &module_spec.GetFileSpec(), /*file_offset*/ 0,
-                   /*length*/ 0, /*data_sp*/ nullptr, /*data_offset*/ 0),
-        m_arch(module_spec.GetArchitecture()), m_uuid(module_spec.GetUUID()),
-        m_base(base), m_size(size) {
-    m_symtab_up = llvm::make_unique<Symtab>(this);
+  PlaceholderModule(const ModuleSpec &module_spec) :
+    Module(module_spec.GetFileSpec(), module_spec.GetArchitecture()) {
+    if (module_spec.GetUUID().IsValid())
+      SetUUID(module_spec.GetUUID());
   }
 
-  ConstString GetPluginName() override { return ConstString("placeholder"); }
-  uint32_t GetPluginVersion() override { return 1; }
-  bool ParseHeader() override { return true; }
-  Type CalculateType() override { return eTypeUnknown; }
-  Strata CalculateStrata() override { return eStrataUnknown; }
-  uint32_t GetDependentModules(FileSpecList &file_list) override { return 0; }
-  bool IsExecutable() const override { return false; }
-  ArchSpec GetArchitecture() override { return m_arch; }
-  UUID GetUUID() override { return m_uuid; }
-  Symtab *GetSymtab() override { return m_symtab_up.get(); }
-  bool IsStripped() override { return true; }
-  ByteOrder GetByteOrder() const override { return m_arch.GetByteOrder(); }
-
-  uint32_t GetAddressByteSize() const override {
-    return m_arch.GetAddressByteSize();
-  }
-
-  Address GetBaseAddress() override {
-    return Address(m_sections_up->GetSectionAtIndex(0), 0);
-  }
-
-  void CreateSections(SectionList &unified_section_list) override {
-    m_sections_up = llvm::make_unique<SectionList>();
-    auto section_sp = std::make_shared<Section>(
-        GetModule(), this, /*sect_id*/ 0, ConstString(".module_image"),
-        eSectionTypeOther, m_base, m_size, /*file_offset*/ 0, /*file_size*/ 0,
-        /*log2align*/ 0, /*flags*/ 0);
-    m_sections_up->AddSection(section_sp);
-    unified_section_list.AddSection(std::move(section_sp));
-  }
-
-  bool SetLoadAddress(Target &target, addr_t value,
-                      bool value_is_offset) override {
-    assert(!value_is_offset);
-    assert(value == m_base);
-
-    // Create sections if they haven't been created already.
-    GetModule()->GetSectionList();
-    assert(m_sections_up->GetNumSections(0) == 1);
-
+  // Creates a synthetic module section covering the whole module image (and
+  // sets the section load address as well)
+  void CreateImageSection(const MinidumpModule *module, Target& target) {
+    const ConstString section_name(".module_image");
+    lldb::SectionSP section_sp(new Section(
+        shared_from_this(),     // Module to which this section belongs.
+        nullptr,                // ObjectFile
+        0,                      // Section ID.
+        section_name,           // Section name.
+        eSectionTypeContainer,  // Section type.
+        module->base_of_image,  // VM address.
+        module->size_of_image,  // VM size in bytes of this section.
+        0,                      // Offset of this section in the file.
+        module->size_of_image,  // Size of the section as found in the file.
+        12,                     // Alignment of the section (log2)
+        0,                      // Flags for this section.
+        1));                    // Number of host bytes per target byte
+    section_sp->SetPermissions(ePermissionsExecutable | ePermissionsReadable);
+    GetSectionList()->AddSection(section_sp);
     target.GetSectionLoadList().SetSectionLoadAddress(
-        m_sections_up->GetSectionAtIndex(0), m_base);
-    return true;
+        section_sp, module->base_of_image);
   }
 
-  void Dump(Stream *s) override {
-    s->Format("Placeholder object file for {0} loaded at [{1:x}-{2:x})\n",
-              GetFileSpec(), m_base, m_base + m_size);
-  }
+ObjectFile *GetObjectFile() override { return nullptr; }
 
-private:
-  ArchSpec m_arch;
-  UUID m_uuid;
-  lldb::offset_t m_base;
-  lldb::offset_t m_size;
+  SectionList *GetSectionList() override {
+    return Module::GetUnifiedSectionList();
+  }
 };
-} // namespace
 
 ConstString ProcessMinidump::GetPluginNameStatic() {
   static ConstString g_name("minidump");
@@ -386,7 +357,6 @@ void ProcessMinidump::ReadModuleList() {
     auto file_spec = FileSpec(name.getValue(), GetArchitecture().GetTriple());
     FileSystem::Instance().Resolve(file_spec);
     ModuleSpec module_spec(file_spec, uuid);
-    module_spec.GetArchitecture() = GetArchitecture();
     Status error;
     lldb::ModuleSP module_sp = GetTarget().GetSharedModule(module_spec, &error);
     if (!module_sp || error.Fail()) {
@@ -403,8 +373,10 @@ void ProcessMinidump::ReadModuleList() {
                     name.getValue().c_str());
       }
 
-      module_sp = Module::CreateModuleFromObjectFile<PlaceholderObjectFile>(
-          module_spec, module->base_of_image, module->size_of_image);
+      auto placeholder_module =
+          std::make_shared<PlaceholderModule>(module_spec);
+      placeholder_module->CreateImageSection(module, GetTarget());
+      module_sp = placeholder_module;
       GetTarget().GetImages().Append(module_sp);
     }
 
@@ -464,10 +436,23 @@ private:
   OptionGroupBoolean m_dump_linux_proc_uptime;
   OptionGroupBoolean m_dump_linux_proc_fd;
   OptionGroupBoolean m_dump_linux_all;
+  OptionGroupBoolean m_fb_app_data;
+  OptionGroupBoolean m_fb_build_id;
+  OptionGroupBoolean m_fb_version;
+  OptionGroupBoolean m_fb_java_stack;
+  OptionGroupBoolean m_fb_dalvik;
+  OptionGroupBoolean m_fb_unwind;
+  OptionGroupBoolean m_fb_error_log;
+  OptionGroupBoolean m_fb_app_state;
+  OptionGroupBoolean m_fb_abort;
+  OptionGroupBoolean m_fb_thread;
+  OptionGroupBoolean m_fb_logcat;
+  OptionGroupBoolean m_fb_all;
 
   void SetDefaultOptionsIfNoneAreSet() {
     if (m_dump_all.GetOptionValue().GetCurrentValue() ||
         m_dump_linux_all.GetOptionValue().GetCurrentValue() ||
+        m_fb_all.GetOptionValue().GetCurrentValue() ||
         m_dump_directory.GetOptionValue().GetCurrentValue() ||
         m_dump_linux_cpuinfo.GetOptionValue().GetCurrentValue() ||
         m_dump_linux_proc_status.GetOptionValue().GetCurrentValue() ||
@@ -478,7 +463,18 @@ private:
         m_dump_linux_maps.GetOptionValue().GetCurrentValue() ||
         m_dump_linux_proc_stat.GetOptionValue().GetCurrentValue() ||
         m_dump_linux_proc_uptime.GetOptionValue().GetCurrentValue() ||
-        m_dump_linux_proc_fd.GetOptionValue().GetCurrentValue())
+        m_dump_linux_proc_fd.GetOptionValue().GetCurrentValue() ||
+        m_fb_app_data.GetOptionValue().GetCurrentValue() ||
+        m_fb_build_id.GetOptionValue().GetCurrentValue() ||
+        m_fb_version.GetOptionValue().GetCurrentValue() ||
+        m_fb_java_stack.GetOptionValue().GetCurrentValue() ||
+        m_fb_dalvik.GetOptionValue().GetCurrentValue() ||
+        m_fb_unwind.GetOptionValue().GetCurrentValue() ||
+        m_fb_error_log.GetOptionValue().GetCurrentValue() ||
+        m_fb_app_state.GetOptionValue().GetCurrentValue() ||
+        m_fb_abort.GetOptionValue().GetCurrentValue() ||
+        m_fb_thread.GetOptionValue().GetCurrentValue() ||
+        m_fb_logcat.GetOptionValue().GetCurrentValue())
       return;
     // If no options were set, then dump everything
     m_dump_all.GetOptionValue().SetCurrentValue(true);
@@ -533,6 +529,42 @@ private:
     return DumpLinux() ||
         m_dump_linux_proc_fd.GetOptionValue().GetCurrentValue();
   }
+  bool DumpFacebook() const {
+    return DumpAll() || m_fb_all.GetOptionValue().GetCurrentValue();
+  }
+  bool DumpFacebookAppData() const {
+    return DumpFacebook() || m_fb_app_data.GetOptionValue().GetCurrentValue();
+  }
+  bool DumpFacebookBuildID() const {
+    return DumpFacebook() || m_fb_build_id.GetOptionValue().GetCurrentValue();
+  }
+  bool DumpFacebookVersionName() const {
+    return DumpFacebook() || m_fb_version.GetOptionValue().GetCurrentValue();
+  }
+  bool DumpFacebookJavaStack() const {
+    return DumpFacebook() || m_fb_java_stack.GetOptionValue().GetCurrentValue();
+  }
+  bool DumpFacebookDalvikInfo() const {
+    return DumpFacebook() || m_fb_dalvik.GetOptionValue().GetCurrentValue();
+  }
+  bool DumpFacebookUnwindSymbols() const {
+    return DumpFacebook() || m_fb_unwind.GetOptionValue().GetCurrentValue();
+  }
+  bool DumpFacebookErrorLog() const {
+    return DumpFacebook() || m_fb_error_log.GetOptionValue().GetCurrentValue();
+  }
+  bool DumpFacebookAppStateLog() const {
+    return DumpFacebook() || m_fb_app_state.GetOptionValue().GetCurrentValue();
+  }
+  bool DumpFacebookAbortReason() const {
+    return DumpFacebook() || m_fb_abort.GetOptionValue().GetCurrentValue();
+  }
+  bool DumpFacebookThreadName() const {
+    return DumpFacebook() || m_fb_thread.GetOptionValue().GetCurrentValue();
+  }
+  bool DumpFacebookLogcat() const {
+    return DumpFacebook() || m_fb_logcat.GetOptionValue().GetCurrentValue();
+  }
 public:
 
   CommandObjectProcessMinidumpDump(CommandInterpreter &interpreter)
@@ -564,7 +596,30 @@ public:
     INIT_BOOL(m_dump_linux_proc_fd, "fd", 'f',
               "Dump linux /proc/<pid>/fd."),
     INIT_BOOL(m_dump_linux_all, "linux", 'l',
-              "Dump all linux streams.") {
+              "Dump all linux streams."),
+    INIT_BOOL(m_fb_app_data, "fb-app-data", 1,
+              "Dump Facebook application custom data."),
+    INIT_BOOL(m_fb_build_id, "fb-build-id", 2,
+              "Dump the Facebook build ID."),
+    INIT_BOOL(m_fb_version, "fb-version", 3,
+              "Dump Facebook application version string."),
+    INIT_BOOL(m_fb_java_stack, "fb-java-stack", 4,
+              "Dump Facebook java stack."),
+    INIT_BOOL(m_fb_dalvik, "fb-dalvik-info", 5,
+              "Dump Facebook Dalvik info."),
+    INIT_BOOL(m_fb_unwind, "fb-unwind-symbols", 6,
+              "Dump Facebook unwind symbols."),
+    INIT_BOOL(m_fb_error_log, "fb-error-log", 7,
+              "Dump Facebook error log."),
+    INIT_BOOL(m_fb_app_state, "fb-app-state-log", 8,
+              "Dump Facebook java stack."),
+    INIT_BOOL(m_fb_abort, "fb-abort-reason", 9,
+              "Dump Facebook abort reason."),
+    INIT_BOOL(m_fb_thread, "fb-thread-name", 10,
+              "Dump Facebook thread name."),
+    INIT_BOOL(m_fb_logcat, "fb-logcat", 11,
+              "Dump Facebook logcat."),
+    INIT_BOOL(m_fb_all, "facebook", 12, "Dump all Facebook streams.") {
     APPEND_OPT(m_dump_all);
     APPEND_OPT(m_dump_directory);
     APPEND_OPT(m_dump_linux_cpuinfo);
@@ -578,6 +633,18 @@ public:
     APPEND_OPT(m_dump_linux_proc_uptime);
     APPEND_OPT(m_dump_linux_proc_fd);
     APPEND_OPT(m_dump_linux_all);
+    APPEND_OPT(m_fb_app_data);
+    APPEND_OPT(m_fb_build_id);
+    APPEND_OPT(m_fb_version);
+    APPEND_OPT(m_fb_java_stack);
+    APPEND_OPT(m_fb_dalvik);
+    APPEND_OPT(m_fb_unwind);
+    APPEND_OPT(m_fb_error_log);
+    APPEND_OPT(m_fb_app_state);
+    APPEND_OPT(m_fb_abort);
+    APPEND_OPT(m_fb_thread);
+    APPEND_OPT(m_fb_logcat);
+    APPEND_OPT(m_fb_all);
     m_option_group.Finalize();
   }
 
@@ -653,6 +720,48 @@ public:
       DumpTextStream(MinidumpStreamType::LinuxProcUptime, "uptime");
     if (DumpLinuxProcFD())
       DumpTextStream(MinidumpStreamType::LinuxProcFD, "/proc/PID/fd");
+    if (DumpFacebookAppData())
+      DumpTextStream(MinidumpStreamType::FacebookAppCustomData,
+                     "Facebook App Data");
+    if (DumpFacebookBuildID()) {
+      auto bytes = minidump.GetStream(MinidumpStreamType::FacebookBuildID);
+      if (bytes.size() >= 4) {
+        DataExtractor data(bytes.data(), bytes.size(), eByteOrderLittle,
+                           process->GetAddressByteSize());
+        lldb::offset_t offset = 0;
+        uint32_t build_id = data.GetU32(&offset);
+        s.Printf("Facebook Build ID:\n");
+        s.Printf("%u\n", build_id);
+        s.Printf("\n");
+      }
+    }
+    if (DumpFacebookVersionName())
+      DumpTextStream(MinidumpStreamType::FacebookAppVersionName,
+                     "Facebook Version String");
+    if (DumpFacebookJavaStack())
+      DumpTextStream(MinidumpStreamType::FacebookJavaStack,
+                     "Facebook Java Stack");
+    if (DumpFacebookDalvikInfo())
+      DumpTextStream(MinidumpStreamType::FacebookDalvikInfo,
+                     "Facebook Dalvik Info");
+    if (DumpFacebookUnwindSymbols())
+      DumpBinaryStream(MinidumpStreamType::FacebookUnwindSymbols,
+                       "Facebook Unwind Symbols Bytes");
+    if (DumpFacebookErrorLog())
+      DumpTextStream(MinidumpStreamType::FacebookDumpErrorLog,
+                     "Facebook Error Log");
+    if (DumpFacebookAppStateLog())
+      DumpTextStream(MinidumpStreamType::FacebookAppStateLog,
+                     "Faceook Application State Log");
+    if (DumpFacebookAbortReason())
+      DumpTextStream(MinidumpStreamType::FacebookAbortReason,
+                     "Facebook Abort Reason");
+    if (DumpFacebookThreadName())
+      DumpTextStream(MinidumpStreamType::FacebookThreadName,
+                     "Facebook Thread Name");
+    if (DumpFacebookLogcat())
+      DumpTextStream(MinidumpStreamType::FacebookLogcat,
+                     "Facebook Logcat");
     return true;
   }
 };
