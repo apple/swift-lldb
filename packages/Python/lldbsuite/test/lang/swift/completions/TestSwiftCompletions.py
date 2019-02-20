@@ -258,4 +258,15 @@ class TestSwiftCompletions(TestBase):
             ["ReplacedStruct", "ReplacedStruct", "ReplacedStruct",
              "ReplacedStruct", "init()", "self"])
 
+        # === TF-249: Crashes when completing a keypath naming a struct with a
+        #             private field ===
+
+        self.assertCompletions(
+            """
+            struct TF249StructWithPrivateField {
+              private let x: Float
+              func bla() {
+                \TF249Struct""",
+            ["WithPrivateField"])
+
         # TODO: Test imports.

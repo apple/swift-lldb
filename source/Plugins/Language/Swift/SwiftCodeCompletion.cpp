@@ -195,9 +195,15 @@ doCodeCompletion(SourceFile &SF, StringRef EnteredCode,
   return BufferID;
 }
 
+/// Adds an empty `SourceFile` of the specified `Kind` to the given `Module`.
+/// If `BufferIdentifier` is nonempty, creates an empty buffer with that
+/// identifier, and associates it with the `SourceFile`.
 static void AddSourceFile(ASTContext &Ctx, ModuleDecl *Module,
-                          SourceFileKind Kind) {
+                          SourceFileKind Kind,
+                          StringRef BufferIdentifier = "") {
   Optional<unsigned> BufferID;
+  if (!BufferIdentifier.empty())
+    BufferID = Ctx.SourceMgr.addMemBufferCopy("", BufferIdentifier);
   SourceFile *SF = new (Ctx) SourceFile(
       *Module, Kind, BufferID, SourceFile::ImplicitModuleImportKind::Stdlib,
       /*Keep tokens*/ false);
@@ -244,7 +250,11 @@ SwiftCompleteCode(SwiftASTContext &SwiftCtx,
     AddSourceFile(Ctx, CompletionsModule, SourceFileKind::REPL);
 
     // We reset this file with the persistent decls every completion request.
-    AddSourceFile(Ctx, CompletionsModule, SourceFileKind::Library);
+    // We give this file a buffer with an identifier to disambiguate it from the
+    // other file, because `SourceFile::getPrivateDiscriminator` relies on
+    // buffer identifiers to disambiguate files.
+    AddSourceFile(Ctx, CompletionsModule, SourceFileKind::Library,
+                  "<Previous Decls>");
   }
 
   // This file accumulates all of the "hand imports" (imports that the user
