@@ -2807,55 +2807,61 @@ public:
       const DiagnosticSeverity severity = SeverityForKind(diagnostic.kind);
       const DiagnosticOrigin origin = eDiagnosticOriginSwift;
 
-      if (first_line > 0 && bufferID != UINT32_MAX &&
-          diagnostic.bufferID == bufferID && !diagnostic.bufferName.empty()) {
-        // Make sure the error line is in range
-        if (diagnostic.line >= first_line && diagnostic.line <= last_line) {
-          // Need to remap the error/warning to a different line
-          StreamString match;
-          match.Printf("%s:%u:", diagnostic.bufferName.str().c_str(),
-                       diagnostic.line);
-          const size_t match_len = match.GetString().size();
-          size_t match_pos = diagnostic.description.find(match.GetString());
-          if (match_pos != std::string::npos) {
-            // We have some <file>:<line>:" instances that need to be updated
-            StreamString fixed_description;
-            size_t start_pos = 0;
-            do {
-              if (match_pos > start_pos)
-                fixed_description.Printf(
-                    "%s", diagnostic.description.substr(start_pos, match_pos)
-                              .c_str());
-              fixed_description.Printf("%s:%u:",
-                                       diagnostic.bufferName.str().c_str(),
-                                       diagnostic.line - first_line +
-                                           line_offset + 1);
-              start_pos = match_pos + match_len;
-              match_pos =
-                  diagnostic.description.find(match.GetString(), start_pos);
-            } while (match_pos != std::string::npos);
+      // SWIFT_ENABLE_TENSORFLOW
+      if (first_line == 0 || bufferID == UINT32_MAX ||
+          diagnostic.bufferName.empty())
+        continue;
 
-            // Append any last remainging text
-            if (start_pos < diagnostic.description.size())
-              fixed_description.Printf(
-                  "%s",
-                  diagnostic.description.substr(start_pos,
-                                                diagnostic.description.size() -
-                                                    start_pos)
-                      .c_str());
+      // If the diagnostic is for the buffer containing the user's expression,
+      // make sure that the error line is in range. Otherwise (e.g. diagnostics
+      // pointing at libraries), don't check any range.
+      if (diagnostic.bufferID == bufferID && (diagnostic.line < first_line ||
+                                              diagnostic.line > last_line))
+        continue;
 
-            SwiftDiagnostic *new_diagnostic =
-                new SwiftDiagnostic(fixed_description.GetString().data(),
-                                    severity, origin, bufferID);
-            for (auto fixit : diagnostic.fixits)
-              new_diagnostic->AddFixIt(fixit);
+      // Need to remap the error/warning to a different line
+      StreamString match;
+      match.Printf("%s:%u:", diagnostic.bufferName.str().c_str(),
+                   diagnostic.line);
+      const size_t match_len = match.GetString().size();
+      size_t match_pos = diagnostic.description.find(match.GetString());
+      if (match_pos != std::string::npos) {
+        // We have some <file>:<line>:" instances that need to be updated
+        StreamString fixed_description;
+        size_t start_pos = 0;
+        do {
+          if (match_pos > start_pos)
+            fixed_description.Printf(
+                "%s", diagnostic.description.substr(start_pos, match_pos)
+                          .c_str());
+          fixed_description.Printf("%s:%u:",
+                                   diagnostic.bufferName.str().c_str(),
+                                   diagnostic.line - first_line +
+                                       line_offset + 1);
+          start_pos = match_pos + match_len;
+          match_pos =
+              diagnostic.description.find(match.GetString(), start_pos);
+        } while (match_pos != std::string::npos);
 
-            diagnostic_manager.AddDiagnostic(new_diagnostic);
-            added_one_diagnostic = true;
+        // Append any last remainging text
+        if (start_pos < diagnostic.description.size())
+          fixed_description.Printf(
+              "%s",
+              diagnostic.description.substr(start_pos,
+                                            diagnostic.description.size() -
+                                                start_pos)
+                  .c_str());
 
-            continue;
-          }
-        }
+        SwiftDiagnostic *new_diagnostic =
+            new SwiftDiagnostic(fixed_description.GetString().data(),
+                                severity, origin, bufferID);
+        for (auto fixit : diagnostic.fixits)
+          new_diagnostic->AddFixIt(fixit);
+
+        diagnostic_manager.AddDiagnostic(new_diagnostic);
+        added_one_diagnostic = true;
+
+        continue;
       }
     }
 
