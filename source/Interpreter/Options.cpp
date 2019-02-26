@@ -1448,9 +1448,10 @@ llvm::Expected<Args> Options::Parse(const Args &args,
     } else {
       error.SetErrorStringWithFormat("invalid option with value '%i'", val);
     }
-    if (error.Fail())
-      return error.ToError();
   }
+
+  if (error.Fail())
+    return error.ToError();
 
   argv.pop_back();
   argv.erase(argv.begin(), argv.begin() + OptionParser::GetOptionIndex());
