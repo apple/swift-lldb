@@ -253,7 +253,7 @@ protected:
                       swift::EnumDecl *enum_decl, SwiftEnumDescriptor::Kind k)
       : m_kind(k), m_type_name() {
     if (swift_can_type.getPointer()) {
-      if (auto nominal = swift_can_type->getAnyNominal()) {
+      if (auto nominal = swift_can_type->getNominalTypeDecl()) {
         swift::Identifier name(nominal->getName());
         if (name.get())
           m_type_name.SetCString(name.get());
@@ -4839,8 +4839,7 @@ SwiftASTContext::ExtraTypeInformation::ExtraTypeInformation(
     swift::ProtocolDecl *option_set =
         ast_ctx.getProtocol(swift::KnownProtocolKind::OptionSet);
     if (option_set) {
-      if (auto nominal_decl =
-              swift_can_type.getNominalOrBoundGenericNominal()) {
+      if (auto nominal_decl = swift_can_type.getNominalTypeDecl()) {
         for (swift::ProtocolDecl *protocol_decl :
              nominal_decl->getAllProtocols()) {
           if (protocol_decl == option_set) {
@@ -4940,7 +4939,7 @@ bool SwiftASTContext::IsAggregateType(void *type) {
     auto referent_type = swift_can_type->getReferenceStorageReferent();
     return (referent_type->is<swift::TupleType>() ||
             referent_type->is<swift::BuiltinVectorType>() ||
-            referent_type->getAnyNominal());
+            referent_type->getNominalTypeDecl());
   }
 
   return false;
@@ -5771,7 +5770,7 @@ size_t SwiftASTContext::GetNumMemberFunctions(void *type) {
   if (type) {
     swift::CanType swift_can_type(GetCanonicalSwiftType(type));
 
-    auto nominal_decl = swift_can_type.getAnyNominal();
+    auto nominal_decl = swift_can_type.getNominalTypeDecl();
     if (nominal_decl) {
       auto iter = nominal_decl->getMembers().begin();
       auto end = nominal_decl->getMembers().end();
@@ -5802,7 +5801,7 @@ TypeMemberFunctionImpl SwiftASTContext::GetMemberFunctionAtIndex(void *type,
   if (type) {
     swift::CanType swift_can_type(GetCanonicalSwiftType(type));
 
-    auto nominal_decl = swift_can_type.getAnyNominal();
+    auto nominal_decl = swift_can_type.getNominalTypeDecl();
     if (nominal_decl) {
       auto iter = nominal_decl->getMembers().begin();
       auto end = nominal_decl->getMembers().end();
@@ -6258,7 +6257,7 @@ uint32_t SwiftASTContext::GetNumChildren(void *type,
 
   case swift::TypeKind::Class:
   case swift::TypeKind::BoundGenericClass: {
-    auto class_decl = swift_can_type->getClassOrBoundGenericClass();
+    auto class_decl = swift_can_type->getClassDecl();
     return (class_decl->hasSuperclass() ? 1 : 0) + GetNumFields(type);
   }
 
@@ -6288,7 +6287,7 @@ uint32_t SwiftASTContext::GetNumChildren(void *type,
             .GetNumChildren(omit_empty_base_classes, exe_ctx);
     // If this type points to a simple type (or to a class), then it
     // has 1 child.
-    if (num_pointee_children == 0 || deref_type->getClassOrBoundGenericClass())
+    if (num_pointee_children == 0 || deref_type->getClassDecl())
       num_children = 1;
     else
       num_children = num_pointee_children;
@@ -6329,7 +6328,7 @@ uint32_t SwiftASTContext::GetNumDirectBaseClasses(void *opaque_type) {
     return 0;
 
   swift::CanType swift_can_type(GetCanonicalSwiftType(opaque_type));
-  swift::ClassDecl *class_decl = swift_can_type->getClassOrBoundGenericClass();
+  swift::ClassDecl *class_decl = swift_can_type->getClassDecl();
   if (class_decl) {
     if (class_decl->hasSuperclass())
       return 1;
@@ -6387,7 +6386,7 @@ uint32_t SwiftASTContext::GetNumFields(void *type) {
   case swift::TypeKind::Class:
   case swift::TypeKind::BoundGenericClass:
   case swift::TypeKind::BoundGenericStruct: {
-    auto nominal = swift_can_type->getAnyNominal();
+    auto nominal = swift_can_type->getNominalTypeDecl();
     return GetStoredProperties(nominal).size();
   }
 
@@ -6438,7 +6437,7 @@ SwiftASTContext::GetDirectBaseClassAtIndex(void *opaque_type, size_t idx,
   if (opaque_type) {
     swift::CanType swift_can_type(GetCanonicalSwiftType(opaque_type));
     swift::ClassDecl *class_decl =
-        swift_can_type->getClassOrBoundGenericClass();
+        swift_can_type->getClassDecl();
     if (class_decl) {
       swift::Type base_class_type = class_decl->getSuperclass();
       if (base_class_type)
@@ -6619,7 +6618,7 @@ CompilerType SwiftASTContext::GetFieldAtIndex(void *type, size_t idx,
 
   case swift::TypeKind::Class:
   case swift::TypeKind::BoundGenericClass: {
-    auto class_decl = swift_can_type->getClassOrBoundGenericClass();
+    auto class_decl = swift_can_type->getClassDecl();
     if (class_decl->hasSuperclass()) {
       if (idx == 0) {
         swift::Type superclass_swift_type = swift_can_type->getSuperclass();
@@ -6648,7 +6647,7 @@ CompilerType SwiftASTContext::GetFieldAtIndex(void *type, size_t idx,
 
   case swift::TypeKind::Struct:
   case swift::TypeKind::BoundGenericStruct: {
-    auto nominal = swift_can_type->getAnyNominal();
+    auto nominal = swift_can_type->getNominalTypeDecl();
     auto stored_properties = GetStoredProperties(nominal);
     if (idx >= stored_properties.size()) break;
 
@@ -7050,7 +7049,7 @@ CompilerType SwiftASTContext::GetChildCompilerTypeAtIndex(
 
   case swift::TypeKind::Class:
   case swift::TypeKind::BoundGenericClass: {
-    auto class_decl = swift_can_type->getClassOrBoundGenericClass();
+    auto class_decl = swift_can_type->getClassDecl();
     // Child 0 is the superclass, if there is one.
     if (class_decl->hasSuperclass()) {
       if (idx == 0) {
@@ -7079,7 +7078,7 @@ CompilerType SwiftASTContext::GetChildCompilerTypeAtIndex(
 
   case swift::TypeKind::Struct:
   case swift::TypeKind::BoundGenericStruct: {
-    auto nominal = swift_can_type->getAnyNominal();
+    auto nominal = swift_can_type->getNominalTypeDecl();
     auto stored_properties = GetStoredProperties(nominal);
     if (idx >= stored_properties.size()) break;
 
@@ -7297,7 +7296,7 @@ size_t SwiftASTContext::GetIndexOfChildMemberWithName(
     case swift::TypeKind::Class:
     case swift::TypeKind::BoundGenericClass:
     case swift::TypeKind::BoundGenericStruct: {
-      auto nominal = swift_can_type->getAnyNominal();
+      auto nominal = swift_can_type->getNominalTypeDecl();
       auto stored_properties = GetStoredProperties(nominal);
       auto class_decl = llvm::dyn_cast<swift::ClassDecl>(nominal);
 
