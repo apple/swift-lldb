@@ -422,8 +422,10 @@ class LLDBREPLNameLookup : public LLDBNameLookup {
 public:
   LLDBREPLNameLookup(swift::SourceFile &source_file,
                      SwiftExpressionParser::SILVariableMap &variable_map,
-                     SymbolContext &sc, ExecutionContextScope &exe_scope)
-      : LLDBNameLookup(source_file, variable_map, sc, exe_scope) {}
+                     SymbolContext &sc, ExecutionContextScope &exe_scope,
+                     swift::SourceManager &sm)
+      : LLDBNameLookup(source_file, variable_map, sc, exe_scope),
+        m_source_manager(sm) {}
 
   virtual ~LLDBREPLNameLookup() {}
 
@@ -480,8 +482,70 @@ public:
     return !persistent_decl_results.empty();
   }
 
+  virtual void finishLookup(const swift::DeclContext *dc,
+                            swift::NLOptions options,
+                            llvm::SmallVectorImpl<swift::ValueDecl *> &decls) {
+    // Return if empty or there is no ambiguity.
+    if (decls.size() <= 1)
+      return;
+
+    // If a name lookup returns multiple declarations from REPL, we should
+    // prefer the latest one. We leave declarations that are defined outside of
+    // REPL as is. e.g.,
+    //
+    //  1> struct Foo {}
+    //  2> extension Foo { func f() -> Int { return 1 } }
+    //  3> extension Foo { func f() -> Int { return 2 } }
+    //  4> Foo().f()
+    //
+    // The name lookup for `f` in the expression `Foo().f()` will return both
+    // the declarations of `f()`. We should prune the declaration at line 2.
+    // Otherwise, we will get ambiguous use of 'f()` error.
+    //
+    unsigned latest_repl_line = 0;
+    for (const auto* decl : decls) {
+      unsigned decl_line = GetREPLLineNumber(decl);
+      if (decl_line > latest_repl_line)
+        latest_repl_line = decl_line;
+    }
+
+    auto is_old_repl_line = [&](const swift::ValueDecl *decl) {
+      unsigned decl_line = GetREPLLineNumber(decl);
+      bool should_remove = (decl_line != 0) && (decl_line < latest_repl_line);
+      if (m_log) {
+        std::string s;
+        llvm::raw_string_ostream ss(s);
+        decl->dump(ss);
+        ss.flush();
+        m_log->Printf("[LLDBREPLNameLookup::finishLookup] (%s) %s.",
+                      should_remove ? "Removing" : "Keeping", s.c_str());
+      }
+      return should_remove;
+    };
+
+    // Filter out any thing that was defined in an earlier repl line.
+    decls.erase(std::remove_if(decls.begin(), decls.end(), is_old_repl_line));
+  }
+
   virtual swift::Identifier getPreferredPrivateDiscriminator() {
     return swift::Identifier();
+  }
+
+ protected:
+  swift::SourceManager& m_source_manager;
+
+ private:
+   /// Returns the line number if this was defined on a repl line.
+   /// If this is not defined on a REPL line returns 0.
+   unsigned GetREPLLineNumber(const swift::Decl *decl) {
+     auto sl = decl->getLoc();
+     if (!sl.isValid())
+       return 0;
+     if (m_source_manager.getDisplayNameForLoc(sl) != "repl.swift")
+       return 0;
+     std::pair<unsigned, unsigned> line_col =
+         m_source_manager.getLineAndColumn(sl);
+     return line_col.first;
   }
 };
 }; // END Anonymous namespace
@@ -1287,8 +1351,9 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
 
   LLDBNameLookup *external_lookup;
   if (options.GetPlaygroundTransformEnabled() || options.GetREPLEnabled()) {
-    external_lookup = new LLDBREPLNameLookup(*source_file, variable_map, sc,
-                                             exe_scope);
+    external_lookup =
+        new LLDBREPLNameLookup(*source_file, variable_map, sc, exe_scope,
+                               swift_ast_context->GetSourceManager());
   } else {
     external_lookup = new LLDBExprNameLookup(*source_file, variable_map, sc,
                                              exe_scope);
