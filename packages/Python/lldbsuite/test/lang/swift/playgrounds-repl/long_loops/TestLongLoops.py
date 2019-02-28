@@ -14,12 +14,14 @@ Test that long iteration loops don't crash
 """
 import lldbsuite.test.lldbplaygroundrepl as repl
 from lldbsuite.test.lldbtest import *
+from lldbsuite.test.decorators import *	
 
 
 class TestLongLoops(repl.PlaygroundREPLTest):
 
     mydir = repl.PlaygroundREPLTest.compute_mydir(__file__)
 
+    @skipIfDarwin
     def do_test(self):
         """
         Test that long iteration loops don't crash
