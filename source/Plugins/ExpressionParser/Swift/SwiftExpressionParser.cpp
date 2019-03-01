@@ -543,7 +543,8 @@ public:
      auto sl = decl->getLoc();
      if (!sl.isValid())
        return 0;
-     if (m_source_manager.getDisplayNameForLoc(sl) != "repl.swift")
+     if (m_source_manager.getDisplayNameForLoc(sl) !=
+         SwiftREPL::GetSourceFileBasename())
        return 0;
      std::pair<unsigned, unsigned> line_col =
          m_source_manager.getLineAndColumn(sl);
