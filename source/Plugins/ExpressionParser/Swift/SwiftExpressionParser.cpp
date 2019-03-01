@@ -482,16 +482,18 @@ public:
     return !persistent_decl_results.empty();
   }
 
-  virtual void finishLookup(const swift::DeclContext *dc,
-                            swift::NLOptions options,
-                            llvm::SmallVectorImpl<swift::ValueDecl *> &decls) {
+  void finishLookupInNominals(
+      const swift::DeclContext *dc,
+      llvm::ArrayRef<swift::NominalTypeDecl *> typeDecls, swift::DeclName Name,
+      swift::NLOptions options,
+      llvm::SmallVectorImpl<swift::ValueDecl *> &decls) override {
     // Return if empty or there is no ambiguity.
     if (decls.size() <= 1)
       return;
 
-    // If a name lookup returns multiple declarations from REPL, we should
-    // prefer the latest one. We leave declarations that are defined outside of
-    // REPL as is. e.g.,
+    // If a name lookup in a nominal returns multiple declarations from REPL, we
+    // should prefer the latest one. We leave declarations that are defined
+    // outside of REPL as is. e.g.,
     //
     //  1> struct Foo {}
     //  2> extension Foo { func f() -> Int { return 1 } }
@@ -517,7 +519,7 @@ public:
         llvm::raw_string_ostream ss(s);
         decl->dump(ss);
         ss.flush();
-        m_log->Printf("[LLDBREPLNameLookup::finishLookup] (%s) %s.",
+        m_log->Printf("[LLDBREPLNameLookup::finishLookupInNominals] (%s) %s.",
                       should_remove ? "Removing" : "Keeping", s.c_str());
       }
       return should_remove;
