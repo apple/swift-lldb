@@ -147,16 +147,16 @@ void ClangUserExpression::ScanContext(ExecutionContext &exe_ctx, Status &err) {
     case lldb::eLanguageTypeC_plus_plus_03:
     case lldb::eLanguageTypeC_plus_plus_11:
     case lldb::eLanguageTypeC_plus_plus_14:
-      m_in_cplusplus_method = true;
+      m_language_flags |= eLanguageFlagInCPlusPlusMethod;
       break;
     case lldb::eLanguageTypeObjC:
     case lldb::eLanguageTypeObjC_plus_plus:
-      m_in_objectivec_method = true;
+      m_language_flags |= eLanguageFlagInObjectiveCMethod;
       break;
     default:
       break;
     }
-    m_needs_object_ptr = true;
+    m_language_flags |= eLanguageFlagNeedsObjectPointer;
   } else if (clang::CXXMethodDecl *method_decl =
           ClangASTContext::DeclContextGetAsCXXMethodDecl(decl_context)) {
     if (m_allow_cxx && method_decl->isInstance()) {
