@@ -82,7 +82,8 @@ public:
   SwiftUserExpression(ExecutionContextScope &exe_scope, llvm::StringRef expr,
                       llvm::StringRef prefix, lldb::LanguageType language,
                       ResultType desired_type,
-                      const EvaluateExpressionOptions &options);
+                      const EvaluateExpressionOptions &options,
+                      ValueObject *ctx_obj);
 
   //------------------------------------------------------------------
   /// Destructor
@@ -182,6 +183,8 @@ private:
   PersistentVariableDelegate m_persistent_variable_delegate;
   std::unique_ptr<SwiftExpressionParser> m_parser;
   bool m_runs_in_playground_or_repl;
+
+  ValueObject *m_ctx_obj;
 };
 
 } // namespace lldb_private

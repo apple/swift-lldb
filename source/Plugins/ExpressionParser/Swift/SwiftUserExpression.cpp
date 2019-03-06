@@ -46,13 +46,14 @@ using namespace lldb_private;
 SwiftUserExpression::SwiftUserExpression(
     ExecutionContextScope &exe_scope, llvm::StringRef expr,
     llvm::StringRef prefix, lldb::LanguageType language,
-    ResultType desired_type, const EvaluateExpressionOptions &options)
+    ResultType desired_type, const EvaluateExpressionOptions &options,
+    ValueObject *ctx_obj)
     : LLVMUserExpression(exe_scope, expr, prefix, language, desired_type,
                          options),
       m_type_system_helper(*m_target_wp.lock().get()),
       m_result_delegate(exe_scope.CalculateTarget(), *this, false),
       m_error_delegate(exe_scope.CalculateTarget(), *this, true),
-      m_persistent_variable_delegate(*this) {
+      m_persistent_variable_delegate(*this), m_ctx_obj(ctx_obj) {
   m_runs_in_playground_or_repl =
       options.GetREPLEnabled() || options.GetPlaygroundTransformEnabled();
 }
@@ -390,7 +391,7 @@ bool SwiftUserExpression::Parse(DiagnosticManager &diagnostic_manager,
 
   if (!source_code->GetText(m_transformed_text, lang_type, m_language_flags,
                             m_options, m_swift_generic_info, exe_ctx,
-                            first_body_line)) {
+                            !m_ctx_obj, first_body_line)) {
     diagnostic_manager.PutString(eDiagnosticSeverityError,
                                   "couldn't construct expression body");
     return false;

@@ -920,11 +920,12 @@ public:
 
   virtual ~SwiftASTContextForExpressions() {}
 
-  UserExpression *
-  GetUserExpression(llvm::StringRef expr, llvm::StringRef prefix,
-                    lldb::LanguageType language,
-                    Expression::ResultType desired_type,
-                    const EvaluateExpressionOptions &options) override;
+  UserExpression *GetUserExpression(llvm::StringRef expr,
+                                    llvm::StringRef prefix,
+                                    lldb::LanguageType language,
+                                    Expression::ResultType desired_type,
+                                    const EvaluateExpressionOptions &options,
+                                    ValueObject *ctx_obj) override;
 
   PersistentExpressionState *GetPersistentExpressionState() override;
 
