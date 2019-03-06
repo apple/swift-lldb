@@ -369,7 +369,7 @@ bool ExpressionSourceCode::GetText(
         if (target->GetInjectLocalVariables(&exe_ctx)) {
           lldb::VariableListSP var_list_sp =
               frame->GetInScopeVariableList(false, true);
-          AddLocalVariableDecls(var_list_sp, lldb_local_var_decls);
+          AddLocalVariableDecls(var_list_sp, lldb_local_var_decls, m_body);
         }
       }
     }
