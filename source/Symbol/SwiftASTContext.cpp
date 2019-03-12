@@ -1380,6 +1380,7 @@ namespace {
 bool ConsumeIncludeOption(StringRef &arg, StringRef &prefix) {
   static StringRef options[] = {"-I",
                                 "-F",
+                                "-fmodule-map-file=",
                                 "-iquote",
                                 "-idirafter",
                                 "-iframeworkwithsysroot",
