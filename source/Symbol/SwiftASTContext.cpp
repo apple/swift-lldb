@@ -2589,6 +2589,10 @@ swift::SearchPathOptions &SwiftASTContext::GetSearchPathOptions() {
       search_path_opts.ImportSearchPaths.emplace_back(repl_modules_dir);
     }
 
+    // Allow users to specify an extra import search path in the environment.
+    if (auto *import_search_path = getenv("SWIFT_IMPORT_SEARCH_PATH")) {
+      search_path_opts.ImportSearchPaths.emplace_back(import_search_path);
+    }
   }
 
   return search_path_opts;
