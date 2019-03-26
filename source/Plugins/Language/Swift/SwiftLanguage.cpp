@@ -570,6 +570,8 @@ static void LoadSwiftFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
                    ConstString("CoreGraphics.CGFloat"), summary_flags);
   AddStringSummary(swift_category_sp, "${var.native}",
                    ConstString("Foundation.CGFloat"), summary_flags);
+  AddStringSummary(swift_category_sp, "${var.native}",
+                   ConstString("FoundationBase.CGFloat"), summary_flags);
 #endif // LLDB_DISABLE_PYTHON
 }
 
@@ -593,6 +595,11 @@ LoadFoundationValueTypesFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
       TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
 
   lldb_private::formatters::AddCXXSummary(
+      swift_category_sp, lldb_private::formatters::swift::Date_SummaryProvider,
+      "FoundationBase.Date summary provider", ConstString("FoundationBase.Date"),
+      TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
+
+  lldb_private::formatters::AddCXXSummary(
       swift_category_sp,
       lldb_private::formatters::swift::NotificationName_SummaryProvider,
       "Notification.Name summary provider",
@@ -604,16 +611,37 @@ LoadFoundationValueTypesFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
       "Notification.Name summary provider",
       ConstString("Foundation.Notification.Name"),
       TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
+  lldb_private::formatters::AddCXXSummary(
+      swift_category_sp,
+      lldb_private::formatters::swift::NotificationName_SummaryProvider,
+      "Notification.Name summary provider",
+      ConstString("FoundationBase.Notification.Type.Name"),
+      TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
+  lldb_private::formatters::AddCXXSummary(
+      swift_category_sp,
+      lldb_private::formatters::swift::NotificationName_SummaryProvider,
+      "Notification.Name summary provider",
+      ConstString("FoundationBase.Notification.Name"),
+      TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
 
   lldb_private::formatters::AddCXXSummary(
       swift_category_sp, lldb_private::formatters::swift::URL_SummaryProvider,
       "URL summary provider", ConstString("Foundation.URL"),
+      TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
+  lldb_private::formatters::AddCXXSummary(
+      swift_category_sp, lldb_private::formatters::swift::URL_SummaryProvider,
+      "URL summary provider", ConstString("FoundationBase.URL"),
       TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
 
   lldb_private::formatters::AddCXXSummary(
       swift_category_sp,
       lldb_private::formatters::swift::IndexPath_SummaryProvider,
       "IndexPath summary provider", ConstString("Foundation.IndexPath"),
+      summary_flags);
+  lldb_private::formatters::AddCXXSummary(
+      swift_category_sp,
+      lldb_private::formatters::swift::IndexPath_SummaryProvider,
+      "IndexPath summary provider", ConstString("FoundationBase.IndexPath"),
       summary_flags);
 
   lldb_private::formatters::AddCXXSummary(
@@ -622,15 +650,29 @@ LoadFoundationValueTypesFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
       "Measurement summary provider",
       ConstString("Foundation.Measurement<Foundation.Unit>"),
       TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
+  lldb_private::formatters::AddCXXSummary(
+      swift_category_sp,
+      lldb_private::formatters::swift::Measurement_SummaryProvider,
+      "Measurement summary provider",
+      ConstString("FoundationBase.Measurement<FoundationBase.Unit>"),
+      TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
 
   lldb_private::formatters::AddCXXSummary(
       swift_category_sp, lldb_private::formatters::swift::UUID_SummaryProvider,
       "UUID summary provider", ConstString("Foundation.UUID"),
       TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
+  lldb_private::formatters::AddCXXSummary(
+      swift_category_sp, lldb_private::formatters::swift::UUID_SummaryProvider,
+      "UUID summary provider", ConstString("FoundationBase.UUID"),
+      TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
 
   lldb_private::formatters::AddCXXSummary(
       swift_category_sp, lldb_private::formatters::swift::Data_SummaryProvider,
       "Data summary provider", ConstString("Foundation.Data"),
+      TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
+  lldb_private::formatters::AddCXXSummary(
+      swift_category_sp, lldb_private::formatters::swift::Data_SummaryProvider,
+      "Data summary provider", ConstString("FoundationBase.Data"),
       TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
 
   lldb_private::formatters::AddCXXSummary(
@@ -638,12 +680,26 @@ LoadFoundationValueTypesFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
       lldb_private::formatters::swift::Decimal_SummaryProvider,
       "Decimal summary provider", ConstString("Foundation.Decimal"),
       TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
+  lldb_private::formatters::AddCXXSummary(
+      swift_category_sp,
+      lldb_private::formatters::swift::Decimal_SummaryProvider,
+      "Decimal summary provider", ConstString("FoundationBase.Decimal"),
+      TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
 
   lldb_private::formatters::AddCXXSynthetic(
       swift_category_sp,
       lldb_private::formatters::swift::URLComponentsSyntheticFrontEndCreator,
       "URLComponents synthetic children",
       ConstString("Foundation.URLComponents"), SyntheticChildren::Flags()
+                                                   .SetSkipPointers(true)
+                                                   .SetCascades(true)
+                                                   .SetSkipReferences(false)
+                                                   .SetNonCacheable(false));
+  lldb_private::formatters::AddCXXSynthetic(
+      swift_category_sp,
+      lldb_private::formatters::swift::URLComponentsSyntheticFrontEndCreator,
+      "URLComponents synthetic children",
+      ConstString("FoundationBase.URLComponents"), SyntheticChildren::Flags()
                                                    .SetSkipPointers(true)
                                                    .SetCascades(true)
                                                    .SetSkipReferences(false)
