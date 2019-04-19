@@ -953,6 +953,44 @@ def main(vDictArgs):
         bOk, strMsg = macosx_copy_file_for_heap(
             vDictArgs, strFrameworkPythonDir)
 
+    # SWIFT_ENABLE_TENSORFLOW
+    # We would like the LLDB in a single toolchain to support multiple versions
+    # of Python3. The technically correct way to do this would be to build
+    # LLDB's Python bindings against multiple versions of Python3, but this
+    # would be a big change in the LLDB build process that I do not have time to
+    # figure out right now. Therefore, I simply create links from
+    # "site-packages" for other versions of Python3 to the "site-packages" for
+    # the single version that we actually built against. This seems to work.
+    if bOk and (eOSType != utilsOsType.EnumOsType.Darwin):
+        supportedPy3Versions = [
+            "python3.6",
+            "python3.7",
+        ]
+
+        # Find the element of `supportedPy3Versions` that we have generated libs
+        # for, if any.
+        generatedPy3Version = None
+        for supportedPy3Version in supportedPy3Versions:
+            if supportedPy3Version in strFrameworkPythonDir:
+                generatedPy3Version = supportedPy3Version
+                break
+
+        # If we have generated libs for any of the `supportedPy3Versions`, then
+        # create links for all the other `supportedPy3Versions` to the generated
+        # libs.
+        if generatedPy3Version is not None:
+            pyLibDirPrefix = strFrameworkPythonDir[
+                :strFrameworkPythonDir.index(generatedPy3Version)]
+            for supportedPy3Version in supportedPy3Versions:
+                if supportedPy3Version == generatedPy3Version:
+                    continue
+                linkSrc = pyLibDirPrefix + supportedPy3Version
+                linkTarget = generatedPy3Version
+                print("Linking %s to %s" % (linkSrc, linkTarget))
+                bOk, strMsg = make_symlink_native(vDictArgs, linkTarget, linkSrc)
+                if not bOk:
+                    break
+
     if bOk:
         return (0, strMsg)
     else:
