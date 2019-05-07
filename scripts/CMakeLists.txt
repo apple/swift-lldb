@@ -66,7 +66,4 @@ if(NOT LLDB_BUILD_FRAMEWORK)
   # "finishSwigPythonLLDB.py" for more information. Install them, if they exist.
   install(DIRECTORY "${CMAKE_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}/python3.6" DESTINATION ${SWIG_INSTALL_DIR} OPTIONAL)
   install(DIRECTORY "${CMAKE_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}/python3.7" DESTINATION ${SWIG_INSTALL_DIR} OPTIONAL)
-  
-  # build Python modules
-  add_subdirectory(Python/modules)
 endif()
