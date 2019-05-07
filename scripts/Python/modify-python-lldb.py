@@ -45,11 +45,6 @@ else:
 # print "output_name is '" + output_name + "'"
 
 #
-# Version string
-#
-version_line = "swig_version = %s"
-
-#
 # Residues to be removed.
 #
 c_endif_swig = "#endif"
@@ -207,16 +202,6 @@ len_def = "    def __len__(self): return self.%s()"
 eq_def = "    def __eq__(self, other): return isinstance(other, %s) and %s"
 ne_def = "    def __ne__(self, other): return not self.__eq__(other)"
 
-# Called to implement truth value testing and the built-in operation bool();
-# Note that Python 2 uses __nonzero__(), whereas Python 3 uses __bool__()
-# should return False or True, or their integer equivalents 0 or 1.
-# Delegate to self.IsValid() if it is defined for the current lldb object.
-
-if six.PY2:
-    nonzero_def = "    def __nonzero__(self): return self.IsValid()"
-else:
-    nonzero_def = "    def __bool__(self): return self.IsValid()"
-
 # A convenience iterator for SBSymbol!
 symbol_in_section_iter_def = '''
     def symbol_in_section_iter(self, section):
@@ -338,7 +323,6 @@ init_pattern = re.compile("^    def __init__\(self.*\):")
 isvalid_pattern = re.compile("^    def IsValid\(")
 
 # These define the states of our finite state machine.
-EXPECTING_VERSION = 0
 NORMAL = 1
 DEFINING_ITERATOR = 2
 DEFINING_EQUALITY = 4
@@ -364,9 +348,8 @@ lldb_iter_defined = False
 # The FSM, in all possible states, also checks the current input for IsValid()
 # definition, and inserts a __nonzero__() method definition to implement truth
 # value testing and the built-in operation bool().
-state = EXPECTING_VERSION
+state = NORMAL
 
-swig_version_tuple = None
 for line in content.splitlines():
     # Handle the state transition into CLEANUP_DOCSTRING state as it is possible
     # to enter this state from either NORMAL or DEFINING_ITERATOR/EQUALITY.
@@ -382,20 +365,6 @@ for line in content.splitlines():
             state ^= CLEANUP_DOCSTRING
         else:
             state |= CLEANUP_DOCSTRING
-
-    if state == EXPECTING_VERSION:
-        # We haven't read the version yet, read it now.
-        if swig_version_tuple is None:
-            match = version_pattern.search(line)
-            if match:
-                v = match.group(1)
-                swig_version_tuple = tuple(map(int, (v.split("."))))
-        elif not line.startswith('#'):
-            # This is the first non-comment line after the header.  Inject the
-            # version
-            new_line = version_line % str(swig_version_tuple)
-            new_content.add_line(new_line)
-            state = NORMAL
 
     if state == NORMAL:
         match = class_pattern.search(line)
@@ -477,11 +446,6 @@ for line in content.splitlines():
     # """GetName(self) -> char""".
     if one_liner_docstring_pattern.match(line):
         line = char_to_str_xform(line)
-
-    # Look for 'def IsValid(*args):', and once located, add implementation
-    # of truth value testing for this object by delegation.
-    if isvalid_pattern.search(line):
-        new_content.add_line(nonzero_def)
 
     # Pass the original line of content to new_content.
     new_content.add_line(line)

@@ -1,23 +1,18 @@
 //===-- Expression.h --------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef liblldb_Expression_h_
 #define liblldb_Expression_h_
 
-// C Includes
-// C++ Includes
 #include <map>
 #include <string>
 #include <vector>
 
-// Other libraries and framework includes
-// Project includes
 
 #include "lldb/Expression/ExpressionTypeSystemHelper.h"
 #include "lldb/Symbol/CompilerType.h"
@@ -117,16 +112,6 @@ public:
   //------------------------------------------------------------------
   virtual void DidFinishExecuting() {}
 
-  struct SwiftGenericInfo {
-    struct Binding {
-      const char *name;
-      CompilerType type;
-    };
-    llvm::SmallVector<Binding, 3> class_bindings;
-  };
-
-  const SwiftGenericInfo &GetSwiftGenericInfo() { return m_swift_generic_info; }
-
   virtual ExpressionTypeSystemHelper *GetTypeSystemHelper() { return nullptr; }
 
 protected:
@@ -140,7 +125,6 @@ protected:
   lldb::addr_t m_jit_end_addr;   ///< The address of the JITted function within
                                  ///the JIT allocation.  LLDB_INVALID_ADDRESS if
                                  ///invalid.
-  SwiftGenericInfo m_swift_generic_info;
 };
 
 } // namespace lldb_private

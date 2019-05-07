@@ -1,9 +1,8 @@
 //===-- SystemRuntimeMacOSX.cpp ---------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -29,6 +28,8 @@
 #include "lldb/Utility/StreamString.h"
 
 #include "SystemRuntimeMacOSX.h"
+
+#include <memory>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -277,7 +278,7 @@ void SystemRuntimeMacOSX::ReadLibdispatchOffsetsAddress() {
 
   // libdispatch symbols were in libSystem.B.dylib up through Mac OS X 10.6
   // ("Snow Leopard")
-  ModuleSpec libSystem_module_spec(FileSpec("libSystem.B.dylib", false));
+  ModuleSpec libSystem_module_spec(FileSpec("libSystem.B.dylib"));
   ModuleSP module_sp(m_process->GetTarget().GetImages().FindFirstModule(
       libSystem_module_spec));
   if (module_sp)
@@ -287,7 +288,7 @@ void SystemRuntimeMacOSX::ReadLibdispatchOffsetsAddress() {
   // libdispatch symbols are in their own dylib as of Mac OS X 10.7 ("Lion")
   // and later
   if (dispatch_queue_offsets_symbol == NULL) {
-    ModuleSpec libdispatch_module_spec(FileSpec("libdispatch.dylib", false));
+    ModuleSpec libdispatch_module_spec(FileSpec("libdispatch.dylib"));
     module_sp = m_process->GetTarget().GetImages().FindFirstModule(
         libdispatch_module_spec);
     if (module_sp)
@@ -331,7 +332,7 @@ void SystemRuntimeMacOSX::ReadLibpthreadOffsetsAddress() {
       "pthread_layout_offsets");
   const Symbol *libpthread_layout_offsets_symbol = NULL;
 
-  ModuleSpec libpthread_module_spec(FileSpec("libsystem_pthread.dylib", false));
+  ModuleSpec libpthread_module_spec(FileSpec("libsystem_pthread.dylib"));
   ModuleSP module_sp(m_process->GetTarget().GetImages().FindFirstModule(
       libpthread_module_spec));
   if (module_sp) {
@@ -379,7 +380,7 @@ void SystemRuntimeMacOSX::ReadLibdispatchTSDIndexesAddress() {
       "dispatch_tsd_indexes");
   const Symbol *libdispatch_tsd_indexes_symbol = NULL;
 
-  ModuleSpec libpthread_module_spec(FileSpec("libdispatch.dylib", false));
+  ModuleSpec libpthread_module_spec(FileSpec("libdispatch.dylib"));
   ModuleSP module_sp(m_process->GetTarget().GetImages().FindFirstModule(
       libpthread_module_spec));
   if (module_sp) {
@@ -496,9 +497,9 @@ ThreadSP SystemRuntimeMacOSX::GetExtendedBacktraceThread(ThreadSP real_thread,
           bool stop_id_is_valid = true;
           if (item.stop_id == 0)
             stop_id_is_valid = false;
-          originating_thread_sp.reset(new HistoryThread(
+          originating_thread_sp = std::make_shared<HistoryThread>(
               *m_process, item.enqueuing_thread_id, item.enqueuing_callstack,
-              item.stop_id, stop_id_is_valid));
+              item.stop_id, stop_id_is_valid);
           originating_thread_sp->SetExtendedBacktraceToken(
               item.item_that_enqueued_this);
           originating_thread_sp->SetQueueName(
@@ -541,9 +542,9 @@ SystemRuntimeMacOSX::GetExtendedBacktraceFromItemRef(lldb::addr_t item_ref) {
       bool stop_id_is_valid = true;
       if (item.stop_id == 0)
         stop_id_is_valid = false;
-      return_thread_sp.reset(new HistoryThread(
+      return_thread_sp = std::make_shared<HistoryThread>(
           *m_process, item.enqueuing_thread_id, item.enqueuing_callstack,
-          item.stop_id, stop_id_is_valid));
+          item.stop_id, stop_id_is_valid);
       return_thread_sp->SetExtendedBacktraceToken(item.item_that_enqueued_this);
       return_thread_sp->SetQueueName(item.enqueuing_queue_label.c_str());
       return_thread_sp->SetQueueID(item.enqueuing_queue_serialnum);
@@ -568,10 +569,10 @@ SystemRuntimeMacOSX::GetExtendedBacktraceForQueueItem(QueueItemSP queue_item_sp,
   if (queue_item_sp->GetStopID() == 0)
     stop_id_is_valid = false;
 
-  extended_thread_sp.reset(
-      new HistoryThread(*m_process, queue_item_sp->GetEnqueueingThreadID(),
-                        queue_item_sp->GetEnqueueingBacktrace(),
-                        queue_item_sp->GetStopID(), stop_id_is_valid));
+  extended_thread_sp = std::make_shared<HistoryThread>(
+      *m_process, queue_item_sp->GetEnqueueingThreadID(),
+      queue_item_sp->GetEnqueueingBacktrace(), queue_item_sp->GetStopID(),
+      stop_id_is_valid);
   extended_thread_sp->SetExtendedBacktraceToken(
       queue_item_sp->GetItemThatEnqueuedThis());
   extended_thread_sp->SetQueueName(queue_item_sp->GetQueueLabel().c_str());

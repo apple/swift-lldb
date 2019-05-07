@@ -1,20 +1,15 @@
 //===-- FormattersHelpers.cpp -------------------------------------*- C++
 //-*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
 
-// C++ Includes
 
-// Other libraries and framework includes
 
-// Project includes
 #include "lldb/DataFormatters/FormattersHelpers.h"
 
 #include "lldb/Target/StackFrame.h"
@@ -78,7 +73,6 @@ void lldb_private::formatters::AddOneLineSummary(
     category_sp->GetTypeSummariesContainer()->Add(type_name, summary_sp);
 }
 
-#ifndef LLDB_DISABLE_PYTHON
 void lldb_private::formatters::AddCXXSummary(
     TypeCategoryImpl::SharedPointer category_sp,
     CXXFunctionSummaryFormat::Callback funct, const char *description,
@@ -122,7 +116,6 @@ void lldb_private::formatters::AddFilter(
   else
     category_sp->GetTypeFiltersContainer()->Add(type_name, filter_sp);
 }
-#endif
 
 size_t lldb_private::formatters::ExtractIndexFromString(const char *item_name) {
   if (!item_name || !*item_name)

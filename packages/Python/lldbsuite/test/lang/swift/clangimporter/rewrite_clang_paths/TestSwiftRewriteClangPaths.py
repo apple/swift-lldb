@@ -57,6 +57,7 @@ class TestSwiftRewriteClangPaths(TestBase):
           shutil.rmtree(mod_cache)
         self.runCmd('settings set symbols.clang-modules-cache-path "%s"'
                     % mod_cache)
+        self.runCmd("settings set symbols.use-swift-dwarfimporter false")
 
         botdir = os.path.realpath(self.getBuildArtifact("buildbot"))
         userdir = os.path.realpath(self.getBuildArtifact("user"))
@@ -65,25 +66,15 @@ class TestSwiftRewriteClangPaths(TestBase):
         plist = self.find_plist()
         self.assertTrue(os.path.isfile(plist))
         if remap:
-            self.runCmd("settings set target.source-map %s %s" %
-                        (botdir, userdir))
+            self.runCmd("settings set target.source-map %s %s %s %s" %
+                        (botdir, userdir, '/nonexisting-rootdir', userdir))
         else:
             # Also delete the remapping plist from the .dSYM to verify
             # that this doesn't work by happy accident without it.
             os.remove(plist)
-            
-        exe_name = "a.out"
-        exe = self.getBuildArtifact(exe_name)
 
-        # Create the target
-        target = self.dbg.CreateTarget(exe)
-        self.assertTrue(target, VALID_TARGET)
-
-        # Set the breakpoints
-        foo_breakpoint = target.BreakpointCreateBySourceRegex(
-            'break here', lldb.SBFileSpec('Foo.swift'))
-
-        process = target.LaunchSimple(None, None, os.getcwd())
+        target, process, thread, bkpt = lldbutil.run_to_source_breakpoint(
+            self, 'break here', lldb.SBFileSpec('Foo.swift'))
 
         if remap:
             comment = "returns correct value"
@@ -93,13 +84,39 @@ class TestSwiftRewriteClangPaths(TestBase):
             self.expect("fr var bar", comment, substrs=["y", "42"])
             self.assertTrue(os.path.isdir(mod_cache), "module cache exists")
 
+        # Scan through the types log.
         errs = 0
+        found_iquote = 0
+        found_f = 0
+        found_i1 = 0
+        found_i2 = 0
+        found_rel = 0
+        found_abs = 0
         logfile = open(log, "r")
         for line in logfile:
+            self.assertFalse("remapped -iquote" in line)
+            if " remapped " in line:
+                if line[:-1].endswith('/user'): found_abs += 1;
+                continue
             if "error: missing required module 'CFoo'" in line:
                 errs += 1
+                continue
+            if 'user/iquote-path' in line: found_iquote += 1; continue
+            if 'user/I-single'    in line: found_i1 += 1;     continue
+            if 'user/I-double'    in line: found_i2 += 1;     continue
+            if './iquote-path'    in line: found_rel += 1;    continue
+            if './I-'             in line: found_rel += 1;    continue
+            if '/user/Frameworks' in line: found_f += 1;      continue
+
         if remap:
-            self.assertTrue(errs == 0, "expected no module import error")
+            self.assertEqual(errs, 0, "expected no module import error")
+            # Module context + scratch context.
+            self.assertEqual(found_iquote, 2)
+            self.assertEqual(found_i1, 2)
+            self.assertEqual(found_i2, 2)
+            self.assertEqual(found_f, 4)
+            self.assertEqual(found_rel, 0)
+            self.assertEqual(found_abs, 1)
         else:
             self.assertTrue(errs > 0, "expected module import error")
         

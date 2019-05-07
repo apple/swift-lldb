@@ -1,16 +1,11 @@
 //===-- ThreadPlanShouldStopHere.cpp ----------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-// Project includes
 #include "lldb/Target/ThreadPlanShouldStopHere.h"
 #include "lldb/Symbol/Symbol.h"
 #include "lldb/Target/LanguageRuntime.h"
@@ -91,8 +86,8 @@ bool ThreadPlanShouldStopHere::DefaultShouldStopHereCallback(
     Symbol *symbol = frame->GetSymbolContext(eSymbolContextSymbol).symbol;
     if (symbol) {
       ProcessSP process_sp(current_plan->GetThread().GetProcess());
-      if (LanguageRuntime::IsSymbolAnyRuntimeThunk(process_sp, *symbol)) {
-          should_stop_here = false;
+      if (LanguageRuntime::IsSymbolAnyRuntimeThunk(*symbol)) {
+        should_stop_here = false;
       }
     }
   }
@@ -138,10 +133,10 @@ ThreadPlanSP ThreadPlanShouldStopHere::DefaultStepFromHereCallback(
     if (sc.symbol) {
       ProcessSP process_sp(current_plan->GetThread().GetProcess());
 
-      if (LanguageRuntime::IsSymbolAnyRuntimeThunk(process_sp, *sc.symbol)) {
-          if (log)
-            log->Printf("In runtime thunk %s - stepping out.",
-              sc.symbol->GetName().GetCString());
+      if (LanguageRuntime::IsSymbolAnyRuntimeThunk(*sc.symbol)) {
+        if (log)
+          log->Printf("In runtime thunk %s - stepping out.",
+                      sc.symbol->GetName().GetCString());
         just_step_out = true;
       }
       // If the whole function is marked line 0 just step out, that's easier &
@@ -169,17 +164,17 @@ ThreadPlanSP ThreadPlanShouldStopHere::DefaultStepFromHereCallback(
           log->Printf("ThreadPlanShouldStopHere::DefaultStepFromHereCallback "
                       "Queueing StepInRange plan to step through line 0 code.");
         return_plan_sp =
-          current_plan
-            ->GetThread().QueueThreadPlanForStepInRangeNoShouldStop(
-              false, range, sc, NULL, eOnlyDuringStepping, status, eLazyBoolCalculate,
-              eLazyBoolNo);
+            current_plan->GetThread().QueueThreadPlanForStepInRangeNoShouldStop(
+                false, range, sc, NULL, eOnlyDuringStepping, status,
+                eLazyBoolCalculate, eLazyBoolNo);
       } else {
         if (log)
-          log->Printf("ThreadPlanShouldStopHere::DefaultStepFromHereCallback "
-                      "Queueing StepOverRange plan to step through line 0 code.");
+          log->Printf(
+              "ThreadPlanShouldStopHere::DefaultStepFromHereCallback "
+              "Queueing StepOverRange plan to step through line 0 code.");
         return_plan_sp =
             current_plan->GetThread().QueueThreadPlanForStepOverRange(
-              false, range, sc, eOnlyDuringStepping, status, eLazyBoolNo);
+                false, range, sc, eOnlyDuringStepping, status, eLazyBoolNo);
       }
     }
   }

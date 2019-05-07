@@ -1,9 +1,8 @@
 //===-- UserExpression.cpp ---------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -243,9 +242,9 @@ lldb::ExpressionResults UserExpression::Evaluate(
 
   DiagnosticManager diagnostic_manager;
 
-  bool parse_success = user_expression_sp->Parse(
-      diagnostic_manager, exe_ctx, execution_policy, keep_expression_in_memory,
-      generate_debug_info, 0);
+  bool parse_success =
+      user_expression_sp->Parse(diagnostic_manager, exe_ctx, execution_policy,
+                                keep_expression_in_memory, generate_debug_info);
 
   // Calculate the fixed expression always, since we need it for errors.
   std::string tmp_fixed_expression;
@@ -274,7 +273,7 @@ lldb::ExpressionResults UserExpression::Evaluate(
       DiagnosticManager fixed_diagnostic_manager;
       parse_success = fixed_expression_sp->Parse(
           fixed_diagnostic_manager, exe_ctx, execution_policy,
-          keep_expression_in_memory, generate_debug_info, 0);
+          keep_expression_in_memory, generate_debug_info);
       if (parse_success) {
         diagnostic_manager.Clear();
         user_expression_sp = fixed_expression_sp;

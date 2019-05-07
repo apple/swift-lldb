@@ -14,9 +14,10 @@ Tests simple swift expressions
 """
 import lldb
 from lldbsuite.test.lldbtest import *
-import lldbsuite.test.decorators as decorators
+from lldbsuite.test.decorators import *
 import lldbsuite.test.lldbutil as lldbutil
 import os
+import sys
 import unittest2
 
 
@@ -24,24 +25,15 @@ class TestSimpleSwiftExpressions(TestBase):
 
     mydir = TestBase.compute_mydir(__file__)
 
-    @decorators.swiftTest
-    @decorators.add_test_categories(["swiftpr"])
-    def test_simple_swift_expressions(self):
-        """Tests that we can run simple Swift expressions correctly"""
-        self.build()
-        self.do_test()
-
     def setUp(self):
         TestBase.setUp(self)
-        self.main_source = "main.swift"
-        self.main_source_spec = lldb.SBFileSpec(self.main_source)
 
     def check_expression(self, expression, expected_result, use_summary=True):
-        value = self.frame.EvaluateExpression(expression)
+        value = self.frame().EvaluateExpression(expression)
         self.assertTrue(value.IsValid(), expression + "returned a valid value")
         if self.TraceOn():
-            print value.GetSummary()
-            print value.GetValue()
+            print(value.GetSummary())
+            print(value.GetValue())
         if use_summary:
             answer = value.GetSummary()
         else:
@@ -50,36 +42,16 @@ class TestSimpleSwiftExpressions(TestBase):
             expression, expected_result, answer)
         self.assertTrue(answer == expected_result, report_str)
 
-    def do_test(self):
-        """Test simple swift expressions"""
-        exe_name = "a.out"
-        exe = self.getBuildArtifact(exe_name)
-
-        # Create the target
-        target = self.dbg.CreateTarget(exe)
-        self.assertTrue(target, VALID_TARGET)
-
-        # Set the breakpoints
-        breakpoint = target.BreakpointCreateBySourceRegex(
-            'Set breakpoint here', self.main_source_spec)
-        self.assertTrue(breakpoint.GetNumLocations() > 0, VALID_BREAKPOINT)
-
-        # Launch the process, and do not stop at the entry point.
-        process = target.LaunchSimple(None, None, os.getcwd())
-
-        self.assertTrue(process, PROCESS_IS_VALID)
-
-        # Frame #0 should be at our breakpoint.
-        threads = lldbutil.get_threads_stopped_at_breakpoint(
-            process, breakpoint)
-
-        self.assertTrue(len(threads) == 1)
-        self.thread = threads[0]
-        self.frame = self.thread.frames[0]
-        self.assertTrue(self.frame, "Frame 0 is valid.")
+    @swiftTest
+    @add_test_categories(["swiftpr"])
+    def test_simple_swift_expressions(self):
+        """Tests that we can run simple Swift expressions correctly"""
+        self.build()
+        lldbutil.run_to_source_breakpoint(
+            self, 'Set breakpoint here', lldb.SBFileSpec('main.swift'))
 
         # Test that parse errors give a correct result:
-        value_obj = self.frame.EvaluateExpression(
+        value_obj = self.frame().EvaluateExpression(
             "iff is_five === 5 { return is_five")
         error = value_obj.GetError()
 
@@ -103,7 +75,7 @@ class TestSimpleSwiftExpressions(TestBase):
             use_summary=False)
 
         # Make sure we get an error if we don't give homogenous return types:
-        bool_or_int = self.frame.EvaluateExpression(
+        bool_or_int = self.frame().EvaluateExpression(
             "if is_five == 5 { return is_five + is_six } else { return false }")
         self.assertTrue(
             bool_or_int.IsValid(),
@@ -120,10 +92,18 @@ class TestSimpleSwiftExpressions(TestBase):
         # self.check_expression ("my_global", "30")
 
         # Non-simple names:
-        self.check_expression(
-            u"\u20ac_varname".encode("utf-8"),
-            "5",
-            use_summary=False)
+        # Note: python 2 and python 3 have different default encodings.
+        # This can be removed once python 2 is gone entirely.
+        if sys.version_info.major == 2:
+            self.check_expression(
+                u"\u20ac_varname".encode("utf-8"),
+                "5",
+                use_summary=False)
+        else:
+            self.check_expression(
+                u"\u20ac_varname",
+                "5",
+                use_summary=False)
 
         # See if we can do the same manipulations with tuples:
         # Commented out due to: <rdar://problem/15476525> Expressions with
@@ -186,7 +166,7 @@ class TestSimpleSwiftExpressions(TestBase):
 
         # Test expression with read-only variables:
         self.check_expression("b_struct.b_read_only == 5", "true")
-        failed_value = self.frame.EvaluateExpression(
+        failed_value = self.frame().EvaluateExpression(
             "b_struct.b_read_only = 34")
         self.assertTrue(failed_value.IsValid(),
                         "Get something back from the evaluation.")

@@ -12,19 +12,24 @@
 """
 Test that playgrounds work
 """
-import commands
+import subprocess
 import lldb
 from lldbsuite.test.lldbtest import *
-import lldbsuite.test.decorators as decorators
+from lldbsuite.test.decorators import *
 import lldbsuite.test.lldbutil as lldbutil
 import os
 import os.path
 import platform
 import unittest2
 
+import sys
+if sys.version_info.major == 2:
+    import commands as subprocess
+else:
+    import subprocess
 
 def execute_command(command):
-    (exit_status, output) = commands.getstatusoutput(command)
+    (exit_status, output) = subprocess.getstatusoutput(command)
     return exit_status
 
 
@@ -32,13 +37,13 @@ class TestSwiftPlaygrounds(TestBase):
 
     mydir = TestBase.compute_mydir(__file__)
 
-    @decorators.skipUnlessDarwin
-    @decorators.swiftTest
-    @decorators.skipIf(
+    @skipUnlessDarwin
+    @swiftTest
+    @skipIf(
         debug_info=decorators.no_match("dsym"),
         bugnumber="This test only builds one way",
         macos_version=["<", "10.11"])
-    @decorators.add_test_categories(["swiftpr"])
+    @add_test_categories(["swiftpr"])
     def test_cross_module_extension(self):
         """Test that playgrounds work"""
         self.build()
@@ -78,9 +83,6 @@ class TestSwiftPlaygrounds(TestBase):
             process, breakpoint)
 
         self.assertTrue(len(threads) == 1)
-        self.thread = threads[0]
-        self.frame = self.thread.frames[0]
-        self.assertTrue(self.frame, "Frame 0 is valid.")
 
         contents = ""
 
@@ -91,9 +93,9 @@ class TestSwiftPlaygrounds(TestBase):
         options.SetLanguage(lldb.eLanguageTypeSwift)
         options.SetPlaygroundTransformEnabled()
 
-        self.frame.EvaluateExpression(contents, options)
+        self.frame().EvaluateExpression(contents, options)
 
-        ret = self.frame.EvaluateExpression("get_output()")
+        ret = self.frame().EvaluateExpression("get_output()")
 
         playground_output = ret.GetSummary()
         if not force_target:

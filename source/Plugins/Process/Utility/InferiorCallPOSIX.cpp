@@ -1,9 +1,8 @@
 //===-- InferiorCallPOSIX.cpp -----------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -61,7 +60,7 @@ bool lldb_private::InferiorCallMmap(Process *process, addr_t &allocated_addr,
       options.SetIgnoreBreakpoints(true);
       options.SetTryAllThreads(true);
       options.SetDebug(false);
-      options.SetTimeout(std::chrono::milliseconds(500));
+      options.SetTimeout(process->GetUtilityExpressionTimeout());
       options.SetTrapExceptions(false);
 
       addr_t prot_arg;
@@ -149,7 +148,7 @@ bool lldb_private::InferiorCallMunmap(Process *process, addr_t addr,
       options.SetIgnoreBreakpoints(true);
       options.SetTryAllThreads(true);
       options.SetDebug(false);
-      options.SetTimeout(std::chrono::milliseconds(500));
+      options.SetTimeout(process->GetUtilityExpressionTimeout());
       options.SetTrapExceptions(false);
 
       AddressRange munmap_range;
@@ -198,7 +197,7 @@ bool lldb_private::InferiorCall(Process *process, const Address *address,
   options.SetIgnoreBreakpoints(true);
   options.SetTryAllThreads(true);
   options.SetDebug(false);
-  options.SetTimeout(std::chrono::milliseconds(500));
+  options.SetTimeout(process->GetUtilityExpressionTimeout());
   options.SetTrapExceptions(trap_exceptions);
 
   ClangASTContext *clang_ast_context =

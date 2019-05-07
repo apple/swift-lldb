@@ -1,9 +1,8 @@
 //===-- ExpressionSourceCode.cpp --------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -13,6 +12,8 @@
 
 #include "llvm/ADT/StringRef.h"
 #include "clang/Basic/CharInfo.h"
+#include "swift/AST/PlatformKind.h"
+#include "swift/Basic/LangOptions.h"
 
 #include "Plugins/ExpressionParser/Clang/ClangModulesDeclVendor.h"
 #include "Plugins/ExpressionParser/Clang/ClangPersistentVariables.h"
@@ -125,10 +126,7 @@ public:
       if (m_file_stack.back() != m_current_file)
         return true;
 
-      if (line >= m_current_file_line)
-        return false;
-      else
-        return true;
+      return line < m_current_file_line;
     default:
       return false;
     }
@@ -186,7 +184,7 @@ static void AddMacros(const DebugMacros *dm, CompileUnit *comp_unit,
 }
 
 static bool ExprBodyContainsVar(llvm::StringRef var, llvm::StringRef body) {
-  int from = 0;
+  size_t from = 0;
   while ((from = body.find(var, from)) != llvm::StringRef::npos) {
     if ((from != 0 && clang::isIdentifierBody(body[from-1])) ||
         (from + var.size() != body.size() &&
@@ -274,22 +272,16 @@ bool ExpressionSourceCode::SaveExpressionTextToTempFile(
 }
 
 /// Format the OS name the way that Swift availability attributes do.
-static llvm::StringRef getAvailabilityName(llvm::Triple::OSType os) {
-  switch (os) {
-  case llvm::Triple::MacOSX: return "macOS";
-  case llvm::Triple::IOS: return "iOS";
-  case llvm::Triple::TvOS: return "tvOS";
-  case llvm::Triple::WatchOS: return "watchOS";
-  default:
-    return llvm::Triple::getOSTypeName(os);
-  }
+static llvm::StringRef getAvailabilityName(const llvm::Triple &triple) {
+    swift::LangOptions lang_options;
+  lang_options.setTarget(triple);
+  return swift::platformString(swift::targetPlatform(lang_options));
 }
 
 bool ExpressionSourceCode::GetText(
     std::string &text, lldb::LanguageType wrapping_language,
     uint32_t language_flags, const EvaluateExpressionOptions &options,
-    const Expression::SwiftGenericInfo &generic_info, ExecutionContext &exe_ctx,
-    uint32_t &first_body_line) const {
+    ExecutionContext &exe_ctx, uint32_t &first_body_line) const {
   first_body_line = 0;
 
   const char *target_specific_defines = "typedef signed char BOOL;\n";
@@ -485,8 +477,7 @@ bool ExpressionSourceCode::GetText(
       auto triple = arch_spec.GetTriple();
       if (triple.isOSDarwin()) {
         if (auto process_sp = exe_ctx.GetProcessSP()) {
-          os_vers << getAvailabilityName(triple.getOS()) << " ";
-          uint32_t major, minor, patch;
+          os_vers << getAvailabilityName(triple) << " ";
           auto platform = target->GetPlatform();
           bool is_simulator =
               platform->GetPluginName().GetStringRef().endswith("-simulator");
@@ -501,7 +492,6 @@ bool ExpressionSourceCode::GetText(
           }
         }
       }
-      const bool playground = options.GetPlaygroundTransformEnabled();
       SwiftPersistentExpressionState *persistent_state =
         llvm::cast<SwiftPersistentExpressionState>(target->GetPersistentExpressionStateForLanguage(lldb::eLanguageTypeSwift));
       std::vector<swift::ValueDecl *> persistent_results;
@@ -516,9 +506,8 @@ bool ExpressionSourceCode::GetText(
       localOptions.SetPreparePlaygroundStubFunctions(need_to_declare_log_functions);
 
       SwiftASTManipulator::WrapExpression(wrap_stream, m_body.c_str(),
-                                          language_flags, localOptions, generic_info,
-                                          os_vers.str(),
-                                          first_body_line);
+                                          language_flags, localOptions,
+                                          os_vers.str(), first_body_line);
     }
     }
 
@@ -556,7 +545,5 @@ bool ExpressionSourceCode::GetOriginalBodyBounds(
     return false;
   start_loc += strlen(start_marker);
   end_loc = transformed_text.find(end_marker);
-  if (end_loc == std::string::npos)
-    return false;
-  return true;
+  return end_loc != std::string::npos;
 }

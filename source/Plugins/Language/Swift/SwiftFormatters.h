@@ -90,8 +90,11 @@ bool CountableClosedRange_SummaryProvider(ValueObject &valobj, Stream &stream,
 bool StridedRangeGenerator_SummaryProvider(ValueObject &valobj, Stream &stream,
                                            const TypeSummaryOptions &options);
 
-bool AccelerateSIMD_SummaryProvider(ValueObject &valobj, Stream &stream,
-                                    const TypeSummaryOptions &options);
+bool SIMDVector_SummaryProvider(ValueObject &valobj, Stream &stream,
+                                const TypeSummaryOptions &options);
+
+bool LegacySIMD_SummaryProvider(ValueObject &valobj, Stream &stream,
+                                const TypeSummaryOptions &options);
 
 // SWIFT_ENABLE_TENSORFLOW
 bool ObjectDescription_SummaryProvider(ValueObject &valobj, Stream &stream,

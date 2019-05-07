@@ -1,19 +1,16 @@
 //===-- OptionValueFileSpecList.h -------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef liblldb_OptionValueFileSpecList_h_
 #define liblldb_OptionValueFileSpecList_h_
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-// Project includes
+#include <mutex>
+
 #include "lldb/Core/FileSpecList.h"
 #include "lldb/Interpreter/OptionValue.h"
 
@@ -58,13 +55,23 @@ public:
   // Subclass specific functions
   //---------------------------------------------------------------------
 
-  FileSpecList &GetCurrentValue() { return m_current_value; }
+  FileSpecList GetCurrentValue() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_current_value;
+  }
 
-  const FileSpecList &GetCurrentValue() const { return m_current_value; }
+  void SetCurrentValue(const FileSpecList &value) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_current_value = value;
+  }
 
-  void SetCurrentValue(const FileSpecList &value) { m_current_value = value; }
+  void AppendCurrentValue(const FileSpec &value) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_current_value.Append(value);
+  }
 
 protected:
+  mutable std::mutex m_mutex;
   FileSpecList m_current_value;
 };
 

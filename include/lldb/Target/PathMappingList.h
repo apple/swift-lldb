@@ -1,23 +1,18 @@
 //===-- PathMappingList.h ---------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef liblldb_PathMappingList_h_
 #define liblldb_PathMappingList_h_
 
-// C Includes
-// C++ Includes
 #include <map>
 #include <vector>
-// Other libraries and framework includes
 #include "lldb/Utility/ConstString.h"
 #include "lldb/Utility/Status.h"
-// Project includes
 
 namespace lldb_private {
 
@@ -39,7 +34,7 @@ public:
 
   const PathMappingList &operator=(const PathMappingList &rhs);
 
-  void Append(const ConstString &path, const ConstString &replacement,
+  void Append(ConstString path, ConstString replacement,
               bool notify);
 
   void Append(const PathMappingList &rhs, bool notify);
@@ -56,19 +51,19 @@ public:
   bool GetPathsAtIndex(uint32_t idx, ConstString &path,
                        ConstString &new_path) const;
 
-  void Insert(const ConstString &path, const ConstString &replacement,
+  void Insert(ConstString path, ConstString replacement,
               uint32_t insert_idx, bool notify);
 
   bool Remove(size_t index, bool notify);
 
-  bool Remove(const ConstString &path, bool notify);
+  bool Remove(ConstString path, bool notify);
 
-  bool Replace(const ConstString &path, const ConstString &replacement,
+  bool Replace(ConstString path, ConstString replacement,
                bool notify);
 
-  bool Replace(const ConstString &path, const ConstString &replacement,
+  bool Replace(ConstString path, ConstString replacement,
                uint32_t index, bool notify);
-  bool RemapPath(const ConstString &path, ConstString &new_path) const;
+  bool RemapPath(ConstString path, ConstString &new_path) const;
 
   //------------------------------------------------------------------
   /// Remaps a source file given \a path into \a new_path.
@@ -114,7 +109,7 @@ public:
   //------------------------------------------------------------------
   bool FindFile(const FileSpec &orig_spec, FileSpec &new_spec) const;
 
-  uint32_t FindIndexForPath(const ConstString &path) const;
+  uint32_t FindIndexForPath(ConstString path) const;
 
   uint32_t GetModificationID() const { return m_mod_id; }
 
@@ -124,9 +119,9 @@ protected:
   typedef collection::iterator iterator;
   typedef collection::const_iterator const_iterator;
 
-  iterator FindIteratorForPath(const ConstString &path);
+  iterator FindIteratorForPath(ConstString path);
 
-  const_iterator FindIteratorForPath(const ConstString &path) const;
+  const_iterator FindIteratorForPath(ConstString path) const;
 
   collection m_pairs;
   ChangedCallback m_callback;

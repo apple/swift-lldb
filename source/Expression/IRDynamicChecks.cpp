@@ -1,15 +1,11 @@
 //===-- IRDynamicChecks.cpp -------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Function.h"
@@ -18,7 +14,6 @@
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
 
-// Project includes
 #include "lldb/Expression/IRDynamicChecks.h"
 
 #include "lldb/Expression/UtilityFunction.h"
@@ -429,8 +424,15 @@ protected:
     switch (msgSend_types[inst]) {
     case eMsgSend:
     case eMsgSend_fpret:
-      target_object = call_inst->getArgOperand(0);
-      selector = call_inst->getArgOperand(1);
+      // On arm64, clang uses objc_msgSend for scalar and struct return
+      // calls.  The call instruction will record which was used.
+      if (call_inst->hasStructRetAttr()) {
+        target_object = call_inst->getArgOperand(1);
+        selector = call_inst->getArgOperand(2);
+      } else {
+        target_object = call_inst->getArgOperand(0);
+        selector = call_inst->getArgOperand(1);
+      }
       break;
     case eMsgSend_stret:
       target_object = call_inst->getArgOperand(1);

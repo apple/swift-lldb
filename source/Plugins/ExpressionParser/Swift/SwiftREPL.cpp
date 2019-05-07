@@ -108,10 +108,15 @@ lldb::REPLSP SwiftREPL::CreateInstanceFromDebugger(Status &err,
     return nullptr;
   }
 
-  repl_executable.GetFilename().SetCString("repl_swift");
+#if !defined(_WIN32)
+  const char *repl_exe_name = "repl_swift";
+#else
+  const char *repl_exe_name = "repl_swift.exe";
+#endif
+  repl_executable.GetFilename().SetCString(repl_exe_name);
   std::string repl_exe_path(repl_executable.GetPath());
 
-  if (!repl_executable.Exists()) {
+  if (!FileSystem::Instance().Exists(repl_executable)) {
     err.SetErrorStringWithFormat("REPL executable does not exist: '%s'",
                                  repl_exe_path.c_str());
     return nullptr;
@@ -347,7 +352,7 @@ lldb::offset_t SwiftREPL::GetDesiredIndentation(const StringList &lines,
   if (cursor_position == 0 || last_line[cursor_position - 1] == '}') {
 
     // The brace must be the first non-space character
-    const int actual_indent = REPL::CalculateActualIndentation(lines);
+    const size_t actual_indent = REPL::CalculateActualIndentation(lines);
 
     if (last_line.length() > actual_indent && last_line[actual_indent] == '}') {
       // Stop searching once a reason to unindent was found
@@ -419,7 +424,7 @@ bool isThrownError(ValueObjectSP valobj_sp) {
     return false;
   if (name_cstr[1] != 'E')
     return false;
-  for (int index = 2; index < length; index++) {
+  for (size_t index = 2; index < length; index++) {
 
     char digit = name_cstr[index];
     if (digit < '0' || digit > '9')
@@ -537,8 +542,6 @@ int SwiftREPL::CompleteCode(const std::string &current_code,
   // our own copy of the AST and using this separate AST for completion.
   //----------------------------------------------------------------------
   Status error;
-#define USE_SEPARATE_AST_FOR_COMPLETION
-#if defined(USE_SEPARATE_AST_FOR_COMPLETION)
   if (!m_swift_ast_sp) {
     SwiftASTContext *target_swift_ast = llvm::dyn_cast_or_null<SwiftASTContext>(
         m_target.GetScratchTypeSystemForLanguage(&error, eLanguageTypeSwift));
@@ -546,18 +549,18 @@ int SwiftREPL::CompleteCode(const std::string &current_code,
       m_swift_ast_sp.reset(new SwiftASTContext(*target_swift_ast));
   }
   SwiftASTContext *swift_ast = m_swift_ast_sp.get();
-#else
-  SwiftASTContext *swift_ast = m_target.GetScratchSwiftASTContext(error);
-#endif
 
   if (swift_ast) {
     swift::ASTContext *ast = swift_ast->GetASTContext();
     swift::REPLCompletions completions;
-    static ConstString g_repl_module_name("repl");
-    swift::ModuleDecl *repl_module =
-        swift_ast->GetModule(g_repl_module_name, error);
-    if (repl_module == NULL) {
-      repl_module = swift_ast->CreateModule(g_repl_module_name, error);
+    SourceModule completion_module_info;
+    completion_module_info.path.push_back(ConstString("repl"));
+    swift::ModuleDecl *repl_module = nullptr;
+    if (m_completion_module_initialized)
+      repl_module =
+        swift_ast->GetModule(completion_module_info, error);
+    if (repl_module == nullptr) {
+      repl_module = swift_ast->CreateModule(completion_module_info, error);
       const swift::SourceFile::ImplicitModuleImportKind implicit_import_kind =
           swift::SourceFile::ImplicitModuleImportKind::Stdlib;
       llvm::Optional<unsigned> bufferID;
@@ -565,6 +568,7 @@ int SwiftREPL::CompleteCode(const std::string &current_code,
           swift::SourceFile(*repl_module, swift::SourceFileKind::REPL, bufferID,
                             implicit_import_kind, /*Keep tokens*/false);
       repl_module->addFile(*repl_source_file);
+      m_completion_module_initialized = true;
     }
     if (repl_module) {
       swift::SourceFile &repl_source_file =
@@ -577,20 +581,6 @@ int SwiftREPL::CompleteCode(const std::string &current_code,
         matches.AppendString(root.data(), root.size());
         return 1;
       }
-      //                    llvm::StringRef prev_stem =
-      //                    completions.getPreviousStem();
-      //                    llvm::StringRef next_stem =
-      //                    completions.getNextStem();
-      //                    printf ("\nroot: '%*s'", (int)root.size(),
-      //                    root.data());
-      //                    printf ("\nprev_stem: '%*s'", (int)prev_stem.size(),
-      //                    prev_stem.data());
-      //                    printf ("\nnext_stem: '%*s'", (int)next_stem.size(),
-      //                    next_stem.data());
-      //                    printf ("\nvalid: %i", completions.isValid());
-      //                    printf ("\nempty: %i", completions.isEmpty());
-      //                    printf ("\nunique: %i", completions.isUnique());
-
       // Otherwise, advance through the completion state machine.
       const swift::CompletionState completion_state = completions.getState();
       switch (completion_state) {

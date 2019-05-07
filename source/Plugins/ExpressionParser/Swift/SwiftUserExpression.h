@@ -51,13 +51,10 @@ public:
 
   class SwiftUserExpressionHelper : public ExpressionTypeSystemHelper {
   public:
-    SwiftUserExpressionHelper(Target &target)
-        : ExpressionTypeSystemHelper(eKindSwiftHelper), m_target(target) {}
+    SwiftUserExpressionHelper(Target &)
+        : ExpressionTypeSystemHelper(eKindSwiftHelper) {}
 
     ~SwiftUserExpressionHelper() {}
-
-  private:
-    Target &m_target;
   };
 
   //------------------------------------------------------------------
@@ -115,8 +112,7 @@ public:
   //------------------------------------------------------------------
   bool Parse(DiagnosticManager &diagnostic_manager, ExecutionContext &exe_ctx,
              lldb_private::ExecutionPolicy execution_policy,
-             bool keep_result_in_memory, bool generate_debug_info,
-             uint32_t line_offset = 0) override;
+             bool keep_result_in_memory, bool generate_debug_info) override;
 
   ExpressionTypeSystemHelper *GetTypeSystemHelper() override {
     return &m_type_system_helper;
@@ -166,7 +162,6 @@ private:
 
   private:
     lldb::TargetSP m_target_sp;
-    SwiftUserExpression &m_user_expression;
     PersistentExpressionState *m_persistent_state;
     lldb::ExpressionVariableSP m_variable;
     bool m_is_error;
@@ -181,13 +176,11 @@ private:
     PersistentVariableDelegate(SwiftUserExpression &);
     ConstString GetName() override;
     void DidDematerialize(lldb::ExpressionVariableSP &variable) override;
-
-  private:
-    SwiftUserExpression &m_user_expression;
   };
 
   PersistentVariableDelegate m_persistent_variable_delegate;
   std::unique_ptr<SwiftExpressionParser> m_parser;
+  bool m_runs_in_playground_or_repl;
 };
 
 } // namespace lldb_private

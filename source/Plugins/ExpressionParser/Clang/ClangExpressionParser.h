@@ -1,9 +1,8 @@
 //===-- ClangExpressionParser.h ---------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -19,6 +18,10 @@
 
 #include <string>
 #include <vector>
+
+namespace clang {
+class CodeCompleteConsumer;
+}
 
 namespace lldb_private {
 
@@ -58,6 +61,9 @@ public:
   //------------------------------------------------------------------
   ~ClangExpressionParser() override;
 
+  bool Complete(CompletionRequest &request, unsigned line, unsigned pos,
+                unsigned typed_pos) override;
+
   //------------------------------------------------------------------
   /// Parse a single expression and convert it to IR using Clang.  Don't wrap
   /// the expression in anything at all.
@@ -70,8 +76,7 @@ public:
   ///     success.
   //------------------------------------------------------------------
   unsigned Parse(DiagnosticManager &diagnostic_manager, uint32_t first_line = 0,
-                 uint32_t last_line = UINT32_MAX,
-                 uint32_t line_offset = 0) override;
+                 uint32_t last_line = UINT32_MAX) override;
 
   bool RewriteExpression(DiagnosticManager &diagnostic_manager) override;
 
@@ -145,10 +150,35 @@ public:
   std::string GetClangTargetABI(const ArchSpec &target_arch);
 
 private:
+  //------------------------------------------------------------------
+  /// Parses the expression.
+  ///
+  /// @param[in] diagnostic_manager
+  ///     The diagnostic manager that should receive the diagnostics
+  ///     from the parsing process.
+  ///
+  /// @param[in] completion
+  ///     The completion consumer that should be used during parsing
+  ///     (or a nullptr if no consumer should be attached).
+  ///
+  /// @param[in] completion_line
+  ///     The line in which the completion marker should be placed.
+  ///     The first line is represented by the value 0.
+  ///
+  /// @param[in] completion_column
+  ///     The column in which the completion marker should be placed.
+  ///     The first column is represented by the value 0.
+  ///
+  /// @return
+  ///    The number of parsing errors.
+  //-------------------------------------------------------------------
+  unsigned ParseInternal(DiagnosticManager &diagnostic_manager,
+                         clang::CodeCompleteConsumer *completion = nullptr,
+                         unsigned completion_line = 0,
+                         unsigned completion_column = 0);
+
   std::unique_ptr<llvm::LLVMContext>
       m_llvm_context; ///< The LLVM context to generate IR into
-  std::unique_ptr<clang::FileManager>
-      m_file_manager; ///< The Clang file manager object used by the compiler
   std::unique_ptr<clang::CompilerInstance>
       m_compiler; ///< The Clang compiler used to parse expressions into IR
   std::unique_ptr<clang::CodeGenerator>

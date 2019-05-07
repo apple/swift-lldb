@@ -1,23 +1,18 @@
 //===-- Options.cpp ---------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #include "lldb/Interpreter/Options.h"
 
-// C Includes
-// C++ Includes
 #include <algorithm>
 #include <bitset>
 #include <map>
 #include <set>
 
-// Other libraries and framework includes
-// Project includes
 #include "lldb/Host/OptionParser.h"
 #include "lldb/Interpreter/CommandCompletions.h"
 #include "lldb/Interpreter/CommandInterpreter.h"
@@ -461,7 +456,7 @@ void Options::GenerateOptionUsage(Stream &strm, CommandObject *cmd,
         }
       }
 
-      if (options.empty() == false) {
+      if (!options.empty()) {
         // We have some required options with no arguments
         strm.PutCString(" -");
         for (i = 0; i < 2; ++i)
@@ -480,14 +475,14 @@ void Options::GenerateOptionUsage(Stream &strm, CommandObject *cmd,
         if (def.usage_mask & opt_set_mask && isprint8(def.short_option)) {
           // Add current option to the end of out_stream.
 
-          if (def.required == false &&
+          if (!def.required &&
               def.option_has_arg == OptionParser::eNoArgument) {
             options.insert(def.short_option);
           }
         }
       }
 
-      if (options.empty() == false) {
+      if (!options.empty()) {
         // We have some required options with no arguments
         strm.PutCString(" [-");
         for (i = 0; i < 2; ++i)
@@ -765,7 +760,7 @@ bool Options::HandleOptionArgumentCompletion(
     CompletionRequest &request, OptionElementVector &opt_element_vector,
     int opt_element_index, CommandInterpreter &interpreter) {
   auto opt_defs = GetDefinitions();
-  std::unique_ptr<SearchFilter> filter_ap;
+  std::unique_ptr<SearchFilter> filter_up;
 
   int opt_arg_pos = opt_element_vector[opt_element_index].opt_arg_pos;
   int opt_defs_index = opt_element_vector[opt_element_index].opt_defs_index;
@@ -831,12 +826,12 @@ bool Options::HandleOptionArgumentCompletion(
         const char *module_name =
             request.GetParsedLine().GetArgumentAtIndex(cur_arg_pos);
         if (module_name) {
-          FileSpec module_spec(module_name, false);
+          FileSpec module_spec(module_name);
           lldb::TargetSP target_sp =
               interpreter.GetDebugger().GetSelectedTarget();
           // Search filters require a target...
           if (target_sp)
-            filter_ap.reset(new SearchFilterByModule(target_sp, module_spec));
+            filter_up.reset(new SearchFilterByModule(target_sp, module_spec));
         }
         break;
       }
@@ -844,7 +839,7 @@ bool Options::HandleOptionArgumentCompletion(
   }
 
   return CommandCompletions::InvokeCommonCompletionCallbacks(
-      interpreter, completion_mask, request, filter_ap.get());
+      interpreter, completion_mask, request, filter_up.get());
 }
 
 void OptionGroupOptions::Append(OptionGroup *group) {

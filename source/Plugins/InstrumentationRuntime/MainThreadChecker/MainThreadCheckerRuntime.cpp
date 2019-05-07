@@ -1,9 +1,8 @@
 //===-- MainThreadCheckerRuntime.cpp ----------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -27,6 +26,8 @@
 #include "swift/AST/ASTContext.h"
 #include "swift/AST/NameLookup.h"
 #include "swift/ClangImporter/ClangImporter.h"
+
+#include <memory>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -318,7 +319,7 @@ lldb::ThreadCollectionSP
 MainThreadCheckerRuntime::GetBacktracesFromExtendedStopInfo(
     StructuredData::ObjectSP info) {
   ThreadCollectionSP threads;
-  threads.reset(new ThreadCollection());
+  threads = std::make_shared<ThreadCollection>();
   
   ProcessSP process_sp = GetProcessSP();
   

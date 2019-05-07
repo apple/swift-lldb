@@ -19,9 +19,18 @@
 #include "lldb/Symbol/CompilerType.h"
 
 #include "swift/AST/Decl.h"
-#include "swift/AST/Identifier.h"
-#include "swift/AST/Stmt.h"
+#include "swift/Basic/SourceLoc.h"
 #include "llvm/ADT/SmallVector.h"
+
+namespace swift {
+class CatchStmt;
+class DoCatchStmt;
+class ExtensionDecl;
+class FuncDecl;
+class RepeatWhileStmt;
+class ReturnStmt;
+class VarDecl;
+} // namespace swift
 
 namespace lldb_private {
 
@@ -132,7 +141,6 @@ public:
   static void WrapExpression(Stream &wrapped_stream, const char *text,
                              uint32_t language_flags,
                              const EvaluateExpressionOptions &options,
-                             const Expression::SwiftGenericInfo &generic_info,
                              llvm::StringRef os_version,
                              uint32_t &first_body_line);
 
@@ -161,9 +169,6 @@ public:
   swift::ValueDecl *MakeGlobalTypealias(swift::Identifier name,
                                         CompilerType &type,
                                         bool make_private = true);
-
-  swift::Type FixupResultType(swift::Type &result_type,
-                              uint32_t language_flags);
 
   bool FixupResultAfterTypeChecking(Status &error);
 
@@ -214,14 +219,6 @@ private:
                     ResultLocationInfo &result_info);
 
   void InsertError(swift::VarDecl *error_var, swift::Type &error_type);
-
-  struct TypesForResultFixup {
-    swift::ArchetypeType *Wrapper_archetype = nullptr;
-    swift::NameAliasType *context_alias = nullptr;
-    swift::TypeBase *context_real = nullptr;
-  };
-
-  TypesForResultFixup GetTypesForResultFixup(uint32_t language_flags);
 
   std::vector<ResultLocationInfo> m_result_info;
 };

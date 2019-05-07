@@ -10,10 +10,11 @@
 #
 # ------------------------------------------------------------------------------
 import lldb
-import lldbsuite.test.decorators as decorators
+from lldbsuite.test.decorators import *
 import lldbsuite.test.lldbtest as lldbtest
 import lldbsuite.test.lldbutil as lldbutil
 import os
+import swift
 import unittest2
 
 
@@ -21,10 +22,19 @@ class TestSwiftBackwardsCompatibilitySimple(lldbtest.TestBase):
 
     mydir = lldbtest.TestBase.compute_mydir(__file__)
 
-    @decorators.swiftTest
-    @decorators.add_test_categories(["swiftpr", "swift-history"])
+    @swiftTest
+    @skipIf(compiler="swiftc", compiler_version=['<', '5.0'])
+    @add_test_categories(["swiftpr", "swift-history"])
     def test_simple(self):
+        if 'SWIFTC' in os.environ:
+            compiler = os.environ['SWIFTC']
+        else:
+            compiler = swift.getSwiftCompiler()
+        version = self.getCompilerVersion(compiler)
+        if version < '5.0':
+            self.skipTest('Swift compiler predates stable ABI')
         self.build()
+        self.expect("log enable lldb types break")
         lldbutil.run_to_source_breakpoint(self, "break here",
                                           lldb.SBFileSpec('main.swift'))
         # FIXME: Removing the next line breaks subsequent expressions

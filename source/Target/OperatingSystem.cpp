@@ -1,16 +1,11 @@
 //===-- OperatingSystem.cpp -------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-// Project includes
 #include "lldb/Target/OperatingSystem.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Target/Thread.h"
@@ -27,10 +22,10 @@ OperatingSystem *OperatingSystem::FindPlugin(Process *process,
         PluginManager::GetOperatingSystemCreateCallbackForPluginName(
             const_plugin_name);
     if (create_callback) {
-      std::unique_ptr<OperatingSystem> instance_ap(
+      std::unique_ptr<OperatingSystem> instance_up(
           create_callback(process, true));
-      if (instance_ap)
-        return instance_ap.release();
+      if (instance_up)
+        return instance_up.release();
     }
   } else {
     for (uint32_t idx = 0;
@@ -38,10 +33,10 @@ OperatingSystem *OperatingSystem::FindPlugin(Process *process,
               PluginManager::GetOperatingSystemCreateCallbackAtIndex(idx)) !=
          nullptr;
          ++idx) {
-      std::unique_ptr<OperatingSystem> instance_ap(
+      std::unique_ptr<OperatingSystem> instance_up(
           create_callback(process, false));
-      if (instance_ap)
-        return instance_ap.release();
+      if (instance_up)
+        return instance_up.release();
     }
   }
   return nullptr;

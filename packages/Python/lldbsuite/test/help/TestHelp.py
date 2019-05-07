@@ -92,7 +92,7 @@ class HelpCommandTestCase(TestBase):
         version_str = self.version_number_string()
         match = re.match('[0-9]+', version_str)
         search_regexp = ['lldb( version|-' + (version_str if match else '[0-9]+') + '| \(swift-.*\)).*\n']
-        search_regexp[0] += '  Swift-\d+\.\d+'
+        search_regexp[0] += 'Swift'
 
         self.expect("version",
                     patterns=search_regexp)
@@ -231,6 +231,17 @@ class HelpCommandTestCase(TestBase):
             'command alias --long-help "I am a very friendly alias" -- averyfriendlyalias help')
         self.expect("help averyfriendlyalias", matching=True,
                     substrs=['I am a very friendly alias'])
+    @no_debug_info_test
+    def test_alias_prints_origin(self):
+        """Test that 'help <unique_match_to_alias>' prints the alias origin."""
+        def cleanup():
+            self.runCmd('command unalias alongaliasname', check=False)
+
+        self.addTearDownHook(cleanup)
+        self.runCmd('command alias alongaliasname help')
+        self.expect("help alongaliasna", matching=True,
+                    substrs=["'alongaliasna' is an abbreviation for 'help'"])
+
     @no_debug_info_test
     def test_help_format_output(self):
         """Test that help output reaches TerminalWidth."""

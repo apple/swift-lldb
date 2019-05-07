@@ -1,9 +1,8 @@
 //===-- SystemInitializerTest.cpp -------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -52,12 +51,12 @@
 #include "Plugins/LanguageRuntime/ObjC/AppleObjCRuntime/AppleObjCRuntimeV2.h"
 #include "Plugins/LanguageRuntime/RenderScript/RenderScriptRuntime/RenderScriptRuntime.h"
 #include "Plugins/MemoryHistory/asan/MemoryHistoryASan.h"
+#include "Plugins/ObjectFile/Breakpad/ObjectFileBreakpad.h"
 #include "Plugins/ObjectFile/ELF/ObjectFileELF.h"
 #include "Plugins/ObjectFile/Mach-O/ObjectFileMachO.h"
 #include "Plugins/ObjectFile/PECOFF/ObjectFilePECOFF.h"
 #include "Plugins/Platform/Android/PlatformAndroid.h"
 #include "Plugins/Platform/FreeBSD/PlatformFreeBSD.h"
-#include "Plugins/Platform/Kalimba/PlatformKalimba.h"
 #include "Plugins/Platform/Linux/PlatformLinux.h"
 #include "Plugins/Platform/MacOSX/PlatformMacOSX.h"
 #include "Plugins/Platform/MacOSX/PlatformRemoteiOS.h"
@@ -69,6 +68,7 @@
 #include "Plugins/Process/gdb-remote/ProcessGDBRemote.h"
 #include "Plugins/Process/minidump/ProcessMinidump.h"
 #include "Plugins/ScriptInterpreter/None/ScriptInterpreterNone.h"
+#include "Plugins/SymbolFile/Breakpad/SymbolFileBreakpad.h"
 #include "Plugins/SymbolFile/DWARF/SymbolFileDWARF.h"
 #include "Plugins/SymbolFile/DWARF/SymbolFileDWARFDebugMap.h"
 #include "Plugins/SymbolFile/PDB/SymbolFilePDB.h"
@@ -111,9 +111,11 @@ SystemInitializerTest::SystemInitializerTest() {}
 
 SystemInitializerTest::~SystemInitializerTest() {}
 
-void SystemInitializerTest::Initialize() {
-  SystemInitializerCommon::Initialize();
+llvm::Error SystemInitializerTest::Initialize() {
+  if (auto e = SystemInitializerCommon::Initialize())
+    return e;
 
+  breakpad::ObjectFileBreakpad::Initialize();
   ObjectFileELF::Initialize();
   ObjectFileMachO::Initialize();
   ObjectFilePECOFF::Initialize();
@@ -126,7 +128,6 @@ void SystemInitializerTest::Initialize() {
   platform_netbsd::PlatformNetBSD::Initialize();
   platform_openbsd::PlatformOpenBSD::Initialize();
   PlatformWindows::Initialize();
-  PlatformKalimba::Initialize();
   platform_android::PlatformAndroid::Initialize();
   PlatformRemoteiOS::Initialize();
   PlatformMacOSX::Initialize();
@@ -172,6 +173,7 @@ void SystemInitializerTest::Initialize() {
   MainThreadCheckerRuntime::Initialize();
 
   SymbolVendorELF::Initialize();
+  breakpad::SymbolFileBreakpad::Initialize();
   SymbolFileDWARF::Initialize();
   SymbolFilePDB::Initialize();
   SymbolFileSymtab::Initialize();
@@ -231,6 +233,8 @@ void SystemInitializerTest::Initialize() {
   // AFTER PluginManager::Initialize is called.
 
   Debugger::SettingsInitialize();
+
+  return llvm::Error::success();
 }
 
 void SystemInitializerTest::Terminate() {
@@ -268,6 +272,7 @@ void SystemInitializerTest::Terminate() {
   UndefinedBehaviorSanitizerRuntime::Terminate();
   MainThreadCheckerRuntime::Terminate();
   SymbolVendorELF::Terminate();
+  breakpad::SymbolFileBreakpad::Terminate();
   SymbolFileDWARF::Terminate();
   SymbolFilePDB::Terminate();
   SymbolFileSymtab::Terminate();
@@ -318,7 +323,6 @@ void SystemInitializerTest::Terminate() {
   platform_netbsd::PlatformNetBSD::Terminate();
   platform_openbsd::PlatformOpenBSD::Terminate();
   PlatformWindows::Terminate();
-  PlatformKalimba::Terminate();
   platform_android::PlatformAndroid::Terminate();
   PlatformMacOSX::Terminate();
   PlatformRemoteiOS::Terminate();
@@ -327,6 +331,7 @@ void SystemInitializerTest::Terminate() {
   PlatformDarwinKernel::Terminate();
 #endif
 
+  breakpad::ObjectFileBreakpad::Terminate();
   ObjectFileELF::Terminate();
   ObjectFileMachO::Terminate();
   ObjectFilePECOFF::Terminate();

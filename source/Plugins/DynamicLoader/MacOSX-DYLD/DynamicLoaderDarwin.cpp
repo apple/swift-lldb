@@ -1,9 +1,8 @@
 //===-- DynamicLoaderDarwin.cpp -----------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -15,7 +14,6 @@
 #include "lldb/Core/ModuleSpec.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Core/Section.h"
-#include "lldb/Core/State.h"
 #include "lldb/Expression/DiagnosticManager.h"
 #include "lldb/Host/FileSystem.h"
 #include "lldb/Symbol/ClangASTContext.h"
@@ -32,6 +30,7 @@
 #include "lldb/Utility/DataBuffer.h"
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/Log.h"
+#include "lldb/Utility/State.h"
 
 //#define ENABLE_DEBUG_PRINTF // COMMENT THIS LINE OUT PRIOR TO CHECKIN
 #ifdef ENABLE_DEBUG_PRINTF
@@ -46,6 +45,8 @@
 #else
 #include <uuid/uuid.h>
 #endif
+
+#include <memory>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -115,13 +116,15 @@ ModuleSP DynamicLoaderDarwin::FindTargetModuleForImageInfo(
     // No UUID, we must rely upon the cached module modification time and the
     // modification time of the file on disk
     if (module_sp->GetModificationTime() !=
-        FileSystem::GetModificationTime(module_sp->GetFileSpec()))
+        FileSystem::Instance().GetModificationTime(module_sp->GetFileSpec()))
       module_sp.reset();
   }
 
   if (!module_sp) {
     if (can_create) {
-      module_sp = target.GetSharedModule(module_spec);
+      // We'll call Target::ModulesDidLoad after all the modules have been
+      // added to the target, don't let it be called for every one.
+      module_sp = target.GetOrCreateModule(module_spec, false /* notify */);
       if (!module_sp || module_sp->GetObjectFile() == NULL)
         module_sp = m_process->ReadModuleFromMemory(image_info.file_spec,
                                                     image_info.address);
@@ -256,15 +259,7 @@ bool DynamicLoaderDarwin::UpdateImageLoadAddress(Module *module,
 
               changed = m_process->GetTarget().SetSectionLoadAddress(
                   section_sp, new_section_load_addr, warn_multiple);
-            } else {
-              Host::SystemLog(
-                  Host::eSystemLogWarning,
-                  "warning: unable to find and load segment named '%s' at "
-                  "0x%" PRIx64 " in '%s' in macosx dynamic loader plug-in.\n",
-                  info.segments[i].name.AsCString("<invalid>"),
-                  (uint64_t)new_section_load_addr,
-                  image_object_file->GetFileSpec().GetPath().c_str());
-            }
+            } 
           }
         }
 
@@ -359,22 +354,24 @@ bool DynamicLoaderDarwin::JSONImageInformationIntoImageInfo(
     if (image_sp.get() == nullptr || image_sp->GetAsDictionary() == nullptr)
       return false;
     StructuredData::Dictionary *image = image_sp->GetAsDictionary();
-    if (image->HasKey("load_address") == false ||
-        image->HasKey("pathname") == false ||
-        image->HasKey("mod_date") == false ||
-        image->HasKey("mach_header") == false ||
+    // clang-format off
+    if (!image->HasKey("load_address") ||
+        !image->HasKey("pathname") ||
+        !image->HasKey("mod_date") ||
+        !image->HasKey("mach_header") ||
         image->GetValueForKey("mach_header")->GetAsDictionary() == nullptr ||
-        image->HasKey("segments") == false ||
+        !image->HasKey("segments") ||
         image->GetValueForKey("segments")->GetAsArray() == nullptr ||
-        image->HasKey("uuid") == false) {
+        !image->HasKey("uuid")) {
       return false;
     }
+    // clang-format on
     image_infos[i].address =
         image->GetValueForKey("load_address")->GetAsInteger()->GetValue();
     image_infos[i].mod_date =
         image->GetValueForKey("mod_date")->GetAsInteger()->GetValue();
     image_infos[i].file_spec.SetFile(
-        image->GetValueForKey("pathname")->GetAsString()->GetValue(), false,
+        image->GetValueForKey("pathname")->GetAsString()->GetValue(),
         FileSpec::Style::native);
 
     StructuredData::Dictionary *mh =
@@ -475,7 +472,7 @@ bool DynamicLoaderDarwin::JSONImageInformationIntoImageInfo(
       image_infos[i].segments.push_back(segment);
     }
 
-    image_infos[i].uuid.SetFromStringRef(
+    image_infos[i].uuid.SetFromOptionalStringRef(
         image->GetValueForKey("uuid")->GetAsString()->GetValue());
 
     // All sections listed in the dyld image info structure will all either be
@@ -642,7 +639,8 @@ bool DynamicLoaderDarwin::AddModulesUsingImageInfos(
               module_spec.SetObjectOffset(objfile->GetFileOffset() +
                                           commpage_section->GetFileOffset());
               module_spec.SetObjectSize(objfile->GetByteSize());
-              commpage_image_module_sp = target.GetSharedModule(module_spec);
+              commpage_image_module_sp = target.GetOrCreateModule(module_spec, 
+                                                               true /* notify */);
               if (!commpage_image_module_sp ||
                   commpage_image_module_sp->GetObjectFile() == NULL) {
                 commpage_image_module_sp = m_process->ReadModuleFromMemory(
@@ -712,11 +710,7 @@ bool DynamicLoaderDarwin::AlwaysRelyOnEHUnwindInfo(SymbolContext &sym_ctx) {
     return false;
 
   ObjCLanguageRuntime *objc_runtime = m_process->GetObjCLanguageRuntime();
-  if (objc_runtime != NULL && objc_runtime->IsModuleObjCLibrary(module_sp)) {
-    return true;
-  }
-
-  return false;
+  return objc_runtime != NULL && objc_runtime->IsModuleObjCLibrary(module_sp);
 }
 
 //----------------------------------------------------------------------
@@ -737,7 +731,7 @@ void DynamicLoaderDarwin::Segment::PutToLog(Log *log,
 }
 
 const DynamicLoaderDarwin::Segment *
-DynamicLoaderDarwin::ImageInfo::FindSegment(const ConstString &name) const {
+DynamicLoaderDarwin::ImageInfo::FindSegment(ConstString name) const {
   const size_t num_segments = segments.size();
   for (size_t i = 0; i < num_segments; ++i) {
     if (segments[i].name == name)
@@ -823,7 +817,7 @@ DynamicLoaderDarwin::GetStepThroughTrampolinePlan(Thread &thread,
     std::vector<Address> addresses;
 
     if (current_symbol->IsTrampoline()) {
-      const ConstString &trampoline_name = current_symbol->GetMangled().GetName(
+      ConstString trampoline_name = current_symbol->GetMangled().GetName(
           current_symbol->GetLanguage(), Mangled::ePreferMangled);
 
       if (trampoline_name) {
@@ -950,8 +944,8 @@ DynamicLoaderDarwin::GetStepThroughTrampolinePlan(Thread &thread,
           load_addrs.push_back(address.GetLoadAddress(target_sp.get()));
         }
       }
-      thread_plan_sp.reset(
-          new ThreadPlanRunToAddress(thread, load_addrs, stop_others));
+      thread_plan_sp = std::make_shared<ThreadPlanRunToAddress>(
+          thread, load_addrs, stop_others);
     }
   } else {
     if (log)
@@ -964,7 +958,7 @@ DynamicLoaderDarwin::GetStepThroughTrampolinePlan(Thread &thread,
 size_t DynamicLoaderDarwin::FindEquivalentSymbols(
     lldb_private::Symbol *original_symbol, lldb_private::ModuleList &images,
     lldb_private::SymbolContextList &equivalent_symbols) {
-  const ConstString &trampoline_name = original_symbol->GetMangled().GetName(
+  ConstString trampoline_name = original_symbol->GetMangled().GetName(
       original_symbol->GetLanguage(), Mangled::ePreferMangled);
   if (!trampoline_name)
     return 0;

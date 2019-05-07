@@ -1,9 +1,8 @@
 //===-- lldb-private-enumerations.h -----------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -209,6 +208,19 @@ typedef enum LanguageRuntimeDescriptionDisplayVerbosity {
   eLanguageRuntimeDescriptionDisplayVerbosityFull,    // print the full-blown
                                                       // output
 } LanguageRuntimeDescriptionDisplayVerbosity;
+
+//----------------------------------------------------------------------
+// Loading mode for Swift module files
+//----------------------------------------------------------------------
+typedef enum SwiftModuleLoadingMode {
+  eSwiftModuleLoadingModePreferSerialized, // Prefer loading via .swiftmodule,
+                                           // falling back to .swiftinterface
+  eSwiftModuleLoadingModePreferParseable,  // Prefer Loading via
+                                           // .swiftinterface, falling back to
+                                           // .swiftmodule
+  eSwiftModuleLoadingModeOnlySerialized,   // Load via .swiftmodule only
+  eSwiftModuleLoadingModeOnlyParseable,    // Load via .swiftinterface only
+} SwiftModuleLoadingMode;
 
 //----------------------------------------------------------------------
 // Loading modules from memory

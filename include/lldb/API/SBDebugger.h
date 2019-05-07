@@ -1,9 +1,8 @@
 //===-- SBDebugger.h --------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -22,12 +21,12 @@ public:
   SBInputReader() = default;
   ~SBInputReader() = default;
 
-  SBError Initialize(lldb::SBDebugger &,
-                     unsigned long (*)(void *, lldb::SBInputReader *,
-                                       lldb::InputReaderAction, char const *,
-                                       unsigned long),
-                     void *, lldb::InputReaderGranularity, char const *,
-                     char const *, bool);
+  SBError Initialize(lldb::SBDebugger &sb_debugger,
+                     unsigned long (*callback)(void *, lldb::SBInputReader *,
+                                               lldb::InputReaderAction,
+                                               char const *, unsigned long),
+                     void *a, lldb::InputReaderGranularity b, char const *c,
+                     char const *d, bool e);
   void SetIsDone(bool);
   bool IsActive() const;
 };
@@ -46,6 +45,8 @@ public:
 
   static void Initialize();
 
+  static lldb::SBError InitializeWithErrorHandling();
+
   static void Terminate();
 
   // Deprecated, use the one that takes a source_init_files bool.
@@ -60,6 +61,8 @@ public:
   static void Destroy(lldb::SBDebugger &debugger);
 
   static void MemoryPressureDetected();
+
+  explicit operator bool() const;
 
   bool IsValid() const;
 
@@ -109,7 +112,7 @@ public:
                                              const char *archname);
 
   lldb::SBTarget CreateTarget(const char *filename);
-  
+
   lldb::SBTarget GetDummyTarget();
 
   // Return true if target is deleted from the target list of the debugger.
@@ -226,6 +229,8 @@ public:
 
   void SetPrompt(const char *prompt);
 
+  const char *GetReproducerPath() const;
+
   lldb::ScriptLanguage GetScriptLanguage() const;
 
   void SetScriptLanguage(lldb::ScriptLanguage script_lang);
@@ -250,15 +255,11 @@ public:
 
   SBTypeFormat GetFormatForType(SBTypeNameSpecifier);
 
-#ifndef LLDB_DISABLE_PYTHON
   SBTypeSummary GetSummaryForType(SBTypeNameSpecifier);
-#endif
 
   SBTypeFilter GetFilterForType(SBTypeNameSpecifier);
 
-#ifndef LLDB_DISABLE_PYTHON
   SBTypeSynthetic GetSyntheticForType(SBTypeNameSpecifier);
-#endif
 
   void RunCommandInterpreter(bool auto_handle_events, bool spawn_thread);
 

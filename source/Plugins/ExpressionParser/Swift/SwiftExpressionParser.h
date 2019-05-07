@@ -63,6 +63,15 @@ public:
                         const EvaluateExpressionOptions &options);
 
   //------------------------------------------------------------------
+  /// Attempts to find possible command line completions for the given
+  /// expression.
+  ///
+  /// Currently unimplemented for Swift.
+  //------------------------------------------------------------------
+  bool Complete(CompletionRequest &request, unsigned line, unsigned pos,
+                unsigned typed_pos) override;
+
+  //------------------------------------------------------------------
   /// Parse a single expression and convert it to IR using Swift.  Don't
   /// wrap the expression in anything at all.
   ///
@@ -74,8 +83,7 @@ public:
   ///     success.
   //------------------------------------------------------------------
   unsigned Parse(DiagnosticManager &diagnostic_manager, uint32_t first_line = 0,
-                 uint32_t last_line = UINT32_MAX,
-                 uint32_t line_offset = 0) override;
+                 uint32_t last_line = UINT32_MAX) override;
 
   //------------------------------------------------------------------
   /// Ready an already-parsed expression for execution, possibly
@@ -146,9 +154,6 @@ public:
   typedef std::map<const char *, SILVariableInfo> SILVariableMap;
 
 private:
-  bool PerformAutoImport(swift::SourceFile &source_file, bool user_imports,
-                         Status &error);
-
   /// The expression to be parsed.
   Expression &m_expr;
   /// The triple to use when compiling.

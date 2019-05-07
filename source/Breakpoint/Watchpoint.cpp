@@ -1,16 +1,11 @@
 //===-- Watchpoint.cpp ------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-// Project includes
 #include "lldb/Breakpoint/Watchpoint.h"
 
 #include "lldb/Breakpoint/StoppointCallbackContext.h"
@@ -135,10 +130,7 @@ void Watchpoint::IncrementFalseAlarmsAndReviseHitCount() {
 bool Watchpoint::ShouldStop(StoppointCallbackContext *context) {
   IncrementHitCount();
 
-  if (!IsEnabled())
-    return false;
-
-  return true;
+  return IsEnabled();
 }
 
 void Watchpoint::GetDescription(Stream *s, lldb::DescriptionLevel level) {
@@ -280,27 +272,27 @@ bool Watchpoint::InvokeCallback(StoppointCallbackContext *context) {
 
 void Watchpoint::SetCondition(const char *condition) {
   if (condition == nullptr || condition[0] == '\0') {
-    if (m_condition_ap.get())
-      m_condition_ap.reset();
+    if (m_condition_up)
+      m_condition_up.reset();
   } else {
     // Pass nullptr for expr_prefix (no translation-unit level definitions).
     Status error;
     ExecutionContext exe_scope(m_target);
-    m_condition_ap.reset(m_target.GetUserExpressionForLanguage(
+    m_condition_up.reset(m_target.GetUserExpressionForLanguage(
         exe_scope,
         condition, llvm::StringRef(), lldb::eLanguageTypeUnknown,
         UserExpression::eResultTypeAny, EvaluateExpressionOptions(), error));
     if (error.Fail()) {
       // FIXME: Log something...
-      m_condition_ap.reset();
+      m_condition_up.reset();
     }
   }
   SendWatchpointChangedEvent(eWatchpointEventTypeConditionChanged);
 }
 
 const char *Watchpoint::GetConditionText() const {
-  if (m_condition_ap.get())
-    return m_condition_ap->GetUserText();
+  if (m_condition_up)
+    return m_condition_up->GetUserText();
   else
     return nullptr;
 }
@@ -334,12 +326,12 @@ Watchpoint::WatchpointEventData::WatchpointEventData(
 
 Watchpoint::WatchpointEventData::~WatchpointEventData() = default;
 
-const ConstString &Watchpoint::WatchpointEventData::GetFlavorString() {
+ConstString Watchpoint::WatchpointEventData::GetFlavorString() {
   static ConstString g_flavor("Watchpoint::WatchpointEventData");
   return g_flavor;
 }
 
-const ConstString &Watchpoint::WatchpointEventData::GetFlavor() const {
+ConstString Watchpoint::WatchpointEventData::GetFlavor() const {
   return WatchpointEventData::GetFlavorString();
 }
 

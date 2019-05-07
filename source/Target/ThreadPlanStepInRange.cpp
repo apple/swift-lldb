@@ -1,16 +1,10 @@
 //===-- ThreadPlanStepInRange.cpp -------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-// Project includes
 
 #include "lldb/Target/ThreadPlanStepInRange.h"
 #include "lldb/Breakpoint/BreakpointLocation.h"
@@ -331,10 +325,10 @@ bool ThreadPlanStepInRange::MischiefManaged() {
 
 void ThreadPlanStepInRange::SetAvoidRegexp(const char *name) {
   auto name_ref = llvm::StringRef::withNullAsEmpty(name);
-  if (!m_avoid_regexp_ap)
-    m_avoid_regexp_ap.reset(new RegularExpression(name_ref));
+  if (!m_avoid_regexp_up)
+    m_avoid_regexp_up.reset(new RegularExpression(name_ref));
 
-  m_avoid_regexp_ap->Compile(name_ref);
+  m_avoid_regexp_up->Compile(name_ref);
 }
 
 void ThreadPlanStepInRange::SetDefaultFlagValue(uint32_t new_value) {
@@ -433,7 +427,7 @@ bool ThreadPlanStepInRange::FrameMatchesAvoidCriteria() {
   if (libraries_say_avoid)
     return true;
 
-  const RegularExpression *avoid_regexp_to_use = m_avoid_regexp_ap.get();
+  const RegularExpression *avoid_regexp_to_use = m_avoid_regexp_up.get();
   if (avoid_regexp_to_use == nullptr)
     avoid_regexp_to_use = GetThread().GetSymbolsToAvoidRegexp();
 

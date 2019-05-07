@@ -1,9 +1,8 @@
 //===-- SystemInitializerCommon.cpp -----------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -19,11 +18,13 @@
 #include "Plugins/ObjectContainer/BSD-Archive/ObjectContainerBSDArchive.h"
 #include "Plugins/ObjectContainer/Universal-Mach-O/ObjectContainerUniversalMachO.h"
 #include "Plugins/Process/gdb-remote/ProcessGDBRemoteLog.h"
+#include "lldb/Host/FileSystem.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Symbol/SwiftASTContext.h"
 #include "lldb/Utility/Log.h"
+#include "lldb/Utility/Reproducer.h"
 #include "lldb/Utility/Timer.h"
 
 #if defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__)
@@ -40,12 +41,13 @@
 #include <string>
 
 using namespace lldb_private;
+using namespace lldb_private::repro;
 
 SystemInitializerCommon::SystemInitializerCommon() {}
 
 SystemInitializerCommon::~SystemInitializerCommon() {}
 
-void SystemInitializerCommon::Initialize() {
+llvm::Error SystemInitializerCommon::Initialize() {
 #if defined(_MSC_VER)
   const char *disable_crash_dialog_var = getenv("LLDB_DISABLE_CRASH_DIALOG");
   if (disable_crash_dialog_var &&
@@ -67,6 +69,30 @@ void SystemInitializerCommon::Initialize() {
     _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
   }
 #endif
+
+  // If the reproducer wasn't initialized before, we can safely assume it's
+  // off.
+  if (!Reproducer::Initialized()) {
+    if (auto e = Reproducer::Initialize(ReproducerMode::Off, llvm::None))
+      return e;
+  }
+
+  // Initialize the file system.
+  auto &r = repro::Reproducer::Instance();
+  if (repro::Loader *loader = r.GetLoader()) {
+    FileSpec vfs_mapping = loader->GetFile<FileInfo>();
+    if (vfs_mapping) {
+      if (llvm::Error e = FileSystem::Initialize(vfs_mapping))
+        return e;
+    } else {
+      FileSystem::Initialize();
+    }
+  } else if (repro::Generator *g = r.GetGenerator()) {
+    repro::FileProvider &fp = g->GetOrCreate<repro::FileProvider>();
+    FileSystem::Initialize(fp.GetFileCollector());
+  } else {
+    FileSystem::Initialize();
+  }
 
   Log::Initialize();
   HostInfo::Initialize();
@@ -98,6 +124,8 @@ void SystemInitializerCommon::Initialize() {
 #if defined(_MSC_VER)
   ProcessWindowsLog::Initialize();
 #endif
+
+  return llvm::Error::success();
 }
 
 void SystemInitializerCommon::Terminate() {
@@ -122,4 +150,6 @@ void SystemInitializerCommon::Terminate() {
 
   HostInfo::Terminate();
   Log::DisableAllLogChannels();
+  FileSystem::Terminate();
+  Reproducer::Terminate();
 }

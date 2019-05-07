@@ -12,7 +12,7 @@
 
 import lldb
 from lldbsuite.test.lldbtest import *
-import lldbsuite.test.decorators as decorators
+from lldbsuite.test.decorators import *
 import lldbsuite.test.lldbutil as lldbutil
 import os
 import unittest2
@@ -25,9 +25,9 @@ class TestSwiftDynamicTypeResolutionImportConflict(TestBase):
     def setUp(self):
         TestBase.setUp(self)
 
-    @decorators.skipUnlessDarwin
-    @decorators.swiftTest
-    @decorators.add_test_categories(["swiftpr"])
+    @skipUnlessDarwin
+    @swiftTest
+    @add_test_categories(["swiftpr"])
     def test(self):
         """
         This testcase causes the scratch context to get destroyed by a
@@ -53,16 +53,16 @@ class TestSwiftDynamicTypeResolutionImportConflict(TestBase):
         self.expect("target var -- foofoo",
                     substrs=['(Conflict.C) foofoo'])
         lldbutil.run_to_source_breakpoint(self, "break here",
-                                          lldb.SBFileSpec('Library.swift'))
-        self.expect("bt", substrs=['Library.swift'])
+                                          lldb.SBFileSpec('Dylib.swift'))
+        self.expect("bt", substrs=['Dylib.swift'])
         self.expect("fr v -d no-dynamic-values -- input",
-                    substrs=['(LibraryProtocol) input'])
+                    substrs=['(Dylib.LibraryProtocol) input'])
         self.expect("fr v -d run-target -- input",
-                    substrs=['(LibraryProtocol) input'])
+                    substrs=['(Dylib.LibraryProtocol) input'])
                     # FIXME: substrs=['(main.FromMainModule) input'])
         self.expect("expr -d run-target -- input",
                     "test that the expression evaluator can recover",
-                    substrs=['(LibraryProtocol) $R0'])
+                    substrs=['(Dylib.LibraryProtocol) $R0'])
                     # FIXME: substrs=['(main.FromMainModule) input'])
                     
 

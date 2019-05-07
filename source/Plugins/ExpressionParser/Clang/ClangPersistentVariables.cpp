@@ -1,9 +1,8 @@
 //===-- ClangPersistentVariables.cpp ----------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -38,7 +37,7 @@ ExpressionVariableSP ClangPersistentVariables::CreatePersistentVariable(
 }
 
 ExpressionVariableSP ClangPersistentVariables::CreatePersistentVariable(
-    ExecutionContextScope *exe_scope, const ConstString &name,
+    ExecutionContextScope *exe_scope, ConstString name,
     const CompilerType &compiler_type, lldb::ByteOrder byte_order,
     uint32_t addr_byte_size) {
   return AddNewlyConstructedVariable(new ClangExpressionVariable(
@@ -83,7 +82,7 @@ void ClangPersistentVariables::RemovePersistentVariable(
   }
 }
 
-void ClangPersistentVariables::RegisterPersistentDecl(const ConstString &name,
+void ClangPersistentVariables::RegisterPersistentDecl(ConstString name,
                                                       clang::NamedDecl *decl) {
   m_persistent_decls.insert(
       std::pair<const char *, clang::NamedDecl *>(name.GetCString(), decl));
@@ -98,7 +97,7 @@ void ClangPersistentVariables::RegisterPersistentDecl(const ConstString &name,
 }
 
 clang::NamedDecl *
-ClangPersistentVariables::GetPersistentDecl(const ConstString &name) {
+ClangPersistentVariables::GetPersistentDecl(ConstString name) {
   PersistentDeclMap::const_iterator i =
       m_persistent_decls.find(name.GetCString());
 

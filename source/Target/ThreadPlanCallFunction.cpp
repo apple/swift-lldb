@@ -1,16 +1,11 @@
 //===-- ThreadPlanCallFunction.cpp ------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-// Project includes
 #include "lldb/Target/ThreadPlanCallFunction.h"
 #include "lldb/Breakpoint/Breakpoint.h"
 #include "lldb/Breakpoint/BreakpointLocation.h"
@@ -29,6 +24,8 @@
 #include "lldb/Target/ThreadPlanRunToAddress.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/Stream.h"
+
+#include <memory>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -413,8 +410,8 @@ void ThreadPlanCallFunction::DidPush() {
   GetThread().SetStopInfoToNothing();
 
 #ifndef SINGLE_STEP_EXPRESSIONS
-  m_subplan_sp.reset(
-      new ThreadPlanRunToAddress(m_thread, m_start_addr, m_stop_other_threads));
+  m_subplan_sp = std::make_shared<ThreadPlanRunToAddress>(
+      m_thread, m_start_addr, m_stop_other_threads);
 
   m_thread.QueueThreadPlan(m_subplan_sp, false);
   m_subplan_sp->SetPrivate(true);
@@ -466,7 +463,7 @@ void ThreadPlanCallFunction::SetBreakpoints() {
         if (!backstop_name.IsEmpty()) {
           FileSpecList stdlib_module_list;
           stdlib_module_list.Append(FileSpec(
-              swift_runtime->GetStandardLibraryName().AsCString(), false));
+              swift_runtime->GetStandardLibraryName().AsCString()));
           const LazyBool skip_prologue = eLazyBoolNo;
           const bool is_internal = true;
           const bool is_hardware = false;
@@ -540,24 +537,25 @@ bool ThreadPlanCallFunction::BreakpointsExplainStop() {
         ConstString persistent_variable_name(
             persistent_state->GetNextPersistentVariableName(GetTarget(),
                                                             prefix));
-        m_return_valobj_sp = SwiftLanguageRuntime::CalculateErrorValue(
-            frame_sp, persistent_variable_name);
+        if (m_return_valobj_sp = SwiftLanguageRuntime::CalculateErrorValue(
+                frame_sp, persistent_variable_name)) {
 
-        DataExtractor data;
-        Status data_error;
-        size_t data_size =
-            m_return_valobj_sp->GetStaticValue()->GetData(data, data_error);
+          DataExtractor data;
+          Status data_error;
+          uint64_t data_size =
+              m_return_valobj_sp->GetStaticValue()->GetData(data, data_error);
 
-        if (data_size == data.GetAddressByteSize()) {
-          lldb::offset_t offset = 0;
-          lldb::addr_t addr = data.GetAddress(&offset);
+          if (data_size == data.GetAddressByteSize()) {
+            lldb::offset_t offset = 0;
+            lldb::addr_t addr = data.GetAddress(&offset);
 
-          SwiftLanguageRuntime::RegisterGlobalError(
-              GetTarget(), persistent_variable_name, addr);
+            SwiftLanguageRuntime::RegisterGlobalError(
+                GetTarget(), persistent_variable_name, addr);
+          }
+
+          m_hit_error_backstop = true;
+          return true;
         }
-
-        m_hit_error_backstop = true;
-        return true;
       }
     }
   }

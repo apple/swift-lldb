@@ -14,7 +14,7 @@ Test that we correctly find private decls
 """
 import lldb
 from lldbsuite.test.lldbtest import *
-import lldbsuite.test.decorators as decorators
+from lldbsuite.test.decorators import *
 import lldbsuite.test.lldbutil as lldbutil
 import os
 import unittest2
@@ -26,66 +26,39 @@ class TestSwiftPrivateTypeAlias(TestBase):
 
     def setUp(self):
         TestBase.setUp(self)
-        self.a_source = "main.swift"
-        self.a_source_spec = lldb.SBFileSpec(self.a_source)
 
-    @decorators.swiftTest
-    @decorators.expectedFailureAll(bugnumber="rdar://24921067")
+    @swiftTest
     def test_swift_private_typealias(self):
         """Test that we can correctly print variables whose types are private type aliases"""
         self.build()
-        exe_name = "a.out"
-        exe = self.getBuildArtifact(exe_name)
-
-        # Create the target
-        target = self.dbg.CreateTarget(exe)
-        self.assertTrue(target, VALID_TARGET)
-
-        # Set the breakpoints
-        breakpoint1 = target.BreakpointCreateBySourceRegex(
-            'breakpoint 1', self.a_source_spec)
+        (target, process, thread, breakpoint1) = \
+            lldbutil.run_to_source_breakpoint(
+                self, 'breakpoint 1', lldb.SBFileSpec('main.swift'))
         breakpoint2 = target.BreakpointCreateBySourceRegex(
-            'breakpoint 2', self.a_source_spec)
+            'breakpoint 2', lldb.SBFileSpec('main.swift'))
         self.assertTrue(breakpoint1.GetNumLocations() > 0, VALID_BREAKPOINT)
         self.assertTrue(breakpoint2.GetNumLocations() > 0, VALID_BREAKPOINT)
 
-        process = target.LaunchSimple(None, None, os.getcwd())
-        self.assertTrue(process, PROCESS_IS_VALID)
-
-        threads = lldbutil.get_threads_stopped_at_breakpoint(
-            process, breakpoint1)
-
-        self.assertTrue(len(threads) == 1)
-        self.thread = threads[0]
-        self.frame = self.thread.frames[0]
-        self.assertTrue(self.frame, "Frame 0 is valid.")
-
-        var = self.frame.FindVariable("i")
+        var = self.frame().FindVariable("i")
         lldbutil.check_variable(
             self,
             var,
             False,
-            typename="a.MyStruct.Type.IntegerType",
+            typename="a.MyStruct.IntegerType",
             value="123")
 
         process.Continue()
-        threads = lldbutil.get_threads_stopped_at_breakpoint(
-            process, breakpoint2)
-
+        threads = lldbutil.get_threads_stopped_at_breakpoint(process,
+                                                             breakpoint2)
         self.assertTrue(len(threads) == 1)
-        self.thread = threads[0]
-        self.frame = self.thread.frames[0]
-        self.assertTrue(self.frame, "Frame 0 is valid.")
 
-        var = self.frame.FindVariable("a")
+        var = self.frame().FindVariable("a")
         dict_child_0 = var.GetChildAtIndex(0)
         child_0 = dict_child_0.GetChildAtIndex(0)
         child_1 = dict_child_0.GetChildAtIndex(1)
         lldbutil.check_variable(
-            self,
-            var,
-            False,
-            typename="Swift.Dictionary<Swift.String, a.MyStruct.Type.IntegerType>")
+            self, var, False, typename=
+            "Swift.Dictionary<Swift.String, a.MyStruct.IntegerType>")
         lldbutil.check_variable(self, child_0, False, '"hello"')
         lldbutil.check_variable(self, child_1, False, value='234')
 

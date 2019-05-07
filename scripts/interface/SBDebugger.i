@@ -1,9 +1,8 @@
 //===-- SWIG Interface for SBDebugger ---------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -28,7 +27,7 @@ def disassemble_instructions (insts):
 # Create a new debugger instance
 debugger = lldb.SBDebugger.Create()
 
-# When we step or continue, don't return from the function until the process 
+# When we step or continue, don't return from the function until the process
 # stops. We do this by setting the async mode to false.
 debugger.SetAsync (False)
 
@@ -46,7 +45,7 @@ if target:
     # Launch the process. Since we specified synchronous mode, we won't return
     # from this function until we hit the breakpoint at main
     process = target.LaunchSimple (None, None, os.getcwd())
-    
+
     # Make sure the launch went ok
     if process:
         # Print some simple process info
@@ -122,10 +121,13 @@ public:
 
     static void
     Initialize();
-    
+
+    static SBError
+    InitializeWithErrorHandling();
+
     static void
     Terminate();
-    
+
     static lldb::SBDebugger
     Create();
 
@@ -150,13 +152,15 @@ public:
     bool
     IsValid() const;
 
+    explicit operator bool() const;
+
     void
     Clear ();
 
     void
     SetAsync (bool b);
-    
-    bool 
+
+    bool
     GetAsync ();
 
     void
@@ -248,7 +252,7 @@ public:
 
     lldb::SBPlatform
     GetSelectedPlatform();
-    
+
     void
     SetSelectedPlatform(lldb::SBPlatform &platform);
 
@@ -287,7 +291,7 @@ public:
     // SBPlatform from this class.
     lldb::SBError
     SetCurrentPlatform (const char *platform_name);
-    
+
     bool
     SetCurrentPlatformSDKRoot (const char *sysroot);
 
@@ -295,8 +299,8 @@ public:
     // an interface to the Set/Get UseExternalEditor.
     bool
     SetUseExternalEditor (bool input);
-    
-    bool 
+
+    bool
     GetUseExternalEditor ();
 
     bool
@@ -342,7 +346,7 @@ public:
 
     void
     DispatchInputEndOfFile ();
-    
+
     const char *
     GetInstanceName  ();
 
@@ -366,14 +370,17 @@ public:
 
     lldb::user_id_t
     GetID ();
-    
+
     const char *
     GetPrompt() const;
 
     void
     SetPrompt (const char *prompt);
-        
-    lldb::ScriptLanguage 
+
+    const char *
+    GetReproducerPath() const;
+
+    lldb::ScriptLanguage
     GetScriptLanguage() const;
 
     void
@@ -381,31 +388,31 @@ public:
 
     bool
     GetCloseInputOnEOF () const;
-    
+
     void
     SetCloseInputOnEOF (bool b);
-    
+
     lldb::SBTypeCategory
     GetCategory (const char* category_name);
-    
+
     SBTypeCategory
     GetCategory (lldb::LanguageType lang_type);
-    
+
     lldb::SBTypeCategory
     CreateCategory (const char* category_name);
-    
+
     bool
     DeleteCategory (const char* category_name);
-    
+
     uint32_t
     GetNumCategories ();
-    
+
     lldb::SBTypeCategory
     GetCategoryAtIndex (uint32_t);
-    
+
     lldb::SBTypeCategory
     GetDefaultCategory();
-    
+
     lldb::SBTypeFormat
     GetFormatForType (lldb::SBTypeNameSpecifier);
 
@@ -425,7 +432,7 @@ public:
                            int  &num_errors,
                            bool &quit_requested,
                            bool &stopped_for_crash);
-    
+
     lldb::SBError
     RunREPL (lldb::LanguageType language, const char *repl_options);
 }; // class SBDebugger

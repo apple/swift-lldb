@@ -1,9 +1,8 @@
 //===-- ArchSpecTest.cpp ----------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -135,22 +134,46 @@ TEST(ArchSpecTest, TestSetTriple) {
 }
 
 TEST(ArchSpecTest, MergeFrom) {
-  ArchSpec A;
-  ArchSpec B("x86_64-pc-linux");
+  {
+    ArchSpec A;
+    ArchSpec B("x86_64-pc-linux");
 
-  EXPECT_FALSE(A.IsValid());
-  ASSERT_TRUE(B.IsValid());
-  EXPECT_EQ(llvm::Triple::ArchType::x86_64, B.GetTriple().getArch());
-  EXPECT_EQ(llvm::Triple::VendorType::PC, B.GetTriple().getVendor());
-  EXPECT_EQ(llvm::Triple::OSType::Linux, B.GetTriple().getOS());
-  EXPECT_EQ(ArchSpec::eCore_x86_64_x86_64, B.GetCore());
+    EXPECT_FALSE(A.IsValid());
+    ASSERT_TRUE(B.IsValid());
+    EXPECT_EQ(llvm::Triple::ArchType::x86_64, B.GetTriple().getArch());
+    EXPECT_EQ(llvm::Triple::VendorType::PC, B.GetTriple().getVendor());
+    EXPECT_EQ(llvm::Triple::OSType::Linux, B.GetTriple().getOS());
+    EXPECT_EQ(ArchSpec::eCore_x86_64_x86_64, B.GetCore());
 
-  A.MergeFrom(B);
-  ASSERT_TRUE(A.IsValid());
-  EXPECT_EQ(llvm::Triple::ArchType::x86_64, A.GetTriple().getArch());
-  EXPECT_EQ(llvm::Triple::VendorType::PC, A.GetTriple().getVendor());
-  EXPECT_EQ(llvm::Triple::OSType::Linux, A.GetTriple().getOS());
-  EXPECT_EQ(ArchSpec::eCore_x86_64_x86_64, A.GetCore());
+    A.MergeFrom(B);
+    ASSERT_TRUE(A.IsValid());
+    EXPECT_EQ(llvm::Triple::ArchType::x86_64, A.GetTriple().getArch());
+    EXPECT_EQ(llvm::Triple::VendorType::PC, A.GetTriple().getVendor());
+    EXPECT_EQ(llvm::Triple::OSType::Linux, A.GetTriple().getOS());
+    EXPECT_EQ(ArchSpec::eCore_x86_64_x86_64, A.GetCore());
+  }
+  {
+    ArchSpec A("aarch64");
+    ArchSpec B("aarch64--linux-android");
+
+    EXPECT_TRUE(A.IsValid());
+    EXPECT_TRUE(B.IsValid());
+
+    EXPECT_EQ(llvm::Triple::ArchType::aarch64, B.GetTriple().getArch());
+    EXPECT_EQ(llvm::Triple::VendorType::UnknownVendor,
+              B.GetTriple().getVendor());
+    EXPECT_EQ(llvm::Triple::OSType::Linux, B.GetTriple().getOS());
+    EXPECT_EQ(llvm::Triple::EnvironmentType::Android,
+              B.GetTriple().getEnvironment());
+
+    A.MergeFrom(B);
+    EXPECT_EQ(llvm::Triple::ArchType::aarch64, A.GetTriple().getArch());
+    EXPECT_EQ(llvm::Triple::VendorType::UnknownVendor,
+              A.GetTriple().getVendor());
+    EXPECT_EQ(llvm::Triple::OSType::Linux, A.GetTriple().getOS());
+    EXPECT_EQ(llvm::Triple::EnvironmentType::Android,
+              A.GetTriple().getEnvironment());
+  }
 }
 
 TEST(ArchSpecTest, MergeFromMachOUnknown) {
@@ -170,4 +193,139 @@ TEST(ArchSpecTest, MergeFromMachOUnknown) {
   ASSERT_TRUE(B.IsValid());
   A.MergeFrom(B);
   ASSERT_EQ(A.GetCore(), ArchSpec::eCore_uknownMach64);
+}
+
+TEST(ArchSpecTest, Compatibility) {
+  {
+    ArchSpec A("x86_64-apple-macosx10.12");
+    ArchSpec B("x86_64-apple-macosx10.12");
+    ASSERT_TRUE(A.IsExactMatch(B));
+    ASSERT_TRUE(A.IsCompatibleMatch(B));
+  }
+  {
+    // The version information is auxiliary to support availablity but
+    // doesn't affect compatibility.
+    ArchSpec A("x86_64-apple-macosx10.11");
+    ArchSpec B("x86_64-apple-macosx10.12");
+    ASSERT_TRUE(A.IsExactMatch(B));
+    ASSERT_TRUE(A.IsCompatibleMatch(B));
+  }
+  {
+    ArchSpec A("x86_64-apple-macosx10.13");
+    ArchSpec B("x86_64h-apple-macosx10.13");
+    ASSERT_FALSE(A.IsExactMatch(B));
+    ASSERT_TRUE(A.IsCompatibleMatch(B));
+  }
+  {
+    ArchSpec A("x86_64-apple-macosx");
+    ArchSpec B("x86_64-apple-ios-simulator");
+    ASSERT_FALSE(A.IsExactMatch(B));
+    ASSERT_FALSE(A.IsCompatibleMatch(B));
+  }
+  {
+    ArchSpec A("x86_64-*-*");
+    ArchSpec B("x86_64-apple-ios-simulator");
+    ASSERT_FALSE(A.IsExactMatch(B));
+    ASSERT_FALSE(A.IsCompatibleMatch(B));
+  }
+  {
+    ArchSpec A("arm64-*-*");
+    ArchSpec B("arm64-apple-ios");
+    ASSERT_FALSE(A.IsExactMatch(B));
+    // FIXME: This looks unintuitive and we should investigate whether
+    // this is the desired behavior.
+    ASSERT_FALSE(A.IsCompatibleMatch(B));
+  }
+  {
+    ArchSpec A("x86_64-*-*");
+    ArchSpec B("x86_64-apple-ios-simulator");
+    ASSERT_FALSE(A.IsExactMatch(B));
+    // FIXME: See above, though the extra environment complicates things.
+    ASSERT_FALSE(A.IsCompatibleMatch(B));
+  }
+  {
+    ArchSpec A("x86_64");
+    ArchSpec B("x86_64-apple-macosx10.14");
+    // FIXME: The exact match also looks unintuitive.
+    ASSERT_TRUE(A.IsExactMatch(B));
+    ASSERT_TRUE(A.IsCompatibleMatch(B));
+  }
+}
+
+TEST(ArchSpecTest, OperatorBool) {
+  EXPECT_FALSE(ArchSpec());
+  EXPECT_TRUE(ArchSpec("x86_64-pc-linux"));
+}
+
+TEST(ArchSpecTest, TripleComponentsWereSpecified) {
+  {
+    ArchSpec A("");
+    ArchSpec B("-");
+    ArchSpec C("--");
+    ArchSpec D("---");
+
+    ASSERT_FALSE(A.TripleVendorWasSpecified());
+    ASSERT_FALSE(A.TripleOSWasSpecified());
+    ASSERT_FALSE(A.TripleEnvironmentWasSpecified());
+
+    ASSERT_FALSE(B.TripleVendorWasSpecified());
+    ASSERT_FALSE(B.TripleOSWasSpecified());
+    ASSERT_FALSE(B.TripleEnvironmentWasSpecified());
+
+    ASSERT_FALSE(C.TripleVendorWasSpecified());
+    ASSERT_FALSE(C.TripleOSWasSpecified());
+    ASSERT_FALSE(C.TripleEnvironmentWasSpecified());
+
+    ASSERT_FALSE(D.TripleVendorWasSpecified());
+    ASSERT_FALSE(D.TripleOSWasSpecified());
+    ASSERT_FALSE(D.TripleEnvironmentWasSpecified());
+  }
+  {
+    // TODO: llvm::Triple::normalize treats the missing components from these
+    // triples as specified unknown components instead of unspecified
+    // components. We need to either change the behavior in llvm or work around
+    // this in lldb.
+    ArchSpec A("armv7");
+    ArchSpec B("armv7-");
+    ArchSpec C("armv7--");
+    ArchSpec D("armv7---");
+
+    ASSERT_FALSE(A.TripleVendorWasSpecified());
+    ASSERT_FALSE(A.TripleOSWasSpecified());
+    ASSERT_FALSE(A.TripleEnvironmentWasSpecified());
+
+    ASSERT_TRUE(B.TripleVendorWasSpecified());
+    ASSERT_FALSE(B.TripleOSWasSpecified());
+    ASSERT_FALSE(B.TripleEnvironmentWasSpecified());
+
+    ASSERT_TRUE(C.TripleVendorWasSpecified());
+    ASSERT_TRUE(C.TripleOSWasSpecified());
+    ASSERT_FALSE(C.TripleEnvironmentWasSpecified());
+
+    ASSERT_TRUE(D.TripleVendorWasSpecified());
+    ASSERT_TRUE(D.TripleOSWasSpecified());
+    ASSERT_TRUE(D.TripleEnvironmentWasSpecified());
+  }
+  {
+    ArchSpec A("x86_64-unknown");
+    ArchSpec B("powerpc-unknown-linux");
+    ArchSpec C("i386-pc-windows-msvc");
+    ArchSpec D("aarch64-unknown-linux-android");
+
+    ASSERT_TRUE(A.TripleVendorWasSpecified());
+    ASSERT_FALSE(A.TripleOSWasSpecified());
+    ASSERT_FALSE(A.TripleEnvironmentWasSpecified());
+
+    ASSERT_TRUE(B.TripleVendorWasSpecified());
+    ASSERT_TRUE(B.TripleOSWasSpecified());
+    ASSERT_FALSE(B.TripleEnvironmentWasSpecified());
+
+    ASSERT_TRUE(C.TripleVendorWasSpecified());
+    ASSERT_TRUE(C.TripleOSWasSpecified());
+    ASSERT_TRUE(C.TripleEnvironmentWasSpecified());
+
+    ASSERT_TRUE(D.TripleVendorWasSpecified());
+    ASSERT_TRUE(D.TripleOSWasSpecified());
+    ASSERT_TRUE(D.TripleEnvironmentWasSpecified());
+  }
 }

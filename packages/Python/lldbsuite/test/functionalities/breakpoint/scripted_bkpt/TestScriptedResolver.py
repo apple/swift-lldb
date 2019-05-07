@@ -10,6 +10,7 @@ import time
 import re
 import lldb
 import lldbsuite.test.lldbutil as lldbutil
+from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
 
 
@@ -19,17 +20,20 @@ class TestScriptedResolver(TestBase):
 
     NO_DEBUG_INFO_TESTCASE = True
 
+    @expectedFailureAll(oslist=["windows"], bugnumber="llvm.org/pr24528")
     def test_scripted_resolver(self):
         """Use a scripted resolver to set a by symbol name breakpoint"""
         self.build()
         self.do_test()
 
+    @expectedFailureAll(oslist=["windows"], bugnumber="llvm.org/pr24528")
     def test_search_depths(self):
         """ Make sure we are called at the right depths depending on what we return
             from __get_depth__"""
         self.build()
         self.do_test_depths()
 
+    @expectedFailureAll(oslist=["windows"], bugnumber="llvm.org/pr24528")
     def test_command_line(self):
         """ Make sure we are called at the right depths depending on what we return
             from __get_depth__"""
@@ -166,28 +170,28 @@ class TestScriptedResolver(TestBase):
         # Make a breakpoint that has no __get_depth__, check that that is converted to eSearchDepthModule:
         bkpt = target.BreakpointCreateFromScript("resolver.Resolver", extra_args, module_list, file_list)
         self.assertTrue(bkpt.GetNumLocations() > 0, "Resolver got no locations.")
-        self.expect("script print resolver.Resolver.got_files", substrs=["2"], msg="Was only passed modules")
+        self.expect("script print(resolver.Resolver.got_files)", substrs=["2"], msg="Was only passed modules")
         
         # Make a breakpoint that asks for modules, check that we didn't get any files:
         bkpt = target.BreakpointCreateFromScript("resolver.ResolverModuleDepth", extra_args, module_list, file_list)
         self.assertTrue(bkpt.GetNumLocations() > 0, "ResolverModuleDepth got no locations.")
-        self.expect("script print resolver.Resolver.got_files", substrs=["2"], msg="Was only passed modules")
+        self.expect("script print(resolver.Resolver.got_files)", substrs=["2"], msg="Was only passed modules")
         
         # Make a breakpoint that asks for compile units, check that we didn't get any files:
         bkpt = target.BreakpointCreateFromScript("resolver.ResolverCUDepth", extra_args, module_list, file_list)
         self.assertTrue(bkpt.GetNumLocations() > 0, "ResolverCUDepth got no locations.")
-        self.expect("script print resolver.Resolver.got_files", substrs=["1"], msg="Was passed compile units")
+        self.expect("script print(resolver.Resolver.got_files)", substrs=["1"], msg="Was passed compile units")
 
         # Make a breakpoint that returns a bad value - we should convert that to "modules" so check that:
         bkpt = target.BreakpointCreateFromScript("resolver.ResolverBadDepth", extra_args, module_list, file_list)
         self.assertTrue(bkpt.GetNumLocations() > 0, "ResolverBadDepth got no locations.")
-        self.expect("script print resolver.Resolver.got_files", substrs=["2"], msg="Was only passed modules")
+        self.expect("script print(resolver.Resolver.got_files)", substrs=["2"], msg="Was only passed modules")
 
         # Make a breakpoint that searches at function depth:
         bkpt = target.BreakpointCreateFromScript("resolver.ResolverFuncDepth", extra_args, module_list, file_list)
         self.assertTrue(bkpt.GetNumLocations() > 0, "ResolverFuncDepth got no locations.")
-        self.expect("script print resolver.Resolver.got_files", substrs=["3"], msg="Was only passed modules")
-        self.expect("script print resolver.Resolver.func_list", substrs=["break_on_me", "main", "test_func"], msg="Saw all the functions")
+        self.expect("script print(resolver.Resolver.got_files)", substrs=["3"], msg="Was only passed modules")
+        self.expect("script print(resolver.Resolver.func_list)", substrs=["break_on_me", "main", "test_func"], msg="Saw all the functions")
 
     def do_test_cli(self):
         target = self.make_target_and_import()

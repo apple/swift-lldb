@@ -1,19 +1,17 @@
 //===-- debugserver.cpp -----------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #include <arpa/inet.h>
 #include <asl.h>
-#include <crt_externs.h> // for _NSGetEnviron()
+#include <crt_externs.h>
 #include <errno.h>
 #include <getopt.h>
 #include <netdb.h>
-#include <netinet/in.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <string>
@@ -21,8 +19,9 @@
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/types.h>
-#include <sys/types.h>
 #include <sys/un.h>
+
+#include <memory>
 #include <vector>
 
 #if defined(__APPLE__)
@@ -939,7 +938,7 @@ int main(int argc, char *argv[]) {
   sigaddset(&sigset, SIGCHLD);
   sigprocmask(SIG_BLOCK, &sigset, NULL);
 
-  g_remoteSP.reset(new RNBRemote());
+  g_remoteSP = std::make_shared<RNBRemote>();
 
   RNBRemote *remote = g_remoteSP.get();
   if (remote == NULL) {

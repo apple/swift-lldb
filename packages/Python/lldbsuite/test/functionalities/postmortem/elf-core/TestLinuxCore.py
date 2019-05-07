@@ -2,10 +2,11 @@
 Test basics of linux core file debugging.
 """
 
-from __future__ import print_function
+from __future__ import division, print_function
 
 import shutil
 import struct
+import os
 
 import lldb
 from lldbsuite.test.decorators import *
@@ -189,7 +190,7 @@ class LinuxCoreTestCase(TestBase):
         values["xmm6"] = "{0xf8 0xf1 0x8b 0x4f 0xf8 0xf1 0x8b 0x4f 0xf8 0xf1 0x8b 0x4f 0xf8 0xf1 0x8b 0x4f}"
         values["xmm7"] = "{0x13 0xf1 0x30 0xcd 0x13 0xf1 0x30 0xcd 0x13 0xf1 0x30 0xcd 0x13 0xf1 0x30 0xcd}"
 
-        for regname, value in values.iteritems():
+        for regname, value in values.items():
             self.expect("register read {}".format(regname), substrs=["{} = {}".format(regname, value)])
 
 
@@ -200,8 +201,32 @@ class LinuxCoreTestCase(TestBase):
 
         values["fioff"] = "0x080480cc"
 
-        for regname, value in values.iteritems():
+        for regname, value in values.items():
             self.expect("register read {}".format(regname), substrs=["{} = {}".format(regname, value)])
+
+    @expectedFailureAll(bugnumber="llvm.org/pr37371", hostoslist=["windows"])
+    @skipIf(triple='^mips')
+    @skipIfLLVMTargetMissing("X86")
+    def test_i386_sysroot(self):
+        """Test that lldb can find the exe for an i386 linux core file using the sysroot."""
+
+        # Copy linux-i386.out to tmp_sysroot/home/labath/test/a.out (since it was compiled as
+        # /home/labath/test/a.out)
+        tmp_sysroot = os.path.join(self.getBuildDir(), "lldb_i386_mock_sysroot")
+        executable = os.path.join(tmp_sysroot, "home", "labath", "test", "a.out")
+        lldbutil.mkdir_p(os.path.dirname(executable))
+        shutil.copyfile("linux-i386.out", executable)
+
+        # Set sysroot and load core
+        self.runCmd("platform select remote-linux --sysroot '%s'" % tmp_sysroot)
+        target = self.dbg.CreateTarget(None)
+        self.assertTrue(target, VALID_TARGET)
+        process = target.LoadCore("linux-i386.core")
+
+        # Check that we found a.out from the sysroot
+        self.check_all(process, self._i386_pid, self._i386_regions, "a.out")
+
+        self.dbg.DeleteTarget(target)
 
     def check_memory_regions(self, process, region_count):
         region_list = process.GetMemoryRegions()
@@ -235,7 +260,7 @@ class LinuxCoreTestCase(TestBase):
             # Test an address in the middle of a region returns it's enclosing
             # region.
             middle_address = (region.GetRegionBase() +
-                              region.GetRegionEnd()) / 2
+                              region.GetRegionEnd()) // 2
             region_at_middle = lldb.SBMemoryRegionInfo()
             error = process.GetMemoryRegionInfo(
                 middle_address, region_at_middle)
@@ -299,15 +324,7 @@ class LinuxCoreTestCase(TestBase):
             self.dbg.SetOutputFileHandle(None, False)
             self.dbg.SetErrorFileHandle(None, False)
 
-    def do_test(self, filename, pid, region_count, thread_name):
-        target = self.dbg.CreateTarget(filename + ".out")
-        process = target.LoadCore(filename + ".core")
-        self.assertTrue(process, PROCESS_IS_VALID)
-        self.assertEqual(process.GetNumThreads(), 1)
-        self.assertEqual(process.GetProcessID(), pid)
-
-        self.check_state(process)
-
+    def check_stack(self, process, pid, thread_name):
         thread = process.GetSelectedThread()
         self.assertTrue(thread)
         self.assertEqual(thread.GetThreadID(), pid)
@@ -324,6 +341,21 @@ class LinuxCoreTestCase(TestBase):
                 frame.FindVariable("F").GetValueAsUnsigned(), ord(
                     backtrace[i][0]))
 
+    def check_all(self, process, pid, region_count, thread_name):
+        self.assertTrue(process, PROCESS_IS_VALID)
+        self.assertEqual(process.GetNumThreads(), 1)
+        self.assertEqual(process.GetProcessID(), pid)
+
+        self.check_state(process)
+
+        self.check_stack(process, pid, thread_name)
+
         self.check_memory_regions(process, region_count)
+
+    def do_test(self, filename, pid, region_count, thread_name):
+        target = self.dbg.CreateTarget(filename + ".out")
+        process = target.LoadCore(filename + ".core")
+
+        self.check_all(process, pid, region_count, thread_name)
 
         self.dbg.DeleteTarget(target)

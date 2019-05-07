@@ -18,6 +18,7 @@
 #include "lldb/Expression/IRExecutionUnit.h"
 #include "lldb/Expression/IRMemoryMap.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Target/SwiftLanguageRuntime.h"
 #include "lldb/Utility/Log.h"
 
 #include "swift/Demangling/Demangle.h"
@@ -45,6 +46,29 @@ GetNameOfDemangledVariable(swift::Demangle::NodePointer node_pointer) {
     }
   }
   return llvm::StringRef();
+}
+
+/// Dereference global resilient values that are store in fixed-size
+/// buffers, if the runtime says it's necessary.
+static lldb::addr_t FixupResilientGlobal(lldb::addr_t var_addr,
+                                         CompilerType compiler_type,
+                                         IRExecutionUnit &execution_unit,
+                                         lldb::ProcessSP process_sp,
+                                         Status &error) {
+  if (process_sp)
+    if (auto *runtime = process_sp->GetSwiftLanguageRuntime()) {
+      if (!runtime->IsStoredInlineInBuffer(compiler_type)) {
+        if (var_addr != LLDB_INVALID_ADDRESS) {
+          size_t ptr_size = process_sp->GetAddressByteSize();
+          llvm::SmallVector<uint8_t, 8> bytes;
+          bytes.reserve(ptr_size);
+          execution_unit.ReadMemory(bytes.data(), var_addr, ptr_size, error);
+          if (error.Success())
+            memcpy(&var_addr, bytes.data(), sizeof(var_addr));
+        }
+      }
+    }
+  return var_addr;
 }
 
 class EntityREPLResultVariable : public Materializer::Entity {
@@ -136,9 +160,16 @@ public:
       uint8_t *pvar_data = ret->GetValueBytes();
 
       Status read_error;
+      // Handle resilient globals in fixed-size buffers.
+      lldb::addr_t var_addr = variable->m_remote_addr;
+      if (auto *ast_ctx =
+          llvm::dyn_cast_or_null<SwiftASTContext>(m_type.GetTypeSystem()))
+        if (!ast_ctx->IsFixedSize(m_type))
+          var_addr = FixupResilientGlobal(var_addr, m_type, execution_unit,
+                                          process_sp, read_error);
 
-      execution_unit.ReadMemory(pvar_data, variable->m_remote_addr,
-                                pvar_byte_size, read_error);
+      execution_unit.ReadMemory(pvar_data, var_addr, pvar_byte_size,
+                                read_error);
 
       if (!read_error.Success()) {
         err.SetErrorString("Couldn't dematerialize a result variable: couldn't "
@@ -189,7 +220,9 @@ public:
       demangle_ctx.clear();
     }
 
-    if (SwiftASTContext::IsPossibleZeroSizeType(m_type)) {
+    llvm::Optional<uint64_t> size =
+        m_type.GetByteSize(execution_unit->GetBestExecutionContextScope());
+    if (size && *size == 0) {
       MakeREPLResult(*execution_unit, err, nullptr);
       return;
     }
@@ -295,9 +328,9 @@ public:
   EntityREPLPersistentVariable(
       lldb::ExpressionVariableSP &persistent_variable_sp,
       SwiftREPLMaterializer *parent,
-      Materializer::PersistentVariableDelegate *delegate)
+      Materializer::PersistentVariableDelegate *)
       : Entity(), m_persistent_variable_sp(persistent_variable_sp),
-        m_parent(parent), m_delegate(delegate) {
+        m_parent(parent) {
     // Hard-coding to maximum size of a pointer since persistent variables are
     // materialized by reference
     m_size = 8;
@@ -351,19 +384,31 @@ public:
           return;
         }
 
+        CompilerType compiler_type =
+            m_persistent_variable_sp->GetCompilerType();
+
         m_persistent_variable_sp->m_live_sp = ValueObjectConstResult::Create(
-            exe_scope, m_persistent_variable_sp->GetCompilerType(),
-            m_persistent_variable_sp->GetName(), variable.m_remote_addr,
-            eAddressTypeLoad, execution_unit->GetAddressByteSize());
+            exe_scope, compiler_type, m_persistent_variable_sp->GetName(),
+            variable.m_remote_addr, eAddressTypeLoad,
+            execution_unit->GetAddressByteSize());
 
         // Read the contents of the spare memory area
 
         m_persistent_variable_sp->ValueUpdated();
 
         Status read_error;
+        lldb::addr_t var_addr = variable.m_remote_addr;
 
+        // Handle resilient globals in fixed-size buffers.
+        if (Flags(m_persistent_variable_sp->m_flags)
+            .Test(ExpressionVariable::EVIsSwiftFixedBuffer))
+          var_addr =
+              FixupResilientGlobal(var_addr, compiler_type, *execution_unit,
+                                   exe_scope->CalculateProcess(), read_error);
+
+        // FIXME: This may not work if the value is not bitwise-takable.
         execution_unit->ReadMemory(
-            m_persistent_variable_sp->GetValueBytes(), variable.m_remote_addr,
+            m_persistent_variable_sp->GetValueBytes(), var_addr,
             m_persistent_variable_sp->GetByteSize(), read_error);
 
         if (!read_error.Success()) {
@@ -450,7 +495,6 @@ public:
 private:
   lldb::ExpressionVariableSP m_persistent_variable_sp;
   SwiftREPLMaterializer *m_parent;
-  Materializer::PersistentVariableDelegate *m_delegate;
 };
 
 uint32_t SwiftREPLMaterializer::AddPersistentVariable(

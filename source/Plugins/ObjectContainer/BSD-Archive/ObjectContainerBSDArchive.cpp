@@ -1,9 +1,8 @@
 //===-- ObjectContainerBSDArchive.cpp ---------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -33,7 +32,6 @@ typedef struct ar_hdr {
 #include "lldb/Host/FileSystem.h"
 #include "lldb/Symbol/ObjectFile.h"
 #include "lldb/Utility/ArchSpec.h"
-#include "lldb/Utility/DataBufferLLVM.h"
 #include "lldb/Utility/Stream.h"
 #include "lldb/Utility/Timer.h"
 
@@ -171,7 +169,7 @@ size_t ObjectContainerBSDArchive::Archive::ParseObjects() {
 
 ObjectContainerBSDArchive::Object *
 ObjectContainerBSDArchive::Archive::FindObject(
-    const ConstString &object_name,
+    ConstString object_name,
     const llvm::sys::TimePoint<> &object_mod_time) {
   const ObjectNameToIndexMap::Entry *match =
       m_object_name_to_index_map.FindFirstValueForName(object_name);
@@ -208,7 +206,7 @@ ObjectContainerBSDArchive::Archive::FindCachedArchive(
   while (pos != archive_map.end() && pos->first == file) {
     bool match = true;
     if (arch.IsValid() &&
-        pos->second->GetArchitecture().IsCompatibleMatch(arch) == false)
+        !pos->second->GetArchitecture().IsCompatibleMatch(arch))
       match = false;
     else if (file_offset != LLDB_INVALID_OFFSET &&
              pos->second->GetFileOffset() != file_offset)
@@ -313,7 +311,7 @@ ObjectContainer *ObjectContainerBSDArchive::CreateInstance(
       // file gets updated by a new build while this .a file is being used for
       // debugging
       DataBufferSP archive_data_sp =
-          DataBufferLLVM::CreateSliceFromPath(file->GetPath(), length, file_offset);
+          FileSystem::Instance().CreateDataBuffer(*file, length, file_offset);
       if (!archive_data_sp)
         return nullptr;
 
@@ -322,18 +320,18 @@ ObjectContainer *ObjectContainerBSDArchive::CreateInstance(
       Archive::shared_ptr archive_sp(Archive::FindCachedArchive(
           *file, module_sp->GetArchitecture(), module_sp->GetModificationTime(),
           file_offset));
-      std::unique_ptr<ObjectContainerBSDArchive> container_ap(
+      std::unique_ptr<ObjectContainerBSDArchive> container_up(
           new ObjectContainerBSDArchive(module_sp, archive_data_sp,
                                         archive_data_offset, file, file_offset,
                                         length));
 
-      if (container_ap.get()) {
+      if (container_up) {
         if (archive_sp) {
           // We already have this archive in our cache, use it
-          container_ap->SetArchive(archive_sp);
-          return container_ap.release();
-        } else if (container_ap->ParseHeader())
-          return container_ap.release();
+          container_up->SetArchive(archive_sp);
+          return container_up.release();
+        } else if (container_up->ParseHeader())
+          return container_up.release();
       }
     }
   } else {
@@ -342,14 +340,14 @@ ObjectContainer *ObjectContainerBSDArchive::CreateInstance(
         *file, module_sp->GetArchitecture(), module_sp->GetModificationTime(),
         file_offset));
     if (archive_sp) {
-      std::unique_ptr<ObjectContainerBSDArchive> container_ap(
+      std::unique_ptr<ObjectContainerBSDArchive> container_up(
           new ObjectContainerBSDArchive(module_sp, data_sp, data_offset, file,
                                         file_offset, length));
 
-      if (container_ap.get()) {
+      if (container_up) {
         // We already have this archive in our cache, use it
-        container_ap->SetArchive(archive_sp);
-        return container_ap.release();
+        container_up->SetArchive(archive_sp);
+        return container_up.release();
       }
     }
   }
@@ -461,14 +459,14 @@ size_t ObjectContainerBSDArchive::GetModuleSpecifications(
     return 0;
 
   const size_t initial_count = specs.GetSize();
-  llvm::sys::TimePoint<> file_mod_time = FileSystem::GetModificationTime(file);
+  llvm::sys::TimePoint<> file_mod_time = FileSystem::Instance().GetModificationTime(file);
   Archive::shared_ptr archive_sp(
       Archive::FindCachedArchive(file, ArchSpec(), file_mod_time, file_offset));
   bool set_archive_arch = false;
   if (!archive_sp) {
     set_archive_arch = true;
     data_sp =
-        DataBufferLLVM::CreateSliceFromPath(file.GetPath(), file_size, file_offset);
+        FileSystem::Instance().CreateDataBuffer(file, file_size, file_offset);
     if (data_sp) {
       data.SetData(data_sp, 0, data_sp->GetByteSize());
       archive_sp = Archive::ParseAndCacheArchiveForFile(

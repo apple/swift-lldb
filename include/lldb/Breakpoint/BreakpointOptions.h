@@ -1,22 +1,17 @@
 //===-- BreakpointOptions.h -------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef liblldb_BreakpointOptions_h_
 #define liblldb_BreakpointOptions_h_
 
-// C Includes
-// C++ Includes
 #include <memory>
 #include <string>
 
-// Other libraries and framework includes
-// Project includes
 #include "lldb/Utility/Baton.h"
 #include "lldb/Utility/Flags.h"
 #include "lldb/Utility/StringList.h"
@@ -447,7 +442,7 @@ private:
   bool m_one_shot;
   uint32_t m_ignore_count; // Number of times to ignore this breakpoint
   std::unique_ptr<ThreadSpec>
-      m_thread_spec_ap;         // Thread for which this breakpoint will take
+      m_thread_spec_up;         // Thread for which this breakpoint will take
   std::string m_condition_text; // The condition to test.
   size_t m_condition_text_hash; // Its hash, so that locations know when the
                                 // condition is updated.

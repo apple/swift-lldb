@@ -1,9 +1,8 @@
 //===-- ClangExpressionDeclMap.cpp -----------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -17,7 +16,6 @@
 #include "lldb/Core/Address.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/ModuleSpec.h"
-#include "lldb/Core/RegisterValue.h"
 #include "lldb/Core/ValueObjectConstResult.h"
 #include "lldb/Core/ValueObjectVariable.h"
 #include "lldb/Expression/Materializer.h"
@@ -44,6 +42,7 @@
 #include "lldb/Target/Thread.h"
 #include "lldb/Utility/Endian.h"
 #include "lldb/Utility/Log.h"
+#include "lldb/Utility/RegisterValue.h"
 #include "lldb/Utility/Status.h"
 #include "lldb/lldb-private.h"
 #include "clang/AST/ASTConsumer.h"
@@ -132,7 +131,7 @@ void ClangExpressionDeclMap::DidParse() {
   if (log)
     ClangASTMetrics::DumpCounters(log);
 
-  if (m_parser_vars.get()) {
+  if (m_parser_vars) {
     for (size_t entity_index = 0, num_entities = m_found_entities.GetSize();
          entity_index < num_entities; ++entity_index) {
       ExpressionVariableSP var_sp(
@@ -309,7 +308,7 @@ TypeFromUser ClangExpressionDeclMap::DeportType(ClangASTContext &target,
 }
 
 bool ClangExpressionDeclMap::AddPersistentVariable(const NamedDecl *decl,
-                                                   const ConstString &name,
+                                                   ConstString name,
                                                    TypeFromParser parser_type,
                                                    bool is_result,
                                                    bool is_lvalue) {
@@ -424,7 +423,7 @@ bool ClangExpressionDeclMap::AddPersistentVariable(const NamedDecl *decl,
 }
 
 bool ClangExpressionDeclMap::AddValueToStruct(const NamedDecl *decl,
-                                              const ConstString &name,
+                                              ConstString name,
                                               llvm::Value *value, size_t size,
                                               lldb::offset_t alignment) {
   assert(m_struct_vars.get());
@@ -604,7 +603,7 @@ bool ClangExpressionDeclMap::GetFunctionInfo(const NamedDecl *decl,
 
 addr_t ClangExpressionDeclMap::GetSymbolAddress(Target &target,
                                                 Process *process,
-                                                const ConstString &name,
+                                                ConstString name,
                                                 lldb::SymbolType symbol_type,
                                                 lldb_private::Module *module) {
   SymbolContextList sc_list;
@@ -689,6 +688,9 @@ addr_t ClangExpressionDeclMap::GetSymbolAddress(Target &target,
     case eSymbolTypeASTFile:
       symbol_load_addr = sym_address.GetLoadAddress(&target);
       break;
+
+    case eSymbolTypeIVarOffset:
+      break;
     }
   }
 
@@ -703,7 +705,7 @@ addr_t ClangExpressionDeclMap::GetSymbolAddress(Target &target,
   return symbol_load_addr;
 }
 
-addr_t ClangExpressionDeclMap::GetSymbolAddress(const ConstString &name,
+addr_t ClangExpressionDeclMap::GetSymbolAddress(ConstString name,
                                                 lldb::SymbolType symbol_type) {
   assert(m_parser_vars.get());
 
@@ -716,7 +718,7 @@ addr_t ClangExpressionDeclMap::GetSymbolAddress(const ConstString &name,
 }
 
 lldb::VariableSP ClangExpressionDeclMap::FindGlobalVariable(
-    Target &target, ModuleSP &module, const ConstString &name,
+    Target &target, ModuleSP &module, ConstString name,
     CompilerDeclContext *namespace_decl, TypeFromUser *type) {
   VariableList vars;
 

@@ -1,16 +1,11 @@
 //===-- Thread.cpp ----------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-// Project includes
 #include "lldb/Target/Thread.h"
 #include "Plugins/Process/Utility/UnwindLLDB.h"
 #include "Plugins/Process/Utility/UnwindMacOSXFrameBackchain.h"
@@ -18,7 +13,6 @@
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/FormatEntity.h"
 #include "lldb/Core/Module.h"
-#include "lldb/Core/State.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Interpreter/OptionValueFileSpecList.h"
@@ -28,8 +22,10 @@
 #include "lldb/Target/ABI.h"
 #include "lldb/Target/DynamicLoader.h"
 #include "lldb/Target/ExecutionContext.h"
+#include "lldb/Target/ObjCLanguageRuntime.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/RegisterContext.h"
+#include "lldb/Target/StackFrameRecognizer.h"
 #include "lldb/Target/StopInfo.h"
 #include "lldb/Target/SystemRuntime.h"
 #include "lldb/Target/Target.h"
@@ -49,9 +45,12 @@
 #include "lldb/Target/Unwind.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/RegularExpression.h"
+#include "lldb/Utility/State.h"
 #include "lldb/Utility/Stream.h"
 #include "lldb/Utility/StreamString.h"
 #include "lldb/lldb-enumerations.h"
+
+#include <memory>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -93,7 +92,7 @@ enum {
 
 class ThreadOptionValueProperties : public OptionValueProperties {
 public:
-  ThreadOptionValueProperties(const ConstString &name)
+  ThreadOptionValueProperties(ConstString name)
       : OptionValueProperties(name) {}
 
   // This constructor is used when creating ThreadOptionValueProperties when it
@@ -124,12 +123,12 @@ public:
 
 ThreadProperties::ThreadProperties(bool is_global) : Properties() {
   if (is_global) {
-    m_collection_sp.reset(
-        new ThreadOptionValueProperties(ConstString("thread")));
+    m_collection_sp =
+        std::make_shared<ThreadOptionValueProperties>(ConstString("thread"));
     m_collection_sp->Initialize(g_properties);
   } else
-    m_collection_sp.reset(
-        new ThreadOptionValueProperties(Thread::GetGlobalProperties().get()));
+    m_collection_sp = std::make_shared<ThreadOptionValueProperties>(
+        Thread::GetGlobalProperties().get());
 }
 
 ThreadProperties::~ThreadProperties() = default;
@@ -139,9 +138,9 @@ const RegularExpression *ThreadProperties::GetSymbolsToAvoidRegexp() {
   return m_collection_sp->GetPropertyAtIndexAsOptionValueRegex(nullptr, idx);
 }
 
-FileSpecList &ThreadProperties::GetLibrariesToAvoid() const {
+FileSpecList ThreadProperties::GetLibrariesToAvoid() const {
   const uint32_t idx = ePropertyStepAvoidLibraries;
-  OptionValueFileSpecList *option_value =
+  const OptionValueFileSpecList *option_value =
       m_collection_sp->GetPropertyAtIndexAsOptionValueFileSpecList(nullptr,
                                                                    false, idx);
   assert(option_value);
@@ -176,7 +175,7 @@ uint64_t ThreadProperties::GetMaxBacktraceDepth() const {
 // Thread Event Data
 //------------------------------------------------------------------
 
-const ConstString &Thread::ThreadEventData::GetFlavorString() {
+ConstString Thread::ThreadEventData::GetFlavorString() {
   static ConstString g_flavor("Thread::ThreadEventData");
   return g_flavor;
 }
@@ -257,7 +256,7 @@ Thread::Thread(Process &process, lldb::tid_t tid, bool use_invalid_index_id)
       m_curr_frames_sp(), m_prev_frames_sp(),
       m_resume_signal(LLDB_INVALID_SIGNAL_NUMBER),
       m_resume_state(eStateRunning), m_temporary_resume_state(eStateRunning),
-      m_unwinder_ap(), m_destroy_called(false),
+      m_unwinder_up(), m_destroy_called(false),
       m_override_should_notify(eLazyBoolCalculate),
       m_extended_info_fetched(false), m_extended_info() {
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_OBJECT));
@@ -307,7 +306,7 @@ void Thread::DestroyThread() {
 
   m_stop_info_sp.reset();
   m_reg_context_sp.reset();
-  m_unwinder_ap.reset();
+  m_unwinder_up.reset();
   std::lock_guard<std::recursive_mutex> guard(m_frame_mutex);
   m_curr_frames_sp.reset();
   m_prev_frames_sp.reset();
@@ -567,8 +566,8 @@ bool Thread::RestoreRegisterStateFromCheckpoint(
         // Clear out all stack frames as our world just changed.
         ClearStackFrames();
         reg_ctx_sp->InvalidateIfNeeded(true);
-        if (m_unwinder_ap.get())
-          m_unwinder_ap->Clear();
+        if (m_unwinder_up)
+          m_unwinder_up->Clear();
         return ret;
       }
     }
@@ -1044,9 +1043,11 @@ void Thread::PushPlan(ThreadPlanSP &thread_plan_sp) {
   if (thread_plan_sp) {
     // If the thread plan doesn't already have a tracer, give it its parent's
     // tracer:
-    if (!thread_plan_sp->GetThreadPlanTracer())
+    if (!thread_plan_sp->GetThreadPlanTracer()) {
+      assert(!m_plan_stack.empty());
       thread_plan_sp->SetThreadPlanTracer(
           m_plan_stack.back()->GetThreadPlanTracer());
+    }
     m_plan_stack.push_back(thread_plan_sp);
 
     thread_plan_sp->DidPush();
@@ -1395,9 +1396,9 @@ ThreadPlanSP Thread::QueueThreadPlanForStepOverRange(
     const SymbolContext &addr_context, lldb::RunMode stop_other_threads,
     Status &status, LazyBool step_out_avoids_code_withoug_debug_info) {
   ThreadPlanSP thread_plan_sp;
-  thread_plan_sp.reset(new ThreadPlanStepOverRange(
+  thread_plan_sp = std::make_shared<ThreadPlanStepOverRange>(
       *this, range, addr_context, stop_other_threads,
-      step_out_avoids_code_withoug_debug_info));
+      step_out_avoids_code_withoug_debug_info);
 
   status = QueueThreadPlan(thread_plan_sp, abort_other_plans);
   return thread_plan_sp;
@@ -1632,15 +1633,13 @@ void Thread::CalculateExecutionContext(ExecutionContext &exe_ctx) {
 }
 
 StackFrameListSP Thread::GetStackFrameList() {
-  StackFrameListSP frame_list_sp;
   std::lock_guard<std::recursive_mutex> guard(m_frame_mutex);
-  if (m_curr_frames_sp) {
-    frame_list_sp = m_curr_frames_sp;
-  } else {
-    frame_list_sp.reset(new StackFrameList(*this, m_prev_frames_sp, true));
-    m_curr_frames_sp = frame_list_sp;
-  }
-  return frame_list_sp;
+
+  if (!m_curr_frames_sp)
+    m_curr_frames_sp =
+        std::make_shared<StackFrameList>(*this, m_prev_frames_sp, true);
+
+  return m_curr_frames_sp;
 }
 
 void Thread::ClearStackFrames() {
@@ -2088,7 +2087,7 @@ size_t Thread::GetStackFrameStatus(Stream &strm, uint32_t first_frame,
 }
 
 Unwind *Thread::GetUnwinder() {
-  if (!m_unwinder_ap) {
+  if (!m_unwinder_up) {
     const ArchSpec target_arch(CalculateTarget()->GetArchitecture());
     const llvm::Triple::ArchType machine = target_arch.GetMachine();
     switch (machine) {
@@ -2106,16 +2105,16 @@ Unwind *Thread::GetUnwinder() {
     case llvm::Triple::ppc64le:
     case llvm::Triple::systemz:
     case llvm::Triple::hexagon:
-      m_unwinder_ap.reset(new UnwindLLDB(*this));
+      m_unwinder_up.reset(new UnwindLLDB(*this));
       break;
 
     default:
       if (target_arch.GetTriple().getVendor() == llvm::Triple::Apple)
-        m_unwinder_ap.reset(new UnwindMacOSXFrameBackchain(*this));
+        m_unwinder_up.reset(new UnwindMacOSXFrameBackchain(*this));
       break;
     }
   }
-  return m_unwinder_ap.get();
+  return m_unwinder_up.get();
 }
 
 void Thread::Flush() {
@@ -2235,4 +2234,33 @@ Status Thread::StepOut() {
     error.SetErrorString("process not stopped");
   }
   return error;
+}
+
+ValueObjectSP Thread::GetCurrentException() {
+  if (auto frame_sp = GetStackFrameAtIndex(0))
+    if (auto recognized_frame = frame_sp->GetRecognizedFrame())
+      if (auto e = recognized_frame->GetExceptionObject())
+        return e;
+
+  // FIXME: For now, only ObjC exceptions are supported. This should really
+  // iterate over all language runtimes and ask them all to give us the current
+  // exception.
+  if (auto runtime = GetProcess()->GetObjCLanguageRuntime())
+    if (auto e = runtime->GetExceptionObjectForThread(shared_from_this()))
+      return e;
+
+  return ValueObjectSP();
+}
+
+ThreadSP Thread::GetCurrentExceptionBacktrace() {
+  ValueObjectSP exception = GetCurrentException();
+  if (!exception) return ThreadSP();
+
+  // FIXME: For now, only ObjC exceptions are supported. This should really
+  // iterate over all language runtimes and ask them all to give us the current
+  // exception.
+  auto runtime = GetProcess()->GetObjCLanguageRuntime();
+  if (!runtime) return ThreadSP();
+
+  return runtime->GetBacktraceThreadFromException(exception);
 }

@@ -1,27 +1,22 @@
 //===-- RenderScriptRuntime.h -----------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef liblldb_RenderScriptRuntime_h_
 #define liblldb_RenderScriptRuntime_h_
 
-// C Includes
-// C++ Includes
 #include <array>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
-// Other libraries and framework includes
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
-// Project includes
 #include "lldb/Core/Module.h"
 #include "lldb/Expression/LLVMUserExpression.h"
 #include "lldb/Target/CPPLanguageRuntime.h"
@@ -250,7 +245,7 @@ typedef std::vector<RSScriptGroupDescriptorSP> RSScriptGroupList;
 
 class RSScriptGroupBreakpointResolver : public BreakpointResolver {
 public:
-  RSScriptGroupBreakpointResolver(Breakpoint *bp, const ConstString &name,
+  RSScriptGroupBreakpointResolver(Breakpoint *bp, ConstString name,
                                   const RSScriptGroupList &groups,
                                   bool stop_on_all)
       : BreakpointResolver(bp, BreakpointResolver::NameResolver),
@@ -280,7 +275,7 @@ public:
 
 protected:
   const RSScriptGroupDescriptorSP
-  FindScriptGroup(const ConstString &name) const {
+  FindScriptGroup(ConstString name) const {
     for (auto sg : m_script_groups) {
       if (ConstString::Compare(sg->m_name, name) == 0)
         return sg;
@@ -370,7 +365,7 @@ public:
       int kernel_types = ~(0));
 
   bool PlaceBreakpointOnScriptGroup(lldb::TargetSP target, Stream &strm,
-                                    const ConstString &name, bool stop_on_all);
+                                    ConstString name, bool stop_on_all);
 
   void SetBreakAllKernels(bool do_break, lldb::TargetSP target);
 
@@ -392,7 +387,7 @@ public:
     return m_scriptGroups;
   };
 
-  bool IsKnownKernel(const ConstString &name) {
+  bool IsKnownKernel(ConstString name) {
     for (const auto &module : m_rsmodules)
       for (const auto &kernel : module->m_kernels)
         if (kernel.m_name == name)
@@ -433,12 +428,12 @@ protected:
   bool EvalRSExpression(const char *expression, StackFrame *frame_ptr,
                         uint64_t *result);
 
-  lldb::BreakpointSP CreateScriptGroupBreakpoint(const ConstString &name,
+  lldb::BreakpointSP CreateScriptGroupBreakpoint(ConstString name,
                                                  bool multi);
 
-  lldb::BreakpointSP CreateKernelBreakpoint(const ConstString &name);
+  lldb::BreakpointSP CreateKernelBreakpoint(ConstString name);
 
-  lldb::BreakpointSP CreateReductionBreakpoint(const ConstString &name,
+  lldb::BreakpointSP CreateReductionBreakpoint(ConstString name,
                                                int kernel_types);
 
   void BreakOnModuleKernels(

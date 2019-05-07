@@ -32,64 +32,13 @@
 #include "swift/AST/Stmt.h"
 #include "swift/AST/TypeRepr.h"
 #include "swift/AST/Types.h"
+#include "llvm/ADT/SmallSet.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include "SwiftUserExpression.h"
 
 using namespace lldb_private;
-
-static void DumpGenericNames(
-    lldb_private::Stream &wrapped_stream,
-    llvm::ArrayRef<Expression::SwiftGenericInfo::Binding> generic_bindings) {
-  if (generic_bindings.empty())
-    return;
-
-  wrapped_stream.PutChar('<');
-
-  bool comma = false;
-
-  for (const Expression::SwiftGenericInfo::Binding &binding :
-       generic_bindings) {
-    if (comma)
-      wrapped_stream.PutCString(", ");
-    comma = true;
-
-    wrapped_stream.PutCString(binding.name);
-  }
-
-  wrapped_stream.PutChar('>');
-}
-
-static void DumpPlaceholderArguments(
-    lldb_private::Stream &wrapped_stream,
-    llvm::ArrayRef<Expression::SwiftGenericInfo::Binding> generic_bindings) {
-  if (generic_bindings.empty())
-    return;
-
-  for (const Expression::SwiftGenericInfo::Binding &binding :
-       generic_bindings) {
-    const char *name = binding.name;
-
-    wrapped_stream.Printf(", _ __lldb_placeholder_%s : UnsafePointer<%s>!",
-                          name, name);
-  }
-}
-
-static void DumpPlaceholdersIntoCall(
-    lldb_private::Stream &wrapped_stream,
-    llvm::ArrayRef<Expression::SwiftGenericInfo::Binding> generic_bindings) {
-  if (generic_bindings.empty())
-    return;
-
-  for (const Expression::SwiftGenericInfo::Binding &binding :
-       generic_bindings) {
-    wrapped_stream.Printf(
-        ",\n"
-        "      (nil as UnsafePointer<$__lldb_typeof_generic_%s>?)",
-        binding.name);
-  }
-}
 
 swift::VarDecl::Specifier
 SwiftASTManipulator::VariableInfo::GetVarSpecifier() const {
@@ -109,7 +58,6 @@ bool SwiftASTManipulator::VariableInfo::GetIsCaptureList() const {
 void SwiftASTManipulator::WrapExpression(
     lldb_private::Stream &wrapped_stream, const char *orig_text,
     uint32_t language_flags, const EvaluateExpressionOptions &options,
-    const Expression::SwiftGenericInfo &generic_info,
     llvm::StringRef os_version,
     uint32_t &first_body_line) {
     first_body_line = 0; // set to invalid
@@ -146,11 +94,15 @@ __builtin_logger_initialize()
       wrapped_stream.Printf("%s#sourceLocation(file: \"%s\", line: %u)\n%s\n",
                             playground_prefix, pound_file, pound_line,
                             orig_text);
-      first_body_line = 1;
     } else {
-      wrapped_stream.Printf("%s%s", playground_prefix, orig_text);
-      first_body_line = 7;
+      // In 2017+, xcode playgrounds send orig_text that starts with a module loading prefix (not the above prefix), then a sourceLocation specifier that indicates the page name, and then the page body text.
+      // The first_body_line mechanism in this function cannot be used to compensate for the playground_prefix added here, since it incorrectly continues to apply even after sourceLocation directives are read frmo the orig_text.
+      // To make sure playgrounds work correctly whether or not they supply their own sourceLocation, create a dummy sourceLocation here with a fake filename that starts counting the first line of orig_text as line 1.
+      wrapped_stream.Printf("%s#sourceLocation(file: \"%s\", line: %u)\n%s\n",
+                            playground_prefix, "Playground.swift", 1,
+                            orig_text);
     }
+    first_body_line = 1;
     return;
   } else if (repl) { // repl but not playground.
     if (pound_file && pound_line) {
@@ -226,54 +178,30 @@ __builtin_logger_initialize()
 
     const char *optional_extension =
         (language_flags & SwiftUserExpression::eLanguageFlagIsWeakSelf)
-            ? "Swift.Optional where Wrapped: "
+            ? "Swift.Optional where Wrapped == "
             : "";
 
-    if (generic_info.class_bindings.size()) {
-      wrapped_stream.Printf(
-          "extension %s$__lldb_context {\n"
-          "  @LLDBDebuggerFunction %s\n"
-          "  %s func $__lldb_wrapped_expr_%u(_ $__lldb_arg : "
-          "UnsafeMutablePointer<Any>) {\n"
-          "%s" // This is the expression text (with newlines).
-          "  }\n"
-          "}\n"
-          "%s\n"
-          "func $__lldb_expr(_ $__lldb_arg : UnsafeMutablePointer<Any>) {\n"
-          "  do {\n"
-          "    $__lldb_injected_self.$__lldb_wrapped_expr_%u(\n"
-          "      $__lldb_arg\n"
-          "    )\n"
-          "  }\n"
-          "}\n",
-          optional_extension, availability.c_str(), func_decorator,
-          current_counter, wrapped_expr_text.GetData(), availability.c_str(),
-          current_counter);
+    wrapped_stream.Printf(
+        "extension %s$__lldb_context {\n"
+        "  @LLDBDebuggerFunction %s\n"
+        "  %s func $__lldb_wrapped_expr_%u(_ $__lldb_arg : "
+        "UnsafeMutablePointer<Any>) {\n"
+        "%s" // This is the expression text (with newlines).
+        "  }\n"
+        "}\n"
+        "%s\n"
+        "func $__lldb_expr(_ $__lldb_arg : UnsafeMutablePointer<Any>) {\n"
+        "  do {\n"
+        "    $__lldb_injected_self.$__lldb_wrapped_expr_%u(\n"
+        "      $__lldb_arg\n"
+        "    )\n"
+        "  }\n"
+        "}\n",
+        optional_extension, availability.c_str(), func_decorator,
+        current_counter, wrapped_expr_text.GetData(), availability.c_str(),
+        current_counter);
 
-      first_body_line = 5;
-    } else {
-      wrapped_stream.Printf(
-          "extension %s$__lldb_context {\n"
-          "  @LLDBDebuggerFunction %s\n"
-          "  %s func $__lldb_wrapped_expr_%u(_ $__lldb_arg : "
-          "UnsafeMutablePointer<Any>) {\n"
-          "%s" // This is the expression text (with newlines).
-          "  }\n"
-          "}\n"
-          "%s\n"
-          "func $__lldb_expr(_ $__lldb_arg : UnsafeMutablePointer<Any>) {\n"
-          "  do {\n"
-          "    $__lldb_injected_self.$__lldb_wrapped_expr_%u(\n"
-          "      $__lldb_arg\n"
-          "    )\n"
-          "  }\n"
-          "}\n",
-          optional_extension, availability.c_str(), func_decorator,
-          current_counter, wrapped_expr_text.GetData(), availability.c_str(),
-          current_counter);
-
-      first_body_line = 5;
-    }
+    first_body_line = 5;
   } else {
     wrapped_stream.Printf(
         "@LLDBDebuggerFunction %s\n"
@@ -511,10 +439,8 @@ swift::Stmt *SwiftASTManipulator::ConvertExpressionToTmpReturnVarAccess(
 
   const swift::StaticSpellingKind static_spelling_kind =
       swift::StaticSpellingKind::KeywordStatic;
-  result_loc_info.binding_decl = swift::PatternBindingDecl::create(
-      ast_context, source_loc, static_spelling_kind, source_loc, var_pattern,
-      swift::SourceLoc(), expr, new_decl_context);
-  result_loc_info.binding_decl->setImplicit();
+  result_loc_info.binding_decl = swift::PatternBindingDecl::createImplicit(
+      ast_context, static_spelling_kind, var_pattern, expr, new_decl_context);
   result_loc_info.binding_decl->setStatic(false);
 
   body.push_back(result_loc_info.binding_decl);
@@ -820,8 +746,7 @@ void SwiftASTManipulator::FindVariableDeclarations(
     auto type = var_decl->getDeclContext()->mapTypeIntoContext(
         var_decl->getInterfaceType());
     persistent_info.m_name = name;
-    persistent_info.m_type = CompilerType(&var_decl->getASTContext(),
-                                          type.getPointer());
+    persistent_info.m_type = {type.getPointer()};
     persistent_info.m_decl = var_decl;
 
     m_variables.push_back(persistent_info);
@@ -887,7 +812,7 @@ void SwiftASTManipulator::InsertResult(
     SwiftASTManipulator::ResultLocationInfo &result_info) {
   swift::ASTContext &ast_context = m_source_file.getASTContext();
 
-  CompilerType return_ast_type(&ast_context, result_type.getPointer());
+  CompilerType return_ast_type(result_type.getPointer());
 
   result_var->overwriteAccess(swift::AccessLevel::Public);
   result_var->overwriteSetterAccess(swift::AccessLevel::Public);
@@ -928,7 +853,7 @@ void SwiftASTManipulator::InsertError(swift::VarDecl *error_var,
 
   swift::ASTContext &ast_context = m_source_file.getASTContext();
 
-  CompilerType error_ast_type(&ast_context, error_type.getPointer());
+  CompilerType error_ast_type(error_type.getPointer());
 
   error_var->overwriteAccess(swift::AccessLevel::Public);
   error_var->overwriteSetterAccess(swift::AccessLevel::Public);
@@ -1028,7 +953,7 @@ bool SwiftASTManipulator::FixupResultAfterTypeChecking(Status &error) {
 
   swift::ASTContext &ast_context = m_source_file.getASTContext();
 
-  CompilerType return_ast_type(&ast_context, result_type.getPointer());
+  CompilerType return_ast_type(result_type.getPointer());
   swift::Identifier result_var_name =
       ast_context.getIdentifier(GetResultName());
   SwiftASTManipulatorBase::VariableMetadataSP metadata_sp(
@@ -1072,7 +997,7 @@ bool SwiftASTManipulator::FixupResultAfterTypeChecking(Status &error) {
               continue;
 
             swift::Type error_type = var_decl->getInterfaceType();
-            CompilerType error_ast_type(&ast_context, error_type.getPointer());
+            CompilerType error_ast_type(error_type.getPointer());
             SwiftASTManipulatorBase::VariableMetadataSP error_metadata_sp(
                 new VariableMetadataError());
 
@@ -1437,14 +1362,12 @@ swift::ValueDecl *SwiftASTManipulator::MakeGlobalTypealias(
 
   swift::ASTContext &ast_context = m_source_file.getASTContext();
 
-  llvm::MutableArrayRef<swift::TypeLoc> inherited;
   swift::TypeAliasDecl *type_alias_decl = new (ast_context)
       swift::TypeAliasDecl(source_loc, swift::SourceLoc(), name, source_loc,
                            nullptr, &m_source_file);
   swift::Type underlying_type = GetSwiftType(type);
   type_alias_decl->setUnderlyingType(underlying_type);
-  if (underlying_type->hasArchetype())
-    type_alias_decl->markAsDebuggerAlias(true);
+  type_alias_decl->markAsDebuggerAlias(true);
 
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
   if (log) {
@@ -1455,8 +1378,8 @@ swift::ValueDecl *SwiftASTManipulator::MakeGlobalTypealias(
     ss.flush();
 
     log->Printf("Made global type alias for %s (%p) in context (%p):\n%s",
-                name.get(), GetSwiftType(type).getPointer(), &ast_context,
-                s.c_str());
+                name.get(), static_cast<void *>(GetSwiftType(type).getPointer()),
+                static_cast<void *>(&ast_context), s.c_str());
   }
 
   if (type_alias_decl) {
@@ -1467,87 +1390,4 @@ swift::ValueDecl *SwiftASTManipulator::MakeGlobalTypealias(
   }
 
   return type_alias_decl;
-}
-
-SwiftASTManipulator::TypesForResultFixup
-SwiftASTManipulator::GetTypesForResultFixup(uint32_t language_flags) {
-  TypesForResultFixup ret;
-
-  for (swift::Decl *decl : m_source_file.Decls) {
-    if (auto extension_decl = llvm::dyn_cast<swift::ExtensionDecl>(decl)) {
-      if (language_flags & SwiftUserExpression::eLanguageFlagIsWeakSelf) {
-        if (extension_decl->getGenericParams() &&
-            extension_decl->getGenericParams()->getParams().size() == 1) {
-          swift::GenericTypeParamDecl *type_parameter =
-              extension_decl->getGenericParams()->getParams()[0];
-          swift::NameAliasType *name_alias_type =
-              llvm::dyn_cast_or_null<swift::NameAliasType>(
-                  type_parameter->getSuperclass().getPointer());
-
-          if (name_alias_type) {
-            // FIXME: What if the generic parameter is concrete?
-            ret.Wrapper_archetype = extension_decl->mapTypeIntoContext(
-                type_parameter->getDeclaredInterfaceType())
-                    ->castTo<swift::ArchetypeType>();
-            ret.context_alias = name_alias_type;
-            ret.context_real = name_alias_type->getSinglyDesugaredType();
-          } else {
-            ret.Wrapper_archetype = extension_decl->mapTypeIntoContext(
-                type_parameter->getDeclaredInterfaceType())
-                    ->castTo<swift::ArchetypeType>();
-            ret.context_real = (swift::TypeBase*)type_parameter->getSuperclass().getPointer();
-          }
-        }
-      } else if (!ret.context_alias) {
-        swift::NameAliasType *name_alias_type =
-            llvm::dyn_cast<swift::NameAliasType>(
-                extension_decl->getExtendedType().getPointer());
-
-        if (name_alias_type) {
-          ret.context_alias = name_alias_type;
-          ret.context_real = name_alias_type->getSinglyDesugaredType();
-        }
-      }
-    }
-  }
-
-  return ret;
-}
-
-static swift::Type ReplaceInType(swift::Type orig, swift::TypeBase *from,
-                                 swift::TypeBase *to) {
-  std::function<swift::Type(swift::Type)> Replacer =
-      [from, to](swift::Type orig_type) {
-        if (orig_type.getPointer() == from) {
-          return swift::Type(to);
-        } else {
-          return orig_type;
-        }
-      };
-
-  return orig.transform(Replacer);
-}
-
-swift::Type SwiftASTManipulator::FixupResultType(swift::Type &result_type,
-                                                 uint32_t language_flags) {
-  TypesForResultFixup result_fixup_types =
-      GetTypesForResultFixup(language_flags);
-
-  if (result_fixup_types.Wrapper_archetype && result_fixup_types.context_real) {
-    result_type =
-        ReplaceInType(result_type, result_fixup_types.Wrapper_archetype,
-                      result_fixup_types.context_real);
-  }
-
-  if (result_fixup_types.context_alias && result_fixup_types.context_real) {
-    // This is what we ought to do, but the printing logic doesn't handle the
-    // resulting types properly yet.
-    // result_type = ReplaceInType(result_type,
-    // result_fixup_types.context_alias, result_fixup_types.context_real);
-    if (result_type.getPointer() == result_fixup_types.context_alias) {
-      result_type = result_fixup_types.context_alias->getSinglyDesugaredType();
-    }
-  }
-
-  return result_type;
 }

@@ -1,20 +1,15 @@
 //===-- DataVisualization.h -------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef lldb_DataVisualization_h_
 #define lldb_DataVisualization_h_
 
-// C Includes
-// C++ Includes
 
-// Other libraries and framework includes
-// Project includes
 #include "lldb/DataFormatters/FormatClasses.h"
 #include "lldb/DataFormatters/FormatManager.h"
 #include "lldb/Utility/ConstString.h"
@@ -47,23 +42,14 @@ public:
   static lldb::TypeSummaryImplSP
   GetSummaryForType(lldb::TypeNameSpecifierImplSP type_sp);
 
-#ifndef LLDB_DISABLE_PYTHON
-  static lldb::SyntheticChildrenSP
-  GetSyntheticChildrenForType(lldb::TypeNameSpecifierImplSP type_sp);
-#endif
-
   static lldb::TypeFilterImplSP
   GetFilterForType(lldb::TypeNameSpecifierImplSP type_sp);
 
-#ifndef LLDB_DISABLE_PYTHON
   static lldb::ScriptedSyntheticChildrenSP
   GetSyntheticForType(lldb::TypeNameSpecifierImplSP type_sp);
-#endif
 
-#ifndef LLDB_DISABLE_PYTHON
   static lldb::SyntheticChildrenSP
   GetSyntheticChildren(ValueObject &valobj, lldb::DynamicValueType use_dynamic);
-#endif
 
   static lldb::TypeValidatorImplSP
   GetValidator(ValueObject &valobj, lldb::DynamicValueType use_dynamic);
@@ -80,13 +66,13 @@ public:
 
   class NamedSummaryFormats {
   public:
-    static bool GetSummaryFormat(const ConstString &type,
+    static bool GetSummaryFormat(ConstString type,
                                  lldb::TypeSummaryImplSP &entry);
 
-    static void Add(const ConstString &type,
+    static void Add(ConstString type,
                     const lldb::TypeSummaryImplSP &entry);
 
-    static bool Delete(const ConstString &type);
+    static bool Delete(ConstString type);
 
     static void Clear();
 
@@ -99,27 +85,27 @@ public:
 
   class Categories {
   public:
-    static bool GetCategory(const ConstString &category,
+    static bool GetCategory(ConstString category,
                             lldb::TypeCategoryImplSP &entry,
                             bool allow_create = true);
 
     static bool GetCategory(lldb::LanguageType language,
                             lldb::TypeCategoryImplSP &entry);
 
-    static void Add(const ConstString &category);
+    static void Add(ConstString category);
 
-    static bool Delete(const ConstString &category);
+    static bool Delete(ConstString category);
 
     static void Clear();
 
-    static void Clear(const ConstString &category);
+    static void Clear(ConstString category);
 
-    static void Enable(const ConstString &category,
+    static void Enable(ConstString category,
                        TypeCategoryMap::Position = TypeCategoryMap::Default);
 
     static void Enable(lldb::LanguageType lang_type);
 
-    static void Disable(const ConstString &category);
+    static void Disable(ConstString category);
 
     static void Disable(lldb::LanguageType lang_type);
 

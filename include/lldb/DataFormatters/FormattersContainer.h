@@ -1,25 +1,20 @@
 //===-- FormattersContainer.h -----------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef lldb_FormattersContainer_h_
 #define lldb_FormattersContainer_h_
 
-// C Includes
-// C++ Includes
 #include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <string>
 
-// Other libraries and framework includes
-// Project includes
 #include "lldb/lldb-public.h"
 
 #include "lldb/Core/ValueObject.h"
@@ -47,7 +42,7 @@ public:
 // match any type because of the way we strip qualifiers from typenames this
 // method looks for the case where the user is adding a "class","struct","enum"
 // or "union" Foo and strips the unnecessary qualifier
-static inline ConstString GetValidTypeName_Impl(const ConstString &type) {
+static inline ConstString GetValidTypeName_Impl(ConstString type) {
   if (type.IsEmpty())
     return type;
 
@@ -243,7 +238,7 @@ protected:
     m_format_map.Add(type, entry);
   }
 
-  void Add_Impl(const ConstString &type, const MapValueType &entry,
+  void Add_Impl(ConstString type, const MapValueType &entry,
                 ConstString *dummy) {
     m_format_map.Add(GetValidTypeName_Impl(type), entry);
   }

@@ -1,21 +1,20 @@
 //===-- ModuleList.h --------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef liblldb_ModuleList_h_
 #define liblldb_ModuleList_h_
 
-#include "lldb/Core/Address.h"     // for Address
-#include "lldb/Core/ModuleSpec.h"  // for ModuleSpec
+#include "lldb/Core/Address.h"
+#include "lldb/Core/ModuleSpec.h"
 #include "lldb/Core/UserSettingsController.h"
-#include "lldb/Utility/FileSpec.h" // for FileSpec
+#include "lldb/Utility/FileSpec.h"
 #include "lldb/Utility/Iterable.h"
-#include "lldb/Utility/Status.h" // for Status
+#include "lldb/Utility/Status.h"
 #include "lldb/lldb-enumerations.h"
 #include "lldb/lldb-forward.h"
 #include "lldb/lldb-types.h"
@@ -27,8 +26,8 @@
 #include <mutex>
 #include <vector>
 
-#include <stddef.h> // for size_t
-#include <stdint.h> // for uint32_t
+#include <stddef.h>
+#include <stdint.h>
 
 namespace lldb_private {
 class ConstString;
@@ -79,8 +78,11 @@ class ModuleListProperties : public Properties {
 public:
   ModuleListProperties();
 
+  bool GetUseDWARFImporter() const;
   FileSpec GetClangModulesCachePath() const;
   bool SetClangModulesCachePath(llvm::StringRef path);
+  SwiftModuleLoadingMode GetSwiftModuleLoadingMode() const;
+  bool SetSwiftModuleLoadingMode(SwiftModuleLoadingMode);
   bool GetEnableExternalLookup() const;
 }; 
 
@@ -97,14 +99,16 @@ public:
   public:
     virtual ~Notifier() = default;
 
-    virtual void ModuleAdded(const ModuleList &module_list,
-                             const lldb::ModuleSP &module_sp) = 0;
-    virtual void ModuleRemoved(const ModuleList &module_list,
-                               const lldb::ModuleSP &module_sp) = 0;
-    virtual void ModuleUpdated(const ModuleList &module_list,
-                               const lldb::ModuleSP &old_module_sp,
-                               const lldb::ModuleSP &new_module_sp) = 0;
-    virtual void WillClearList(const ModuleList &module_list) = 0;
+    virtual void NotifyModuleAdded(const ModuleList &module_list,
+                                   const lldb::ModuleSP &module_sp) = 0;
+    virtual void NotifyModuleRemoved(const ModuleList &module_list,
+                                     const lldb::ModuleSP &module_sp) = 0;
+    virtual void NotifyModuleUpdated(const ModuleList &module_list,
+                                     const lldb::ModuleSP &old_module_sp,
+                                     const lldb::ModuleSP &new_module_sp) = 0;
+    virtual void NotifyWillClearList(const ModuleList &module_list) = 0;
+
+    virtual void NotifyModulesRemoved(lldb_private::ModuleList &module_list) = 0;
   };
 
   //------------------------------------------------------------------
@@ -147,12 +151,20 @@ public:
   //------------------------------------------------------------------
   /// Append a module to the module list.
   ///
-  /// Appends the module to the collection.
-  ///
-  /// @param[in] module_sp
+  /// \param[in] module_sp
   ///     A shared pointer to a module to add to this collection.
+  ///
+  /// \param[in] notify
+  ///     If true, and a notifier function is set, the notifier function
+  ///     will be called.  Defaults to true.
+  ///
+  ///     When this ModuleList is the Target's ModuleList, the notifier 
+  ///     function is Target::ModulesDidLoad -- the call to 
+  ///     ModulesDidLoad may be deferred when adding multiple Modules 
+  ///     to the Target, but it must be called at the end, 
+  ///     before resuming execution.
   //------------------------------------------------------------------
-  void Append(const lldb::ModuleSP &module_sp);
+  void Append(const lldb::ModuleSP &module_sp, bool notify = true);
 
   //------------------------------------------------------------------
   /// Append a module to the module list and remove any equivalent modules.
@@ -166,7 +178,22 @@ public:
   //------------------------------------------------------------------
   void ReplaceEquivalent(const lldb::ModuleSP &module_sp);
 
-  bool AppendIfNeeded(const lldb::ModuleSP &module_sp);
+  //------------------------------------------------------------------
+  /// Append a module to the module list, if it is not already there.
+  ///
+  /// \param[in] module_sp
+  ///
+  /// \param[in] notify
+  ///     If true, and a notifier function is set, the notifier function
+  ///     will be called.  Defaults to true.
+  ///
+  ///     When this ModuleList is the Target's ModuleList, the notifier 
+  ///     function is Target::ModulesDidLoad -- the call to 
+  ///     ModulesDidLoad may be deferred when adding multiple Modules 
+  ///     to the Target, but it must be called at the end, 
+  ///     before resuming execution.
+  //------------------------------------------------------------------
+  bool AppendIfNeeded(const lldb::ModuleSP &module_sp, bool notify = true);
 
   void Append(const ModuleList &module_list);
 
@@ -300,14 +327,16 @@ public:
   //------------------------------------------------------------------
   /// @see Module::FindFunctions ()
   //------------------------------------------------------------------
-  size_t FindFunctions(const ConstString &name, uint32_t name_type_mask,
+  size_t FindFunctions(ConstString name,
+                       lldb::FunctionNameType name_type_mask,
                        bool include_symbols, bool include_inlines, bool append,
                        SymbolContextList &sc_list) const;
 
   //------------------------------------------------------------------
   /// @see Module::FindFunctionSymbols ()
   //------------------------------------------------------------------
-  size_t FindFunctionSymbols(const ConstString &name, uint32_t name_type_mask,
+  size_t FindFunctionSymbols(ConstString name,
+                             lldb::FunctionNameType name_type_mask,
                              SymbolContextList &sc_list);
 
   //------------------------------------------------------------------
@@ -334,7 +363,7 @@ public:
   /// @return
   ///     The number of matches added to \a variable_list.
   //------------------------------------------------------------------
-  size_t FindGlobalVariables(const ConstString &name, size_t max_matches,
+  size_t FindGlobalVariables(ConstString name, size_t max_matches,
                              VariableList &variable_list) const;
 
   //------------------------------------------------------------------
@@ -402,7 +431,7 @@ public:
 
   lldb::ModuleSP FindFirstModule(const ModuleSpec &module_spec) const;
 
-  size_t FindSymbolsWithNameAndType(const ConstString &name,
+  size_t FindSymbolsWithNameAndType(ConstString name,
                                     lldb::SymbolType symbol_type,
                                     SymbolContextList &sc_list,
                                     bool append = false) const;
@@ -415,9 +444,9 @@ public:
   //------------------------------------------------------------------
   /// Find types by name.
   ///
-  /// @param[in] sc
-  ///     A symbol context that scopes where to extract a type list
-  ///     from.
+  /// @param[in] search_first
+  ///     If non-null, this module will be searched before any other
+  ///     modules.
   ///
   /// @param[in] name
   ///     The name of the type we are looking for.
@@ -445,7 +474,7 @@ public:
   /// @return
   ///     The number of matches added to \a type_list.
   //------------------------------------------------------------------
-  size_t FindTypes(const SymbolContext &sc, const ConstString &name,
+  size_t FindTypes(Module *search_first, ConstString name,
                    bool name_is_fully_qualified, size_t max_matches,
                    llvm::DenseSet<SymbolFile *> &searched_symbol_files,
                    TypeList &types) const;
@@ -480,7 +509,23 @@ public:
                             std::vector<Address> &output_local,
                             std::vector<Address> &output_extern);
 
-  bool Remove(const lldb::ModuleSP &module_sp);
+  //------------------------------------------------------------------
+  /// Remove a module from the module list.
+  ///
+  /// \param[in] module_sp
+  ///     A shared pointer to a module to remove from this collection.
+  ///
+  /// \param[in] notify
+  ///     If true, and a notifier function is set, the notifier function
+  ///     will be called.  Defaults to true.
+  ///
+  ///     When this ModuleList is the Target's ModuleList, the notifier 
+  ///     function is Target::ModulesDidUnload -- the call to 
+  ///     ModulesDidUnload may be deferred when removing multiple Modules 
+  ///     from the Target, but it must be called at the end, 
+  ///     before resuming execution.
+  //------------------------------------------------------------------
+  bool Remove(const lldb::ModuleSP &module_sp, bool notify = true);
 
   size_t Remove(ModuleList &module_list);
 
@@ -495,26 +540,24 @@ public:
   /// &,uint32_t,SymbolContext&)
   //------------------------------------------------------------------
   uint32_t ResolveSymbolContextForAddress(const Address &so_addr,
-                                          uint32_t resolve_scope,
+                                          lldb::SymbolContextItem resolve_scope,
                                           SymbolContext &sc) const;
 
   //------------------------------------------------------------------
   /// @copydoc Module::ResolveSymbolContextForFilePath (const char
   /// *,uint32_t,bool,uint32_t,SymbolContextList&)
   //------------------------------------------------------------------
-  uint32_t ResolveSymbolContextForFilePath(const char *file_path, uint32_t line,
-                                           bool check_inlines,
-                                           uint32_t resolve_scope,
-                                           SymbolContextList &sc_list) const;
+  uint32_t ResolveSymbolContextForFilePath(
+      const char *file_path, uint32_t line, bool check_inlines,
+      lldb::SymbolContextItem resolve_scope, SymbolContextList &sc_list) const;
 
   //------------------------------------------------------------------
   /// @copydoc Module::ResolveSymbolContextsForFileSpec (const FileSpec
   /// &,uint32_t,bool,uint32_t,SymbolContextList&)
   //------------------------------------------------------------------
-  uint32_t ResolveSymbolContextsForFileSpec(const FileSpec &file_spec,
-                                            uint32_t line, bool check_inlines,
-                                            uint32_t resolve_scope,
-                                            SymbolContextList &sc_list) const;
+  uint32_t ResolveSymbolContextsForFileSpec(
+      const FileSpec &file_spec, uint32_t line, bool check_inlines,
+      lldb::SymbolContextItem resolve_scope, SymbolContextList &sc_list) const;
 
   //------------------------------------------------------------------
   /// Gets the size of the module list.

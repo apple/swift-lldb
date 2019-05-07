@@ -1,9 +1,8 @@
 //===-- RichManglingContext.h -----------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -25,21 +24,20 @@ namespace lldb_private {
 /// providers. See Mangled::DemangleWithRichManglingInfo()
 class RichManglingContext {
 public:
-  RichManglingContext()
-      : m_provider(None), m_ipd_buf_size(2048), m_ipd_str_len(0) {
+  RichManglingContext() : m_provider(None), m_ipd_buf_size(2048) {
     m_ipd_buf = static_cast<char *>(std::malloc(m_ipd_buf_size));
-    m_ipd_buf[m_ipd_str_len] = '\0';
+    m_ipd_buf[0] = '\0';
   }
 
   ~RichManglingContext() { std::free(m_ipd_buf); }
 
   /// Use the ItaniumPartialDemangler to obtain rich mangling information from
   /// the given mangled name.
-  bool FromItaniumName(const ConstString &mangled);
+  bool FromItaniumName(ConstString mangled);
 
   /// Use the legacy language parser implementation to obtain rich mangling
   /// information from the given demangled name.
-  bool FromCxxMethodName(const ConstString &demangled);
+  bool FromCxxMethodName(ConstString demangled);
 
   /// If this symbol describes a constructor or destructor.
   bool IsCtorOrDtor() const;
@@ -81,7 +79,6 @@ private:
   llvm::ItaniumPartialDemangler m_ipd;
   char *m_ipd_buf;
   size_t m_ipd_buf_size;
-  size_t m_ipd_str_len;
 
   /// Members for PluginCxxLanguage
   /// Cannot forward declare inner class CPlusPlusLanguage::MethodName. The

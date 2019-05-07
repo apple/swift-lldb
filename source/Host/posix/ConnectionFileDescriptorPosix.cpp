@@ -1,9 +1,8 @@
 //===-- ConnectionFileDescriptorPosix.cpp -----------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -21,7 +20,6 @@
 #include "lldb/Utility/SelectHelper.h"
 #include "lldb/Utility/Timeout.h"
 
-// C Includes
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -33,16 +31,14 @@
 #include <unistd.h>
 #endif
 
-// C++ Includes
+#include <memory>
 #include <sstream>
 
-// Other libraries and framework includes
 #include "llvm/Support/Errno.h"
 #include "llvm/Support/ErrorHandling.h"
 #if defined(__APPLE__)
 #include "llvm/ADT/SmallVector.h"
 #endif
-// Project includes
 #include "lldb/Host/Host.h"
 #include "lldb/Host/Socket.h"
 #include "lldb/Host/common/TCPSocket.h"
@@ -91,8 +87,8 @@ ConnectionFileDescriptor::ConnectionFileDescriptor(bool child_processes_inherit)
 ConnectionFileDescriptor::ConnectionFileDescriptor(int fd, bool owns_fd)
     : Connection(), m_pipe(), m_mutex(), m_shutting_down(false),
       m_waiting_for_accept(false), m_child_processes_inherit(false) {
-  m_write_sp.reset(new File(fd, owns_fd));
-  m_read_sp.reset(new File(fd, false));
+  m_write_sp = std::make_shared<File>(fd, owns_fd);
+  m_read_sp = std::make_shared<File>(fd, false);
 
   Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION |
                                                   LIBLLDB_LOG_OBJECT));
@@ -226,8 +222,8 @@ ConnectionStatus ConnectionFileDescriptor::Connect(llvm::StringRef path,
             m_read_sp = std::move(tcp_socket);
             m_write_sp = m_read_sp;
           } else {
-            m_read_sp.reset(new File(fd, false));
-            m_write_sp.reset(new File(fd, false));
+            m_read_sp = std::make_shared<File>(fd, false);
+            m_write_sp = std::make_shared<File>(fd, false);
           }
           m_uri = *addr;
           return eConnectionStatusSuccess;
@@ -276,8 +272,8 @@ ConnectionStatus ConnectionFileDescriptor::Connect(llvm::StringRef path,
           ::fcntl(fd, F_SETFL, flags);
         }
       }
-      m_read_sp.reset(new File(fd, true));
-      m_write_sp.reset(new File(fd, false));
+      m_read_sp = std::make_shared<File>(fd, true);
+      m_write_sp = std::make_shared<File>(fd, false);
       return eConnectionStatusSuccess;
     }
 #endif

@@ -1,9 +1,8 @@
 //===-- IRExecutionUnit.cpp -------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -38,15 +37,15 @@
 
 using namespace lldb_private;
 
-IRExecutionUnit::IRExecutionUnit(std::unique_ptr<llvm::LLVMContext> &context_ap,
-                                 std::unique_ptr<llvm::Module> &module_ap,
+IRExecutionUnit::IRExecutionUnit(std::unique_ptr<llvm::LLVMContext> &context_up,
+                                 std::unique_ptr<llvm::Module> &module_up,
                                  ConstString &name,
                                  const lldb::TargetSP &target_sp,
                                  const SymbolContext &sym_ctx,
                                  std::vector<std::string> &cpu_features)
-    : IRMemoryMap(target_sp), m_context_ap(context_ap.release()),
-      m_module_ap(module_ap.release()), m_jit_module_wp(),
-      m_module(m_module_ap.get()), m_cpu_features(cpu_features), m_name(name),
+    : IRMemoryMap(target_sp), m_context_up(context_up.release()),
+      m_module_up(module_up.release()), m_jit_module_wp(),
+      m_module(m_module_up.get()), m_cpu_features(cpu_features), m_name(name),
       m_sym_ctx(sym_ctx), m_did_jit(false),
       m_function_load_addr(LLDB_INVALID_ADDRESS),
       m_function_end_load_addr(LLDB_INVALID_ADDRESS),
@@ -56,9 +55,9 @@ IRExecutionUnit::~IRExecutionUnit() {
   std::lock_guard<std::recursive_mutex> global_context_locker(
       IRExecutionUnit::GetLLVMGlobalContextMutex());
 
-  m_module_ap.reset();
-  m_execution_engine_ap.reset();
-  m_context_ap.reset();
+  m_module_up.reset();
+  m_execution_engine_up.reset();
+  m_context_up.reset();
 
   lldb::ModuleSP jit_module_sp(m_jit_module_wp.lock());
   if (jit_module_sp) {
@@ -232,7 +231,7 @@ static void ReportInlineAsmError(const llvm::SMDiagnostic &diagnostic,
   }
 }
 
-void IRExecutionUnit::ReportSymbolLookupError(const ConstString &name) {
+void IRExecutionUnit::ReportSymbolLookupError(ConstString name) {
   m_failed_lookups.push_back(name);
 }
 
@@ -287,10 +286,10 @@ void IRExecutionUnit::GetRunnableInfo(Status &error, lldb::addr_t &func_addr,
     relocModel = llvm::Reloc::PIC_;
   }
 
-  m_module_ap->getContext().setInlineAsmDiagnosticHandler(ReportInlineAsmError,
+  m_module_up->getContext().setInlineAsmDiagnosticHandler(ReportInlineAsmError,
                                                           &error);
 
-  llvm::EngineBuilder builder(std::move(m_module_ap));
+  llvm::EngineBuilder builder(std::move(m_module_up));
 
   builder.setEngineKind(llvm::EngineKind::JIT)
       .setErrorStr(&error_string)
@@ -309,12 +308,12 @@ void IRExecutionUnit::GetRunnableInfo(Status &error, lldb::addr_t &func_addr,
   llvm::TargetMachine *target_machine =
       builder.selectTarget(triple, mArch, mCPU, mAttrs);
 
-  m_execution_engine_ap.reset(builder.create(target_machine));
+  m_execution_engine_up.reset(builder.create(target_machine));
 
   m_strip_underscore =
-      (m_execution_engine_ap->getDataLayout().getGlobalPrefix() == '_');
+      (m_execution_engine_up->getDataLayout().getGlobalPrefix() == '_');
 
-  if (!m_execution_engine_ap.get()) {
+  if (!m_execution_engine_up) {
     error.SetErrorToGenericError();
     error.SetErrorStringWithFormat("Couldn't JIT the function: %s",
                                    error_string.c_str());
@@ -343,15 +342,15 @@ void IRExecutionUnit::GetRunnableInfo(Status &error, lldb::addr_t &func_addr,
   };
 
   if (process_sp->GetTarget().GetEnableSaveObjects()) {
-    m_object_cache_ap = llvm::make_unique<ObjectDumper>();
-    m_execution_engine_ap->setObjectCache(m_object_cache_ap.get());
+    m_object_cache_up = llvm::make_unique<ObjectDumper>();
+    m_execution_engine_up->setObjectCache(m_object_cache_up.get());
   }
 
   // Make sure we see all sections, including ones that don't have
   // relocations...
-  m_execution_engine_ap->setProcessAllSections(true);
+  m_execution_engine_up->setProcessAllSections(true);
 
-  m_execution_engine_ap->DisableLazyCompilation();
+  m_execution_engine_up->DisableLazyCompilation();
 
   for (llvm::Function &function : *m_module) {
     if (function.isDeclaration() || function.hasPrivateLinkage())
@@ -360,7 +359,7 @@ void IRExecutionUnit::GetRunnableInfo(Status &error, lldb::addr_t &func_addr,
     const bool external =
         function.hasExternalLinkage() || function.hasLinkOnceODRLinkage();
 
-    void *fun_ptr = m_execution_engine_ap->getPointerToFunction(&function);
+    void *fun_ptr = m_execution_engine_up->getPointerToFunction(&function);
 
     if (!error.Success()) {
       // We got an error through our callback!
@@ -379,7 +378,7 @@ void IRExecutionUnit::GetRunnableInfo(Status &error, lldb::addr_t &func_addr,
   }
 
   CommitAllocations(process_sp);
-  ReportAllocations(*m_execution_engine_ap);
+  ReportAllocations(*m_execution_engine_up);
 
   // We have to do this after calling ReportAllocations because for the MCJIT,
   // getGlobalValueAddress will cause the JIT to perform all relocations.  That
@@ -391,7 +390,7 @@ void IRExecutionUnit::GetRunnableInfo(Status &error, lldb::addr_t &func_addr,
       llvm::GlobalValue &val) {
     if (val.hasExternalLinkage() && !val.isDeclaration()) {
       uint64_t var_ptr_addr =
-          m_execution_engine_ap->getGlobalValueAddress(val.getName().str());
+          m_execution_engine_up->getGlobalValueAddress(val.getName().str());
 
       lldb::addr_t remote_addr = GetRemoteAddressForLocal(var_ptr_addr);
 
@@ -426,7 +425,7 @@ void IRExecutionUnit::GetRunnableInfo(Status &error, lldb::addr_t &func_addr,
 
     bool emitNewLine = false;
 
-    for (const ConstString &failed_lookup : m_failed_lookups) {
+    for (ConstString failed_lookup : m_failed_lookups) {
       if (emitNewLine)
         ss.PutCString("\n");
       emitNewLine = true;
@@ -508,7 +507,7 @@ void IRExecutionUnit::GetRunnableInfo(Status &error, lldb::addr_t &func_addr,
 }
 
 IRExecutionUnit::MemoryManager::MemoryManager(IRExecutionUnit &parent)
-    : m_default_mm_ap(new llvm::SectionMemoryManager()), m_parent(parent) {}
+    : m_default_mm_up(new llvm::SectionMemoryManager()), m_parent(parent) {}
 
 IRExecutionUnit::MemoryManager::~MemoryManager() {}
 
@@ -566,6 +565,8 @@ lldb::SectionType IRExecutionUnit::GetSectionTypeFromSectionName(
           sect_type = lldb::eSectionTypeDWARFDebugLine;
         else if (dwarf_name.equals("loc"))
           sect_type = lldb::eSectionTypeDWARFDebugLoc;
+        else if (dwarf_name.equals("loclists"))
+          sect_type = lldb::eSectionTypeDWARFDebugLocLists;
         break;
 
       case 'm':
@@ -608,7 +609,7 @@ uint8_t *IRExecutionUnit::MemoryManager::allocateCodeSection(
     llvm::StringRef SectionName) {
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
-  uint8_t *return_value = m_default_mm_ap->allocateCodeSection(
+  uint8_t *return_value = m_default_mm_up->allocateCodeSection(
       Size, Alignment, SectionID, SectionName);
 
   m_parent.m_records.push_back(AllocationRecord(
@@ -639,7 +640,7 @@ uint8_t *IRExecutionUnit::MemoryManager::allocateDataSection(
     llvm::StringRef SectionName, bool IsReadOnly) {
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
-  uint8_t *return_value = m_default_mm_ap->allocateDataSection(
+  uint8_t *return_value = m_default_mm_up->allocateDataSection(
       Size, Alignment, SectionID, SectionName, IsReadOnly);
 
   uint32_t permissions = lldb::ePermissionsReadable;
@@ -667,7 +668,7 @@ uint8_t *IRExecutionUnit::MemoryManager::allocateDataSection(
 }
 
 static ConstString
-FindBestAlternateMangledName(const ConstString &demangled,
+FindBestAlternateMangledName(ConstString demangled,
                              const lldb::LanguageType &lang_type,
                              const SymbolContext &sym_ctx) {
   CPlusPlusLanguage::MethodName cpp_name(demangled);
@@ -720,15 +721,16 @@ FindBestAlternateMangledName(const ConstString &demangled,
 
 struct IRExecutionUnit::SearchSpec {
   ConstString name;
-  uint32_t mask;
+  lldb::FunctionNameType mask;
 
-  SearchSpec(ConstString n, uint32_t m = lldb::eFunctionNameTypeFull)
+  SearchSpec(ConstString n,
+             lldb::FunctionNameType m = lldb::eFunctionNameTypeFull)
       : name(n), mask(m) {}
 };
 
 void IRExecutionUnit::CollectCandidateCNames(
     std::vector<IRExecutionUnit::SearchSpec> &C_specs,
-    const ConstString &name) {
+    ConstString name) {
   if (m_strip_underscore && name.AsCString()[0] == '_')
     C_specs.insert(C_specs.begin(), ConstString(&name.AsCString()[1]));
   C_specs.push_back(SearchSpec(name));
@@ -738,7 +740,7 @@ void IRExecutionUnit::CollectCandidateCPlusPlusNames(
     std::vector<IRExecutionUnit::SearchSpec> &CPP_specs,
     const std::vector<SearchSpec> &C_specs, const SymbolContext &sc) {
   for (const SearchSpec &C_spec : C_specs) {
-    const ConstString &name = C_spec.name;
+    ConstString name = C_spec.name;
 
     if (CPlusPlusLanguage::IsCPPMangledName(name.GetCString())) {
       Mangled mangled(name, true);
@@ -770,7 +772,7 @@ void IRExecutionUnit::CollectFallbackNames(
   // but the DWARF doesn't always encode "extern C" correctly.
 
   for (const SearchSpec &C_spec : C_specs) {
-    const ConstString &name = C_spec.name;
+    ConstString name = C_spec.name;
 
     if (CPlusPlusLanguage::IsCPPMangledName(name.GetCString())) {
       Mangled mangled_name(name);
@@ -949,7 +951,7 @@ lldb::addr_t IRExecutionUnit::FindInUserDefinedSymbols(
 }
 
 lldb::addr_t
-IRExecutionUnit::FindSymbol(const lldb_private::ConstString &name) {
+IRExecutionUnit::FindSymbol(lldb_private::ConstString name) {
   std::vector<SearchSpec> candidate_C_names;
   std::vector<SearchSpec> candidate_CPlusPlus_names;
 
@@ -1023,7 +1025,7 @@ IRExecutionUnit::MemoryManager::getSymbolAddress(const std::string &Name) {
           Name.c_str());
 
     m_parent.ReportSymbolLookupError(name_cs);
-    return 0xbad0bad0;
+    return 0;
   } else {
     if (log)
       log->Printf("IRExecutionUnit::getSymbolAddress(Name=\"%s\") = %" PRIx64,
@@ -1101,6 +1103,7 @@ bool IRExecutionUnit::CommitOneAllocation(lldb::ProcessSP &process_sp,
   case lldb::eSectionTypeDWARFDebugInfo:
   case lldb::eSectionTypeDWARFDebugLine:
   case lldb::eSectionTypeDWARFDebugLoc:
+  case lldb::eSectionTypeDWARFDebugLocLists:
   case lldb::eSectionTypeDWARFDebugMacInfo:
   case lldb::eSectionTypeDWARFDebugPubNames:
   case lldb::eSectionTypeDWARFDebugPubTypes:
@@ -1204,7 +1207,7 @@ uint32_t IRExecutionUnit::GetAddressByteSize() const {
 
 void IRExecutionUnit::PopulateSymtab(lldb_private::ObjectFile *obj_file,
                                      lldb_private::Symtab &symtab) {
-  if (m_execution_engine_ap) {
+  if (m_execution_engine_up) {
     uint32_t symbol_id = 0;
     lldb_private::SectionList *section_list = obj_file->GetSectionList();
     for (llvm::Function &function : *m_module) {
@@ -1213,7 +1216,7 @@ void IRExecutionUnit::PopulateSymtab(lldb_private::ObjectFile *obj_file,
         continue;
 
       const lldb::addr_t function_addr =
-          (intptr_t)m_execution_engine_ap->getPointerToFunction(&function);
+          (intptr_t)m_execution_engine_up->getPointerToFunction(&function);
 
       if (function_addr != 0) {
         lldb::SectionSP section_sp(
@@ -1256,7 +1259,7 @@ void IRExecutionUnit::PopulateSymtab(lldb_private::ObjectFile *obj_file,
       if (global_name.empty())
         continue;
       const lldb::addr_t global_addr =
-          m_execution_engine_ap->getGlobalValueAddress(global_name.str());
+          m_execution_engine_up->getGlobalValueAddress(global_name.str());
       if (global_addr != 0) {
         lldb::SectionSP section_sp(
             section_list->FindSectionContainingFileAddress(global_addr));
@@ -1309,14 +1312,11 @@ void IRExecutionUnit::PopulateSectionList(
   }
 }
 
-bool IRExecutionUnit::GetArchitecture(lldb_private::ArchSpec &arch) {
+ArchSpec IRExecutionUnit::GetArchitecture() {
   ExecutionContext exe_ctx(GetBestExecutionContextScope());
-  Target *target = exe_ctx.GetTargetPtr();
-  if (target)
-    arch = target->GetArchitecture();
-  else
-    arch.Clear();
-  return arch.IsValid();
+  if(Target *target = exe_ctx.GetTargetPtr())
+    return target->GetArchitecture();
+  return ArchSpec();
 }
 
 lldb::ModuleSP IRExecutionUnit::GetJITModule() {
@@ -1333,7 +1333,7 @@ lldb::ModuleSP IRExecutionUnit::CreateJITModule(const char *name,
     return jit_module_sp;
 
   // Only create a JIT module if we are going to run it in the target
-  if (m_execution_engine_ap) {
+  if (m_execution_engine_up) {
     ExecutionContext exe_ctx(GetBestExecutionContextScope());
     Target *target = exe_ctx.GetTargetPtr();
     if (target) {
