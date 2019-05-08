@@ -1687,7 +1687,7 @@ SwiftLanguage::CompleteCode(ExecutionContextScope &exe_scope,
   Target &target = *exe_scope.CalculateTarget();
   Status error;
   SwiftASTContext *swift_ast =
-      target.GetScratchSwiftASTContext(error, nullptr).get();
+      target.GetScratchSwiftASTContext(error, exe_scope).get();
   if (!swift_ast)
     return CompletionResponse::error("could not get Swift ASTContext");
   auto persistent_expression_state =
