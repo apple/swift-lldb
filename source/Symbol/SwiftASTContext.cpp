@@ -1684,15 +1684,6 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
       }
     }
 
-    // SWIFT_ENABLE_TENSORFLOW
-    // If we need to use serialization and the directory is not created already,
-    // create a unique directory where we put serialized modules from REPL.
-    if (!swift_ast_sp->InitializeReplExprModulesDir()) {
-      if (log)
-        log->Printf("Unable to create directory for serialized modules.");
-      return TypeSystemSP();
-    }
-
     if (!got_serialized_options) {
 
       std::vector<std::string> framework_search_paths;
@@ -1843,13 +1834,6 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
       });
     }
     pool.wait();
-  }
-
-  // SWIFT_ENABLE_TENSORFLOW
-  // Create a unique directory where we put serialized modules from REPL.
-  if (!swift_ast_sp->InitializeReplExprModulesDir()) {
-    logError("Unable to create directory for serialized modules.");
-    return lldb::TypeSystemSP();
   }
 
   Status module_error;
@@ -2591,11 +2575,7 @@ swift::DiagnosticEngine &SwiftASTContext::GetDiagnosticEngine() {
 }
 
 swift::SILOptions &SwiftASTContext::GetSILOptions() {
-  swift::SILOptions& options = GetCompilerInvocation().getSILOptions();
-  if (UseSerialization()) {
-    options.SerializeForDifferentiation = true;
-  }
-  return options;
+  return GetCompilerInvocation().getSILOptions();
 }
 
 bool SwiftASTContext::TargetHasNoSDK() {
@@ -2677,18 +2657,6 @@ swift::SearchPathOptions &SwiftASTContext::GetSearchPathOptions() {
                                    sdk.min_version_minor);
         search_path_opts.SDKPath = dir.AsCString("");
       }
-    }
-
-    // SWIFT_ENABLE_TENSORFLOW
-    // Update search path if we are serializing the expressions.
-    if (auto repl_modules_dir = GetReplExprModulesDir()) {
-      Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_TYPES));
-      if (log) {
-        log->Printf(
-            "[SERIALIZATION] Using %s for serialized expression modules",
-            repl_modules_dir);
-      }
-      search_path_opts.ImportSearchPaths.emplace_back(repl_modules_dir);
     }
 
     // Allow users to specify an extra import search path in the environment.

@@ -950,11 +950,8 @@ static swift::ASTContext *SetupASTContext(
   if (repl || !playground)
     swift_ast_context->GetLanguageOptions().EnableThrowWithoutTry = true;
 
-  // SWIFT_ENABLE_TENSORFLOW
-  // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
-  // switch this back to NoOptimization.
   swift_ast_context->GetIRGenOptions().OptMode =
-      swift::OptimizationMode::ForSpeed;
+      swift::OptimizationMode::NoOptimization;
   // Normally we'd like to verify, but unfortunately the verifier's
   // error mode is abort().
   swift_ast_context->GetIRGenOptions().Verify = false;
@@ -1678,12 +1675,8 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
         variable_map[name] = *var_info;
       }
 
-  // SWIFT_ENABLE_TENSORFLOW
-  // Set optimization mode to -O for REPL/Playgrounds.
-  auto &options = swift_ast_ctx->GetSILOptions();
-  options.OptMode = swift::OptimizationMode::ForSpeed;
   std::unique_ptr<swift::SILModule> sil_module(swift::performSILGeneration(
-      parsed_expr->source_file, options));
+      parsed_expr->source_file, swift_ast_ctx->GetSILOptions()));
 
   if (log) {
     std::string s;
@@ -1712,60 +1705,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     log->PutCString(s.c_str());
   }
 
-  // SWIFT_ENABLE_TENSORFLOW
-  // Serialize the file if modules directory is set.
-  // Note that the serialization should be done immediately after
-  // SILGen and before any other passes run. This is important
-  // because of the following reasons:
-  //  - passes like differentation need to see the code before optimizations.
-  //  - Some passes may create new functions, but only the functions defined in
-  //    the lldb repl line should be serialized.
-  bool done_serialization = false;
-  if (swift_ast_ctx->UseSerialization()) {
-    sil_module->setSerializeSILAction(
-        [&sil_module, &parsed_expr, &done_serialization, log, swift_ast_ctx]() {
-          if (done_serialization)
-            return;
-          // Serialize the module now.
-          auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir();
-          assert(expr_module_dir != nullptr);
-          llvm::SmallString<256> filename(expr_module_dir);
-          std::string module_name;
-          GetNameFromModule(&parsed_expr->module, module_name);
-          llvm::sys::path::append(filename, module_name);
-          llvm::sys::path::replace_extension(filename, ".swiftmodule");
-          // TODO: Check language is swift
-          swift::SerializationOptions serializationOpts;
-          serializationOpts.OutputPath = filename.c_str();
-          serializationOpts.SerializeAllSIL = true;
-          serializationOpts.IsSIB = true;
-          if (log) {
-            log->Printf("Serializing module %s to %s\n", module_name.c_str(),
-                        serializationOpts.OutputPath);
-          }
-          swift::serialize(sil_module->getSwiftModule(), serializationOpts,
-                           sil_module.get());
-          done_serialization = true;
-        });
-  } else {
-    sil_module->setSerializeSILAction([] {});
-  }
-
-  // SWIFT_ENABLE_TENSORFLOW
-  if (!runSILDiagnosticPasses(*sil_module)) {
-    // Diagnostic passes succeeded. Run the optimziations.
-    if (!swift_ast_ctx->UseSerialization()) {
-      // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
-      // stop running the optimization passes and drop the explicit call of the partitioning
-      // pass.
-      runSILOptPreparePasses(*sil_module);
-      runSILOptimizationPasses(*sil_module);
-    }
-
-    // FIXME: These passes should be moved to the mandatory pass pipeline that
-    // runs at -O0.  We need a proper deabstraction pass to do that though.
-    runSILTFPartitionPass(*sil_module);
-  }
+  runSILDiagnosticPasses(*sil_module);
 
   if (log) {
     std::string s;
@@ -1831,51 +1771,7 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   // of loaded modules, and copy the Decls that were globalized as
   // part of the parse from the staging area in the external lookup
   // object into the SwiftPersistentExpressionState.
-  // SWIFT_ENABLE_TENSORFLOW
-  swift::ModuleDecl *module = nullptr;
-  if (!swift_ast_ctx->UseSerialization()) {
-    // Just reuse the module if no serialization is requested.
-    module = &parsed_expr->module;
-  } else {
-    // Reload the serialized module so that we can look
-    // into SIL functions in subsequent cells if needed (e.g., differentiation).
-    if (log) {
-      log->Printf("Reloading the serialized module.\n");
-    }
-
-    lldb::StackFrameSP this_frame_sp(m_stack_frame_wp.lock());
-
-    if (this_frame_sp) {
-      lldb::ProcessSP process_sp(this_frame_sp->CalculateProcess());
-      Status error;
-      std::string module_name = parsed_expr->module.getName().str();
-      if (process_sp && !module_name.empty()) {
-        ConstString module_const_str(module_name);
-        module = swift_ast_ctx->FindAndLoadModule(module_const_str,
-                                                  *process_sp.get(), error);
-      }
-    }
-
-    if (!module || swift_ast_ctx->HasErrors()) {
-      diagnostic_manager.PutString(eDiagnosticSeverityError,
-                                   "Couldn't reload the serialized module file.");
-      return 1;
-    }
-
-    // Update persistent non-variable decls to the ones in the serialized module.
-    // Otherwise, we will have deserialization errors.
-    auto *persistent_state =
-        m_sc.target_sp->GetSwiftPersistentExpressionState(*m_exe_scope);
-    llvm::SmallVector<swift::Decl*, 8> decls;
-    module->getTopLevelDecls(decls);
-    for (swift::Decl *decl : decls) {
-      if (swift::ValueDecl *value_decl = llvm::dyn_cast<swift::ValueDecl>(decl)) {
-        if (!llvm::isa<swift::VarDecl>(value_decl) && value_decl->hasName()) {
-          persistent_state->RegisterSwiftPersistentDecl(value_decl);
-        }
-      }
-    }
-  }
+  swift::ModuleDecl *module = &parsed_expr->module;
   parsed_expr->ast_context.LoadedModules.insert({module->getName(), module});
   swift_ast_ctx->CacheModule(module);
   if (m_sc.target_sp) {
