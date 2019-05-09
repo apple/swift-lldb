@@ -1,4 +1,6 @@
-// RUN: %lldb --repl < %s 2>&1 | FileCheck %s
+// TODO(TF-493): Re-enable
+// RUN: echo "disabled"
+// UN: %lldb --repl < %s 2>&1 | FileCheck %s
 
 class Foo {
   // Don't make any of these 'open'.
