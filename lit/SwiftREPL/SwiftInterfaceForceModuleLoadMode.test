@@ -1,9 +1,8 @@
 // This test checks that the value of the symbols.swift-module-loading-mode
 // setting is respected when loading Swift modules.
 
-// TODO(TF-493): Re-enable
-// RUN: echo "disabled"
-// UN: rm -rf %t && mkdir %t
+// TODO(TF-493): Re-enable the disabled tests.
+// RUN: rm -rf %t && mkdir %t
 
 // Setup generates a dylib and .swiftinterface for A.swift as is, but generates
 // the .swiftmodule from a modified version a A.swift where the 'FromInterface'
@@ -11,12 +10,12 @@
 // variable will have a different type depending on whether the module was
 // loaded via the .swiftinterface or .swiftmodule.
 
-// UN: mkdir %t/mcp
-// UN: mkdir %t/lib
-// UN: cp %S/Inputs/A.swift %t/AA.swift
-// UN: %target-swiftc -module-name AA -emit-parseable-module-interface-path %t/lib/AA.swiftinterface -emit-library -o %t/lib/libAA%target-shared-library-suffix %t/AA.swift
-// UN: sed -e 's/FromInterface/FromSerialized/g' %t/AA.swift | %target-swiftc -module-name AA -emit-module -o %t/lib/AA.swiftmodule -
-// UN: rm %t/AA.swift
+// RUN: mkdir %t/mcp
+// RUN: mkdir %t/lib
+// RUN: cp %S/Inputs/A.swift %t/AA.swift
+// RUN: %target-swiftc -module-name AA -emit-parseable-module-interface-path %t/lib/AA.swiftinterface -emit-library -o %t/lib/libAA%target-shared-library-suffix %t/AA.swift
+// RUN: sed -e 's/FromInterface/FromSerialized/g' %t/AA.swift | %target-swiftc -module-name AA -emit-module -o %t/lib/AA.swiftmodule -
+// RUN: rm %t/AA.swift
 
 
 // This is the input provided to lldb. It intentionally assigns 'testValue' to
@@ -34,11 +33,11 @@ let x: OtherType = testValue
 
 // 1. Neither .swiftinterface or .swiftmodule present
 //
-// UN: mv %t/lib %t/lib-backup
-// UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
-// UN:   -O "settings set symbols.swift-module-loading-mode prefer-parseable" < %s 2>&1 | FileCheck %s -check-prefix=NOT-LOADED
-// UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
-// UN:   -O "settings set symbols.swift-module-loading-mode prefer-serialized" < %s 2>&1 | FileCheck %s -check-prefix=NOT-LOADED
+// RUN: mv %t/lib %t/lib-backup
+// RUN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
+// RUN:   -O "settings set symbols.swift-module-loading-mode prefer-parseable" < %s 2>&1 | FileCheck %s -check-prefix=NOT-LOADED
+// RUN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
+// RUN:   -O "settings set symbols.swift-module-loading-mode prefer-serialized" < %s 2>&1 | FileCheck %s -check-prefix=NOT-LOADED
 // UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
 // UN:   -O "settings set symbols.swift-module-loading-mode only-parseable" < %s 2>&1 | FileCheck %s -check-prefix=NOT-LOADED
 // UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
@@ -46,12 +45,12 @@ let x: OtherType = testValue
 
 // 2. .swiftinterface only
 //
-// UN: mkdir %t/lib
-// UN: cp %t/lib-backup/AA.swiftinterface %t/lib/
-// UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
-// UN:   -O "settings set symbols.swift-module-loading-mode prefer-parseable" < %s 2>&1 | FileCheck %s -check-prefix=FROM-INTERFACE
-// UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
-// UN:   -O "settings set symbols.swift-module-loading-mode prefer-serialized" < %s 2>&1 | FileCheck %s -check-prefix=FROM-INTERFACE
+// RUN: mkdir %t/lib
+// RUN: cp %t/lib-backup/AA.swiftinterface %t/lib/
+// RUN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
+// RUN:   -O "settings set symbols.swift-module-loading-mode prefer-parseable" < %s 2>&1 | FileCheck %s -check-prefix=FROM-INTERFACE
+// RUN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
+// RUN:   -O "settings set symbols.swift-module-loading-mode prefer-serialized" < %s 2>&1 | FileCheck %s -check-prefix=FROM-INTERFACE
 // UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
 // UN:   -O "settings set symbols.swift-module-loading-mode only-parseable" < %s 2>&1 | FileCheck %s -check-prefix=FROM-INTERFACE
 // UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
@@ -59,13 +58,13 @@ let x: OtherType = testValue
 
 // 3. .swiftinterface and .swiftmodule
 //
-// UN: cp %t/lib-backup/AA.swiftmodule %t/lib/
-// UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
-// UN:   -O "settings set symbols.swift-module-loading-mode prefer-parseable" < %s 2>&1 | FileCheck %s -check-prefix=FROM-INTERFACE
-// UN: rm -rf %t/mcp/AA*
-// UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
-// UN:   -O "settings set symbols.swift-module-loading-mode prefer-serialized" < %s 2>&1 | FileCheck %s -check-prefix=FROM-SERIALIZED
-// UN: rm -rf %t/mcp/AA*
+// RUN: cp %t/lib-backup/AA.swiftmodule %t/lib/
+// RUN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
+// RUN:   -O "settings set symbols.swift-module-loading-mode prefer-parseable" < %s 2>&1 | FileCheck %s -check-prefix=FROM-INTERFACE
+// RUN: rm -rf %t/mcp/AA*
+// RUN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
+// RUN:   -O "settings set symbols.swift-module-loading-mode prefer-serialized" < %s 2>&1 | FileCheck %s -check-prefix=FROM-SERIALIZED
+// RUN: rm -rf %t/mcp/AA*
 // UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
 // UN:   -O "settings set symbols.swift-module-loading-mode only-parseable" < %s 2>&1 | FileCheck %s -check-prefix=FROM-INTERFACE
 // UN: rm -rf %t/mcp/AA*
@@ -74,11 +73,11 @@ let x: OtherType = testValue
 // UN: rm -rf %t/mcp/AA*
 
 // 4. .swiftmodule only
-// UN: rm %t/lib/AA.swiftinterface
-// UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
-// UN:   -O "settings set symbols.swift-module-loading-mode prefer-parseable" < %s 2>&1 | FileCheck %s -check-prefix=FROM-SERIALIZED
-// UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
-// UN:   -O "settings set symbols.swift-module-loading-mode prefer-serialized" < %s 2>&1 | FileCheck %s -check-prefix=FROM-SERIALIZED
+// RUN: rm %t/lib/AA.swiftinterface
+// RUN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
+// RUN:   -O "settings set symbols.swift-module-loading-mode prefer-parseable" < %s 2>&1 | FileCheck %s -check-prefix=FROM-SERIALIZED
+// RUN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
+// RUN:   -O "settings set symbols.swift-module-loading-mode prefer-serialized" < %s 2>&1 | FileCheck %s -check-prefix=FROM-SERIALIZED
 // UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
 // UN:   -O "settings set symbols.swift-module-loading-mode only-parseable" < %s 2>&1 | FileCheck %s -check-prefix=NOT-LOADED
 // UN: %lldb --repl="-I%t/lib -L%t/lib -lAA" -O "settings set symbols.clang-modules-cache-path %t/mcp" \
