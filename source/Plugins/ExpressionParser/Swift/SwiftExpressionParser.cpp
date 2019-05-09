@@ -1714,6 +1714,8 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     log->PutCString(s.c_str());
   }
 
+  sil_module->setSerializeSILAction([] {});
+
   // SWIFT_ENABLE_TENSORFLOW
   if (!runSILDiagnosticPasses(*sil_module)) {
     // Diagnostic passes succeeded. Run the optimizations.
