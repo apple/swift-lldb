@@ -29,10 +29,10 @@
 # Uncomment line below for debugging shell commands
 # SHELL = /bin/sh -x
 
-SRCDIR := $(shell dirname $(firstword $(MAKEFILE_LIST)))/
+SRCDIR := $(shell dirname $(firstword $(MAKEFILE_LIST)))
 BUILDDIR := $(shell pwd)
-THIS_FILE_DIR := $(shell dirname $(lastword $(MAKEFILE_LIST)))/
-LLDB_BASE_DIR := $(THIS_FILE_DIR)../../../../../
+THIS_FILE_DIR := $(shell dirname $(lastword $(MAKEFILE_LIST)))
+LLDB_BASE_DIR := $(THIS_FILE_DIR)/../../../../../
 
 #----------------------------------------------------------------------
 # If OS is not defined, use 'uname -s' to determine the OS name.
@@ -51,6 +51,33 @@ ifeq "$(OS)" ""
 endif
 
 #----------------------------------------------------------------------
+# If OS is Windows, force SHELL to be cmd
+#
+# Some versions of make on Windows will search for other shells such as
+# C:\cygwin\bin\sh.exe. This shell fails for numerous different reasons
+# so default to using cmd.exe.
+#----------------------------------------------------------------------
+ifeq "$(OS)" "Windows_NT"
+	SHELL = $(WINDIR)\system32\cmd.exe
+endif
+
+#----------------------------------------------------------------------
+# If the OS is Windows use double-quotes in commands
+#
+# For other operating systems, single-quotes work fine, but on Windows
+# we strictly required double-quotes
+#----------------------------------------------------------------------
+ifeq "$(HOST_OS)" "Windows_NT"
+	JOIN_CMD = &
+	QUOTE = "
+	FIXUP_SYNTAX_HIGHLIGHTING_IN_MY_EDITOR = "
+else
+	JOIN_CMD = ;
+	QUOTE = '
+	FIXUP_SYNTAX_HIGHLIGHTING_IN_MY_EDITOR = '
+endif
+
+#----------------------------------------------------------------------
 # If TRIPLE is not defined try to set the ARCH, CC, CFLAGS, and more
 # from the triple alone
 #----------------------------------------------------------------------
@@ -65,8 +92,8 @@ ifneq "$(TRIPLE)" ""
 	TRIPLE_SWIFTFLAGS :=-target $(TRIPLE)
 	ifeq "$(TRIPLE_VENDOR)" "apple"
 		ifeq "$(TRIPLE_OS)" "ios"
-		    CODESIGN := codesign
-		    ifeq "$(SDKROOT)" ""
+			CODESIGN := codesign
+			ifeq "$(SDKROOT)" ""
 				# Set SDKROOT if it wasn't set
 				ifneq (,$(findstring arm,$(ARCH)))
 					SDKROOT = $(shell xcrun --sdk iphoneos --show-sdk-path)
@@ -225,8 +252,8 @@ else
 	ifeq "$(ARCH)" "powerpc64"
 		override ARCH := $(subst powerpc64,64,$(ARCH))
 	endif
-	ifeq "$(ARCH)" "powerpc64le"
-		override ARCH := $(subst powerpc64le,64,$(ARCH))
+	ifeq "$(ARCH)" "ppc64le"
+		override ARCH := $(subst ppc64le,64,$(ARCH))
 	endif
 	ifeq "$(ARCH)" "aarch64"
 		override ARCH :=
@@ -280,10 +307,16 @@ else
 	CFLAGS += $(ARCHFLAG)$(ARCH) $(FRAMEWORK_INCLUDES) -I$(LLDB_BASE_DIR)include
 endif
 
-CFLAGS += -I$(SRCDIR) -include $(THIS_FILE_DIR)test_common.h -I$(THIS_FILE_DIR)
+CFLAGS += -I$(SRCDIR) -include $(THIS_FILE_DIR)/test_common.h -I$(THIS_FILE_DIR)
 CFLAGS += $(NO_LIMIT_DEBUG_INFO_FLAGS) $(ARCH_CFLAGS) $(CFLAGS_EXTRAS)
 SWIFTFLAGS += $(TRIPLE_SWIFTFLAGS)
 SWIFTFLAGS += $(SWIFTFLAGS_EXTRAS)
+
+# If the OS is Windows, we need to pass -gdwarf to clang, otherwise it will build
+# with codeview by default but all the tests rely on dwarf.
+ifeq "$(OS)" "Windows_NT"
+	CFLAGS += -gdwarf
+endif
 
 # Use this one if you want to build one part of the result without debug information:
 ifeq "$(OS)" "Darwin"
@@ -297,23 +330,24 @@ ifeq "$(MAKE_DWO)" "YES"
 endif
 
 # Use a shared module cache when building in the default test build directory.
+CLANG_MODULE_CACHE_DIR := $(shell echo "$(BUILDDIR)" | sed $(QUOTE)s/lldb-test-build.noindex.*/lldb-test-build.noindex\/module-cache-clang/$(QUOTE))
+
 ifeq "$(findstring lldb-test-build.noindex, $(BUILDDIR))" ""
 CLANG_MODULE_CACHE_DIR := $(BUILDDIR)/module-cache
-else
-CLANG_MODULE_CACHE_DIR := $(shell echo "$(BUILDDIR)" | sed 's/lldb-test-build.noindex.*/lldb-test-build.noindex\/module-cache-clang/')
+$(warning failed to set the shared clang module cache dir)
 endif
 
-ifeq "$(CLANG_MODULE_CACHE_DIR)" ""
-$(error failed to set the shared clang module cache dir)
-endif
-
-SWIFT_MODULE_CACHE_FLAGS = -module-cache-path $(CLANG_MODULE_CACHE_DIR)
+SWIFT_MODULE_CACHE_FLAGS ?= -module-cache-path $(CLANG_MODULE_CACHE_DIR)
 SWIFTFLAGS += $(SWIFT_MODULE_CACHE_FLAGS)
 
 MANDATORY_MODULE_BUILD_CFLAGS := -fmodules -gmodules -fmodules-cache-path=$(CLANG_MODULE_CACHE_DIR)
 
 ifeq "$(MAKE_GMODULES)" "YES"
 	CFLAGS += $(MANDATORY_MODULE_BUILD_CFLAGS)
+	CXXFLAGS += $(MANDATORY_MODULE_BUILD_CFLAGS)
+	ifeq "$(OS)" "Darwin"
+		CXXFLAGS += -fcxx-modules
+	endif
 endif
 
 CXXFLAGS += -std=c++11 $(CFLAGS) $(ARCH_CXXFLAGS)
@@ -384,7 +418,7 @@ ifneq "$(OS)" "Darwin"
 endif
 
 ifdef PIE
-    LDFLAGS += -pie
+	LDFLAGS += -pie
 endif
 
 #----------------------------------------------------------------------
@@ -449,17 +483,17 @@ ifneq "$(strip $(DYLIB_OBJC_SOURCES))" ""
 endif
 
 ifneq "$(strip $(DYLIB_CXX_SOURCES))" ""
-    DYLIB_OBJECTS +=$(strip $(DYLIB_CXX_SOURCES:.cpp=.o))
-    CXX = $(call cxx_compiler,$(CC))
-    LD = $(call cxx_linker,$(CC))
+	DYLIB_OBJECTS +=$(strip $(DYLIB_CXX_SOURCES:.cpp=.o))
+	CXX = $(call cxx_compiler,$(CC))
+	LD = $(call cxx_linker,$(CC))
 endif
 
 #----------------------------------------------------------------------
 # Check if we have a precompiled header
 #----------------------------------------------------------------------
 ifneq "$(strip $(PCH_CXX_SOURCE))" ""
-    PCH_OUTPUT = $(PCH_CXX_SOURCE:.h=.h.pch)
-    PCHFLAGS = -include $(PCH_CXX_SOURCE)
+	PCH_OUTPUT = $(PCH_CXX_SOURCE:.h=.h.pch)
+	PCHFLAGS = -include $(PCH_CXX_SOURCE)
 endif
 
 #----------------------------------------------------------------------
@@ -495,7 +529,7 @@ ifneq "$(strip $(SWIFT_SOURCES))" ""
 endif
 
 ifneq "$(strip $(DYLIB_SWIFT_SOURCES))" ""
-	DYLIB_OBJECTS +=$(strip $(DYLIB_OBJC_SOURCES:.swift=.o))
+	DYLIB_OBJECTS +=$(strip $(DYLIB_SWIFT_SOURCES:.swift=.o))
 	USESWIFTDRIVER = 1
 endif
 
@@ -528,7 +562,7 @@ endif
 # Set up variables to run the Swift frontend directly.
 #----------------------------------------------------------------------
 SWIFT=$(shell dirname $(SWIFTC))/swift
-SWIFT_FEFLAGS = $(shell echo $(patsubst -Xfrontend,,$(SWIFTFLAGS)) | sed -e 's/-Xlinker [^ ]*//g')
+SWIFT_FEFLAGS = $(shell echo $(patsubst -Xfrontend,,$(SWIFTFLAGS)) | sed -e 's/-Xlinker [^ ]*//g') -enable-anonymous-context-mangled-names
 SWIFT_FE=$(SWIFT) -frontend
 
 #----------------------------------------------------------------------
@@ -586,21 +620,21 @@ ifneq "$(strip $(CXX_SOURCES) $(OBJCXX_SOURCES))" ""
 ifneq "$(filter g++,$(CXX))" ""
 	CXXVERSION = $(shell $(CXX) -dumpversion | cut -b 1-3)
 	ifeq "$(CXXVERSION)" "4.6"
-                # GCC 4.6 cannot handle -std=c++11, so replace it with -std=c++0x
-                # instead. FIXME: remove once GCC version is upgraded.
+		# GCC 4.6 cannot handle -std=c++11, so replace it with -std=c++0x
+		# instead. FIXME: remove once GCC version is upgraded.
 		override CXXFLAGS := $(subst -std=c++11,-std=c++0x,$(CXXFLAGS))
 	endif
 endif
 endif
 
 ifeq ($(findstring clang, $(CXX)), clang)
-  CXXFLAGS += --driver-mode=g++
+	CXXFLAGS += --driver-mode=g++
 endif
 
 ifneq "$(CXX)" ""
-  ifeq ($(findstring clang, $(LD)), clang)
-    LDFLAGS += --driver-mode=g++
-  endif
+	ifeq ($(findstring clang, $(LD)), clang)
+		LDFLAGS += --driver-mode=g++
+	endif
 endif
 
 #----------------------------------------------------------------------
@@ -616,12 +650,10 @@ ifeq "$(USESWIFTDRIVER)" "1"
 #----------------------------------------------------------------------
 ifeq "$(DYLIB_NAME)" ""
 MODULENAME=$(shell basename $(EXE) .out)
-SWIFT_OBJECTS=$(patsubst %.swift,%.o,$(SWIFT_SOURCES))
 else
 EXE = $(DYLIB_FILENAME)
 MODULENAME=$(DYLIB_NAME)
-SWIFT_OBJECTS=$(patsubst %.swift,%.o,$(DYLIB_SWIFT_SOURCES))
-DYLIB_OBJECTS=$(SWIFT_OBJECTS)
+SWIFT_FEFLAGS += -parse-as-library
 endif
 
 VPATHSOURCES=$(patsubst %,$(VPATH)/%,$(SWIFT_SOURCES))
@@ -634,7 +666,7 @@ VPATHSOURCES=$(patsubst %,$(VPATH)/%,$(SWIFT_SOURCES))
 	  -o $(BUILDDIR)/$@
 
 ifeq "$(OS)" "Darwin"
-$(EXE): $(MODULENAME).swiftmodule $(SWIFT_OBJECTS)
+$(EXE): $(MODULENAME).swiftmodule $(OBJECTS)
 	@echo "### Linking" $(EXE)
 	$(SWIFTC) $(STATIC_STDLIB) $(LD_EXTRAS) \
 	  $(patsubst $<,-Xlinker -add_ast_path -Xlinker $(BUILDDIR)/$<,$^) \
@@ -643,19 +675,25 @@ ifneq "$(CODESIGN)" ""
 	$(CODESIGN) -s - "$(EXE)"
 endif
 else # OS = Linux
-$(EXE): $(MODULENAME).swiftmodule.o $(SWIFT_OBJECTS)
+$(EXE): $(MODULENAME).swiftmodule.o $(OBJECTS)
 	@echo "### Linking" $(EXE)
+ifneq "$(EXCLUDE_WRAPPED_SWIFTMODULE)" ""
+	$(SWIFTC) $(LD_EXTRAS) $(patsubst %.swiftmodule.o,,$^) $(patsubst -g,,$(SWIFTFLAGS)) -o "$(EXE)"
+else
 	$(SWIFTC) $(LD_EXTRAS) $^ $(patsubst -g,,$(SWIFTFLAGS)) -o "$(EXE)"
+endif
 
 $(MODULENAME).swiftmodule.o: $(MODULENAME).swiftmodule
 	@echo "### Wrapping swift module"
 	$(SWIFT) -modulewrap $^ -o $(BUILDDIR)/$@
 endif
-$(MODULENAME).swiftmodule: $(SWIFT_OBJECTS)
+
+$(MODULENAME).swiftmodule: $(OBJECTS) $(DYLIB_OBJECTS)
 	@echo "### Merging swift modules for $(MODULENAME)"
 	$(SWIFT_FE) $(SWIFT_FEFLAGS) -merge-modules \
-	  -emit-module $(patsubst %.o,%.partial.swiftmodule,$^) \
-	  -parse-as-library -sil-merge-partial-modules \
+	  -emit-module $(patsubst %.swift,%.partial.swiftmodule,$(SWIFT_SOURCES) $(DYLIB_SWIFT_SOURCES)) \
+	  -emit-parseable-module-interface-path $(BUILDDIR)/$(MODULENAME).swiftinterface \
+	  -sil-merge-partial-modules \
 	  -disable-diagnostic-passes -disable-sil-perf-optzns \
 	  -module-name $(MODULENAME) \
 	  -o $(BUILDDIR)/$@
@@ -700,6 +738,7 @@ endif
 ifneq "$(ARCHIVE_NAME)" ""
 ifeq "$(OS)" "Darwin"
 $(ARCHIVE_NAME) : $(ARCHIVE_OBJECTS)
+	@echo "### Creating archive $(ARCHIVE_NAME)"
 	$(AR) $(ARFLAGS) $(ARCHIVE_NAME) $(ARCHIVE_OBJECTS)
 	$(RM) $(ARCHIVE_OBJECTS)
 else
@@ -710,13 +749,35 @@ endif
 #----------------------------------------------------------------------
 # Make the dylib
 #----------------------------------------------------------------------
+#----------------------------------------------------------------------
 ifeq "$(USESWIFTDRIVER)" "1"
+#----------------------------------------------------------------------
+ifeq "$(OS)" "Darwin"
+DYLIB_SWIFT_FLAGS=  \
+	 -Xlinker -dylib \
+         -Xlinker -add_ast_path -Xlinker $(DYLIB_NAME).swiftmodule \
+	 -Xlinker -install_name -Xlinker @executable_path/$(shell basename $@) \
+	 $(LD_EXTRAS)
+else
+DYLIB_SWIFT_FLAGS=$(LD_EXTRAS)
+endif
 $(DYLIB_FILENAME) : $(DYLIB_OBJECTS)
 	@echo "### Linking dynamic library $(DYLIB_NAME)"
-	$(SWIFTC) $(LD_EXTRAS) -o $@ $^ -Xlinker -dylib \
-	  -Xlinker -add_ast_path -Xlinker $(DYLIB_NAME).swiftmodule \
-	  -Xlinker -install_name -Xlinker @executable_path/$(shell basename $@)
+ifneq "$(EXCLUDE_WRAPPED_SWIFTMODULE)" ""
+	$(SWIFTC) -emit-library $(DYLIB_SWIFT_FLAGS) -o $@ \
+            $(patsubst %.swiftmodule.o,,$^)
 else
+	$(SWIFTC) -emit-library $(DYLIB_SWIFT_FLAGS) -o $@ $^
+endif
+ifneq "$(MAKE_DSYM)" "NO"
+ifneq "$(DS)" ""
+	"$(DS)" $(DSFLAGS) "$(DYLIB_FILENAME)"
+endif
+endif
+
+#----------------------------------------------------------------------
+else # Non-Swift llvm.org part.
+#----------------------------------------------------------------------
 $(DYLIB_OBJECTS) : CFLAGS += -DCOMPILING_LLDB_TEST_DLL
 
 ifneq "$(OS)" "Windows_NT"
@@ -772,14 +833,6 @@ endif
 # the compiler -MM option. The -M option will list all system headers,
 # and the -MM option will list all non-system dependencies.
 #----------------------------------------------------------------------
-ifeq "$(HOST_OS)" "Windows_NT"
-	JOIN_CMD = &
-	QUOTE = "
-else
-	JOIN_CMD = ;
-	QUOTE = '
-endif
-
 %.d: %.c
 	@rm -f $@ $(JOIN_CMD) \
 	$(CC) -M $(CFLAGS) $< > $@.tmp && \

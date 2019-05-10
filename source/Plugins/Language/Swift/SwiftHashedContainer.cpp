@@ -24,6 +24,9 @@
 #include "Plugins/Language/ObjC/NSDictionary.h"
 
 #include "swift/AST/ASTContext.h"
+#include "swift/AST/Types.h"
+#include "swift/Remote/RemoteAddress.h"
+#include "swift/RemoteAST/RemoteAST.h"
 #include "llvm/ADT/StringRef.h"
 
 #include <algorithm>
@@ -187,7 +190,6 @@ HashedCollectionConfig::RegisterSummaryProviders(
   lldb::TypeCategoryImplSP swift_category_sp,
   TypeSummaryImpl::Flags flags
 ) const {
-#ifndef LLDB_DISABLE_PYTHON
   using lldb_private::formatters::AddCXXSummary;
 
   auto summaryProvider = GetSummaryProvider();
@@ -215,8 +217,6 @@ HashedCollectionConfig::RegisterSummaryProviders(
   AddCXXSummary(swift_category_sp, summaryProvider,
                 m_summaryProviderName.AsCString(),
                 m_deferredBridgedStorage_mangledRegex_ObjC, flags, true);
-
-#endif // LLDB_DISABLE_PYTHON
 }
 
 void
@@ -224,7 +224,6 @@ HashedCollectionConfig::RegisterSyntheticChildrenCreators(
   lldb::TypeCategoryImplSP swift_category_sp,
   SyntheticChildren::Flags flags
 ) const {
-#ifndef LLDB_DISABLE_PYTHON
   using lldb_private::formatters::AddCXXSynthetic;
 
   auto creator = GetSyntheticChildrenCreator();
@@ -252,7 +251,6 @@ HashedCollectionConfig::RegisterSyntheticChildrenCreators(
   AddCXXSynthetic(swift_category_sp, creator,
                   m_syntheticChildrenName.AsCString(),
                   m_deferredBridgedStorage_mangledRegex_ObjC, flags, true);
-#endif // LLDB_DISABLE_PYTHON
 }
 
 bool
@@ -440,14 +438,36 @@ NativeHashedStorageHandler::NativeHashedStorageHandler(
   if (!key_type)
     return;
 
+  m_process = m_storage->GetProcessSP().get();
+  if (!m_process)
+    return;
+
   if (value_type) {
     m_value_stride = value_type.GetByteStride();
     if (SwiftASTContext *swift_ast =
             llvm::dyn_cast_or_null<SwiftASTContext>(key_type.GetTypeSystem())) {
+      auto scratch_ctx_reader = nativeStorage_sp->GetScratchSwiftASTContext();
+      auto scratch_ctx = scratch_ctx_reader.get();
+      if (!scratch_ctx)
+        return;
+      auto *runtime = m_process->GetSwiftLanguageRuntime();
+      if (!runtime)
+        return;
       std::vector<SwiftASTContext::TupleElement> tuple_elements{
           {g_key, key_type}, {g_value, value_type}};
       m_element_type = swift_ast->CreateTupleType(tuple_elements);
+      auto *swift_type = reinterpret_cast<::swift::TypeBase *>(
+          m_element_type.GetCanonicalType().GetOpaqueQualType());
       m_key_stride_padded = m_element_type.GetByteStride() - m_value_stride;
+      uint64_t offset = m_key_stride_padded;
+      if (llvm::isa<::swift::TupleType>(swift_type)) {
+        auto &remote_ast = runtime->GetRemoteASTContext(*scratch_ctx);
+        ::swift::remote::RemoteAddress optmeta(nullptr);
+        ::swift::remoteAST::Result<uint64_t> result =
+            remote_ast.getOffsetOfMember(swift_type, optmeta, "1");
+        if (result)
+          m_key_stride_padded = result.getValue();
+      }
     }
   } else {
     m_element_type = key_type;
@@ -456,9 +476,6 @@ NativeHashedStorageHandler::NativeHashedStorageHandler(
   if (!m_element_type)
     return;
 
-  m_process = m_storage->GetProcessSP().get();
-  if (!m_process)
-    return;
 
   m_ptr_size = m_process->GetAddressByteSize();
 
@@ -471,8 +488,6 @@ NativeHashedStorageHandler::NativeHashedStorageHandler(
   if (!scale_sp)
     return;
   auto scale = scale_sp->GetValueAsUnsigned(0);
-  if (scale > m_ptr_size)
-    return;
   m_scale = scale;
 
   auto keys_ivar = value_type ? g__rawKeys : g__rawElements;
@@ -521,7 +536,7 @@ bool NativeHashedStorageHandler::IsValid() {
 
 uint64_t
 NativeHashedStorageHandler::GetMetadataWord(int index, Status &error) {
-  if (index >= GetWordCount()) {
+  if (static_cast<size_t>(index) >= GetWordCount()) {
     error.SetErrorToGenericError();
     return 0;
   }
@@ -558,7 +573,7 @@ NativeHashedStorageHandler::UpdateBuckets() {
     }
     if (wordCount == 1) {
       // Mask off out-of-bounds bits from first partial word.
-      word &= (1 << bucketCount) - 1;
+      word &= (1ULL << bucketCount) - 1;
     }
     for (size_t bit = 0; bit < wordWidth; bit++) {
       if ((word & (1ULL << bit)) != 0) {
@@ -719,9 +734,7 @@ HashedSyntheticChildrenFrontEnd::MightHaveChildren() {
 }
 
 size_t
-HashedSyntheticChildrenFrontEnd::GetIndexOfChildWithName(
-  const ConstString &name
-) {
+HashedSyntheticChildrenFrontEnd::GetIndexOfChildWithName(ConstString name) {
   if (!m_buffer)
     return UINT32_MAX;
   const char *item_name = name.GetCString();

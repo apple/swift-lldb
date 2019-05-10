@@ -41,12 +41,12 @@ Older swig versions will simply ignore this setting.
 */
 %define MODULEIMPORT
 "try:
-    # Try a relative import first
-    from . import $module
+    # Try an absolute import first.  If we're being loaded from lldb,
+    # _lldb should be a built-in module.
+    import $module
 except ImportError:
-    # Maybe absolute import will work (if we're being loaded from lldb, it
-    # should).
-    import $module"
+    # Relative import should work if we are being loaded by Python.
+    from . import $module"
 %enddef
 // These versions will not generate working python modules, so error out early.
 #if SWIG_VERSION >= 0x030009 && SWIG_VERSION < 0x030011
@@ -66,6 +66,40 @@ import os
 
 import six
 %}
+
+// Include the version of swig that was used to generate this interface.
+%define EMBED_VERSION(VERSION)
+%pythoncode%{
+# SWIG_VERSION is written as a single hex number, but the components of it are
+# meant to be interpreted in decimal. So, 0x030012 is swig 3.0.12, and not
+# 3.0.18.
+def _to_int(hex):
+    return hex // 0x10 % 0x10 * 10 + hex % 0x10
+swig_version = (_to_int(VERSION // 0x10000), _to_int(VERSION // 0x100), _to_int(VERSION))
+del _to_int
+%}
+%enddef
+EMBED_VERSION(SWIG_VERSION)
+
+%pythoncode%{
+# ===================================
+# Iterator for lldb container objects
+# ===================================
+def lldb_iter(obj, getsize, getelem):
+    """A generator adaptor to support iteration for lldb container objects."""
+    size = getattr(obj, getsize)
+    elem = getattr(obj, getelem)
+    for i in range(size()):
+        yield elem(i)
+
+# ==============================================================================
+# The modify-python-lldb.py script is responsible for post-processing this SWIG-
+# generated lldb.py module.  It is responsible for adding support for: iteration
+# protocol: __iter__, rich comparison methods: __eq__ and __ne__, and built-in
+# function len(): __len__.
+# ==============================================================================
+%}
+
 %include "./Python/python-typemaps.swig"
 
 /* C++ headers to be included. */

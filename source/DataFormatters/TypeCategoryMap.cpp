@@ -1,10 +1,9 @@
 //===-- TypeCategoryMap.cpp ----------------------------------------*- C++
 //-*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -13,10 +12,6 @@
 #include "lldb/DataFormatters/FormatClasses.h"
 #include "lldb/Utility/Log.h"
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-// Project includes
 
 using namespace lldb;
 using namespace lldb_private;
@@ -116,14 +111,13 @@ void TypeCategoryMap::EnableAllCategories() {
   decltype(sorted_categories)::iterator viter = sorted_categories.begin(),
                                         vend = sorted_categories.end();
   for (; viter != vend; viter++)
-    if (viter->get())
+    if (*viter)
       Enable(*viter, Last);
 }
 
 void TypeCategoryMap::DisableAllCategories() {
   std::lock_guard<std::recursive_mutex> guard(m_map_mutex);
-  Position p = First;
-  for (; false == m_active_categories.empty(); p++) {
+  for (Position p = First; !m_active_categories.empty(); p++) {
     m_active_categories.front()->SetEnabledPosition(p);
     Disable(m_active_categories.front());
   }
@@ -255,7 +249,6 @@ TypeCategoryMap::GetSummaryFormat(FormattersMatchData &match_data) {
   return lldb::TypeSummaryImplSP();
 }
 
-#ifndef LLDB_DISABLE_PYTHON
 lldb::SyntheticChildrenSP
 TypeCategoryMap::GetSyntheticChildren(FormattersMatchData &match_data) {
   std::lock_guard<std::recursive_mutex> guard(m_map_mutex);
@@ -297,7 +290,6 @@ TypeCategoryMap::GetSyntheticChildren(FormattersMatchData &match_data) {
                 "empty SP");
   return lldb::SyntheticChildrenSP();
 }
-#endif
 
 lldb::TypeValidatorImplSP
 TypeCategoryMap::GetValidator(FormattersMatchData &match_data) {

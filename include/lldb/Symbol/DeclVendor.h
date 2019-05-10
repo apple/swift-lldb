@@ -1,9 +1,8 @@
 //===-- DeclVendor.h --------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -50,7 +49,7 @@ public:
   ///     The number of Decls added to decls; will not exceed
   ///     max_matches.
   //------------------------------------------------------------------
-  virtual uint32_t FindDecls(const ConstString &name, bool append,
+  virtual uint32_t FindDecls(ConstString name, bool append,
                              uint32_t max_matches,
                              std::vector<clang::NamedDecl *> &decls) = 0;
 

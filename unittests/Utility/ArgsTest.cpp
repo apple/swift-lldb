@@ -1,9 +1,8 @@
 //===-- ArgsTest.cpp --------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -188,4 +187,30 @@ TEST(ArgsTest, GetArgumentArrayRef) {
   ASSERT_EQ(2u, ref.size());
   EXPECT_STREQ("foo", ref[0]);
   EXPECT_STREQ("bar", ref[1]);
+}
+
+TEST(ArgsTest, EscapeLLDBCommandArgument) {
+  const std::string foo = "foo'";
+  EXPECT_EQ("foo\\'", Args::EscapeLLDBCommandArgument(foo, '\0'));
+  EXPECT_EQ("foo'", Args::EscapeLLDBCommandArgument(foo, '\''));
+  EXPECT_EQ("foo'", Args::EscapeLLDBCommandArgument(foo, '`'));
+  EXPECT_EQ("foo'", Args::EscapeLLDBCommandArgument(foo, '"'));
+
+  const std::string bar = "bar\"";
+  EXPECT_EQ("bar\\\"", Args::EscapeLLDBCommandArgument(bar, '\0'));
+  EXPECT_EQ("bar\"", Args::EscapeLLDBCommandArgument(bar, '\''));
+  EXPECT_EQ("bar\"", Args::EscapeLLDBCommandArgument(bar, '`'));
+  EXPECT_EQ("bar\\\"", Args::EscapeLLDBCommandArgument(bar, '"'));
+
+  const std::string baz = "baz`";
+  EXPECT_EQ("baz\\`", Args::EscapeLLDBCommandArgument(baz, '\0'));
+  EXPECT_EQ("baz`", Args::EscapeLLDBCommandArgument(baz, '\''));
+  EXPECT_EQ("baz`", Args::EscapeLLDBCommandArgument(baz, '`'));
+  EXPECT_EQ("baz\\`", Args::EscapeLLDBCommandArgument(baz, '"'));
+
+  const std::string quux = "quux\t";
+  EXPECT_EQ("quux\\\t", Args::EscapeLLDBCommandArgument(quux, '\0'));
+  EXPECT_EQ("quux\t", Args::EscapeLLDBCommandArgument(quux, '\''));
+  EXPECT_EQ("quux\t", Args::EscapeLLDBCommandArgument(quux, '`'));
+  EXPECT_EQ("quux\t", Args::EscapeLLDBCommandArgument(quux, '"'));
 }

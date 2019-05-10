@@ -11,7 +11,9 @@ endmacro()
 # Objective-C++ files in lldb (which slows down the build process).
 macro(remove_module_flags)
   string(REGEX REPLACE "-fmodules-cache-path=[^ ]+" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  string(REGEX REPLACE "-fmodules-local-submodule-visibility" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
   string(REGEX REPLACE "-fmodules" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  string(REGEX REPLACE "-gmodules" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
   string(REGEX REPLACE "-fcxx-modules" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endmacro()
 
@@ -28,8 +30,6 @@ add_host_subdirectory(common
   common/LockFileBase.cpp
   common/MainLoop.cpp
   common/MonitoringProcessLauncher.cpp
-  common/NativeBreakpoint.cpp
-  common/NativeBreakpointList.cpp
   common/NativeWatchpointList.cpp
   common/NativeProcessProtocol.cpp
   common/NativeRegisterContext.cpp
@@ -40,7 +40,6 @@ add_host_subdirectory(common
   common/PseudoTerminal.cpp
   common/Socket.cpp
   common/SocketAddress.cpp
-  common/SoftwareBreakpoint.cpp
   common/StringConvert.cpp
   common/Symbols.cpp
   common/TaskPool.cpp
@@ -92,7 +91,7 @@ else()
     include_directories(SYSTEM ${LIBXML2_INCLUDE_DIR})
     add_subdirectory(macosx/objcxx)
     set(LLDBObjCLibs lldbHostMacOSXObjCXX)
-    add_host_subdirectory(maqcosx
+    add_host_subdirectory(macosx
       macosx/Symbols.cpp
       macosx/cfcpp/CFCBundle.cpp
       macosx/cfcpp/CFCData.cpp
@@ -102,7 +101,7 @@ else()
       macosx/cfcpp/CFCString.cpp
       )
     if(IOS)
-      set_property(SOURCE macosx/Host.mm APPEND PROPERTY 
+      set_property(SOURCE macosx/Host.mm APPEND PROPERTY
                COMPILE_DEFINITIONS "NO_XPC_SERVICES=1")
     endif()
 
@@ -156,7 +155,14 @@ if (HAVE_LIBDL)
   list(APPEND EXTRA_LIBS ${CMAKE_DL_LIBS})
 endif()
 if (NOT LLDB_DISABLE_LIBEDIT)
-  list(APPEND EXTRA_LIBS edit)
+  list(APPEND EXTRA_LIBS ${libedit_LIBRARIES})
+endif()
+
+if (NOT LLDB_DISABLE_LIBEDIT)
+  list(APPEND LLDB_LIBEDIT_LIBS ${libedit_LIBRARIES})
+  if (LLVM_BUILD_STATIC)
+    list(APPEND LLDB_SYSTEM_LIBS gpm)
+  endif()
 endif()
 
 add_lldb_library(lldbHost
@@ -169,8 +175,13 @@ add_lldb_library(lldbHost
     lldbUtility
     ${EXTRA_LIBS}
     ${LLDBObjCLibs}
+    ${LLDB_LIBEDIT_LIBS}
 
   LINK_COMPONENTS
     Object
     Support
   )
+
+if (NOT LLDB_DISABLE_LIBEDIT)
+  target_include_directories(lldbHost PUBLIC ${libedit_INCLUDE_DIRS})
+endif()

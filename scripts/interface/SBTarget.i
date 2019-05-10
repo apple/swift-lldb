@@ -1,9 +1,8 @@
 //===-- SWIG Interface for SBTarget -----------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -80,6 +79,8 @@ public:
 
     bool
     IsValid() const;
+
+    explicit operator bool() const;
 
     static bool
     EventIsTargetEvent (const lldb::SBEvent &event);
@@ -372,6 +373,14 @@ public:
 
     lldb::SBFileSpec
     GetExecutable ();
+
+    %feature("docstring", "
+    /// Append the path mapping (from -> to) to the target's paths mapping list.
+    ") AppendImageSearchPath;
+    void
+    AppendImageSearchPath (const char *from,
+                           const char *to,
+                           SBError &error);
 
     bool
     AddModule (lldb::SBModule &module);

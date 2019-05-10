@@ -14,7 +14,7 @@ Test that data formatters honor Swift conventions
 """
 import lldb
 from lldbsuite.test.lldbtest import *
-import lldbsuite.test.decorators as decorators
+from lldbsuite.test.decorators import *
 import lldbsuite.test.lldbutil as lldbutil
 import os
 import unittest2
@@ -24,47 +24,37 @@ class TestSwiftieFormatting(TestBase):
 
     mydir = TestBase.compute_mydir(__file__)
 
-    @decorators.skipUnlessDarwin
-    @decorators.swiftTest
+    def setUp(self):
+        TestBase.setUp(self)
+
+    @skipUnlessDarwin
+    @swiftTest
     def test_swiftie_formatting(self):
         """Test that data formatters honor Swift conventions"""
         self.build()
-        self.do_test()
+        lldbutil.run_to_source_breakpoint(
+            self, 'Set breakpoint here', lldb.SBFileSpec('main.swift'))
 
-    def setUp(self):
-        TestBase.setUp(self)
-        self.main_source = "main.swift"
-        self.main_source_spec = lldb.SBFileSpec(self.main_source)
+        swcla = self.frame().FindVariable("swcla")
+        swcla.SetPreferDynamicValue(lldb.eDynamicCanRunTarget)
+        swcla.SetPreferSyntheticValue(True)
 
-    def do_test(self):
-        """Test that data formatters honor Swift conventions"""
-        exe_name = "a.out"
-        exe = self.getBuildArtifact(exe_name)
+        ns_a = swcla.GetChildMemberWithName("ns_a")
+        self.assertTrue(
+            ns_a.GetSummary() == '"Hello Swift"',
+            "ns_a summary wrong")
 
-        # Create the target
-        target = self.dbg.CreateTarget(exe)
-        self.assertTrue(target, VALID_TARGET)
+        ns_d = swcla.GetChildMemberWithName("ns_d")
+        self.assertTrue(ns_d.GetSummary() == '0 bytes', "ns_d summary wrong")
 
-        # Set the breakpoints
-        breakpoint = target.BreakpointCreateBySourceRegex(
-            'Set breakpoint here', self.main_source_spec)
-        self.assertTrue(breakpoint.GetNumLocations() > 0, VALID_BREAKPOINT)
+        IntWidth = 64
+        if self.getArchitecture() in ['arm', 'armv7', 'armv7k', 'i386']:
+            IntWidth = 32
 
-        # Launch the process, and do not stop at the entry point.
-        process = target.LaunchSimple(None, None, os.getcwd())
+        ns_n = swcla.GetChildMemberWithName("ns_n")
+        self.assertTrue(ns_n.GetSummary() == ("Int%d(30)" % IntWidth), "ns_n summary wrong")
 
-        self.assertTrue(process, PROCESS_IS_VALID)
-
-        # Frame #0 should be at our breakpoint.
-        threads = lldbutil.get_threads_stopped_at_breakpoint(
-            process, breakpoint)
-
-        self.assertTrue(len(threads) == 1)
-        self.thread = threads[0]
-        self.frame = self.thread.frames[0]
-        self.assertTrue(self.frame, "Frame 0 is valid.")
-
-        swcla = self.frame.FindVariable("swcla")
+        swcla = self.frame().EvaluateExpression("swcla")
         swcla.SetPreferDynamicValue(lldb.eDynamicCanRunTarget)
         swcla.SetPreferSyntheticValue(True)
 
@@ -77,24 +67,9 @@ class TestSwiftieFormatting(TestBase):
         self.assertTrue(ns_d.GetSummary() == '0 bytes', "ns_d summary wrong")
 
         ns_n = swcla.GetChildMemberWithName("ns_n")
-        self.assertTrue(ns_n.GetSummary() == 'Int64(30)', "ns_n summary wrong")
+        self.assertTrue(ns_n.GetSummary() == ("Int%d(30)" % IntWidth), "ns_n summary wrong")
 
-        swcla = self.frame.EvaluateExpression("swcla")
-        swcla.SetPreferDynamicValue(lldb.eDynamicCanRunTarget)
-        swcla.SetPreferSyntheticValue(True)
-
-        ns_a = swcla.GetChildMemberWithName("ns_a")
-        self.assertTrue(
-            ns_a.GetSummary() == '"Hello Swift"',
-            "ns_a summary wrong")
-
-        ns_d = swcla.GetChildMemberWithName("ns_d")
-        self.assertTrue(ns_d.GetSummary() == '0 bytes', "ns_d summary wrong")
-
-        ns_n = swcla.GetChildMemberWithName("ns_n")
-        self.assertTrue(ns_n.GetSummary() == 'Int64(30)', "ns_n summary wrong")
-
-        nsarr = self.frame.FindVariable("nsarr")
+        nsarr = self.frame().FindVariable("nsarr")
         nsarr.SetPreferDynamicValue(lldb.eDynamicCanRunTarget)
         nsarr.SetPreferSyntheticValue(True)
 
@@ -109,13 +84,13 @@ class TestSwiftieFormatting(TestBase):
         nsarr3.SetPreferSyntheticValue(True)
 
         self.assertTrue(
-            nsarr0.GetSummary() == 'Int64(2)',
+            nsarr0.GetSummary() == ("Int%d(2)" % IntWidth),
             'nsarr[0] summary wrong')
         self.assertTrue(
-            nsarr1.GetSummary() == 'Int64(3)',
+            nsarr1.GetSummary() == ("Int%d(3)" % IntWidth),
             'nsarr[1] summary wrong')
         self.assertTrue(
-            nsarr3.GetSummary() == 'Int64(5)',
+            nsarr3.GetSummary() == ("Int%d(5)" % IntWidth),
             'nsarr[3] summary wrong')
 
         self.expect(
@@ -127,9 +102,9 @@ class TestSwiftieFormatting(TestBase):
         self.expect(
             'frame variable -d run nsarr[5] --ptr-depth=1',
             substrs=[
-                'Int64(1)',
-                'Int64(2)',
-                'Int64(3)'])
+                ("Int%d(1)" % IntWidth),
+                ("Int%d(2)" % IntWidth),
+                ("Int%d(3)" % IntWidth)])
 
 if __name__ == '__main__':
     import atexit

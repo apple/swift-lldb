@@ -42,7 +42,7 @@ ExpressionVariableSP SwiftPersistentExpressionState::CreatePersistentVariable(
 }
 
 ExpressionVariableSP SwiftPersistentExpressionState::CreatePersistentVariable(
-    ExecutionContextScope *exe_scope, const ConstString &name,
+    ExecutionContextScope *exe_scope, ConstString name,
     const CompilerType &compiler_type, lldb::ByteOrder byte_order,
     uint32_t addr_byte_size) {
   return AddNewlyConstructedVariable(new SwiftExpressionVariable(
@@ -133,8 +133,7 @@ void SwiftPersistentExpressionState::SwiftDeclMap::GetAllDecls(
 }
 
 void SwiftPersistentExpressionState::SwiftDeclMap::AddDecl(
-    swift::ValueDecl *value_decl, bool check_existing,
-    const ConstString &alias) {
+    swift::ValueDecl *value_decl, bool check_existing, ConstString alias) {
   std::string name_str;
 
   if (alias.IsEmpty()) {
@@ -172,7 +171,7 @@ void SwiftPersistentExpressionState::SwiftDeclMap::AddDecl(
 }
 
 bool SwiftPersistentExpressionState::SwiftDeclMap::FindMatchingDecls(
-    const ConstString &name,
+    ConstString name,
     const std::vector<swift::ValueDecl *> &excluding_equivalents,
     std::vector<swift::ValueDecl *> &matches) {
   std::string name_str(name.AsCString());
@@ -212,7 +211,7 @@ void SwiftPersistentExpressionState::RegisterSwiftPersistentDecl(
 }
 
 void SwiftPersistentExpressionState::RegisterSwiftPersistentDeclAlias(
-    swift::ValueDecl *value_decl, const ConstString &name) {
+    swift::ValueDecl *value_decl, ConstString name) {
   m_swift_persistent_decls.AddDecl(value_decl, true, name);
 }
 
@@ -222,7 +221,7 @@ void SwiftPersistentExpressionState::CopyInSwiftPersistentDecls(
 }
 
 bool SwiftPersistentExpressionState::GetSwiftPersistentDecls(
-    const ConstString &name,
+    ConstString name,
     const std::vector<swift::ValueDecl *> &excluding_equivalents,
     std::vector<swift::ValueDecl *> &matches) {
   return m_swift_persistent_decls.FindMatchingDecls(name, excluding_equivalents,

@@ -1,9 +1,8 @@
 //===-- HostInfoBase.cpp ----------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -42,7 +41,7 @@ namespace {
 
 struct HostInfoBaseFields {
   ~HostInfoBaseFields() {
-    if (m_lldb_process_tmp_dir.Exists()) {
+    if (FileSystem::Instance().Exists(m_lldb_process_tmp_dir)) {
       // Remove the LLDB temporary directory if we have one. Set "recurse" to
       // true to all files that were created for the LLDB process can be
       // cleaned up.
@@ -228,6 +227,38 @@ ArchSpec HostInfoBase::GetAugmentedArchSpec(llvm::StringRef triple) {
   return ArchSpec(normalized_triple);
 }
 
+bool HostInfoBase::ComputePathRelativeToLibrary(FileSpec &file_spec,
+                                                llvm::StringRef dir) {
+  Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
+
+  FileSpec lldb_file_spec = GetShlibDir();
+  if (!lldb_file_spec)
+    return false;
+
+  std::string raw_path = lldb_file_spec.GetPath();
+  if (log)
+    log->Printf("HostInfo::%s() attempting to "
+                "derive the path %s relative to liblldb install path: %s",
+                __FUNCTION__, dir.data(), raw_path.c_str());
+
+  // Drop bin (windows) or lib
+  llvm::StringRef parent_path = llvm::sys::path::parent_path(raw_path);
+  if (parent_path.empty()) {
+    if (log)
+      log->Printf("HostInfo::%s() failed to find liblldb within the shared "
+                  "lib path",
+                  __FUNCTION__);
+    return false;
+  }
+
+  raw_path = (parent_path + dir).str();
+  if (log)
+    log->Printf("HostInfo::%s() derived the path as: %s", __FUNCTION__,
+                raw_path.c_str());
+  file_spec.GetDirectory().SetString(raw_path);
+  return (bool)file_spec.GetDirectory();
+}
+
 bool HostInfoBase::ComputeSharedLibraryDirectory(FileSpec &file_spec) {
   // To get paths related to LLDB we get the path to the executable that
   // contains this function. On MacOSX this will be "LLDB.framework/.../LLDB".
@@ -239,7 +270,7 @@ bool HostInfoBase::ComputeSharedLibraryDirectory(FileSpec &file_spec) {
 
   // This is necessary because when running the testsuite the shlib might be a
   // symbolic link inside the Python resource dir.
-  FileSystem::ResolveSymbolicLink(lldb_file_spec, lldb_file_spec);
+  FileSystem::Instance().ResolveSymbolicLink(lldb_file_spec, lldb_file_spec);
 
   // Remove the filename so that this FileSpec only represents the directory.
   file_spec.GetDirectory() = lldb_file_spec.GetDirectory();
@@ -269,7 +300,8 @@ bool HostInfoBase::ComputeProcessTempFileDirectory(FileSpec &file_spec) {
 bool HostInfoBase::ComputeTempFileBaseDirectory(FileSpec &file_spec) {
   llvm::SmallVector<char, 16> tmpdir;
   llvm::sys::path::system_temp_directory(/*ErasedOnReboot*/ true, tmpdir);
-  file_spec = FileSpec(std::string(tmpdir.data(), tmpdir.size()), true);
+  file_spec = FileSpec(std::string(tmpdir.data(), tmpdir.size()));
+  FileSystem::Instance().Resolve(file_spec);
   return true;
 }
 

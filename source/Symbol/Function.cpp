@@ -1,9 +1,8 @@
 //===-- Function.cpp --------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -32,7 +31,7 @@ using namespace lldb_private;
 FunctionInfo::FunctionInfo(const char *name, const Declaration *decl_ptr)
     : m_name(name), m_declaration(decl_ptr) {}
 
-FunctionInfo::FunctionInfo(const ConstString &name, const Declaration *decl_ptr)
+FunctionInfo::FunctionInfo(ConstString name, const Declaration *decl_ptr)
     : m_name(name), m_declaration(decl_ptr) {}
 
 FunctionInfo::~FunctionInfo() {}
@@ -69,7 +68,7 @@ InlineFunctionInfo::InlineFunctionInfo(const char *name, const char *mangled,
     : FunctionInfo(name, decl_ptr), m_mangled(ConstString(mangled), true),
       m_call_decl(call_decl_ptr) {}
 
-InlineFunctionInfo::InlineFunctionInfo(const ConstString &name,
+InlineFunctionInfo::InlineFunctionInfo(ConstString name,
                                        const Mangled &mangled,
                                        const Declaration *decl_ptr,
                                        const Declaration *call_decl_ptr)
@@ -147,6 +146,8 @@ void CallEdge::ParseSymbolFileAndResolve(ModuleList &images) {
            lazy_callee.symbol_name);
 
   auto resolve_lazy_callee = [&]() -> Function * {
+    if (!lazy_callee.symbol_name)
+      return nullptr;
     ConstString callee_name{lazy_callee.symbol_name};
     SymbolContextList sc_list;
     size_t num_matches =
@@ -196,21 +197,6 @@ Function::Function(CompileUnit *comp_unit, lldb::user_id_t func_uid,
   if (canThrow)
     m_flags.Set(flagsFunctionCanThrow);
     
-  assert(comp_unit != nullptr);
-}
-
-Function::Function(CompileUnit *comp_unit, lldb::user_id_t func_uid,
-                   lldb::user_id_t type_uid, const char *mangled, Type *type,
-                   const AddressRange &range, bool canThrow)
-    : UserID(func_uid), m_comp_unit(comp_unit), m_type_uid(type_uid),
-      m_type(type), m_mangled(ConstString(mangled), true), m_block(func_uid),
-      m_range(range), m_frame_base(nullptr), m_flags(),
-      m_prologue_byte_size(0) {
-  m_block.SetParentScope(this);
-
-  if (canThrow)
-    m_flags.Set(flagsFunctionCanThrow);
-
   assert(comp_unit != nullptr);
 }
 
@@ -285,11 +271,11 @@ llvm::MutableArrayRef<CallEdge> Function::GetCallEdges() {
   m_call_edges = sym_file->ParseCallEdgesInFunction(GetID());
 
   // Sort the call edges to speed up return_pc lookups.
-  std::sort(m_call_edges.begin(), m_call_edges.end(),
-            [](const CallEdge &LHS, const CallEdge &RHS) {
-              return LHS.GetUnresolvedReturnPCAddress() <
-                     RHS.GetUnresolvedReturnPCAddress();
-            });
+  llvm::sort(m_call_edges.begin(), m_call_edges.end(),
+             [](const CallEdge &LHS, const CallEdge &RHS) {
+               return LHS.GetUnresolvedReturnPCAddress() <
+                      RHS.GetUnresolvedReturnPCAddress();
+             });
 
   return m_call_edges;
 }
@@ -304,14 +290,14 @@ llvm::MutableArrayRef<CallEdge> Function::GetTailCallingEdges() {
 
 Block &Function::GetBlock(bool can_create) {
   if (!m_block.BlockInfoHasBeenParsed() && can_create) {
-    SymbolContext sc;
-    CalculateSymbolContext(&sc);
-    if (sc.module_sp) {
-      sc.module_sp->GetSymbolVendor()->ParseFunctionBlocks(sc);
+    ModuleSP module_sp = CalculateSymbolContextModule();
+    if (module_sp) {
+      module_sp->GetSymbolVendor()->ParseBlocksRecursive(*this);
     } else {
-      Host::SystemLog(Host::eSystemLogError, "error: unable to find module "
-                                             "shared pointer for function '%s' "
-                                             "in %s\n",
+      Host::SystemLog(Host::eSystemLogError,
+                      "error: unable to find module "
+                      "shared pointer for function '%s' "
+                      "in %s\n",
                       GetName().GetCString(), m_comp_unit->GetPath().c_str());
     }
     m_block.SetBlockInfoHasBeenParsed(true, true);
@@ -445,10 +431,10 @@ bool Function::IsTopLevelFunction() {
   return result;
 }
 
-ConstString Function::GetDisplayName() const {
+ConstString Function::GetDisplayName(const SymbolContext *sc) const {
   if (!m_mangled)
     return GetName();
-  return m_mangled.GetDisplayDemangledName(GetLanguage());
+  return m_mangled.GetDisplayDemangledName(GetLanguage(), sc);
 }
 
 CompilerDeclContext Function::GetDeclContext() {
@@ -622,16 +608,17 @@ lldb::LanguageType Function::GetLanguage() const {
     return lldb::eLanguageTypeUnknown;
 }
 
-ConstString Function::GetName() const {
+ConstString Function::GetName(const SymbolContext *sc) const {
   LanguageType language = lldb::eLanguageTypeUnknown;
   if (m_comp_unit)
     language = m_comp_unit->GetLanguage();
-  return m_mangled.GetName(language);
+  return m_mangled.GetName(language, Mangled::ePreferDemangled, sc);
 }
 
-ConstString Function::GetNameNoArguments() const {
+ConstString Function::GetNameNoArguments(const SymbolContext *sc) const {
   LanguageType language = lldb::eLanguageTypeUnknown;
   if (m_comp_unit)
     language = m_comp_unit->GetLanguage();
-  return m_mangled.GetName(language, Mangled::ePreferDemangledWithoutArguments);
+  return m_mangled.GetName(language, Mangled::ePreferDemangledWithoutArguments,
+                           sc);
 }

@@ -1,18 +1,13 @@
 //===-- Breakpoint.cpp ------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
 #include "llvm/Support/Casting.h"
 
-// Project includes
 #include "lldb/Breakpoint/Breakpoint.h"
 #include "lldb/Breakpoint/BreakpointLocation.h"
 #include "lldb/Breakpoint/BreakpointLocationCollection.h"
@@ -34,11 +29,13 @@
 #include "lldb/Utility/Stream.h"
 #include "lldb/Utility/StreamString.h"
 
+#include <memory>
+
 using namespace lldb;
 using namespace lldb_private;
 using namespace llvm;
 
-const ConstString &Breakpoint::GetEventIdentifier() {
+ConstString Breakpoint::GetEventIdentifier() {
   static ConstString g_identifier("event-identifier.breakpoint.changed");
   return g_identifier;
 }
@@ -62,7 +59,7 @@ Breakpoint::Breakpoint(Target &target, SearchFilterSP &filter_sp,
 Breakpoint::Breakpoint(Target &new_target, Breakpoint &source_bp)
     : m_being_created(true), m_hardware(source_bp.m_hardware),
       m_target(new_target), m_name_list(source_bp.m_name_list),
-      m_options_up(new BreakpointOptions(*source_bp.m_options_up.get())),
+      m_options_up(new BreakpointOptions(*source_bp.m_options_up)),
       m_locations(*this),
       m_resolve_indirect_symbols(source_bp.m_resolve_indirect_symbols),
       m_hit_count(0) {
@@ -163,8 +160,8 @@ lldb::BreakpointSP Breakpoint::CreateFromStructuredData(
       SearchFilter::GetSerializationKey(), filter_dict);
   SearchFilterSP filter_sp;
   if (!success)
-    filter_sp.reset(
-        new SearchFilterForUnconstrainedSearches(target.shared_from_this()));
+    filter_sp = std::make_shared<SearchFilterForUnconstrainedSearches>(
+        target.shared_from_this());
   else {
     filter_sp = SearchFilter::CreateFromStructuredData(target, *filter_dict,
                                                        create_error);
@@ -785,8 +782,8 @@ void Breakpoint::ModuleReplaced(ModuleSP old_module_sp,
           // we go.
 
           if (old_id_vec.size() == new_id_vec.size()) {
-            llvm::sort(old_id_vec.begin(), old_id_vec.end());
-            llvm::sort(new_id_vec.begin(), new_id_vec.end());
+            llvm::sort(old_id_vec);
+            llvm::sort(new_id_vec);
             size_t num_elements = old_id_vec.size();
             for (size_t idx = 0; idx < num_elements; idx++) {
               BreakpointLocationSP old_loc_sp =
@@ -975,7 +972,7 @@ void Breakpoint::GetResolverDescription(Stream *s) {
     m_resolver_sp->GetDescription(s);
 }
 
-bool Breakpoint::GetMatchingFileLine(const ConstString &filename,
+bool Breakpoint::GetMatchingFileLine(ConstString filename,
                                      uint32_t line_number,
                                      BreakpointLocationCollection &loc_coll) {
   // TODO: To be correct, this method needs to fill the breakpoint location
@@ -1051,12 +1048,12 @@ Breakpoint::BreakpointEventData::BreakpointEventData(
 
 Breakpoint::BreakpointEventData::~BreakpointEventData() = default;
 
-const ConstString &Breakpoint::BreakpointEventData::GetFlavorString() {
+ConstString Breakpoint::BreakpointEventData::GetFlavorString() {
   static ConstString g_flavor("Breakpoint::BreakpointEventData");
   return g_flavor;
 }
 
-const ConstString &Breakpoint::BreakpointEventData::GetFlavor() const {
+ConstString Breakpoint::BreakpointEventData::GetFlavor() const {
   return BreakpointEventData::GetFlavorString();
 }
 

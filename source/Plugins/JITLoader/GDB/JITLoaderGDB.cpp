@@ -1,13 +1,11 @@
 //===-- JITLoaderGDB.cpp ----------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
 
 #include "llvm/Support/MathExtras.h"
 
@@ -30,6 +28,8 @@
 #include "lldb/Utility/StreamString.h"
 
 #include "JITLoaderGDB.h"
+
+#include <memory>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -72,7 +72,7 @@ public:
   }
 
   PluginProperties() {
-    m_collection_sp.reset(new OptionValueProperties(GetSettingName()));
+    m_collection_sp = std::make_shared<OptionValueProperties>(GetSettingName());
     m_collection_sp->Initialize(g_properties);
   }
 
@@ -315,7 +315,7 @@ bool JITLoaderGDB::ReadJITDescriptorImpl(bool all_entries) {
       char jit_name[64];
       snprintf(jit_name, 64, "JIT(0x%" PRIx64 ")", symbolfile_addr);
       module_sp = m_process->ReadModuleFromMemory(
-          FileSpec(jit_name, false), symbolfile_addr, symbolfile_size);
+          FileSpec(jit_name), symbolfile_addr, symbolfile_size);
 
       if (module_sp && module_sp->GetObjectFile()) {
         // load the symbol table right away
@@ -404,7 +404,7 @@ JITLoaderSP JITLoaderGDB::CreateInstance(Process *process, bool force) {
   JITLoaderSP jit_loader_sp;
   ArchSpec arch(process->GetTarget().GetArchitecture());
   if (arch.GetTriple().getVendor() != llvm::Triple::Apple)
-    jit_loader_sp.reset(new JITLoaderGDB(process));
+    jit_loader_sp = std::make_shared<JITLoaderGDB>(process);
   return jit_loader_sp;
 }
 
@@ -434,7 +434,7 @@ bool JITLoaderGDB::DidSetJITBreakpoint() const {
 }
 
 addr_t JITLoaderGDB::GetSymbolAddress(ModuleList &module_list,
-                                      const ConstString &name,
+                                      ConstString name,
                                       SymbolType symbol_type) const {
   SymbolContextList target_symbols;
   Target &target = m_process->GetTarget();

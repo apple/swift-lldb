@@ -1,9 +1,8 @@
 //===-- MemoryHistoryASan.cpp -----------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -149,8 +148,6 @@ static void CreateHistoryThreadFromValueObject(ProcessSP process_sp,
   result.push_back(new_thread_sp);
 }
 
-static constexpr std::chrono::seconds g_get_stack_function_timeout(2);
-
 HistoryThreads MemoryHistoryASan::GetHistoryThreads(lldb::addr_t address) {
   HistoryThreads result;
 
@@ -178,7 +175,7 @@ HistoryThreads MemoryHistoryASan::GetHistoryThreads(lldb::addr_t address) {
   options.SetTryAllThreads(true);
   options.SetStopOthers(true);
   options.SetIgnoreBreakpoints(true);
-  options.SetTimeout(g_get_stack_function_timeout);
+  options.SetTimeout(process_sp->GetUtilityExpressionTimeout());
   options.SetPrefix(memory_history_asan_command_prefix);
   options.SetAutoApplyFixIts(false);
   options.SetLanguage(eLanguageTypeObjC_plus_plus);

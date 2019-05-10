@@ -1,9 +1,8 @@
 //===-- Process.h -----------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -12,10 +11,8 @@
 
 #include "lldb/Host/Config.h"
 
-// C Includes
 #include <limits.h>
 
-// C++ Includes
 #include <chrono>
 #include <list>
 #include <memory>
@@ -24,13 +21,8 @@
 #include <unordered_set>
 #include <vector>
 
-// Other libraries and framework includes
-// Project includes
 #include "lldb/Breakpoint/BreakpointSiteList.h"
-#include "lldb/Core/Broadcaster.h"
 #include "lldb/Core/Communication.h"
-#include "lldb/Core/Event.h"
-#include "lldb/Core/Listener.h"
 #include "lldb/Core/LoadedModuleInfoList.h"
 #include "lldb/Core/PluginInterface.h"
 #include "lldb/Core/ThreadSafeValue.h"
@@ -47,6 +39,9 @@
 #include "lldb/Target/QueueList.h"
 #include "lldb/Target/ThreadList.h"
 #include "lldb/Utility/ArchSpec.h"
+#include "lldb/Utility/Broadcaster.h"
+#include "lldb/Utility/Event.h"
+#include "lldb/Utility/Listener.h"
 #include "lldb/Utility/NameMatches.h"
 #include "lldb/Utility/Status.h"
 #include "lldb/Utility/StructuredData.h"
@@ -72,36 +67,22 @@ public:
   ~ProcessProperties() override;
 
   bool GetDisableMemoryCache() const;
-
   uint64_t GetMemoryCacheLineSize() const;
-
   Args GetExtraStartupCommands() const;
-
   void SetExtraStartupCommands(const Args &args);
-
   FileSpec GetPythonOSPluginPath() const;
-
   void SetPythonOSPluginPath(const FileSpec &file);
-
   bool GetIgnoreBreakpointsInExpressions() const;
-
   void SetIgnoreBreakpointsInExpressions(bool ignore);
-
   bool GetUnwindOnErrorInExpressions() const;
-
   void SetUnwindOnErrorInExpressions(bool ignore);
-
   bool GetStopOnSharedLibraryEvents() const;
-
   void SetStopOnSharedLibraryEvents(bool stop);
-
   bool GetDetachKeepsStopped() const;
-
   void SetDetachKeepsStopped(bool keep_stopped);
-
   bool GetWarningsOptimization() const;
-
   bool GetStopOnExec() const;
+  std::chrono::seconds GetUtilityExpressionTimeout() const;
 
 protected:
   static void OptionValueChangedCallback(void *baton,
@@ -319,7 +300,7 @@ public:
                            NameMatch process_name_match_type)
       : m_match_info(), m_name_match_type(process_name_match_type),
         m_match_all_users(false) {
-    m_match_info.GetExecutableFile().SetFile(process_name, false,
+    m_match_info.GetExecutableFile().SetFile(process_name,
                                              FileSpec::Style::native);
   }
 
@@ -598,9 +579,9 @@ public:
 
     ~ProcessEventData() override;
 
-    static const ConstString &GetFlavorString();
+    static ConstString GetFlavorString();
 
-    const ConstString &GetFlavor() const override;
+    ConstString GetFlavor() const override;
 
     lldb::ProcessSP GetProcessSP() const { return m_process_wp.lock(); }
 
@@ -2100,7 +2081,7 @@ public:
   ///     An error value.
   //------------------------------------------------------------------
   virtual Status
-  GetMemoryRegions(std::vector<lldb::MemoryRegionInfoSP> &region_list);
+  GetMemoryRegions(lldb_private::MemoryRegionInfos &region_list);
 
   virtual Status GetWatchpointSupportInfo(uint32_t &num) {
     Status error;
@@ -2548,7 +2529,7 @@ public:
 
   const lldb::ABISP &GetABI();
 
-  OperatingSystem *GetOperatingSystem() { return m_os_ap.get(); }
+  OperatingSystem *GetOperatingSystem() { return m_os_up.get(); }
 
   virtual LanguageRuntime *GetLanguageRuntime(lldb::LanguageType language,
                                               bool retry_if_null = true);
@@ -2566,7 +2547,7 @@ public:
   bool IsRunning() const;
 
   DynamicCheckerFunctions *GetDynamicCheckers() {
-    return m_dynamic_checkers_ap.get();
+    return m_dynamic_checkers_up.get();
   }
 
   void SetDynamicCheckers(DynamicCheckerFunctions *dynamic_checkers);
@@ -2765,7 +2746,7 @@ public:
   ///     Returns the result of attempting to configure the feature.
   //------------------------------------------------------------------
   virtual Status
-  ConfigureStructuredData(const ConstString &type_name,
+  ConfigureStructuredData(ConstString type_name,
                           const StructuredData::ObjectSP &config_sp);
 
   //------------------------------------------------------------------
@@ -2799,7 +2780,7 @@ public:
   ///     otherwise, returns an empty shared pointer.
   //------------------------------------------------------------------
   lldb::StructuredDataPluginSP
-  GetStructuredDataPlugin(const ConstString &type_name) const;
+  GetStructuredDataPlugin(ConstString type_name) const;
 
   //------------------------------------------------------------------
   /// Starts tracing with the configuration provided in options. To enable
@@ -2947,10 +2928,10 @@ protected:
   };
 
   void SetNextEventAction(Process::NextEventAction *next_event_action) {
-    if (m_next_event_action_ap.get())
-      m_next_event_action_ap->HandleBeingUnshipped();
+    if (m_next_event_action_up.get())
+      m_next_event_action_up->HandleBeingUnshipped();
 
-    m_next_event_action_ap.reset(next_event_action);
+    m_next_event_action_up.reset(next_event_action);
   }
 
   // This is the completer for Attaching:
@@ -3014,7 +2995,7 @@ protected:
   ///
   ///     virtual void
   ///     HandleArrivalOfStructuredData(Process &process,
-  ///                                   const ConstString &type_name,
+  ///                                   ConstString type_name,
   ///                                   const StructuredData::ObjectSP
   ///                                   &object_sp)
   ///
@@ -3099,15 +3080,15 @@ protected:
   BreakpointSiteList m_breakpoint_site_list; ///< This is the list of breakpoint
                                              ///locations we intend to insert in
                                              ///the target.
-  lldb::DynamicLoaderUP m_dyld_ap;
-  lldb::JITLoaderListUP m_jit_loaders_ap;
-  lldb::DynamicCheckerFunctionsUP m_dynamic_checkers_ap; ///< The functions used
-                                                         ///by the expression
-                                                         ///parser to validate
-                                                         ///data that
-                                                         ///expressions use.
-  lldb::OperatingSystemUP m_os_ap;
-  lldb::SystemRuntimeUP m_system_runtime_ap;
+  lldb::DynamicLoaderUP m_dyld_up;
+  lldb::JITLoaderListUP m_jit_loaders_up;
+  lldb::DynamicCheckerFunctionsUP m_dynamic_checkers_up; ///< The functions used
+                                                         /// by the expression
+                                                         /// parser to validate
+                                                         /// data that
+                                                         /// expressions use.
+  lldb::OperatingSystemUP m_os_up;
+  lldb::SystemRuntimeUP m_system_runtime_up;
   lldb::UnixSignalsSP
       m_unix_signals_sp; /// This is the current signal set for this process.
   lldb::ABISP m_abi_sp;
@@ -3127,7 +3108,7 @@ protected:
                         /// with an explicit call to Kill or Detach?
   LanguageRuntimeCollection m_language_runtimes;
   InstrumentationRuntimeCollection m_instrumentation_runtimes;
-  std::unique_ptr<NextEventAction> m_next_event_action_ap;
+  std::unique_ptr<NextEventAction> m_next_event_action_up;
   std::vector<PreResumeCallbackAndBaton> m_pre_resume_actions;
   ProcessRunLock m_public_run_lock;
   ProcessRunLock m_private_run_lock;

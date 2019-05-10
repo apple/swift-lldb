@@ -1,20 +1,13 @@
 //===-- CommandObjectMemory.cpp ---------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
-#include <inttypes.h>
-
-// C++ Includes
-// Other libraries and framework includes
 #include "clang/AST/Decl.h"
 
-// Project includes
 #include "CommandObjectMemory.h"
 #include "Plugins/ExpressionParser/Clang/ClangPersistentVariables.h"
 #include "lldb/Core/Debugger.h"
@@ -46,6 +39,9 @@
 #include "lldb/Utility/StreamString.h"
 
 #include "lldb/lldb-private.h"
+
+#include <cinttypes>
+#include <memory>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -386,7 +382,6 @@ protected:
     if (view_as_type_cstr && view_as_type_cstr[0]) {
       // We are viewing memory as a type
 
-      SymbolContext sc;
       const bool exact_match = false;
       TypeList type_list;
       uint32_t reference_count = 0;
@@ -471,17 +466,13 @@ protected:
       llvm::DenseSet<lldb_private::SymbolFile *> searched_symbol_files;
       ConstString lookup_type_name(type_str.c_str());
       StackFrame *frame = m_exe_ctx.GetFramePtr();
+      ModuleSP search_first;
       if (frame) {
-        sc = frame->GetSymbolContext(eSymbolContextModule);
-        if (sc.module_sp) {
-          sc.module_sp->FindTypes(sc, lookup_type_name, exact_match, 1,
-                                  searched_symbol_files, type_list);
-        }
+        search_first = frame->GetSymbolContext(eSymbolContextModule).module_sp;
       }
-      if (type_list.GetSize() == 0) {
-        target->GetImages().FindTypes(sc, lookup_type_name, exact_match, 1,
-                                      searched_symbol_files, type_list);
-      }
+      target->GetImages().FindTypes(search_first.get(), lookup_type_name,
+                                    exact_match, 1, searched_symbol_files,
+                                    type_list);
 
       if (type_list.GetSize() == 0 && lookup_type_name.GetCString() &&
           *lookup_type_name.GetCString() == '$') {
@@ -528,15 +519,15 @@ protected:
         --pointer_count;
       }
 
-      m_format_options.GetByteSizeValue() = clang_ast_type.GetByteSize(nullptr);
-
-      if (m_format_options.GetByteSizeValue() == 0) {
+      llvm::Optional<uint64_t> size = clang_ast_type.GetByteSize(nullptr);
+      if (!size) {
         result.AppendErrorWithFormat(
             "unable to get the byte size of the type '%s'\n",
             view_as_type_cstr);
         result.SetStatus(eReturnStatusFailed);
         return false;
       }
+      m_format_options.GetByteSizeValue() = *size;
 
       if (!m_format_options.GetCountValue().OptionWasSet())
         m_format_options.GetCountValue() = 1;
@@ -651,15 +642,18 @@ protected:
       if (!m_format_options.GetFormatValue().OptionWasSet())
         m_format_options.GetFormatValue().SetCurrentValue(eFormatDefault);
 
-      bytes_read = clang_ast_type.GetByteSize(nullptr) *
-                   m_format_options.GetCountValue().GetCurrentValue();
+      llvm::Optional<uint64_t> size = clang_ast_type.GetByteSize(nullptr);
+      if (!size) {
+        result.AppendError("can't get size of type");
+        return false;
+      }
+      bytes_read = *size * m_format_options.GetCountValue().GetCurrentValue();
 
       if (argc > 0)
-        addr = addr + (clang_ast_type.GetByteSize(nullptr) *
-                       m_memory_options.m_offset.GetCurrentValue());
+        addr = addr + (*size * m_memory_options.m_offset.GetCurrentValue());
     } else if (m_format_options.GetFormatValue().GetCurrentValue() !=
                eFormatCString) {
-      data_sp.reset(new DataBufferHeap(total_byte_size, '\0'));
+      data_sp = std::make_shared<DataBufferHeap>(total_byte_size, '\0');
       if (data_sp->GetBytes() == nullptr) {
         result.AppendErrorWithFormat(
             "can't allocate 0x%" PRIx32
@@ -699,8 +693,9 @@ protected:
         item_byte_size = target->GetMaximumSizeOfStringSummary();
       if (!m_format_options.GetCountValue().OptionWasSet())
         item_count = 1;
-      data_sp.reset(new DataBufferHeap((item_byte_size + 1) * item_count,
-                                       '\0')); // account for NULLs as necessary
+      data_sp = std::make_shared<DataBufferHeap>(
+          (item_byte_size + 1) * item_count,
+          '\0'); // account for NULLs as necessary
       if (data_sp->GetBytes() == nullptr) {
         result.AppendErrorWithFormat(
             "can't allocate 0x%" PRIx64
@@ -747,7 +742,8 @@ protected:
         if (break_on_no_NULL)
           break;
       }
-      data_sp.reset(new DataBufferHeap(data_sp->GetBytes(), bytes_read + 1));
+      data_sp =
+          std::make_shared<DataBufferHeap>(data_sp->GetBytes(), bytes_read + 1);
     }
 
     m_next_addr = addr + bytes_read;
@@ -762,9 +758,9 @@ protected:
     Stream *output_stream = nullptr;
     const FileSpec &outfile_spec =
         m_outfile_options.GetFile().GetCurrentValue();
+
+    std::string path = outfile_spec.GetPath();
     if (outfile_spec) {
-      char path[PATH_MAX];
-      outfile_spec.GetPath(path, sizeof(path));
 
       uint32_t open_options =
           File::eOpenOptionWrite | File::eOpenOptionCanCreate;
@@ -772,19 +768,21 @@ protected:
       if (append)
         open_options |= File::eOpenOptionAppend;
 
-      if (outfile_stream.GetFile().Open(path, open_options).Success()) {
+      Status error = FileSystem::Instance().Open(outfile_stream.GetFile(),
+                                                 outfile_spec, open_options);
+      if (error.Success()) {
         if (m_memory_options.m_output_as_binary) {
           const size_t bytes_written =
               outfile_stream.Write(data_sp->GetBytes(), bytes_read);
           if (bytes_written > 0) {
             result.GetOutputStream().Printf(
                 "%zi bytes %s to '%s'\n", bytes_written,
-                append ? "appended" : "written", path);
+                append ? "appended" : "written", path.c_str());
             return true;
           } else {
             result.AppendErrorWithFormat("Failed to write %" PRIu64
                                          " bytes to '%s'.\n",
-                                         (uint64_t)bytes_read, path);
+                                         (uint64_t)bytes_read, path.c_str());
             result.SetStatus(eReturnStatusFailed);
             return false;
           }
@@ -794,8 +792,8 @@ protected:
           output_stream = &outfile_stream;
         }
       } else {
-        result.AppendErrorWithFormat("Failed to open file '%s' for %s.\n", path,
-                                     append ? "append" : "write");
+        result.AppendErrorWithFormat("Failed to open file '%s' for %s.\n",
+                                     path.c_str(), append ? "append" : "write");
         result.SetStatus(eReturnStatusFailed);
         return false;
       }
@@ -1068,7 +1066,11 @@ protected:
                m_memory_options.m_expr.GetStringValue(), frame, result_sp)) &&
           result_sp) {
         uint64_t value = result_sp->GetValueAsUnsigned(0);
-        switch (result_sp->GetCompilerType().GetByteSize(nullptr)) {
+        llvm::Optional<uint64_t> size =
+            result_sp->GetCompilerType().GetByteSize(nullptr);
+        if (!size)
+          return false;
+        switch (*size) {
         case 1: {
           uint8_t byte = (uint8_t)value;
           buffer.CopyData(&byte, 1);
@@ -1209,8 +1211,9 @@ public:
 
       switch (short_option) {
       case 'i':
-        m_infile.SetFile(option_value, true, FileSpec::Style::native);
-        if (!m_infile.Exists()) {
+        m_infile.SetFile(option_value, FileSpec::Style::native);
+        FileSystem::Instance().Resolve(m_infile);
+        if (!FileSystem::Instance().Exists(m_infile)) {
           m_infile.Clear();
           error.SetErrorStringWithFormat("input file does not exist: '%s'",
                                          option_value.str().c_str());
@@ -1358,7 +1361,7 @@ protected:
       size_t length = SIZE_MAX;
       if (item_byte_size > 1)
         length = item_byte_size;
-      auto data_sp = DataBufferLLVM::CreateSliceFromPath(
+      auto data_sp = FileSystem::Instance().CreateDataBuffer(
           m_memory_options.m_infile.GetPath(), length,
           m_memory_options.m_infile_offset);
       if (data_sp) {
@@ -1724,6 +1727,7 @@ protected:
         error = process_sp->GetMemoryRegionInfo(load_addr, range_info);
         if (error.Success()) {
           lldb_private::Address addr;
+          ConstString name = range_info.GetName();
           ConstString section_name;
           if (process_sp->GetTarget().ResolveLoadAddress(load_addr, addr)) {
             SectionSP section_sp(addr.GetSection());
@@ -1735,13 +1739,14 @@ protected:
             }
           }
           result.AppendMessageWithFormat(
-              "[0x%16.16" PRIx64 "-0x%16.16" PRIx64 ") %c%c%c%s%s\n",
+              "[0x%16.16" PRIx64 "-0x%16.16" PRIx64 ") %c%c%c%s%s%s%s\n",
               range_info.GetRange().GetRangeBase(),
               range_info.GetRange().GetRangeEnd(),
               range_info.GetReadable() ? 'r' : '-',
               range_info.GetWritable() ? 'w' : '-',
-              range_info.GetExecutable() ? 'x' : '-', section_name ? " " : "",
-              section_name ? section_name.AsCString() : "");
+              range_info.GetExecutable() ? 'x' : '-',
+              name ? " " : "", name.AsCString(""),
+              section_name ? " " : "", section_name.AsCString(""));
           m_prev_end_addr = range_info.GetRange().GetRangeEnd();
           result.SetStatus(eReturnStatusSuccessFinishResult);
         } else {

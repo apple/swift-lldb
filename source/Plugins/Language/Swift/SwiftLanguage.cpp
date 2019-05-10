@@ -48,10 +48,8 @@
 using namespace lldb;
 using namespace lldb_private;
 
-#ifndef LLDB_DISABLE_PYTHON
 using lldb_private::formatters::AddCXXSummary;
 using lldb_private::formatters::AddCXXSynthetic;
-#endif
 using lldb_private::formatters::AddFormat;
 using lldb_private::formatters::AddStringSummary;
 using lldb_private::formatters::AddSummary;
@@ -59,9 +57,9 @@ using lldb_private::formatters::swift::DictionaryConfig;
 using lldb_private::formatters::swift::SetConfig;
 
 void SwiftLanguage::Initialize() {
-  static ConstString g_SwiftSharedStringClass(SwiftLanguageRuntime::GetCurrentMangledName("_TtCs20_SharedStringStorage"));
+  static ConstString g_SwiftSharedStringClass(SwiftLanguageRuntime::GetCurrentMangledName("_TtCs21__SharedStringStorage"));
   static ConstString g_SwiftStringStorageClass(
-      SwiftLanguageRuntime::GetCurrentMangledName("_TtCs14_StringStorage"));
+      SwiftLanguageRuntime::GetCurrentMangledName("_TtCs15__StringStorage"));
   static ConstString g_NSArrayClass1(SwiftLanguageRuntime::GetCurrentMangledName("_TtCs22__SwiftDeferredNSArray"));
   PluginManager::RegisterPlugin(GetPluginNameStatic(), "Swift Language",
                                 CreateInstance);
@@ -84,9 +82,9 @@ void SwiftLanguage::Initialize() {
 
 void SwiftLanguage::Terminate() {
   // FIXME: Duplicating this list from Initialize seems error-prone.
-  static ConstString g_SwiftSharedStringClass(SwiftLanguageRuntime::GetCurrentMangledName("_TtCs20_SharedStringStorage"));
+  static ConstString g_SwiftSharedStringClass(SwiftLanguageRuntime::GetCurrentMangledName("_TtCs21__SharedStringStorage"));
   static ConstString g_SwiftStringStorageClass(
-      SwiftLanguageRuntime::GetCurrentMangledName("_TtCs14_StringStorage"));
+      SwiftLanguageRuntime::GetCurrentMangledName("_TtCs15__StringStorage"));
   static ConstString g_NSArrayClass1(SwiftLanguageRuntime::GetCurrentMangledName("_TtCs22__SwiftDeferredNSArray"));
 
   lldb_private::formatters::NSString_Additionals::GetAdditionalSummaries()
@@ -140,7 +138,6 @@ static void LoadSwiftFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
   basic_synth_flags.SetCascades(true).SetSkipPointers(true).SetSkipReferences(
       true);
 
-#ifndef LLDB_DISABLE_PYTHON
   AddCXXSummary(swift_category_sp,
                 lldb_private::formatters::swift::ObjC_Selector_SummaryProvider,
                 "ObjectiveC.Selector", ConstString("ObjectiveC.Selector"),
@@ -449,7 +446,7 @@ static void LoadSwiftFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
       swift_category_sp,
       lldb_private::formatters::swift::SwiftSharedString_SummaryProvider,
       "SharedStringStorage summary provider",
-      ConstString(SwiftLanguageRuntime::GetCurrentMangledName("_TtCs20_SharedStringStorage")), summary_flags);
+      ConstString(SwiftLanguageRuntime::GetCurrentMangledName("_TtCs21__SharedStringStorage")), summary_flags);
   summary_flags.SetSkipPointers(true);
   AddCXXSummary(swift_category_sp,
                 lldb_private::formatters::swift::BuiltinObjC_SummaryProvider,
@@ -558,14 +555,21 @@ static void LoadSwiftFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
       .SetDontShowChildren(true)
       .SetHideItemNames(true)
       .SetShowMembersOneLiner(false);
-  const char *accelSIMDTypes = "^(simd\\.)?(simd_)?("
-                               "(int|uint|float|double)[234]|"
-                               "(float|double)[234]x[234]|"
-                               "quat(f|d)"
-                               ")$";
+  const char *SIMDTypes = "^(simd\\.)?(simd_)?("
+                          "(int|uint|float|double)[234]|"
+                          "(float|double)[234]x[234]|"
+                          "quat(f|d)"
+                          ")$";
+
+  const char *newSIMDTypes = "^SIMD[0-9]+<.*>$";
+
   AddCXXSummary(swift_category_sp,
-                lldb_private::formatters::swift::AccelerateSIMD_SummaryProvider,
-                "Accelerate/SIMD summary provider", ConstString(accelSIMDTypes),
+                lldb_private::formatters::swift::LegacySIMD_SummaryProvider,
+                "SIMD (legacy) summary provider", ConstString(SIMDTypes),
+                simd_summary_flags, true);
+  AddCXXSummary(swift_category_sp,
+                lldb_private::formatters::swift::SIMDVector_SummaryProvider,
+                "Vector SIMD summary provider", ConstString(newSIMDTypes),
                 simd_summary_flags, true);
 
   const char *GLKitTypes = "^(GLKMatrix[234]|GLKVector[234]|GLKQuaternion)$";
@@ -590,7 +594,6 @@ static void LoadSwiftFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
                    ConstString("CoreGraphics.CGFloat"), summary_flags);
   AddStringSummary(swift_category_sp, "${var.native}",
                    ConstString("Foundation.CGFloat"), summary_flags);
-#endif // LLDB_DISABLE_PYTHON
 }
 
 static void
@@ -606,7 +609,6 @@ LoadFoundationValueTypesFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
       .SetHideItemNames(false)
       .SetShowMembersOneLiner(false);
 
-#ifndef LLDB_DISABLE_PYTHON
   lldb_private::formatters::AddCXXSummary(
       swift_category_sp, lldb_private::formatters::swift::Date_SummaryProvider,
       "Foundation.Date summary provider", ConstString("Foundation.Date"),
@@ -653,6 +655,12 @@ LoadFoundationValueTypesFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
       "Data summary provider", ConstString("Foundation.Data"),
       TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
 
+  lldb_private::formatters::AddCXXSummary(
+      swift_category_sp,
+      lldb_private::formatters::swift::Decimal_SummaryProvider,
+      "Decimal summary provider", ConstString("Foundation.Decimal"),
+      TypeSummaryImpl::Flags(summary_flags).SetDontShowChildren(true));
+
   lldb_private::formatters::AddCXXSynthetic(
       swift_category_sp,
       lldb_private::formatters::swift::URLComponentsSyntheticFrontEndCreator,
@@ -662,7 +670,6 @@ LoadFoundationValueTypesFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
                                                    .SetCascades(true)
                                                    .SetSkipReferences(false)
                                                    .SetNonCacheable(false));
-#endif
 }
 
 lldb::TypeCategoryImplSP SwiftLanguage::GetFormatters() {
@@ -815,8 +822,21 @@ SwiftLanguage::GetHardcodedSynthetics() {
             ProcessSP process_sp(valobj.GetProcessSP());
             if (!process_sp)
               return nullptr;
+            // If this is a Swift tagged pointer, the Objective-C data
+            // formatters may incorrectly classify it as an
+            // Objective-C tagged pointer.
+            AddressType address_type;
+            lldb::addr_t ptr = valobj.GetPointerValue(&address_type);
+            SwiftLanguageRuntime *swift_runtime =
+                process_sp->GetSwiftLanguageRuntime();
+            if (!swift_runtime)
+              return nullptr;
+            if (swift_runtime->IsTaggedPointer(ptr, valobj.GetCompilerType()))
+              return nullptr;
             ObjCLanguageRuntime *objc_runtime =
                 process_sp->GetObjCLanguageRuntime();
+            if (!objc_runtime)
+              return nullptr;
             ObjCLanguageRuntime::ClassDescriptorSP valobj_descriptor_sp =
                 objc_runtime->GetClassDescriptor(valobj);
             if (valobj_descriptor_sp) {
@@ -901,11 +921,6 @@ std::vector<ConstString> SwiftLanguage::GetPossibleFormattersMatches(
         result.push_back(name);
     } while (false);
   }
-
-#if 0
-    if (llvm::isa<SwiftASTContext>(compiler_type.GetTypeSystem()))
-        result.push_back(compiler_type.GetMangledTypeName());
-#endif
 
   return result;
 }
@@ -1317,8 +1332,7 @@ std::unique_ptr<Language::TypeScavenger> SwiftLanguage::GetTypeScavenger() {
                                  name_parts.size() == 1 &&
                                  name_parts.front() == module->getName().str())
                         results.insert(
-                            CompilerType(ast_ctx->GetASTContext(),
-                                         swift::ModuleType::get(module)));
+                            CompilerType(swift::ModuleType::get(module)));
                       return true;
                     });
 
@@ -1515,7 +1529,7 @@ bool SwiftLanguage::GetFunctionDisplayName(
   case Language::FunctionNameRepresentation::eNameWithNoArgs: {
     if (sc->function) {
       if (sc->function->GetLanguage() == eLanguageTypeSwift) {
-        if (ConstString cs = sc->function->GetDisplayName()) {
+        if (ConstString cs = sc->function->GetDisplayName(sc)) {
           s.Printf("%s", cs.AsCString());
           return true;
         }
@@ -1526,10 +1540,10 @@ bool SwiftLanguage::GetFunctionDisplayName(
   case Language::FunctionNameRepresentation::eNameWithArgs: {
     if (sc->function) {
       if (sc->function->GetLanguage() == eLanguageTypeSwift) {
-        if (const char *cstr = sc->function->GetDisplayName().AsCString()) {
+        if (const char *cstr =
+                sc->function->GetDisplayName(sc).AsCString()) {
           ExecutionContextScope *exe_scope =
               exe_ctx ? exe_ctx->GetBestExecutionContextScope() : NULL;
-
           const InlineFunctionInfo *inline_info = NULL;
           VariableListSP variable_list_sp;
           bool get_function_vars = true;
@@ -1673,7 +1687,7 @@ SwiftLanguage::CompleteCode(ExecutionContextScope &exe_scope,
   Target &target = *exe_scope.CalculateTarget();
   Status error;
   SwiftASTContext *swift_ast =
-      target.GetScratchSwiftASTContext(error, nullptr).get();
+      target.GetScratchSwiftASTContext(error, exe_scope).get();
   if (!swift_ast)
     return CompletionResponse::error("could not get Swift ASTContext");
   auto persistent_expression_state =

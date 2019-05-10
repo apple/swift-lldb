@@ -1,14 +1,12 @@
 //===-- ValueObjectDynamicValue.cpp ------------------------------*- C++-*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #include "lldb/Core/ValueObjectDynamicValue.h"
-#include "lldb/Core/Scalar.h" // for Scalar, operator!=
 #include "lldb/Core/Value.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Symbol/CompilerType.h"
@@ -17,13 +15,14 @@
 #include "lldb/Target/LanguageRuntime.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/Target.h"
-#include "lldb/Utility/DataExtractor.h" // for DataExtractor
+#include "lldb/Utility/DataExtractor.h"
 #include "lldb/Utility/Log.h"
-#include "lldb/Utility/Logging.h" // for GetLogIfAllCategoriesSet
-#include "lldb/Utility/Status.h"  // for Status
-#include "lldb/lldb-types.h"      // for addr_t, offset_t
+#include "lldb/Utility/Logging.h"
+#include "lldb/Utility/Scalar.h"
+#include "lldb/Utility/Status.h"
+#include "lldb/lldb-types.h"
 
-#include <string.h> // for strcmp, size_t
+#include <string.h>
 namespace lldb_private {
 class Declaration;
 }
@@ -86,8 +85,12 @@ ConstString ValueObjectDynamicValue::GetQualifiedTypeName() {
 ConstString ValueObjectDynamicValue::GetDisplayTypeName() {
   const bool success = UpdateValueIfNeeded(false);
   if (success) {
-    if (m_dynamic_type_info.HasType())
-      return GetCompilerType().GetDisplayTypeName();
+    if (m_dynamic_type_info.HasType()) {
+      const SymbolContext *sc = nullptr;
+      if (GetFrameSP())
+        sc = &GetFrameSP()->GetSymbolContext(eSymbolContextFunction);
+      return GetCompilerType().GetDisplayTypeName(sc);
+    }
     if (m_dynamic_type_info.HasName())
       return m_dynamic_type_info.GetName();
   }
@@ -119,9 +122,6 @@ lldb::ValueType ValueObjectDynamicValue::GetValueType() const {
 
 bool ValueObjectDynamicValue::UpdateValue() {
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_TYPES));
-
-  Log *verbose_log(
-      GetLogIfAllCategoriesSet(LIBLLDB_LOG_TYPES));
 
   SetValueIsValid(false);
   m_error.Clear();
@@ -191,9 +191,9 @@ bool ValueObjectDynamicValue::UpdateValue() {
   m_update_point.SetUpdated();
 
   if (runtime && found_dynamic_type) {
-    if (verbose_log)
-      verbose_log->Printf("[%s %p] might have a dynamic type",
-                          GetName().GetCString(), (void *)this);
+    if (log)
+      log->Printf("[%s %p] might have a dynamic type", GetName().GetCString(),
+                  (void *)this);
     if (class_type_or_name.HasType()) {
       // TypeSP are always generated from debug info
       const bool prefer_parent_type = false;
@@ -226,7 +226,7 @@ bool ValueObjectDynamicValue::UpdateValue() {
     ClearDynamicTypeInformation();
     m_dynamic_type_info.Clear();
     m_value = m_parent->GetValue();
-    m_error = GetValueAsData(&exe_ctx, m_data, 0, GetModule().get());
+    m_error = m_value.GetValueAsData(&exe_ctx, m_data, 0, GetModule().get());
     return m_error.Success();
   }
 
@@ -274,7 +274,7 @@ bool ValueObjectDynamicValue::UpdateValue() {
   if (m_address.IsValid() && m_dynamic_type_info) {
     // The variable value is in the Scalar value inside the m_value.
     // We can point our m_data right to it.
-    m_error = GetValueAsData(&exe_ctx, m_data, 0, GetModule().get());
+    m_error = m_value.GetValueAsData(&exe_ctx, m_data, 0, GetModule().get());
     if (m_error.Success()) {
       if (!CanProvideValue()) {
         // this value object represents an aggregate type whose children have

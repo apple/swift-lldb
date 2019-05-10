@@ -1,9 +1,8 @@
 //===-- Host.cpp ------------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -45,14 +44,13 @@
 #include <lwp.h>
 #endif
 
-// C++ Includes
 #include <csignal>
 
+#include "lldb/Host/FileSystem.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Host/HostProcess.h"
 #include "lldb/Host/MonitoringProcessLauncher.h"
-#include "lldb/Host/Predicate.h"
 #include "lldb/Host/ProcessLauncher.h"
 #include "lldb/Host/ThreadLauncher.h"
 #include "lldb/Host/posix/ConnectionFileDescriptorPosix.h"
@@ -62,6 +60,7 @@
 #include "lldb/Utility/DataBufferLLVM.h"
 #include "lldb/Utility/FileSpec.h"
 #include "lldb/Utility/Log.h"
+#include "lldb/Utility/Predicate.h"
 #include "lldb/Utility/Status.h"
 #include "lldb/lldb-private-forward.h"
 #include "llvm/ADT/SmallString.h"
@@ -419,8 +418,10 @@ FileSpec Host::GetModuleFileSpecForHostAddress(const void *host_addr) {
 #if !defined(__ANDROID__)
   Dl_info info;
   if (::dladdr(host_addr, &info)) {
-    if (info.dli_fname)
-      module_filespec.SetFile(info.dli_fname, true, FileSpec::Style::native);
+    if (info.dli_fname) {
+      module_filespec.SetFile(info.dli_fname, FileSpec::Style::native);
+      FileSystem::Instance().Resolve(module_filespec);
+    }
   }
 #endif
   return module_filespec;
@@ -464,16 +465,19 @@ Status Host::RunShellCommand(const char *command, const FileSpec &working_dir,
                              int *status_ptr, int *signo_ptr,
                              std::string *command_output_ptr,
                              const Timeout<std::micro> &timeout,
-                             bool run_in_default_shell) {
+                             bool run_in_default_shell,
+                             bool hide_stderr) {
   return RunShellCommand(Args(command), working_dir, status_ptr, signo_ptr,
-                         command_output_ptr, timeout, run_in_default_shell);
+                         command_output_ptr, timeout, run_in_default_shell,
+                         hide_stderr);
 }
 
 Status Host::RunShellCommand(const Args &args, const FileSpec &working_dir,
                              int *status_ptr, int *signo_ptr,
                              std::string *command_output_ptr,
                              const Timeout<std::micro> &timeout,
-                             bool run_in_default_shell) {
+                             bool run_in_default_shell,
+                             bool hide_stderr) {
   Status error;
   ProcessLaunchInfo launch_info;
   launch_info.SetArchitecture(HostInfo::GetArchitecture());
@@ -494,7 +498,7 @@ Status Host::RunShellCommand(const Args &args, const FileSpec &working_dir,
 
   if (working_dir)
     launch_info.SetWorkingDirectory(working_dir);
-  llvm::SmallString<PATH_MAX> output_file_path;
+  llvm::SmallString<64> output_file_path;
 
   if (command_output_ptr) {
     // Create a temporary file to get the stdout/stderr and redirect the output
@@ -510,17 +514,19 @@ Status Host::RunShellCommand(const Args &args, const FileSpec &working_dir,
     }
   }
 
-  FileSpec output_file_spec{output_file_path.c_str(), false};
-
+  FileSpec output_file_spec(output_file_path.c_str());
+  // Set up file descriptors.
   launch_info.AppendSuppressFileAction(STDIN_FILENO, true, false);
-  if (output_file_spec) {
+  if (output_file_spec)
     launch_info.AppendOpenFileAction(STDOUT_FILENO, output_file_spec, false,
                                      true);
-    launch_info.AppendDuplicateFileAction(STDOUT_FILENO, STDERR_FILENO);
-  } else {
+  else
     launch_info.AppendSuppressFileAction(STDOUT_FILENO, false, true);
+
+  if (output_file_spec && !hide_stderr)
+    launch_info.AppendDuplicateFileAction(STDOUT_FILENO, STDERR_FILENO);
+  else
     launch_info.AppendSuppressFileAction(STDERR_FILENO, false, true);
-  }
 
   std::shared_ptr<ShellInfo> shell_info_sp(new ShellInfo());
   const bool monitor_signals = false;
@@ -554,14 +560,15 @@ Status Host::RunShellCommand(const Args &args, const FileSpec &working_dir,
 
       if (command_output_ptr) {
         command_output_ptr->clear();
-        uint64_t file_size = output_file_spec.GetByteSize();
+        uint64_t file_size =
+            FileSystem::Instance().GetByteSize(output_file_spec);
         if (file_size > 0) {
           if (file_size > command_output_ptr->max_size()) {
             error.SetErrorStringWithFormat(
                 "shell command output is too large to fit into a std::string");
           } else {
             auto Buffer =
-                DataBufferLLVM::CreateFromPath(output_file_spec.GetPath());
+                FileSystem::Instance().CreateDataBuffer(output_file_spec);
             if (error.Success())
               command_output_ptr->assign(Buffer->GetChars(),
                                          Buffer->GetByteSize());

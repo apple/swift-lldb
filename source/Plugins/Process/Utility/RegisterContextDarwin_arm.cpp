@@ -1,26 +1,25 @@
 //===-- RegisterContextDarwin_arm.cpp ---------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #include "RegisterContextDarwin_arm.h"
 #include "RegisterContextDarwinConstants.h"
 
-// C++ Includes
-// Other libraries and framework includes
-#include "lldb/Core/RegisterValue.h"
-#include "lldb/Core/Scalar.h"
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/DataExtractor.h"
 #include "lldb/Utility/Endian.h"
 #include "lldb/Utility/Log.h"
+#include "lldb/Utility/RegisterValue.h"
+#include "lldb/Utility/Scalar.h"
 #include "llvm/Support/Compiler.h"
 
 #include "Plugins/Process/Utility/InstructionUtils.h"
+
+#include <memory>
 
 // Support building against older versions of LLVM, this macro was added
 // recently.
@@ -28,7 +27,6 @@
 #define LLVM_EXTENSION
 #endif
 
-// Project includes
 #include "Utility/ARM_DWARF_Registers.h"
 #include "Utility/ARM_ehframe_Registers.h"
 
@@ -1300,7 +1298,7 @@ bool RegisterContextDarwin_arm::WriteRegister(const RegisterInfo *reg_info,
 
 bool RegisterContextDarwin_arm::ReadAllRegisterValues(
     lldb::DataBufferSP &data_sp) {
-  data_sp.reset(new DataBufferHeap(REG_CONTEXT_SIZE, 0));
+  data_sp = std::make_shared<DataBufferHeap>(REG_CONTEXT_SIZE, 0);
   if (data_sp && ReadGPR(false) == KERN_SUCCESS &&
       ReadFPU(false) == KERN_SUCCESS && ReadEXC(false) == KERN_SUCCESS) {
     uint8_t *dst = data_sp->GetBytes();
@@ -1673,7 +1671,7 @@ uint32_t RegisterContextDarwin_arm::SetHardwareWatchpoint(lldb::addr_t addr,
     return LLDB_INVALID_INDEX32;
 
   // We must watch for either read or write
-  if (read == false && write == false)
+  if (!read && !write)
     return LLDB_INVALID_INDEX32;
 
   // Can't watch more than 4 bytes per WVR/WCR pair

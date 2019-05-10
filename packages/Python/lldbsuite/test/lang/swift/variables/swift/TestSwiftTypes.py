@@ -14,17 +14,18 @@ Test that we can inspect basic Swift types
 """
 import lldb
 from lldbsuite.test.lldbtest import *
-import lldbsuite.test.decorators as decorators
+from lldbsuite.test.decorators import *
 import lldbsuite.test.lldbutil as lldbutil
 import unittest2
+import platform
 
 
 class TestSwiftTypes(TestBase):
 
     mydir = TestBase.compute_mydir(__file__)
 
-    @decorators.swiftTest
-    @decorators.add_test_categories(["swiftpr"])
+    @swiftTest
+    @add_test_categories(["swiftpr"])
     def test_swift_types(self):
         """Test that we can inspect basic Swift types"""
         self.build()
@@ -162,7 +163,9 @@ class TestSwiftTypes(TestBase):
                 'float64',
                 'value = 2.5'])
         float80_unsupported_platforms = ["ios"]
-        if self.getPlatform() not in float80_unsupported_platforms:
+        float80_unsupported_archs = ["ppc64le"]
+        if self.getPlatform() not in float80_unsupported_platforms \
+        and platform.machine() not in float80_unsupported_archs:
             self.expect(
                 "frame variable --raw float80",
                 substrs=[

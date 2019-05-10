@@ -1,16 +1,11 @@
 //===-- LibCxxInitializerList.cpp -------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-// Project includes
 #include "LibCxx.h"
 
 #include "lldb/Core/ValueObject.h"
@@ -38,7 +33,7 @@ public:
 
   bool MightHaveChildren() override;
 
-  size_t GetIndexOfChildWithName(const ConstString &name) override;
+  size_t GetIndexOfChildWithName(ConstString name) override;
 
 private:
   ValueObject *m_start;
@@ -98,12 +93,11 @@ bool lldb_private::formatters::LibcxxInitializerListSyntheticFrontEnd::
   if (!m_element_type.IsValid())
     return false;
 
-  m_element_size = m_element_type.GetByteSize(nullptr);
-
-  if (m_element_size > 0)
-    m_start =
-        m_backend.GetChildMemberWithName(g___begin_, true)
-            .get(); // store raw pointers or end up with a circular dependency
+  if (llvm::Optional<uint64_t> size = m_element_type.GetByteSize(nullptr)) {
+    m_element_size = *size;
+    // Store raw pointers or end up with a circular dependency.
+    m_start = m_backend.GetChildMemberWithName(g___begin_, true).get();
+  }
 
   return false;
 }
@@ -114,7 +108,7 @@ bool lldb_private::formatters::LibcxxInitializerListSyntheticFrontEnd::
 }
 
 size_t lldb_private::formatters::LibcxxInitializerListSyntheticFrontEnd::
-    GetIndexOfChildWithName(const ConstString &name) {
+    GetIndexOfChildWithName(ConstString name) {
   if (!m_start)
     return UINT32_MAX;
   return ExtractIndexFromString(name.GetCString());

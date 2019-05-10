@@ -1,27 +1,22 @@
 //===-- ClangExpressionDeclMap.h --------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef liblldb_ClangExpressionDeclMap_h_
 #define liblldb_ClangExpressionDeclMap_h_
 
-// C Includes
 #include <signal.h>
 #include <stdint.h>
 
-// C++ Includes
 #include <vector>
 
 #include "ClangASTSource.h"
 #include "ClangExpressionVariable.h"
 
-// Other libraries and framework includes
-// Project includes
 #include "lldb/Core/ClangForward.h"
 #include "lldb/Core/Value.h"
 #include "lldb/Expression/Materializer.h"
@@ -138,7 +133,7 @@ public:
   ///     True on success; false otherwise.
   //------------------------------------------------------------------
   bool AddPersistentVariable(const clang::NamedDecl *decl,
-                             const ConstString &name, TypeFromParser type,
+                             ConstString name, TypeFromParser type,
                              bool is_result, bool is_lvalue);
 
   //------------------------------------------------------------------
@@ -163,7 +158,7 @@ public:
   /// @return
   ///     True on success; false otherwise.
   //------------------------------------------------------------------
-  bool AddValueToStruct(const clang::NamedDecl *decl, const ConstString &name,
+  bool AddValueToStruct(const clang::NamedDecl *decl, ConstString name,
                         llvm::Value *value, size_t size,
                         lldb::offset_t alignment);
 
@@ -268,11 +263,11 @@ public:
   ///     Valid load address for the symbol
   //------------------------------------------------------------------
   lldb::addr_t GetSymbolAddress(Target &target, Process *process,
-                                const ConstString &name,
+                                ConstString name,
                                 lldb::SymbolType symbol_type,
                                 Module *module = NULL);
 
-  lldb::addr_t GetSymbolAddress(const ConstString &name,
+  lldb::addr_t GetSymbolAddress(ConstString name,
                                 lldb::SymbolType symbol_type);
 
   //------------------------------------------------------------------
@@ -463,7 +458,7 @@ private:
   ///     The LLDB Variable found, or NULL if none was found.
   //------------------------------------------------------------------
   lldb::VariableSP FindGlobalVariable(Target &target, lldb::ModuleSP &module,
-                                      const ConstString &name,
+                                      ConstString name,
                                       CompilerDeclContext *namespace_decl,
                                       TypeFromUser *type = NULL);
 

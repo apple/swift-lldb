@@ -1,9 +1,8 @@
 //===-- ConstString.cpp -----------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -12,20 +11,20 @@
 #include "lldb/Utility/Stream.h"
 
 #include "llvm/ADT/StringMap.h"
-#include "llvm/ADT/iterator.h"            // for iterator_facade_base
-#include "llvm/Support/Allocator.h"       // for BumpPtrAllocator
-#include "llvm/Support/DJB.h"             // for djbHash
-#include "llvm/Support/FormatProviders.h" // for format_provider
+#include "llvm/ADT/iterator.h"
+#include "llvm/Support/Allocator.h"
+#include "llvm/Support/DJB.h"
+#include "llvm/Support/FormatProviders.h"
 #include "llvm/Support/RWMutex.h"
 #include "llvm/Support/Threading.h"
 
-#include <algorithm> // for min
+#include <algorithm>
 #include <array>
-#include <utility> // for make_pair, pair
+#include <utility>
 
-#include <inttypes.h> // for PRIu64
-#include <stdint.h>   // for uint8_t, uint32_t, uint64_t
-#include <string.h>   // for size_t, strlen
+#include <inttypes.h>
+#include <stdint.h>
+#include <string.h>
 
 using namespace lldb_private;
 
@@ -207,7 +206,7 @@ ConstString::ConstString(const char *cstr, size_t cstr_len)
 ConstString::ConstString(const llvm::StringRef &s)
     : m_string(StringPool().GetConstCStringWithLength(s.data(), s.size())) {}
 
-bool ConstString::operator<(const ConstString &rhs) const {
+bool ConstString::operator<(ConstString rhs) const {
   if (m_string == rhs.m_string)
     return false;
 
@@ -222,7 +221,7 @@ bool ConstString::operator<(const ConstString &rhs) const {
   return lhs_string_ref.data() == nullptr;
 }
 
-Stream &lldb_private::operator<<(Stream &s, const ConstString &str) {
+Stream &lldb_private::operator<<(Stream &s, ConstString str) {
   const char *cstr = str.GetCString();
   if (cstr != nullptr)
     s << cstr;
@@ -234,7 +233,7 @@ size_t ConstString::GetLength() const {
   return Pool::GetConstCStringLength(m_string);
 }
 
-bool ConstString::Equals(const ConstString &lhs, const ConstString &rhs,
+bool ConstString::Equals(ConstString lhs, ConstString rhs,
                          const bool case_sensitive) {
   if (lhs.m_string == rhs.m_string)
     return true;
@@ -251,7 +250,7 @@ bool ConstString::Equals(const ConstString &lhs, const ConstString &rhs,
   return lhs_string_ref.equals_lower(rhs_string_ref);
 }
 
-int ConstString::Compare(const ConstString &lhs, const ConstString &rhs,
+int ConstString::Compare(ConstString lhs, ConstString rhs,
                          const bool case_sensitive) {
   // If the iterators are the same, this is the same string
   const char *lhs_cstr = lhs.m_string;
@@ -303,7 +302,7 @@ void ConstString::SetString(const llvm::StringRef &s) {
 }
 
 void ConstString::SetStringWithMangledCounterpart(llvm::StringRef demangled,
-                                                   const ConstString &mangled) {
+                                                   ConstString mangled) {
   m_string = StringPool().GetConstCStringAndSetMangledCounterPart(
       demangled, mangled.m_string);
 }

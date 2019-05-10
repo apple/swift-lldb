@@ -737,6 +737,8 @@ def is_thread_crashed(test, thread):
     elif test.getPlatform() == "linux":
         return thread.GetStopReason() == lldb.eStopReasonSignal and thread.GetStopReasonDataAtIndex(
             0) == thread.GetProcess().GetUnixSignals().GetSignalNumberFromName("SIGSEGV")
+    elif test.getPlatform() == "windows":
+        return "Exception 0xc0000005" in thread.GetStopDescription(100)
     else:
         return "invalid address" in thread.GetStopDescription(100)
 
@@ -1273,6 +1275,16 @@ class RecursiveDecentFormatter(BasicFormatter):
                         self, child, buffer=output, indent=new_indent)
 
         return output.getvalue()
+
+
+def check_expression(test, frame, expression, expected_result, use_summary=True):
+    """Asserts that the result of evaluating the given expression gives the passed expected result"""
+    value = frame.EvaluateExpression(expression)
+    test.assertTrue(value.IsValid(), expression + "returned a valid value")
+    answer = value.GetSummary() if use_summary else value.GetValue()
+    report_str = "%s expected: %s got: %s" % (
+        expression, expected_result, answer)
+    test.assertTrue(answer == expected_result, report_str)
 
 
 def check_variable(

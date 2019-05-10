@@ -1,39 +1,39 @@
 //===-- PluginManager.cpp ---------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #include "lldb/Core/PluginManager.h"
 
 #include "lldb/Core/Debugger.h"
+#include "lldb/Host/FileSystem.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Interpreter/OptionValueProperties.h"
-#include "lldb/Utility/ConstString.h" // for ConstString
+#include "lldb/Utility/ConstString.h"
 #include "lldb/Utility/FileSpec.h"
 #include "lldb/Utility/Status.h"
-#include "lldb/Utility/StringList.h" // for StringList
+#include "lldb/Utility/StringList.h"
 
 #if defined(_WIN32)
-#include "lldb/Host/windows/PosixApi.h" // for PATH_MAX
+#include "lldb/Host/windows/PosixApi.h"
 #endif
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DynamicLibrary.h"
-#include "llvm/Support/FileSystem.h"  // for file_type, file_...
-#include "llvm/Support/raw_ostream.h" // for fs
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/raw_ostream.h"
 
-#include <map>    // for map<>::const_ite...
-#include <memory> // for shared_ptr
+#include <map>
+#include <memory>
 #include <mutex>
 #include <string>
-#include <utility> // for pair
+#include <utility>
 #include <vector>
 
-#include <assert.h> // for assert
+#include <assert.h>
 
 namespace lldb_private {
 class CommandInterpreter;
@@ -89,9 +89,9 @@ template <typename FPtrTy> static FPtrTy CastToFPtr(void *VPtr) {
   return reinterpret_cast<FPtrTy>(reinterpret_cast<intptr_t>(VPtr));
 }
 
-static FileSpec::EnumerateDirectoryResult
+static FileSystem::EnumerateDirectoryResult
 LoadPluginCallback(void *baton, llvm::sys::fs::file_type ft,
-                   const FileSpec &file_spec) {
+                   llvm::StringRef path) {
   //    PluginManager *plugin_manager = (PluginManager *)baton;
   Status error;
 
@@ -102,11 +102,11 @@ LoadPluginCallback(void *baton, llvm::sys::fs::file_type ft,
   // file type information.
   if (ft == fs::file_type::regular_file || ft == fs::file_type::symlink_file ||
       ft == fs::file_type::type_unknown) {
-    FileSpec plugin_file_spec(file_spec);
-    plugin_file_spec.ResolvePath();
+    FileSpec plugin_file_spec(path);
+    FileSystem::Instance().Resolve(plugin_file_spec);
 
     if (PluginIsLoaded(plugin_file_spec))
-      return FileSpec::eEnumerateDirectoryResultNext;
+      return FileSystem::eEnumerateDirectoryResultNext;
     else {
       PluginInfo plugin_info;
 
@@ -138,7 +138,7 @@ LoadPluginCallback(void *baton, llvm::sys::fs::file_type ft,
         // plug-in info so we don't try to load it again and again.
         SetPluginInfo(plugin_file_spec, plugin_info);
 
-        return FileSpec::eEnumerateDirectoryResultNext;
+        return FileSystem::eEnumerateDirectoryResultNext;
       }
     }
   }
@@ -149,10 +149,10 @@ LoadPluginCallback(void *baton, llvm::sys::fs::file_type ft,
     // also do this for unknown as sometimes the directory enumeration might be
     // enumerating a file system that doesn't have correct file type
     // information.
-    return FileSpec::eEnumerateDirectoryResultEnter;
+    return FileSystem::eEnumerateDirectoryResultEnter;
   }
 
-  return FileSpec::eEnumerateDirectoryResultNext;
+  return FileSystem::eEnumerateDirectoryResultNext;
 }
 
 void PluginManager::Initialize() {
@@ -162,16 +162,20 @@ void PluginManager::Initialize() {
   const bool find_other = true;
   char dir_path[PATH_MAX];
   if (FileSpec dir_spec = HostInfo::GetSystemPluginDir()) {
-    if (dir_spec.Exists() && dir_spec.GetPath(dir_path, sizeof(dir_path))) {
-      FileSpec::EnumerateDirectory(dir_path, find_directories, find_files,
-                                   find_other, LoadPluginCallback, nullptr);
+    if (FileSystem::Instance().Exists(dir_spec) &&
+        dir_spec.GetPath(dir_path, sizeof(dir_path))) {
+      FileSystem::Instance().EnumerateDirectory(dir_path, find_directories,
+                                                find_files, find_other,
+                                                LoadPluginCallback, nullptr);
     }
   }
 
   if (FileSpec dir_spec = HostInfo::GetUserPluginDir()) {
-    if (dir_spec.Exists() && dir_spec.GetPath(dir_path, sizeof(dir_path))) {
-      FileSpec::EnumerateDirectory(dir_path, find_directories, find_files,
-                                   find_other, LoadPluginCallback, nullptr);
+    if (FileSystem::Instance().Exists(dir_spec) &&
+        dir_spec.GetPath(dir_path, sizeof(dir_path))) {
+      FileSystem::Instance().EnumerateDirectory(dir_path, find_directories,
+                                                find_files, find_other,
+                                                LoadPluginCallback, nullptr);
     }
   }
 #endif
@@ -215,7 +219,7 @@ static ABIInstances &GetABIInstances() {
   return g_instances;
 }
 
-bool PluginManager::RegisterPlugin(const ConstString &name,
+bool PluginManager::RegisterPlugin(ConstString name,
                                    const char *description,
                                    ABICreateInstance create_callback) {
   if (create_callback) {
@@ -257,7 +261,7 @@ ABICreateInstance PluginManager::GetABICreateCallbackAtIndex(uint32_t idx) {
 }
 
 ABICreateInstance
-PluginManager::GetABICreateCallbackForPluginName(const ConstString &name) {
+PluginManager::GetABICreateCallbackForPluginName(ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetABIInstancesMutex());
     ABIInstances &instances = GetABIInstances();
@@ -281,23 +285,26 @@ struct ArchitectureInstance {
 
 typedef std::vector<ArchitectureInstance> ArchitectureInstances;
 
-static std::mutex g_architecture_mutex;
+static std::mutex &GetArchitectureMutex() {
+    static std::mutex g_architecture_mutex;
+    return g_architecture_mutex;
+}
 
 static ArchitectureInstances &GetArchitectureInstances() {
   static ArchitectureInstances g_instances;
   return g_instances;
 }
 
-void PluginManager::RegisterPlugin(const ConstString &name,
+void PluginManager::RegisterPlugin(ConstString name,
                                    llvm::StringRef description,
                                    ArchitectureCreateInstance create_callback) {
-  std::lock_guard<std::mutex> guard(g_architecture_mutex);
+  std::lock_guard<std::mutex> guard(GetArchitectureMutex());
   GetArchitectureInstances().push_back({name, description, create_callback});
 }
 
 void PluginManager::UnregisterPlugin(
     ArchitectureCreateInstance create_callback) {
-  std::lock_guard<std::mutex> guard(g_architecture_mutex);
+  std::lock_guard<std::mutex> guard(GetArchitectureMutex());
   auto &instances = GetArchitectureInstances();
 
   for (auto pos = instances.begin(), end = instances.end(); pos != end; ++pos) {
@@ -311,7 +318,7 @@ void PluginManager::UnregisterPlugin(
 
 std::unique_ptr<Architecture>
 PluginManager::CreateArchitectureInstance(const ArchSpec &arch) {
-  std::lock_guard<std::mutex> guard(g_architecture_mutex);
+  std::lock_guard<std::mutex> guard(GetArchitectureMutex());
   for (const auto &instances : GetArchitectureInstances()) {
     if (auto plugin_up = instances.create_callback(arch))
       return plugin_up;
@@ -341,7 +348,7 @@ static DisassemblerInstances &GetDisassemblerInstances() {
   return g_instances;
 }
 
-bool PluginManager::RegisterPlugin(const ConstString &name,
+bool PluginManager::RegisterPlugin(ConstString name,
                                    const char *description,
                                    DisassemblerCreateInstance create_callback) {
   if (create_callback) {
@@ -386,7 +393,7 @@ PluginManager::GetDisassemblerCreateCallbackAtIndex(uint32_t idx) {
 
 DisassemblerCreateInstance
 PluginManager::GetDisassemblerCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetDisassemblerMutex());
     DisassemblerInstances &instances = GetDisassemblerInstances();
@@ -426,7 +433,7 @@ static DynamicLoaderInstances &GetDynamicLoaderInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     DynamicLoaderCreateInstance create_callback,
     DebuggerInitializeCallback debugger_init_callback) {
   if (create_callback) {
@@ -471,7 +478,7 @@ PluginManager::GetDynamicLoaderCreateCallbackAtIndex(uint32_t idx) {
 
 DynamicLoaderCreateInstance
 PluginManager::GetDynamicLoaderCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetDynamicLoaderMutex());
     DynamicLoaderInstances &instances = GetDynamicLoaderInstances();
@@ -511,7 +518,7 @@ static JITLoaderInstances &GetJITLoaderInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     JITLoaderCreateInstance create_callback,
     DebuggerInitializeCallback debugger_init_callback) {
   if (create_callback) {
@@ -554,7 +561,7 @@ PluginManager::GetJITLoaderCreateCallbackAtIndex(uint32_t idx) {
 }
 
 JITLoaderCreateInstance PluginManager::GetJITLoaderCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetJITLoaderMutex());
     JITLoaderInstances &instances = GetJITLoaderInstances();
@@ -592,7 +599,7 @@ static EmulateInstructionInstances &GetEmulateInstructionInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     EmulateInstructionCreateInstance create_callback) {
   if (create_callback) {
     EmulateInstructionInstance instance;
@@ -635,7 +642,7 @@ PluginManager::GetEmulateInstructionCreateCallbackAtIndex(uint32_t idx) {
 
 EmulateInstructionCreateInstance
 PluginManager::GetEmulateInstructionCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetEmulateInstructionMutex());
     EmulateInstructionInstances &instances = GetEmulateInstructionInstances();
@@ -675,7 +682,7 @@ static OperatingSystemInstances &GetOperatingSystemInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     OperatingSystemCreateInstance create_callback,
     DebuggerInitializeCallback debugger_init_callback) {
   if (create_callback) {
@@ -720,7 +727,7 @@ PluginManager::GetOperatingSystemCreateCallbackAtIndex(uint32_t idx) {
 
 OperatingSystemCreateInstance
 PluginManager::GetOperatingSystemCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetOperatingSystemMutex());
     OperatingSystemInstances &instances = GetOperatingSystemInstances();
@@ -756,7 +763,7 @@ static LanguageInstances &GetLanguageInstances() {
   return g_instances;
 }
 
-bool PluginManager::RegisterPlugin(const ConstString &name,
+bool PluginManager::RegisterPlugin(ConstString name,
                                    const char *description,
                                    LanguageCreateInstance create_callback) {
   if (create_callback) {
@@ -798,7 +805,7 @@ PluginManager::GetLanguageCreateCallbackAtIndex(uint32_t idx) {
 }
 
 LanguageCreateInstance
-PluginManager::GetLanguageCreateCallbackForPluginName(const ConstString &name) {
+PluginManager::GetLanguageCreateCallbackForPluginName(ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetLanguageMutex());
     LanguageInstances &instances = GetLanguageInstances();
@@ -836,7 +843,7 @@ static LanguageRuntimeInstances &GetLanguageRuntimeInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     LanguageRuntimeCreateInstance create_callback,
     LanguageRuntimeGetCommandObject command_callback) {
   if (create_callback) {
@@ -890,7 +897,7 @@ PluginManager::GetLanguageRuntimeGetCommandObjectAtIndex(uint32_t idx) {
 
 LanguageRuntimeCreateInstance
 PluginManager::GetLanguageRuntimeCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetLanguageRuntimeMutex());
     LanguageRuntimeInstances &instances = GetLanguageRuntimeInstances();
@@ -927,7 +934,7 @@ static SystemRuntimeInstances &GetSystemRuntimeInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     SystemRuntimeCreateInstance create_callback) {
   if (create_callback) {
     SystemRuntimeInstance instance;
@@ -970,7 +977,7 @@ PluginManager::GetSystemRuntimeCreateCallbackAtIndex(uint32_t idx) {
 
 SystemRuntimeCreateInstance
 PluginManager::GetSystemRuntimeCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetSystemRuntimeMutex());
     SystemRuntimeInstances &instances = GetSystemRuntimeInstances();
@@ -1013,7 +1020,7 @@ static ObjectFileInstances &GetObjectFileInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     ObjectFileCreateInstance create_callback,
     ObjectFileCreateMemoryInstance create_memory_callback,
     ObjectFileGetModuleSpecifications get_module_specifications,
@@ -1080,7 +1087,7 @@ PluginManager::GetObjectFileGetModuleSpecificationsCallbackAtIndex(
 
 ObjectFileCreateInstance
 PluginManager::GetObjectFileCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetObjectFileMutex());
     ObjectFileInstances &instances = GetObjectFileInstances();
@@ -1096,7 +1103,7 @@ PluginManager::GetObjectFileCreateCallbackForPluginName(
 
 ObjectFileCreateMemoryInstance
 PluginManager::GetObjectFileCreateMemoryCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetObjectFileMutex());
     ObjectFileInstances &instances = GetObjectFileInstances();
@@ -1152,7 +1159,7 @@ static ObjectContainerInstances &GetObjectContainerInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     ObjectContainerCreateInstance create_callback,
     ObjectFileGetModuleSpecifications get_module_specifications) {
   if (create_callback) {
@@ -1197,7 +1204,7 @@ PluginManager::GetObjectContainerCreateCallbackAtIndex(uint32_t idx) {
 
 ObjectContainerCreateInstance
 PluginManager::GetObjectContainerCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetObjectContainerMutex());
     ObjectContainerInstances &instances = GetObjectContainerInstances();
@@ -1247,7 +1254,7 @@ static PlatformInstances &GetPlatformInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     PlatformCreateInstance create_callback,
     DebuggerInitializeCallback debugger_init_callback) {
   if (create_callback) {
@@ -1308,7 +1315,7 @@ PluginManager::GetPlatformCreateCallbackAtIndex(uint32_t idx) {
 }
 
 PlatformCreateInstance
-PluginManager::GetPlatformCreateCallbackForPluginName(const ConstString &name) {
+PluginManager::GetPlatformCreateCallbackForPluginName(ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetPlatformInstancesMutex());
     PlatformInstances &instances = GetPlatformInstances();
@@ -1366,7 +1373,7 @@ static ProcessInstances &GetProcessInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     ProcessCreateInstance create_callback,
     DebuggerInitializeCallback debugger_init_callback) {
   if (create_callback) {
@@ -1425,7 +1432,7 @@ PluginManager::GetProcessCreateCallbackAtIndex(uint32_t idx) {
 }
 
 ProcessCreateInstance
-PluginManager::GetProcessCreateCallbackForPluginName(const ConstString &name) {
+PluginManager::GetProcessCreateCallbackForPluginName(ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetProcessMutex());
     ProcessInstances &instances = GetProcessInstances();
@@ -1465,7 +1472,7 @@ static ScriptInterpreterInstances &GetScriptInterpreterInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     lldb::ScriptLanguage script_language,
     ScriptInterpreterCreateInstance create_callback) {
   if (!create_callback)
@@ -1561,7 +1568,7 @@ static StructuredDataPluginInstances &GetStructuredDataPluginInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     StructuredDataPluginCreateInstance create_callback,
     DebuggerInitializeCallback debugger_init_callback,
     StructuredDataFilterLaunchInfo filter_callback) {
@@ -1609,7 +1616,7 @@ PluginManager::GetStructuredDataPluginCreateCallbackAtIndex(uint32_t idx) {
 
 StructuredDataPluginCreateInstance
 PluginManager::GetStructuredDataPluginCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetStructuredDataPluginMutex());
     StructuredDataPluginInstances &instances =
@@ -1664,7 +1671,7 @@ static SymbolFileInstances &GetSymbolFileInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     SymbolFileCreateInstance create_callback,
     DebuggerInitializeCallback debugger_init_callback) {
   if (create_callback) {
@@ -1708,7 +1715,7 @@ PluginManager::GetSymbolFileCreateCallbackAtIndex(uint32_t idx) {
 
 SymbolFileCreateInstance
 PluginManager::GetSymbolFileCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetSymbolFileMutex());
     SymbolFileInstances &instances = GetSymbolFileInstances();
@@ -1744,7 +1751,7 @@ static SymbolVendorInstances &GetSymbolVendorInstances() {
   return g_instances;
 }
 
-bool PluginManager::RegisterPlugin(const ConstString &name,
+bool PluginManager::RegisterPlugin(ConstString name,
                                    const char *description,
                                    SymbolVendorCreateInstance create_callback) {
   if (create_callback) {
@@ -1788,7 +1795,7 @@ PluginManager::GetSymbolVendorCreateCallbackAtIndex(uint32_t idx) {
 
 SymbolVendorCreateInstance
 PluginManager::GetSymbolVendorCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetSymbolVendorMutex());
     SymbolVendorInstances &instances = GetSymbolVendorInstances();
@@ -1825,7 +1832,7 @@ static UnwindAssemblyInstances &GetUnwindAssemblyInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     UnwindAssemblyCreateInstance create_callback) {
   if (create_callback) {
     UnwindAssemblyInstance instance;
@@ -1868,7 +1875,7 @@ PluginManager::GetUnwindAssemblyCreateCallbackAtIndex(uint32_t idx) {
 
 UnwindAssemblyCreateInstance
 PluginManager::GetUnwindAssemblyCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetUnwindAssemblyMutex());
     UnwindAssemblyInstances &instances = GetUnwindAssemblyInstances();
@@ -1905,7 +1912,7 @@ static MemoryHistoryInstances &GetMemoryHistoryInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     MemoryHistoryCreateInstance create_callback) {
   if (create_callback) {
     MemoryHistoryInstance instance;
@@ -1948,7 +1955,7 @@ PluginManager::GetMemoryHistoryCreateCallbackAtIndex(uint32_t idx) {
 
 MemoryHistoryCreateInstance
 PluginManager::GetMemoryHistoryCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetMemoryHistoryMutex());
     MemoryHistoryInstances &instances = GetMemoryHistoryInstances();
@@ -1988,7 +1995,7 @@ static InstrumentationRuntimeInstances &GetInstrumentationRuntimeInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     InstrumentationRuntimeCreateInstance create_callback,
     InstrumentationRuntimeGetType get_type_callback) {
   if (create_callback) {
@@ -2047,7 +2054,7 @@ PluginManager::GetInstrumentationRuntimeCreateCallbackAtIndex(uint32_t idx) {
 
 InstrumentationRuntimeCreateInstance
 PluginManager::GetInstrumentationRuntimeCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(
         GetInstrumentationRuntimeMutex());
@@ -2086,7 +2093,7 @@ static TypeSystemInstances &GetTypeSystemInstances() {
   return g_instances;
 }
 
-bool PluginManager::RegisterPlugin(const ConstString &name,
+bool PluginManager::RegisterPlugin(ConstString name,
                                    const char *description,
                                    TypeSystemCreateInstance create_callback,
                                    TypeSystemEnumerateSupportedLanguages
@@ -2132,7 +2139,7 @@ PluginManager::GetTypeSystemCreateCallbackAtIndex(uint32_t idx) {
 
 TypeSystemCreateInstance
 PluginManager::GetTypeSystemCreateCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetTypeSystemMutex());
     TypeSystemInstances &instances = GetTypeSystemInstances();
@@ -2158,7 +2165,7 @@ PluginManager::GetTypeSystemEnumerateSupportedLanguagesCallbackAtIndex(
 
 TypeSystemEnumerateSupportedLanguages
 PluginManager::GetTypeSystemEnumerateSupportedLanguagesCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetTypeSystemMutex());
     TypeSystemInstances &instances = GetTypeSystemInstances();
@@ -2196,7 +2203,7 @@ static REPLInstances &GetREPLInstances() {
 }
 
 bool PluginManager::RegisterPlugin(
-    const ConstString &name, const char *description,
+    ConstString name, const char *description,
     REPLCreateInstance create_callback,
     REPLEnumerateSupportedLanguages enumerate_languages_callback) {
   if (create_callback) {
@@ -2238,7 +2245,7 @@ REPLCreateInstance PluginManager::GetREPLCreateCallbackAtIndex(uint32_t idx) {
 }
 
 REPLCreateInstance
-PluginManager::GetREPLCreateCallbackForPluginName(const ConstString &name) {
+PluginManager::GetREPLCreateCallbackForPluginName(ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetREPLMutex());
     REPLInstances &instances = GetREPLInstances();
@@ -2263,7 +2270,7 @@ PluginManager::GetREPLEnumerateSupportedLanguagesCallbackAtIndex(uint32_t idx) {
 
 REPLEnumerateSupportedLanguages
 PluginManager::GetREPLSystemEnumerateSupportedLanguagesCallbackForPluginName(
-    const ConstString &name) {
+    ConstString name) {
   if (name) {
     std::lock_guard<std::recursive_mutex> guard(GetREPLMutex());
     REPLInstances &instances = GetREPLInstances();
@@ -2360,8 +2367,8 @@ void PluginManager::DebuggerInitialize(Debugger &debugger) {
 // This will put a plugin's settings under e.g.
 // "plugin.<plugin_type_name>.<plugin_type_desc>.SETTINGNAME".
 static lldb::OptionValuePropertiesSP GetDebuggerPropertyForPlugins(
-    Debugger &debugger, const ConstString &plugin_type_name,
-    const ConstString &plugin_type_desc, bool can_create) {
+    Debugger &debugger, ConstString plugin_type_name,
+    ConstString plugin_type_desc, bool can_create) {
   lldb::OptionValuePropertiesSP parent_properties_sp(
       debugger.GetValueProperties());
   if (parent_properties_sp) {
@@ -2396,8 +2403,8 @@ static lldb::OptionValuePropertiesSP GetDebuggerPropertyForPlugins(
 // "<plugin_type_name>.plugin.<plugin_type_desc>.SETTINGNAME" and Platform
 // generic settings would be under "platform.SETTINGNAME".
 static lldb::OptionValuePropertiesSP GetDebuggerPropertyForPluginsOldStyle(
-    Debugger &debugger, const ConstString &plugin_type_name,
-    const ConstString &plugin_type_desc, bool can_create) {
+    Debugger &debugger, ConstString plugin_type_name,
+    ConstString plugin_type_desc, bool can_create) {
   static ConstString g_property_name("plugin");
   lldb::OptionValuePropertiesSP parent_properties_sp(
       debugger.GetValueProperties());
@@ -2430,12 +2437,12 @@ static lldb::OptionValuePropertiesSP GetDebuggerPropertyForPluginsOldStyle(
 namespace {
 
 typedef lldb::OptionValuePropertiesSP
-GetDebuggerPropertyForPluginsPtr(Debugger &, const ConstString &,
-                                 const ConstString &, bool can_create);
+GetDebuggerPropertyForPluginsPtr(Debugger &, ConstString ,
+                                 ConstString , bool can_create);
 
 lldb::OptionValuePropertiesSP
-GetSettingForPlugin(Debugger &debugger, const ConstString &setting_name,
-                    const ConstString &plugin_type_name,
+GetSettingForPlugin(Debugger &debugger, ConstString setting_name,
+                    ConstString plugin_type_name,
                     GetDebuggerPropertyForPluginsPtr get_debugger_property =
                         GetDebuggerPropertyForPlugins) {
   lldb::OptionValuePropertiesSP properties_sp;
@@ -2450,10 +2457,10 @@ GetSettingForPlugin(Debugger &debugger, const ConstString &setting_name,
 }
 
 bool CreateSettingForPlugin(
-    Debugger &debugger, const ConstString &plugin_type_name,
-    const ConstString &plugin_type_desc,
+    Debugger &debugger, ConstString plugin_type_name,
+    ConstString plugin_type_desc,
     const lldb::OptionValuePropertiesSP &properties_sp,
-    const ConstString &description, bool is_global_property,
+    ConstString description, bool is_global_property,
     GetDebuggerPropertyForPluginsPtr get_debugger_property =
         GetDebuggerPropertyForPlugins) {
   if (properties_sp) {
@@ -2480,14 +2487,14 @@ const char *kStructuredDataPluginName("structured-data");
 } // anonymous namespace
 
 lldb::OptionValuePropertiesSP PluginManager::GetSettingForDynamicLoaderPlugin(
-    Debugger &debugger, const ConstString &setting_name) {
+    Debugger &debugger, ConstString setting_name) {
   return GetSettingForPlugin(debugger, setting_name,
                              ConstString(kDynamicLoaderPluginName));
 }
 
 bool PluginManager::CreateSettingForDynamicLoaderPlugin(
     Debugger &debugger, const lldb::OptionValuePropertiesSP &properties_sp,
-    const ConstString &description, bool is_global_property) {
+    ConstString description, bool is_global_property) {
   return CreateSettingForPlugin(
       debugger, ConstString(kDynamicLoaderPluginName),
       ConstString("Settings for dynamic loader plug-ins"), properties_sp,
@@ -2496,7 +2503,7 @@ bool PluginManager::CreateSettingForDynamicLoaderPlugin(
 
 lldb::OptionValuePropertiesSP
 PluginManager::GetSettingForPlatformPlugin(Debugger &debugger,
-                                           const ConstString &setting_name) {
+                                           ConstString setting_name) {
   return GetSettingForPlugin(debugger, setting_name,
                              ConstString(kPlatformPluginName),
                              GetDebuggerPropertyForPluginsOldStyle);
@@ -2504,7 +2511,7 @@ PluginManager::GetSettingForPlatformPlugin(Debugger &debugger,
 
 bool PluginManager::CreateSettingForPlatformPlugin(
     Debugger &debugger, const lldb::OptionValuePropertiesSP &properties_sp,
-    const ConstString &description, bool is_global_property) {
+    ConstString description, bool is_global_property) {
   return CreateSettingForPlugin(debugger, ConstString(kPlatformPluginName),
                                 ConstString("Settings for platform plug-ins"),
                                 properties_sp, description, is_global_property,
@@ -2513,14 +2520,14 @@ bool PluginManager::CreateSettingForPlatformPlugin(
 
 lldb::OptionValuePropertiesSP
 PluginManager::GetSettingForProcessPlugin(Debugger &debugger,
-                                          const ConstString &setting_name) {
+                                          ConstString setting_name) {
   return GetSettingForPlugin(debugger, setting_name,
                              ConstString(kProcessPluginName));
 }
 
 bool PluginManager::CreateSettingForProcessPlugin(
     Debugger &debugger, const lldb::OptionValuePropertiesSP &properties_sp,
-    const ConstString &description, bool is_global_property) {
+    ConstString description, bool is_global_property) {
   return CreateSettingForPlugin(debugger, ConstString(kProcessPluginName),
                                 ConstString("Settings for process plug-ins"),
                                 properties_sp, description, is_global_property);
@@ -2528,14 +2535,14 @@ bool PluginManager::CreateSettingForProcessPlugin(
 
 lldb::OptionValuePropertiesSP
 PluginManager::GetSettingForSymbolFilePlugin(Debugger &debugger,
-                                             const ConstString &setting_name) {
+                                             ConstString setting_name) {
   return GetSettingForPlugin(debugger, setting_name,
                              ConstString(kSymbolFilePluginName));
 }
 
 bool PluginManager::CreateSettingForSymbolFilePlugin(
     Debugger &debugger, const lldb::OptionValuePropertiesSP &properties_sp,
-    const ConstString &description, bool is_global_property) {
+    ConstString description, bool is_global_property) {
   return CreateSettingForPlugin(
       debugger, ConstString(kSymbolFilePluginName),
       ConstString("Settings for symbol file plug-ins"), properties_sp,
@@ -2544,14 +2551,14 @@ bool PluginManager::CreateSettingForSymbolFilePlugin(
 
 lldb::OptionValuePropertiesSP
 PluginManager::GetSettingForJITLoaderPlugin(Debugger &debugger,
-                                            const ConstString &setting_name) {
+                                            ConstString setting_name) {
   return GetSettingForPlugin(debugger, setting_name,
                              ConstString(kJITLoaderPluginName));
 }
 
 bool PluginManager::CreateSettingForJITLoaderPlugin(
     Debugger &debugger, const lldb::OptionValuePropertiesSP &properties_sp,
-    const ConstString &description, bool is_global_property) {
+    ConstString description, bool is_global_property) {
   return CreateSettingForPlugin(debugger, ConstString(kJITLoaderPluginName),
                                 ConstString("Settings for JIT loader plug-ins"),
                                 properties_sp, description, is_global_property);
@@ -2560,7 +2567,7 @@ bool PluginManager::CreateSettingForJITLoaderPlugin(
 static const char *kOperatingSystemPluginName("os");
 
 lldb::OptionValuePropertiesSP PluginManager::GetSettingForOperatingSystemPlugin(
-    Debugger &debugger, const ConstString &setting_name) {
+    Debugger &debugger, ConstString setting_name) {
   lldb::OptionValuePropertiesSP properties_sp;
   lldb::OptionValuePropertiesSP plugin_type_properties_sp(
       GetDebuggerPropertyForPlugins(
@@ -2575,7 +2582,7 @@ lldb::OptionValuePropertiesSP PluginManager::GetSettingForOperatingSystemPlugin(
 
 bool PluginManager::CreateSettingForOperatingSystemPlugin(
     Debugger &debugger, const lldb::OptionValuePropertiesSP &properties_sp,
-    const ConstString &description, bool is_global_property) {
+    ConstString description, bool is_global_property) {
   if (properties_sp) {
     lldb::OptionValuePropertiesSP plugin_type_properties_sp(
         GetDebuggerPropertyForPlugins(
@@ -2592,14 +2599,14 @@ bool PluginManager::CreateSettingForOperatingSystemPlugin(
 }
 
 lldb::OptionValuePropertiesSP PluginManager::GetSettingForStructuredDataPlugin(
-    Debugger &debugger, const ConstString &setting_name) {
+    Debugger &debugger, ConstString setting_name) {
   return GetSettingForPlugin(debugger, setting_name,
                              ConstString(kStructuredDataPluginName));
 }
 
 bool PluginManager::CreateSettingForStructuredDataPlugin(
     Debugger &debugger, const lldb::OptionValuePropertiesSP &properties_sp,
-    const ConstString &description, bool is_global_property) {
+    ConstString description, bool is_global_property) {
   return CreateSettingForPlugin(
       debugger, ConstString(kStructuredDataPluginName),
       ConstString("Settings for structured data plug-ins"), properties_sp,

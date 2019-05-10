@@ -1,9 +1,8 @@
 //===-- ArchSpec.h ----------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -15,11 +14,11 @@
 #include "lldb/lldb-enumerations.h"
 #include "lldb/lldb-forward.h"
 #include "lldb/lldb-private-enumerations.h"
-#include "llvm/ADT/StringRef.h" // for StringRef
+#include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Triple.h"
-#include <cstddef> // for size_t
-#include <cstdint> // for uint32_t
-#include <string>  // for string
+#include <cstddef>
+#include <cstdint>
+#include <string>
 
 namespace lldb_private {
 
@@ -186,10 +185,6 @@ public:
     eCore_uknownMach32,
     eCore_uknownMach64,
 
-    eCore_kalimba3,
-    eCore_kalimba4,
-    eCore_kalimba5,
-
     kNumCores,
 
     kCore_invalid,
@@ -222,9 +217,6 @@ public:
 
     kCore_hexagon_first = eCore_hexagon_generic,
     kCore_hexagon_last = eCore_hexagon_hexagonv5,
-
-    kCore_kalimba_first = eCore_kalimba3,
-    kCore_kalimba_last = eCore_kalimba5,
 
     kCore_mips32_first = eCore_mips32,
     kCore_mips32_last = eCore_mips32r6,
@@ -352,7 +344,7 @@ public:
   /// @return A ConstString ref containing the distribution id,
   ///         potentially empty.
   //------------------------------------------------------------------
-  const ConstString &GetDistributionId() const;
+  ConstString GetDistributionId() const;
 
   //------------------------------------------------------------------
   /// Set the distribution id of the architecture.
@@ -371,25 +363,16 @@ public:
   bool IsValid() const {
     return m_core >= eCore_arm_generic && m_core < kNumCores;
   }
+  explicit operator bool() const { return IsValid(); }
 
   bool TripleVendorWasSpecified() const {
     return !m_triple.getVendorName().empty();
   }
 
-  bool TripleVendorIsUnspecifiedUnknown() const {
-    return m_triple.getVendor() == llvm::Triple::UnknownVendor &&
-           m_triple.getVendorName().empty();
-  }
-
   bool TripleOSWasSpecified() const { return !m_triple.getOSName().empty(); }
 
   bool TripleEnvironmentWasSpecified() const {
-    return !m_triple.getEnvironmentName().empty();
-  }
-
-  bool TripleOSIsUnspecifiedUnknown() const {
-    return m_triple.getOS() == llvm::Triple::UnknownOS &&
-           m_triple.getOSName().empty();
+    return m_triple.hasEnvironment();
   }
 
   //------------------------------------------------------------------

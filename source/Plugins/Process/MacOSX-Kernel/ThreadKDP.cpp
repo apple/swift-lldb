@@ -1,18 +1,16 @@
 //===-- ThreadKDP.cpp -------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #include "ThreadKDP.h"
 
-#include "lldb/Utility/SafeMachO.h"
+#include "lldb/Host/SafeMachO.h"
 
 #include "lldb/Breakpoint/Watchpoint.h"
-#include "lldb/Core/State.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/StopInfo.h"
@@ -20,6 +18,7 @@
 #include "lldb/Target/Unwind.h"
 #include "lldb/Utility/ArchSpec.h"
 #include "lldb/Utility/DataExtractor.h"
+#include "lldb/Utility/State.h"
 #include "lldb/Utility/StreamString.h"
 
 #include "Plugins/Process/Utility/StopInfoMachException.h"
@@ -29,6 +28,8 @@
 #include "RegisterContextKDP_arm64.h"
 #include "RegisterContextKDP_i386.h"
 #include "RegisterContextKDP_x86_64.h"
+
+#include <memory>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -99,19 +100,20 @@ ThreadKDP::CreateRegisterContextForFrame(StackFrame *frame) {
                   ->GetCommunication()
                   .GetCPUType()) {
       case llvm::MachO::CPU_TYPE_ARM:
-        reg_ctx_sp.reset(new RegisterContextKDP_arm(*this, concrete_frame_idx));
+        reg_ctx_sp =
+            std::make_shared<RegisterContextKDP_arm>(*this, concrete_frame_idx);
         break;
       case llvm::MachO::CPU_TYPE_ARM64:
-        reg_ctx_sp.reset(
-            new RegisterContextKDP_arm64(*this, concrete_frame_idx));
+        reg_ctx_sp = std::make_shared<RegisterContextKDP_arm64>(
+            *this, concrete_frame_idx);
         break;
       case llvm::MachO::CPU_TYPE_I386:
-        reg_ctx_sp.reset(
-            new RegisterContextKDP_i386(*this, concrete_frame_idx));
+        reg_ctx_sp = std::make_shared<RegisterContextKDP_i386>(
+            *this, concrete_frame_idx);
         break;
       case llvm::MachO::CPU_TYPE_X86_64:
-        reg_ctx_sp.reset(
-            new RegisterContextKDP_x86_64(*this, concrete_frame_idx));
+        reg_ctx_sp = std::make_shared<RegisterContextKDP_x86_64>(
+            *this, concrete_frame_idx);
         break;
       default:
         llvm_unreachable("Add CPU type support in KDP");

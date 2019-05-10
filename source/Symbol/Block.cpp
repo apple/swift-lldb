@@ -1,9 +1,8 @@
 //===-- Block.cpp -----------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -16,6 +15,8 @@
 #include "lldb/Symbol/SymbolVendor.h"
 #include "lldb/Symbol/VariableList.h"
 #include "lldb/Utility/Log.h"
+
+#include <memory>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -83,7 +84,7 @@ void Block::Dump(Stream *s, addr_t base_addr, int32_t depth,
     size_t num_ranges = m_ranges.GetSize();
     for (size_t i = 0; i < num_ranges; ++i) {
       const Range &range = m_ranges.GetEntryRef(i);
-      if (parent_block != nullptr && parent_block->Contains(range) == false)
+      if (parent_block != nullptr && !parent_block->Contains(range))
         *s << '!';
       else
         *s << ' ';
@@ -364,12 +365,12 @@ void Block::AddChild(const BlockSP &child_block_sp) {
 void Block::SetInlinedFunctionInfo(const char *name, const char *mangled,
                                    const Declaration *decl_ptr,
                                    const Declaration *call_decl_ptr) {
-  m_inlineInfoSP.reset(
-      new InlineFunctionInfo(name, mangled, decl_ptr, call_decl_ptr));
+  m_inlineInfoSP = std::make_shared<InlineFunctionInfo>(name, mangled, decl_ptr,
+                                                        call_decl_ptr);
 }
 
 VariableListSP Block::GetBlockVariableList(bool can_create) {
-  if (m_parsed_block_variables == false) {
+  if (!m_parsed_block_variables) {
     if (m_variable_list_sp.get() == nullptr && can_create) {
       m_parsed_block_variables = true;
       SymbolContext sc;
@@ -402,7 +403,7 @@ Block::AppendBlockVariables(bool can_create, bool get_child_block_variables,
     collection::const_iterator pos, end = m_children.end();
     for (pos = m_children.begin(); pos != end; ++pos) {
       Block *child_block = pos->get();
-      if (stop_if_child_block_is_inlined_function == false ||
+      if (!stop_if_child_block_is_inlined_function ||
           child_block->GetInlinedFunctionInfo() == nullptr) {
         num_variables_added += child_block->AppendBlockVariables(
             can_create, get_child_block_variables,

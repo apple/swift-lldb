@@ -237,10 +237,12 @@ SwiftCompleteCode(SwiftASTContext &SwiftCtx,
 
   // Get or create the module that we do completions in.
   static ConstString CompletionsModuleName("completions");
+  SourceModule CompletionsModuleInfo;
+  CompletionsModuleInfo.path.push_back(CompletionsModuleName);
   ModuleDecl *CompletionsModule =
-      SwiftCtx.GetModule(CompletionsModuleName, Error);
+      SwiftCtx.GetModule(CompletionsModuleInfo, Error);
   if (!CompletionsModule) {
-    CompletionsModule = SwiftCtx.CreateModule(CompletionsModuleName, Error);
+    CompletionsModule = SwiftCtx.CreateModule(CompletionsModuleInfo, Error);
     if (!CompletionsModule)
       return CompletionResponse::error("could not make completions module");
 
@@ -270,25 +272,24 @@ SwiftCompleteCode(SwiftASTContext &SwiftCtx,
     // avoid duplicate imports.
     std::set<ModuleDecl *> ExistingImportSet;
     SmallVector<ModuleDecl::ImportedModule, 8> ExistingImports;
-    EnteredCodeFile->getImportedModules(ExistingImports,
-                                        ModuleDecl::ImportFilter::All);
+    ModuleDecl::ImportFilter importFilter(ModuleDecl::ImportFilterKind::Private);
+    importFilter |= ModuleDecl::ImportFilterKind::Public;
+    EnteredCodeFile->getImportedModules(ExistingImports, importFilter);
     for (auto &ExistingImport : ExistingImports)
       ExistingImportSet.insert(std::get<1>(ExistingImport));
 
     // Next, add new imports into the file.
     SmallVector<SourceFile::ImportedModuleDesc, 8> NewImports;
-    PersistentExpressionState.RunOverHandLoadedModules(
-        [&](const ConstString ModuleName) -> bool {
-          ModuleDecl *Module = SwiftCtx.GetModule(ModuleName, Error);
-          if (!Module)
-            return true;
-          if (ExistingImportSet.find(Module) != ExistingImportSet.end())
-            return true;
-          NewImports.push_back(SourceFile::ImportedModuleDesc(
-              std::make_pair(ModuleDecl::AccessPathTy(), Module),
-              SourceFile::ImportOptions()));
-          return true;
-        });
+    for (const ConstString ModuleName : PersistentExpressionState.GetHandLoadedModules()) {
+      SourceModule ModuleInfo;
+      ModuleInfo.path.push_back(ModuleName);
+      ModuleDecl *Module = SwiftCtx.GetModule(ModuleInfo, Error);
+      if (!Module) continue;
+      if (ExistingImportSet.find(Module) != ExistingImportSet.end()) continue;
+      NewImports.push_back(SourceFile::ImportedModuleDesc(
+          std::make_pair(ModuleDecl::AccessPathTy(), Module),
+          SourceFile::ImportOptions()));
+    }
     EnteredCodeFile->addImports(NewImports);
   }
 

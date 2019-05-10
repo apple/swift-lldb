@@ -1,9 +1,8 @@
 //===-- ClangASTImporter.cpp ------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -18,6 +17,8 @@
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclObjC.h"
 #include "llvm/Support/raw_ostream.h"
+
+#include <memory>
 
 using namespace lldb_private;
 using namespace clang;
@@ -766,7 +767,7 @@ void ClangASTImporter::BuildNamespaceMap(const clang::NamespaceDecl *decl) {
 
   NamespaceMapSP new_map;
 
-  new_map.reset(new NamespaceMap);
+  new_map = std::make_shared<NamespaceMap>();
 
   if (context_md->m_map_completer) {
     std::string namespace_string = decl->getDeclName().getAsString();
@@ -1002,7 +1003,7 @@ clang::Decl *ClangASTImporter::Minion::Imported(clang::Decl *from,
         if (isa<TagDecl>(to) || isa<ObjCInterfaceDecl>(to)) {
           RecordDecl *from_record_decl = dyn_cast<RecordDecl>(from);
           if (from_record_decl == nullptr ||
-              from_record_decl->isInjectedClassName() == false) {
+              !from_record_decl->isInjectedClassName()) {
             NamedDecl *to_named_decl = dyn_cast<NamedDecl>(to);
 
             if (!m_decls_already_deported->count(to_named_decl))
@@ -1050,7 +1051,7 @@ clang::Decl *ClangASTImporter::Minion::Imported(clang::Decl *from,
     TagDecl *to_tag_decl = dyn_cast<TagDecl>(to);
 
     to_tag_decl->setHasExternalLexicalStorage();
-    to_tag_decl->setMustBuildLookupTable();
+    to_tag_decl->getPrimaryContext()->setMustBuildLookupTable();
 
     if (log)
       log->Printf(

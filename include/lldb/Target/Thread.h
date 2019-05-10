@@ -1,30 +1,25 @@
 //===-- Thread.h ------------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef liblldb_Thread_h_
 #define liblldb_Thread_h_
 
-// C Includes
-// C++ Includes
 #include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
 
-// Other libraries and framework includes
-// Project includes
-#include "lldb/Core/Broadcaster.h"
-#include "lldb/Core/Event.h"
 #include "lldb/Core/UserSettingsController.h"
 #include "lldb/Target/ExecutionContextScope.h"
 #include "lldb/Target/RegisterCheckpoint.h"
 #include "lldb/Target/StackFrameList.h"
+#include "lldb/Utility/Broadcaster.h"
+#include "lldb/Utility/Event.h"
 #include "lldb/Utility/StructuredData.h"
 #include "lldb/Utility/UserID.h"
 #include "lldb/lldb-private.h"
@@ -50,7 +45,7 @@ public:
   //------------------------------------------------------------------
   const RegularExpression *GetSymbolsToAvoidRegexp();
 
-  FileSpecList &GetLibrariesToAvoid() const;
+  FileSpecList GetLibrariesToAvoid() const;
 
   bool GetTraceEnabledState() const;
 
@@ -96,9 +91,9 @@ public:
 
     ~ThreadEventData() override;
 
-    static const ConstString &GetFlavorString();
+    static ConstString GetFlavorString();
 
-    const ConstString &GetFlavor() const override {
+    ConstString GetFlavor() const override {
       return ThreadEventData::GetFlavorString();
     }
 
@@ -284,7 +279,7 @@ public:
   /// message).
   //------------------------------------------------------------------
   StructuredData::ObjectSP GetExtendedInfo() {
-    if (m_extended_info_fetched == false) {
+    if (!m_extended_info_fetched) {
       m_extended_info = FetchThreadExtendedInfo();
       m_extended_info_fetched = true;
     }
@@ -1268,6 +1263,10 @@ public:
   //----------------------------------------------------------------------
   virtual uint64_t GetExtendedBacktraceToken() { return LLDB_INVALID_ADDRESS; }
 
+  lldb::ValueObjectSP GetCurrentException();
+
+  lldb::ThreadSP GetCurrentExceptionBacktrace();
+
 protected:
   friend class ThreadPlan;
   friend class ThreadList;
@@ -1359,7 +1358,7 @@ protected:
                                             ///thread plan logic for the current
                                             ///resume.
   /// It gets set in Thread::ShouldResume.
-  std::unique_ptr<lldb_private::Unwind> m_unwinder_ap;
+  std::unique_ptr<lldb_private::Unwind> m_unwinder_up;
   bool m_destroy_called; // This is used internally to make sure derived Thread
                          // classes call DestroyThread.
   LazyBool m_override_should_notify;

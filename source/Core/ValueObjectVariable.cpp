@@ -1,22 +1,19 @@
 //===-- ValueObjectVariable.cpp ---------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #include "lldb/Core/ValueObjectVariable.h"
 
-#include "lldb/Core/Address.h"      // for Address
-#include "lldb/Core/AddressRange.h" // for AddressRange
+#include "lldb/Core/Address.h"
+#include "lldb/Core/AddressRange.h"
 #include "lldb/Core/Module.h"
-#include "lldb/Core/RegisterValue.h"
-#include "lldb/Core/Scalar.h" // for Scalar, operator!=
 #include "lldb/Core/Value.h"
-#include "lldb/Expression/DWARFExpression.h" // for DWARFExpression
-#include "lldb/Symbol/Declaration.h"         // for Declaration
+#include "lldb/Expression/DWARFExpression.h"
+#include "lldb/Symbol/Declaration.h"
 #include "lldb/Symbol/Function.h"
 #include "lldb/Symbol/ObjectFile.h"
 #include "lldb/Symbol/SymbolContext.h"
@@ -24,18 +21,21 @@
 #include "lldb/Symbol/Type.h"
 #include "lldb/Symbol/Variable.h"
 #include "lldb/Target/ExecutionContext.h"
+#include "lldb/Target/LanguageRuntime.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/Target.h"
-#include "lldb/Utility/DataExtractor.h"     // for DataExtractor
-#include "lldb/Utility/Status.h"            // for Status
-#include "lldb/lldb-private-enumerations.h" // for AddressType::eAddressTy...
-#include "lldb/lldb-types.h"                // for addr_t
+#include "lldb/Utility/DataExtractor.h"
+#include "lldb/Utility/RegisterValue.h"
+#include "lldb/Utility/Scalar.h"
+#include "lldb/Utility/Status.h"
+#include "lldb/lldb-private-enumerations.h"
+#include "lldb/lldb-types.h"
 
-#include "llvm/ADT/StringRef.h" // for StringRef
+#include "llvm/ADT/StringRef.h"
 
-#include <assert.h> // for assert
-#include <memory>   // for shared_ptr
+#include <assert.h>
+#include <memory>
 
 namespace lldb_private {
 class ExecutionContextScope;
@@ -81,12 +81,10 @@ ConstString ValueObjectVariable::GetTypeName() {
 ConstString ValueObjectVariable::GetDisplayTypeName() {
   Type *var_type = m_variable_sp->GetType();
   if (var_type) {
-    CompilerType fwd_type = var_type->GetForwardCompilerType();
-    // FIXME: This is probably not the best place to do this.
-    auto ts = fwd_type.GetTypeSystem();
-    auto qual_type = fwd_type.GetOpaqueQualType();
-    auto stack_frame_sp = GetFrameSP();
-    return ts->MapIntoContext(stack_frame_sp, qual_type).GetDisplayTypeName();
+      const SymbolContext *sc = nullptr;
+      if (GetFrameSP())
+        sc = &GetFrameSP()->GetSymbolContext(lldb::eSymbolContextFunction);
+      return var_type->GetForwardCompilerType().GetDisplayTypeName(sc);
   }
   return ConstString();
 }
@@ -118,7 +116,7 @@ uint64_t ValueObjectVariable::GetByteSize() {
   if (!type.IsValid())
     return 0;
 
-  return type.GetByteSize(exe_ctx.GetBestExecutionContextScope());
+  return type.GetByteSize(exe_ctx.GetBestExecutionContextScope()).getValueOr(0);
 }
 
 lldb::ValueType ValueObjectVariable::GetValueType() const {
@@ -144,7 +142,10 @@ bool ValueObjectVariable::UpdateValue() {
     } else {
       CompilerType var_type(GetCompilerTypeImpl());
       if (var_type.IsValid()) {
-        if (SwiftASTContext::IsPossibleZeroSizeType(var_type))
+        ExecutionContext exe_ctx(GetExecutionContextRef());
+        llvm::Optional<uint64_t> size =
+            var_type.GetByteSize(exe_ctx.GetBestExecutionContextScope());
+        if (size && *size == 0)
           m_value.SetCompilerType(var_type);
         else
           m_error.SetErrorString("empty constant data");
@@ -189,6 +190,26 @@ bool ValueObjectVariable::UpdateValue() {
           compiler_type.IsValid() ? compiler_type.GetTypeInfo() : 0;
       const bool is_pointer_or_ref =
           (type_info & (lldb::eTypeIsPointer | lldb::eTypeIsReference)) != 0;
+
+      // BEGIN Swift
+      if (variable->GetType() && variable->GetType() &&
+          variable->GetType()->IsSwiftFixedValueBuffer())
+        if (auto process_sp = GetProcessSP())
+          if (auto runtime = process_sp->GetLanguageRuntime(
+                  compiler_type.GetMinimumLanguage())) {
+            if (!runtime->IsStoredInlineInBuffer(compiler_type)) {
+              lldb::addr_t addr =
+                  m_value.GetScalar().ULongLong(LLDB_INVALID_ADDRESS);
+              if (addr != LLDB_INVALID_ADDRESS) {
+                Target &target = process_sp->GetTarget();
+                size_t ptr_size = process_sp->GetAddressByteSize();
+                lldb::addr_t deref_addr;
+                target.ReadMemory(addr, false, &deref_addr, ptr_size, m_error);
+                m_value.GetScalar() = deref_addr;
+              }
+            }
+          }
+      // END Swift
 
       switch (value_type) {
       case Value::eValueTypeFileAddress:

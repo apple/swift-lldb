@@ -1,21 +1,15 @@
 //===-- ThreadList.cpp ------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
 #include <stdlib.h>
 
-// C++ Includes
 #include <algorithm>
 
-// Other libraries and framework includes
-// Project includes
-#include "lldb/Core/State.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/Thread.h"
@@ -23,6 +17,7 @@
 #include "lldb/Target/ThreadPlan.h"
 #include "lldb/Utility/LLDBAssert.h"
 #include "lldb/Utility/Log.h"
+#include "lldb/Utility/State.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -42,8 +37,10 @@ const ThreadList &ThreadList::operator=(const ThreadList &rhs) {
   if (this != &rhs) {
     // Lock both mutexes to make sure neither side changes anyone on us while
     // the assignment occurs
-    std::lock_guard<std::recursive_mutex> guard(GetMutex());
-    std::lock_guard<std::recursive_mutex> rhs_guard(rhs.GetMutex());
+    std::lock(GetMutex(), rhs.GetMutex());
+    std::lock_guard<std::recursive_mutex> guard(GetMutex(), std::adopt_lock);
+    std::lock_guard<std::recursive_mutex> rhs_guard(rhs.GetMutex(), 
+                                                    std::adopt_lock);
 
     m_process = rhs.m_process;
     m_stop_id = rhs.m_stop_id;

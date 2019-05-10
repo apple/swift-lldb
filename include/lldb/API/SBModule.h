@@ -1,9 +1,8 @@
 //===-- SBModule.h ----------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -31,6 +30,8 @@ public:
   SBModule(lldb::SBProcess &process, lldb::addr_t header_addr);
 
   ~SBModule();
+
+  explicit operator bool() const;
 
   bool IsValid() const;
 
@@ -309,6 +310,7 @@ public:
   lldb::SBFileSpec GetSymbolFileSpec() const;
 
   lldb::SBAddress GetObjectFileHeaderAddress() const;
+  lldb::SBAddress GetObjectFileEntryPointAddress() const;
 
   lldb::SBError IsTypeSystemCompatible(lldb::LanguageType language);
 

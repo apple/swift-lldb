@@ -1,13 +1,11 @@
 //===-- FreeBSDThread.cpp ---------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
 #include <errno.h>
 #include <pthread.h>
 #include <pthread_np.h>
@@ -16,12 +14,9 @@
 #include <sys/types.h>
 #include <sys/user.h>
 
-// C++ Includes
-// Other libraries and framework includes
-#include "lldb/Core/State.h"
 #include "lldb/Target/UnixSignals.h"
+#include "lldb/Utility/State.h"
 
-// Project includes
 #include "FreeBSDThread.h"
 #include "POSIXStopInfo.h"
 #include "Plugins/Process/POSIX/ProcessPOSIXLog.h"
@@ -42,7 +37,6 @@
 #include "lldb/Breakpoint/BreakpointLocation.h"
 #include "lldb/Breakpoint/Watchpoint.h"
 #include "lldb/Core/Debugger.h"
-#include "lldb/Core/State.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Host/HostNativeThread.h"
@@ -50,13 +44,14 @@
 #include "lldb/Target/StopInfo.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/ThreadSpec.h"
+#include "lldb/Utility/State.h"
 #include "llvm/ADT/SmallString.h"
 
 using namespace lldb;
 using namespace lldb_private;
 
 FreeBSDThread::FreeBSDThread(Process &process, lldb::tid_t tid)
-    : Thread(process, tid), m_frame_ap(), m_breakpoint(),
+    : Thread(process, tid), m_frame_up(), m_breakpoint(),
       m_thread_name_valid(false), m_thread_name(), m_posix_thread(nullptr) {
   Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_THREAD));
   LLDB_LOGV(log, "tid = {0}", tid);
@@ -281,10 +276,10 @@ bool FreeBSDThread::CalculateStopInfo() {
 }
 
 Unwind *FreeBSDThread::GetUnwinder() {
-  if (!m_unwinder_ap)
-    m_unwinder_ap.reset(new UnwindLLDB(*this));
+  if (!m_unwinder_up)
+    m_unwinder_up.reset(new UnwindLLDB(*this));
 
-  return m_unwinder_ap.get();
+  return m_unwinder_up.get();
 }
 
 void FreeBSDThread::DidStop() {

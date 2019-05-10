@@ -12,7 +12,7 @@
 
 import lldb
 from lldbsuite.test.lldbtest import *
-import lldbsuite.test.decorators as decorators
+from lldbsuite.test.decorators import *
 import lldbsuite.test.lldbutil as lldbutil
 import os
 import unittest2
@@ -24,9 +24,9 @@ class TestSwiftRemoteASTImport(TestBase):
     def setUp(self):
         TestBase.setUp(self)
 
-    @decorators.skipUnlessDarwin
-    @decorators.swiftTest
-    @decorators.add_test_categories(["swiftpr"])
+    @skipUnlessDarwin
+    @swiftTest
+    @add_test_categories(["swiftpr"])
     def testSwiftRemoteASTImport(self):
         """This tests that RemoteAST querying the dynamic type of a variable
         doesn't import any modules into a module SwiftASTContext that
@@ -41,7 +41,7 @@ class TestSwiftRemoteASTImport(TestBase):
                                           lldb.SBFileSpec('Library.swift'))
         # FIXME: Reversing the order of these two commands does not work!
         self.expect("expr -d no-dynamic-values -- input",
-                    substrs=['(LibraryProtocol) $R0'])
+                    substrs=['(Library.LibraryProtocol) $R0'])
         self.expect("expr -d run-target -- input",
                     substrs=['(a.FromMainModule) $R2'])
         

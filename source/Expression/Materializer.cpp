@@ -1,19 +1,13 @@
 //===-- Materializer.cpp ----------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-// Project includes
 #include "lldb/Expression/Materializer.h"
 #include "lldb/Core/DumpDataExtractor.h"
-#include "lldb/Core/RegisterValue.h"
 #include "lldb/Core/ValueObjectConstResult.h"
 #include "lldb/Core/ValueObjectVariable.h"
 #include "lldb/Expression/ExpressionVariable.h"
@@ -27,6 +21,9 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Utility/Log.h"
+#include "lldb/Utility/RegisterValue.h"
+
+#include <memory>
 
 using namespace lldb_private;
 
@@ -50,7 +47,8 @@ uint32_t Materializer::AddStructMember(Entity &entity) {
 }
 
 void Materializer::Entity::SetSizeAndAlignmentFromType(CompilerType &type) {
-  m_size = type.GetByteSize(nullptr);
+  if (llvm::Optional<uint64_t> size = type.GetByteSize(nullptr))
+    m_size = *size;
 
   uint32_t bit_alignment = type.GetTypeBitAlign();
 
@@ -477,15 +475,6 @@ public:
     // In the case where the value is of Swift generic type, unbox it.
     CompilerType valobj_type = valobj_sp->GetCompilerType();
 
-    if (m_is_generic) {
-      auto dyn_obj = valobj_sp->GetDynamicValue(lldb::eDynamicDontRunTarget);
-      if (dyn_obj) {
-        // Update the type to refer to the dynamic type.
-        valobj_sp = dyn_obj;
-        valobj_type = valobj_sp->GetCompilerType();
-      }
-    }
-
     if (m_is_reference) {
       DataExtractor valobj_extractor;
       Status extract_error;
@@ -526,6 +515,18 @@ public:
           is_dynamic_class_type
               ? LLDB_INVALID_ADDRESS
               : valobj_sp->GetAddressOf(scalar_is_load_address, &address_type);
+
+      // BEGIN Swift.
+      if (lldb::ProcessSP process_sp =
+          map.GetBestExecutionContextScope()->CalculateProcess())
+        if (auto runtime = process_sp->GetLanguageRuntime(
+                valobj_type.GetMinimumLanguage())) {
+          Status read_error;
+          addr_of_valobj =
+              runtime->FixupAddress(addr_of_valobj, valobj_type, read_error);
+        }
+      // END Swift.
+
       if (addr_of_valobj != LLDB_INVALID_ADDRESS) {
         Status write_error;
         map.WritePointerToMemory(load_addr, addr_of_valobj, write_error);
@@ -541,10 +542,13 @@ public:
         Status extract_error;
         valobj_sp->GetData(data, extract_error);
         if (!extract_error.Success()) {
-          if (valobj_type.GetMinimumLanguage() == lldb::eLanguageTypeSwift &&
-              valobj_type.GetByteSize(frame_sp.get()) == 0) {
-            // We don't need to materialize empty structs in Swift.
-            return;
+          if (valobj_type.GetMinimumLanguage() == lldb::eLanguageTypeSwift) {
+            llvm::Optional<uint64_t> size =
+                valobj_type.GetByteSize(frame_sp.get());
+            if (size && *size == 0) {
+              // We don't need to materialize empty structs in Swift.
+              return;
+            }
           }
           err.SetErrorStringWithFormat("couldn't get the value of %s: %s",
                                        m_variable_sp->GetName().AsCString(),
@@ -561,7 +565,7 @@ public:
 
         if (data.GetByteSize() < m_variable_sp->GetType()->GetByteSize()) {
           if (data.GetByteSize() == 0 &&
-              m_variable_sp->LocationExpression().IsValid() == false) {
+              !m_variable_sp->LocationExpression().IsValid()) {
             err.SetErrorStringWithFormat("the variable '%s' has no location, "
                                          "it may have been optimized out",
                                          m_variable_sp->GetName().AsCString());
@@ -570,7 +574,8 @@ public:
                 "size of variable %s (%" PRIu64
                 ") is larger than the ValueObject's size (%" PRIu64 ")",
                 m_variable_sp->GetName().AsCString(),
-                m_variable_sp->GetType()->GetByteSize(), data.GetByteSize());
+                m_variable_sp->GetType()->GetByteSize().getValueOr(0),
+                data.GetByteSize());
           }
           return;
         }
@@ -591,8 +596,7 @@ public:
                 *frame_sp, layout_type);
         }
 
-        size_t bit_align = layout_type.GetTypeSystem()->MapIntoContext(
-            frame_sp, layout_type.GetOpaqueQualType()).GetTypeBitAlign();
+        size_t bit_align = layout_type.GetTypeBitAlign();
         size_t byte_align = (bit_align + 7) / 8;
 
         if (!byte_align)
@@ -608,8 +612,8 @@ public:
 
         m_temporary_allocation_size = data.GetByteSize();
 
-        m_original_data.reset(
-            new DataBufferHeap(data.GetDataStart(), data.GetByteSize()));
+        m_original_data = std::make_shared<DataBufferHeap>(data.GetDataStart(),
+                                                           data.GetByteSize());
 
         if (!alloc_error.Success()) {
           err.SetErrorStringWithFormat(
@@ -691,10 +695,12 @@ public:
                         extract_error);
 
       if (!extract_error.Success()) {
-        if (valobj_type.GetMinimumLanguage() == lldb::eLanguageTypeSwift &&
-            valobj_type.GetByteSize(frame_sp.get()) == 0) {
-          // We don't need to dematerialize empty structs in Swift.
-          return;
+        if (valobj_type.GetMinimumLanguage() == lldb::eLanguageTypeSwift) {
+          llvm::Optional<uint64_t> size =
+              valobj_type.GetByteSize(frame_sp.get());
+          if (size && *size == 0)
+            // We don't need to dematerialize empty structs in Swift.
+            return;
         }
         
         err.SetErrorStringWithFormat("couldn't get the data for variable %s",
@@ -860,7 +866,11 @@ public:
 
       ExecutionContextScope *exe_scope = map.GetBestExecutionContextScope();
 
-      size_t byte_size = m_type.GetByteSize(exe_scope);
+      llvm::Optional<uint64_t> byte_size = m_type.GetByteSize(exe_scope);
+      if (!byte_size) {
+        err.SetErrorString("can't get size of type");
+        return;
+      }
       size_t bit_align = m_type.GetTypeBitAlign();
       size_t byte_align = (bit_align + 7) / 8;
 
@@ -871,10 +881,10 @@ public:
       const bool zero_memory = true;
 
       m_temporary_allocation = map.Malloc(
-          byte_size, byte_align,
+          *byte_size, byte_align,
           lldb::ePermissionsReadable | lldb::ePermissionsWritable,
           IRMemoryMap::eAllocationPolicyMirror, zero_memory, alloc_error);
-      m_temporary_allocation_size = byte_size;
+      m_temporary_allocation_size = *byte_size;
 
       if (!alloc_error.Success()) {
         err.SetErrorStringWithFormat(
@@ -939,7 +949,7 @@ public:
     if (lang == lldb::eLanguageTypeSwift)
       // We already acquired the lock in the SwiftUserExpression.
       type_system =
-          target_sp->GetScratchSwiftASTContext(type_system_error, *frame_sp)
+          target_sp->GetScratchSwiftASTContext(type_system_error, *exe_scope)
               .get();
     else
       type_system = target_sp->GetScratchTypeSystemForLanguage(
@@ -956,7 +966,7 @@ public:
     PersistentExpressionState *persistent_state;
     if (lang == lldb::eLanguageTypeSwift)
       persistent_state =
-        target_sp->GetSwiftPersistentExpressionState(*frame_sp);
+        target_sp->GetSwiftPersistentExpressionState(*exe_scope);
     else
       persistent_state = type_system->GetPersistentExpressionState();
 
@@ -1113,7 +1123,6 @@ private:
   CompilerType m_type;
   bool m_is_program_reference;
   bool m_keep_in_memory;
-  bool m_is_error_result;
 
   lldb::addr_t m_temporary_allocation;
   size_t m_temporary_allocation_size;
@@ -1301,8 +1310,8 @@ public:
       return;
     }
 
-    m_register_contents.reset(new DataBufferHeap(register_data.GetDataStart(),
-                                                 register_data.GetByteSize()));
+    m_register_contents = std::make_shared<DataBufferHeap>(
+        register_data.GetDataStart(), register_data.GetByteSize());
 
     Status write_error;
 

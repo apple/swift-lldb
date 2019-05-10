@@ -63,6 +63,7 @@
 #include "swift/Demangling/Demangle.h"
 #include "swift/Basic/PrimarySpecificPaths.h"
 #include "swift/Basic/SourceManager.h"
+#include "swift/Basic/OptimizationMode.h"
 #include "swift/ClangImporter/ClangImporter.h"
 #include "swift/Frontend/Frontend.h"
 #include "swift/Parse/LocalContext.h"
@@ -89,7 +90,7 @@ SwiftExpressionParser::SwiftExpressionParser(
       m_options(options) {
   assert(expr.Language() == lldb::eLanguageTypeSwift);
 
-  // TODO This code is copied from ClangExpressionParser.cpp.
+  // TODO: This code is copied from ClangExpressionParser.cpp.
   // Factor this out into common code.
 
   lldb::TargetSP target_sp;
@@ -131,203 +132,6 @@ SwiftExpressionParser::SwiftExpressionParser(
   }
 }
 
-static void DescribeFileUnit(Stream &s, swift::FileUnit *file_unit) {
-  s.PutCString("kind = ");
-
-  switch (file_unit->getKind()) {
-  default: { s.PutCString("<unknown>"); }
-  case swift::FileUnitKind::Source: {
-    s.PutCString("Source, ");
-    if (swift::SourceFile *source_file =
-            llvm::dyn_cast<swift::SourceFile>(file_unit)) {
-      s.Printf("filename = '%s', ", source_file->getFilename().str().c_str());
-      s.PutCString("source file kind = ");
-      switch (source_file->Kind) {
-      case swift::SourceFileKind::Library:
-        s.PutCString("Library");
-      case swift::SourceFileKind::Main:
-        s.PutCString("Main");
-      case swift::SourceFileKind::REPL:
-        s.PutCString("REPL");
-      case swift::SourceFileKind::SIL:
-        s.PutCString("SIL");
-      }
-    }
-  } break;
-  case swift::FileUnitKind::Builtin: {
-    s.PutCString("Builtin");
-  } break;
-  case swift::FileUnitKind::SerializedAST:
-  case swift::FileUnitKind::ClangModule: {
-    if (file_unit->getKind() == swift::FileUnitKind::SerializedAST)
-      s.PutCString("Serialized Swift AST, ");
-    else
-      s.PutCString("Clang module, ");
-    swift::LoadedFile *loaded_file = llvm::cast<swift::LoadedFile>(file_unit);
-    s.Printf("filename = '%s'", loaded_file->getFilename().str().c_str());
-  } break;
-  };
-}
-
-// Gets the full module name from the module passed in.
-
-static void GetNameFromModule(swift::ModuleDecl *module, std::string &result) {
-  result.clear();
-  if (module) {
-    const char *name = module->getName().get();
-    if (!name)
-      return;
-    result.append(name);
-    const clang::Module *clang_module = module->findUnderlyingClangModule();
-
-    // At present, there doesn't seem to be any way to get the full module path
-    // from the Swift side.
-    if (!clang_module)
-      return;
-
-    for (const clang::Module *cur_module = clang_module->Parent; cur_module;
-         cur_module = cur_module->Parent) {
-      if (!cur_module->Name.empty()) {
-        result.insert(0, 1, '.');
-        result.insert(0, cur_module->Name);
-      }
-    }
-  }
-}
-
-/// Largely lifted from swift::performAutoImport, but serves our own nefarious
-/// purposes.
-static bool PerformAutoImport(SwiftASTContext &swift_ast_context,
-                              SymbolContext &sc, ExecutionContextScope &exe_scope,
-                              lldb::StackFrameWP &stack_frame_wp,
-                              swift::SourceFile &source_file, bool user_imports,
-                              Status &error) {
-  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
-
-  const std::vector<ConstString> *cu_modules = nullptr;
-
-  CompileUnit *compile_unit = sc.comp_unit;
-
-  if (compile_unit && compile_unit->GetLanguage() == lldb::eLanguageTypeSwift)
-    cu_modules = &compile_unit->GetImportedModules();
-
-  llvm::SmallVector<swift::ModuleDecl::ImportedModule, 2> imported_modules;
-  llvm::SmallVector<swift::SourceFile::ImportedModuleDesc, 2>
-      additional_imports;
-
-  source_file.getImportedModules(imported_modules,
-                                 swift::ModuleDecl::ImportFilter::All);
-
-  std::set<ConstString> loaded_modules;
-
-  auto load_one_module = [&](const ConstString &module_name) {
-    error.Clear();
-    if (loaded_modules.count(module_name))
-      return true;
-
-    if (log)
-      log->Printf("[PerformAutoImport] Importing module %s",
-                  module_name.AsCString());
-
-    loaded_modules.insert(module_name);
-
-    swift::ModuleDecl *swift_module = nullptr;
-    lldb::StackFrameSP this_frame_sp(stack_frame_wp.lock());
-
-    if (module_name == ConstString(swift_ast_context.GetClangImporter()
-                                       ->getImportedHeaderModule()
-                                       ->getName()
-                                       .str()))
-      swift_module =
-          swift_ast_context.GetClangImporter()->getImportedHeaderModule();
-    else if (this_frame_sp) {
-      lldb::ProcessSP process_sp(this_frame_sp->CalculateProcess());
-      if (process_sp)
-        swift_module = swift_ast_context.FindAndLoadModule(
-            module_name, *process_sp.get(), error);
-    } else
-      swift_module = swift_ast_context.GetModule(module_name, error);
-
-    if (!swift_module || !error.Success() ||
-        swift_ast_context.HasFatalErrors()) {
-      if (log)
-        log->Printf("[PerformAutoImport] Couldn't import module %s: %s",
-                    module_name.AsCString(), error.AsCString());
-
-      if (!swift_module || swift_ast_context.HasFatalErrors()) {
-        return false;
-      }
-    }
-
-    if (log) {
-      log->Printf("Importing %s with source files:", module_name.AsCString());
-
-      for (swift::FileUnit *file_unit : swift_module->getFiles()) {
-        StreamString ss;
-        DescribeFileUnit(ss, file_unit);
-        log->Printf("  %s", ss.GetData());
-      }
-    }
-
-    additional_imports.push_back(swift::SourceFile::ImportedModuleDesc(
-        std::make_pair(swift::ModuleDecl::AccessPathTy(), swift_module),
-        swift::SourceFile::ImportOptions()));
-    imported_modules.push_back(
-        std::make_pair(swift::ModuleDecl::AccessPathTy(), swift_module));
-
-    return true;
-  };
-
-  if (!user_imports) {
-    if (!load_one_module(ConstString("Swift")))
-      return false;
-
-    if (cu_modules) {
-      for (const ConstString &module_name : *cu_modules) {
-        if (!load_one_module(module_name))
-          return false;
-      }
-    }
-  } else {
-    llvm::SmallVector<swift::ModuleDecl::ImportedModule, 2> parsed_imports;
-
-    source_file.getImportedModules(parsed_imports,
-                                   swift::ModuleDecl::ImportFilter::All);
-
-    auto *persistent_expression_state =
-        sc.target_sp->GetSwiftPersistentExpressionState(exe_scope);
-
-    for (auto module_pair : parsed_imports) {
-      swift::ModuleDecl *module = module_pair.second;
-      if (module) {
-        std::string module_name;
-        GetNameFromModule(module, module_name);
-        if (!module_name.empty()) {
-          ConstString module_const_str(module_name);
-          if (log)
-            log->Printf("[PerformAutoImport] Performing auto import on found "
-                        "module: %s.\n",
-                        module_name.c_str());
-          if (!load_one_module(module_const_str))
-            return false;
-
-          // How do we tell we are in REPL or playground mode?
-          persistent_expression_state->AddHandLoadedModule(module_const_str);
-        }
-      }
-    }
-
-    // Finally get the hand-loaded modules from the
-    // SwiftPersistentExpressionState and load them into this context:
-    if (!persistent_expression_state->RunOverHandLoadedModules(load_one_module))
-      return false;
-  }
-
-  source_file.addImports(additional_imports);
-
-  return true;
-}
-
 class VariableMetadataPersistent
     : public SwiftASTManipulatorBase::VariableMetadata {
 public:
@@ -364,8 +168,8 @@ static CompilerType ImportType(SwiftASTContext &target_context,
   Status error, mangled_error;
   CompilerType target_type;
 
-  // First try to get the type by using the mangled name,
-  // That will save the mangling step ImportType would have to do:
+  // First try to get the type by using the mangled name. That will
+  // save the mangling step ImportType would have to do:
 
   ConstString type_name = source_type.GetTypeName();
   ConstString mangled_counterpart;
@@ -426,8 +230,8 @@ protected:
   SymbolContext m_sc;
   SwiftPersistentExpressionState *m_persistent_vars = nullptr;
 
-  // Subclasses stage globalized decls in this map. They get copied over to the
-  // SwiftPersistentVariable store if the parse succeeds.
+  // Subclasses stage globalized decls in this map. They get copied
+  // over to the SwiftPersistentVariable store if the parse succeeds.
   SwiftPersistentExpressionState::SwiftDeclMap m_staged_decls;
 };
 
@@ -442,9 +246,9 @@ public:
   virtual ~LLDBExprNameLookup() {}
 
   virtual bool shouldGlobalize(swift::Identifier Name, swift::DeclKind Kind) {
-    // Extensions have to be globalized, there's no way to mark them as local
-    // to the function, since their
-    // name is the name of the thing being extended...
+    // Extensions have to be globalized, there's no way to mark them
+    // as local to the function, since their name is the name of the
+    // thing being extended...
     if (Kind == swift::DeclKind::Extension)
       return true;
 
@@ -466,11 +270,10 @@ public:
   virtual void didGlobalize(swift::Decl *decl) {
     swift::ValueDecl *value_decl = swift::dyn_cast<swift::ValueDecl>(decl);
     if (value_decl) {
-      // It seems weird to be asking this again, but some DeclKinds must be
-      // moved to
-      // the source-file level to be legal.  But we don't want to register them
-      // with
-      // lldb unless they are of the kind lldb explicitly wants to globalize.
+      // It seems weird to be asking this again, but some DeclKinds
+      // must be moved to the source-file level to be legal.  But we
+      // don't want to register them with lldb unless they are of the
+      // kind lldb explicitly wants to globalize.
       if (shouldGlobalize(value_decl->getBaseName().getIdentifier(),
                           value_decl->getKind()))
         m_staged_decls.AddDecl(value_decl, false, ConstString());
@@ -507,28 +310,31 @@ public:
     ConstString name_const_str(NameStr);
     std::vector<swift::ValueDecl *> results;
 
-    // First look up the matching decls we've made in this compile.  Later,
-    // when we look for persistent decls, these staged decls take precedence.
+    // First look up the matching decls we've made in this compile.
+    // Later, when we look for persistent decls, these staged decls
+    // take precedence.
 
     m_staged_decls.FindMatchingDecls(name_const_str, {}, results);
 
-    // Next look up persistent decls matching this name.  Then, if we aren't
-    // looking at a debugger variable, filter out persistent results of the same
-    // kind as one found by the ordinary lookup mechanism in the parser.  The
-    // problem we are addressing here is the case where the user has entered the
-    // REPL while in an ordinary debugging session to play around.  While there,
-    // e.g., they define a class that happens to have the same name as one in
-    // the program, then in some other context "expr" will call the class
-    // they've defined, not the one in the program itself would use.  Plain
-    // "expr" should behave as much like code in the program would, so we want
-    // to favor entities of the same DeclKind & name from the program over ones
-    // defined in the REPL.  For function decls we check the interface type and
-    // full name so we don't remove overloads that don't exist in the current
+    // Next look up persistent decls matching this name.  Then, if we
+    // aren't looking at a debugger variable, filter out persistent
+    // results of the same kind as one found by the ordinary lookup
+    // mechanism in the parser.  The problem we are addressing here is
+    // the case where the user has entered the REPL while in an
+    // ordinary debugging session to play around.  While there, e.g.,
+    // they define a class that happens to have the same name as one
+    // in the program, then in some other context "expr" will call the
+    // class they've defined, not the one in the program itself would
+    // use.  Plain "expr" should behave as much like code in the
+    // program would, so we want to favor entities of the same
+    // DeclKind & name from the program over ones defined in the REPL.
+    // For function decls we check the interface type and full name so
+    // we don't remove overloads that don't exist in the current
     // scope.
     //
-    // Note also, we only do this for the persistent decls.  Anything in the
-    // "staged" list has been defined in this expr setting and so is more local
-    // than local.
+    // Note also, we only do this for the persistent decls.  Anything
+    // in the "staged" list has been defined in this expr setting and
+    // so is more local than local.
     if (m_persistent_vars) {
       bool is_debugger_variable = !NameStr.empty() && NameStr.front() == '$';
 
@@ -558,8 +364,8 @@ public:
                 if (is_function) {
                   swift::DeclName rv_full_name = rv_decl->getFullName();
                   if (rv_full_name.matchesRef(value_decl_name)) {
-                    // If the full names match, make sure the interface types
-                    // match:
+                    // If the full names match, make sure the
+                    // interface types match:
                     if (rv_decl->getInterfaceType()->getCanonicalType() ==
                         value_interface_type)
                       skip_it = true;
@@ -584,8 +390,8 @@ public:
 
     for (size_t idx = 0; idx < results.size(); idx++) {
       swift::ValueDecl *value_decl = results[idx];
-      assert(&DC->getASTContext() ==
-             &value_decl->getASTContext()); // no import required
+      // No import required.
+      assert(&DC->getASTContext() == &value_decl->getASTContext());
       RV.push_back(swift::LookupResultEntry(value_decl));
     }
 
@@ -657,9 +463,9 @@ public:
         current_compilation_results.push_back(result_decl);
     }
 
-    // Find persistent decls, excluding decls that are equivalent to decls from
-    // the current compilation.  This makes the decls from the current
-    // compilation take precedence.
+    // Find persistent decls, excluding decls that are equivalent to
+    // decls from the current compilation.  This makes the decls from
+    // the current compilation take precedence.
     std::vector<swift::ValueDecl *> persistent_decl_results;
     m_persistent_vars->GetSwiftPersistentDecls(name_const_str,
                                                current_compilation_results,
@@ -667,8 +473,8 @@ public:
 
     // Append the persistent decls that we found to the result vector.
     for (auto result : persistent_decl_results) {
-      assert(&DC->getASTContext() ==
-             &result->getASTContext()); // no import required
+      // No import required.
+      assert(&DC->getASTContext() == &result->getASTContext());
       RV.push_back(swift::LookupResultEntry(result));
     }
 
@@ -684,9 +490,8 @@ public:
 static void
 AddRequiredAliases(Block *block, lldb::StackFrameSP &stack_frame_sp,
                    SwiftASTContext &swift_ast_context,
-                   SwiftASTManipulator &manipulator,
-                   const Expression::SwiftGenericInfo &generic_info) {
-  // First, emit the typealias for "$__lldb_context"
+                   SwiftASTManipulator &manipulator) {
+  // First emit the typealias for "$__lldb_context".
   if (!block)
     return;
 
@@ -731,68 +536,44 @@ AddRequiredAliases(Block *block, lldb::StackFrameSP &stack_frame_sp,
       !llvm::isa<SwiftASTContext>(self_type.GetTypeSystem()))
     return;
 
-  // Import before getting the unbound version, because the unbound version
-  // may not be in the mangled name map
+  // Import before getting the unbound version, because the unbound
+  // version may not be in the mangled name map.
 
   CompilerType imported_self_type = ImportType(swift_ast_context, self_type);
 
   if (!imported_self_type.IsValid())
     return;
 
-  // This might be a referenced type, in which case we really want to extend
-  // the referent:
+  SwiftLanguageRuntime *swift_runtime =
+      stack_frame_sp->GetThread()->GetProcess()->GetSwiftLanguageRuntime();
+  auto *stack_frame = stack_frame_sp.get();
+  imported_self_type =
+      swift_runtime->DoArchetypeBindingForType(*stack_frame,
+                                               imported_self_type);
+
+  // This might be a referenced type, in which case we really want to
+  // extend the referent:
   imported_self_type =
       llvm::cast<SwiftASTContext>(imported_self_type.GetTypeSystem())
           ->GetReferentType(imported_self_type);
 
-  // If we are extending a generic class it's going to be a metatype, and we
-  // have to grab the instance type:
+  // If we are extending a generic class it's going to be a metatype,
+  // and we have to grab the instance type:
   imported_self_type =
       llvm::cast<SwiftASTContext>(imported_self_type.GetTypeSystem())
           ->GetInstanceType(imported_self_type.GetOpaqueQualType());
 
   Flags imported_self_type_flags(imported_self_type.GetTypeInfo());
 
-  // If 'self' is the Self archetype, resolve it to the actual metatype it is
-  if (SwiftASTContext::IsSelfArchetypeType(imported_self_type)) {
-    SwiftLanguageRuntime *swift_runtime =
-        stack_frame_sp->GetThread()->GetProcess()->GetSwiftLanguageRuntime();
-    // Assume self is always the first type parameter.
-    if (CompilerType concrete_self_type = swift_runtime->GetConcreteType(
-            stack_frame_sp.get(), ConstString(u8"\u03C4_0_0"))) {
-      if (SwiftASTContext *concrete_self_type_ast_ctx =
-              llvm::dyn_cast_or_null<SwiftASTContext>(
-                  concrete_self_type.GetTypeSystem())) {
-        imported_self_type =
-            concrete_self_type_ast_ctx->CreateMetatypeType(concrete_self_type);
-        imported_self_type_flags.Reset(imported_self_type.GetTypeInfo());
-        imported_self_type = ImportType(swift_ast_context, imported_self_type);
-        if (imported_self_type_flags.AllSet(lldb::eTypeIsSwift |
-                                            lldb::eTypeIsMetatype)) {
-          imported_self_type = imported_self_type.GetInstanceType();
-        }
-      }
-    }
-  }
-
-  // Get the instance type:
-  if (imported_self_type_flags.AllSet(lldb::eTypeIsSwift |
-                                      lldb::eTypeIsMetatype)) {
-    imported_self_type = imported_self_type.GetInstanceType();
-    imported_self_type_flags.Reset(imported_self_type.GetTypeInfo());
-  }
-
   swift::Type object_type =
-      swift::Type((swift::TypeBase *)(imported_self_type.GetOpaqueQualType()))
-          ->getWithoutSpecifierType();
+      GetSwiftType(imported_self_type)->getWithoutSpecifierType();
 
   if (object_type.getPointer() &&
       (object_type.getPointer() != imported_self_type.GetOpaqueQualType()))
     imported_self_type = CompilerType(imported_self_type.GetTypeSystem(),
                                       object_type.getPointer());
 
-  // If the type of 'self' is a bound generic type, get the unbound version
-
+  // If the type of 'self' is a bound generic type, get the unbound version.
   bool is_generic = imported_self_type_flags.AllSet(lldb::eTypeIsSwift |
                                                     lldb::eTypeIsGeneric);
   bool is_bound =
@@ -803,12 +584,10 @@ AddRequiredAliases(Block *block, lldb::StackFrameSP &stack_frame_sp,
       imported_self_type = imported_self_type.GetUnboundType();
   }
 
-  // if 'self' is a weak storage type, it must be an optional.  Look through
-  // it and unpack the argument of "optional".
-
+  // If 'self' is a weak storage type, it must be an optional.  Look
+  // through it and unpack the argument of "optional".
   if (swift::WeakStorageType *weak_storage_type =
-          ((swift::TypeBase *)imported_self_type.GetOpaqueQualType())
-              ->getAs<swift::WeakStorageType>()) {
+          GetSwiftType(imported_self_type)->getAs<swift::WeakStorageType>()) {
     swift::Type referent_type = weak_storage_type->getReferentType();
 
     swift::BoundGenericEnumType *optional_type =
@@ -852,12 +631,105 @@ AddRequiredAliases(Block *block, lldb::StackFrameSP &stack_frame_sp,
   }
 }
 
-static void CountLocals(
+/// Create a \c VariableInfo record for \c variable if there isn't
+/// already shadowing inner declaration in \c processed_variables.
+static void AddVariableInfo(
+    lldb::VariableSP variable_sp, lldb::StackFrameSP &stack_frame_sp,
+    SwiftASTContext &ast_context, SwiftLanguageRuntime *language_runtime,
+    llvm::SmallDenseSet<const char *, 8> &processed_variables,
+    llvm::SmallVectorImpl<SwiftASTManipulator::VariableInfo> &local_variables) {
+  StringRef name = variable_sp->GetUnqualifiedName().GetStringRef();
+  const char *name_cstr = name.data();
+  assert(StringRef(name_cstr) == name && "missing null terminator");
+  if (name.empty())
+    return;
+
+  // To support "guard let self = self" the function argument "self"
+  // is processed (as the special self argument) even if it is
+  // shadowed by a local variable.
+  bool is_self = SwiftLanguageRuntime::IsSelf(*variable_sp);
+  const char *overridden_name = name_cstr;
+  if (is_self)
+    overridden_name = "$__lldb_injected_self";
+
+  if (processed_variables.count(overridden_name))
+    return;
+
+  CompilerType var_type;
+  if (stack_frame_sp) {
+    lldb::ValueObjectSP valobj_sp =
+        stack_frame_sp->GetValueObjectForFrameVariable(variable_sp,
+                                                       lldb::eNoDynamicValues);
+
+    if (!valobj_sp || valobj_sp->GetError().Fail()) {
+      // Ignore the variable if we couldn't find its corresponding
+      // value object.  TODO if the expression tries to use an
+      // ignored variable, produce a sensible error.
+      return;
+    }
+    var_type = valobj_sp->GetCompilerType();
+  }
+
+  if (!var_type.IsValid())
+    if (Type *var_lldb_type = variable_sp->GetType())
+      var_type = var_lldb_type->GetFullCompilerType();
+
+  if (!var_type.IsValid())
+    return;
+
+  if (!llvm::isa<SwiftASTContext>(var_type.GetTypeSystem()))
+    return;
+
+  Status error;
+  CompilerType target_type = ast_context.ImportType(var_type, error);
+
+  // If the import failed, give up.
+  if (!target_type.IsValid())
+    return;
+
+  // Resolve all archetypes in the variable type.
+  if (stack_frame_sp)
+    if (language_runtime)
+      target_type = language_runtime->DoArchetypeBindingForType(*stack_frame_sp,
+                                                                target_type);
+
+  // If we couldn't fully realize the type, then we aren't going
+  // to get very far making a local out of it, so discard it here.
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_TYPES |
+                                                  LIBLLDB_LOG_EXPRESSIONS));
+  if (!SwiftASTContext::IsFullyRealized(target_type)) {
+    if (log)
+      log->Printf("Discarding local %s because we couldn't fully realize it, "
+                  "our best attempt was: %s.",
+                  name_cstr, target_type.GetTypeName().AsCString("<unknown>"));
+    return;
+  }
+
+  if (log && is_self)
+    if (swift::Type swift_type = GetSwiftType(target_type)) {
+      std::string s;
+      llvm::raw_string_ostream ss(s);
+      swift_type->dump(ss);
+      ss.flush();
+      log->Printf("Adding injected self: type (%p) context(%p) is: %s",
+                  static_cast<void *>(swift_type.getPointer()),
+                  static_cast<void *>(ast_context.GetASTContext()), s.c_str());
+    }
+  SwiftASTManipulatorBase::VariableMetadataSP metadata_sp(
+      new VariableMetadataVariable(variable_sp));
+  SwiftASTManipulator::VariableInfo variable_info(
+      target_type, ast_context.GetASTContext()->getIdentifier(overridden_name),
+      metadata_sp, swift::VarDecl::Specifier::Var);
+
+  local_variables.push_back(variable_info);
+  processed_variables.insert(overridden_name);
+}
+
+/// Create a \c VariableInfo record for each visible variable.
+static void RegisterAllVariables(
     SymbolContext &sc, lldb::StackFrameSP &stack_frame_sp,
     SwiftASTContext &ast_context,
     llvm::SmallVectorImpl<SwiftASTManipulator::VariableInfo> &local_variables) {
-  std::set<ConstString> counted_names; // avoids shadowing
-
   if (!sc.block && !sc.function)
     return;
 
@@ -866,8 +738,6 @@ static void CountLocals(
 
   if (!top_block)
     top_block = &sc.function->GetBlock(true);
-
-  static ConstString s_self_name("self");
 
   SwiftLanguageRuntime *language_runtime = nullptr;
   ExecutionContextScope *scope = nullptr;
@@ -878,23 +748,24 @@ static void CountLocals(
     scope = stack_frame_sp.get();
   }
 
-  // The module scoped variables are stored at the CompUnit level, so after we
-  // go through the current context,
-  // then we have to take one more pass through the variables in the CompUnit.
+  // The module scoped variables are stored at the CompUnit level, so
+  // after we go through the current context, then we have to take one
+  // more pass through the variables in the CompUnit.
   bool handling_globals = false;
+  VariableList variables;
 
+  // Proceed from the innermost scope outwards, adding all variables
+  // not already shadowed by an inner declaration.
+  llvm::SmallDenseSet<const char *, 8> processed_names;
   while (true) {
-    VariableList variables;
-
     if (!handling_globals) {
-
       constexpr bool can_create = true;
       constexpr bool get_parent_variables = false;
       constexpr bool stop_if_block_is_inlined_function = true;
 
-      block->AppendVariables(can_create, get_parent_variables,
-                             stop_if_block_is_inlined_function,
-                             [](Variable *) { return true; }, &variables);
+      block->AppendVariables(
+          can_create, get_parent_variables, stop_if_block_is_inlined_function,
+          [](Variable *) { return true; }, &variables);
     } else {
       if (sc.comp_unit) {
         lldb::VariableListSP globals_sp = sc.comp_unit->GetVariableList(true);
@@ -903,134 +774,21 @@ static void CountLocals(
       }
     }
 
-    for (size_t vi = 0, ve = variables.GetSize(); vi != ve; ++vi) {
-      lldb::VariableSP variable_sp(variables.GetVariableAtIndex(vi));
+    // Process all variables in this scope.
+    for (size_t vi = 0, ve = variables.GetSize(); vi != ve; ++vi)
+      AddVariableInfo({variables.GetVariableAtIndex(vi)}, stack_frame_sp,
+                      ast_context, language_runtime, processed_names,
+                      local_variables);
 
-      const ConstString &name(variable_sp->GetUnqualifiedName());
-      const char *name_cstring = variable_sp->GetUnqualifiedName().GetCString();
-
-      if (name.IsEmpty())
-        continue;
-
-      if (counted_names.count(name))
-        continue;
-
-      CompilerType var_type;
-
-      if (stack_frame_sp) {
-        lldb::ValueObjectSP valobj_sp =
-            stack_frame_sp->GetValueObjectForFrameVariable(
-                variable_sp, lldb::eNoDynamicValues);
-
-        if (!valobj_sp || valobj_sp->GetError().Fail()) {
-          // Ignore the variable if we couldn't find its corresponding value
-          // object.
-          // TODO if the expression tries to use an ignored variable, produce a
-          // sensible error.
-          continue;
-        } else {
-          var_type = valobj_sp->GetCompilerType();
-        }
-
-        if (var_type.IsValid() && !SwiftASTContext::IsFullyRealized(var_type)) {
-          lldb::ValueObjectSP dynamic_valobj_sp =
-              valobj_sp->GetDynamicValue(lldb::eDynamicDontRunTarget);
-
-          if (!dynamic_valobj_sp || dynamic_valobj_sp->GetError().Fail()) {
-            continue;
-          }
-        }
-      }
-
-      if (!var_type.IsValid()) {
-        Type *var_lldb_type = variable_sp->GetType();
-
-        if (var_lldb_type)
-          var_type = var_lldb_type->GetFullCompilerType();
-      }
-
-      if (!var_type.IsValid())
-        continue;
-
-      if (!llvm::isa<SwiftASTContext>(var_type.GetTypeSystem()))
-        continue;
-
-      Status error;
-      CompilerType target_type = ast_context.ImportType(var_type, error);
-
-      // If the import failed, give up
-
-      if (!target_type.IsValid())
-        continue;
-
-      // Make sure to resolve all archetypes in the variable type.
-
-      if (stack_frame_sp) {
-        if (language_runtime)
-          target_type = language_runtime->DoArchetypeBindingForType(
-              *stack_frame_sp, target_type);
-
-        if (auto *ts = target_type.GetTypeSystem())
-          target_type =
-            ts->MapIntoContext(stack_frame_sp, target_type.GetOpaqueQualType());
-      }
-
-      // If we couldn't fully realize the type, then we aren't going to get very
-      // far making a local out of it,
-      // so discard it here.
-      Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_TYPES |
-                                                      LIBLLDB_LOG_EXPRESSIONS));
-      if (!SwiftASTContext::IsFullyRealized(target_type)) {
-        if (log) {
-          log->Printf("Discarding local %s because we couldn't fully realize "
-                      "it, our best attempt was: %s.",
-                      name_cstring,
-                      target_type.GetTypeName().AsCString("<unknown>"));
-        }
-        continue;
-      }
-
-      SwiftASTManipulatorBase::VariableMetadataSP metadata_sp(
-          new VariableMetadataVariable(variable_sp));
-
-      const char *overridden_name = name_cstring;
-
-      if (name == s_self_name) {
-        overridden_name = ConstString("$__lldb_injected_self").AsCString();
-        if (log) {
-          swift::TypeBase *swift_type =
-              (swift::TypeBase *)target_type.GetOpaqueQualType();
-          if (swift_type) {
-            std::string s;
-            llvm::raw_string_ostream ss(s);
-            swift_type->dump(ss);
-            ss.flush();
-            log->Printf("Adding injected self: type (%p) context(%p) is: %s",
-                        swift_type, ast_context.GetASTContext(), s.c_str());
-          }
-        }
-      }
-
-      SwiftASTManipulator::VariableInfo variable_info(
-          target_type,
-          ast_context.GetASTContext()->getIdentifier(overridden_name),
-          metadata_sp,
-          swift::VarDecl::Specifier::Var);
-
-      local_variables.push_back(variable_info);
-
-      counted_names.insert(name);
-    }
-
-    if (handling_globals) {
-      // Okay, now we're done...
-      break;
-    } else if (block == top_block) {
-      // Now add the containing module block, that's what holds the module
-      // globals:
-      handling_globals = true;
+    if (!handling_globals) {
+      if (block == top_block)
+        // Now add the containing module block, that's what holds the
+        // module globals:
+        handling_globals = true;
+      else
+        block = block->GetParent();
     } else
-      block = block->GetParent();
+      break;
   }
 }
 
@@ -1098,12 +856,13 @@ static void ResolveSpecialNames(
 }
 
 //----------------------------------------------------------------------
-// Diagnostics are part of the ShintASTContext and we must enable and
-// disable colorization manually in the ShintASTContext. We need to
-// ensure that if we modify the setting that we restore it to what it
-// was. This class helps us to do that without having to intrument all
-// returns from a function, like in SwiftExpressionParser::Parse(...).
-//----------------------------------------------------------------------
+/// Diagnostics are part of the SwiftASTContext and we must enable and
+/// disable colorization manually in the SwiftASTContext. We need to
+/// ensure that if we modify the setting that we restore it to what it
+/// was. This class helps us to do that without having to intrument
+/// all returns from a function, like in
+/// SwiftExpressionParser::Parse(...).
+/// //----------------------------------------------------------------------
 class SetColorize {
 public:
   SetColorize(SwiftASTContext *swift_ast, bool colorize)
@@ -1129,8 +888,8 @@ static swift::ASTContext *SetupASTContext(
     return nullptr;
   }
 
-  // Lazily get the clang importer if we can to make sure it exists in case we
-  // need it.
+  // Lazily get the clang importer if we can to make sure it exists in
+  // case we need it.
   if (!swift_ast_context->GetClangImporter()) {
     std::string swift_error = "Fatal Swift ";
     swift_error +=
@@ -1162,20 +921,19 @@ static swift::ASTContext *SetupASTContext(
     return nullptr;
   }
 
-  // TODO find a way to get contraint-solver output sent to a stream so we can
-  // log it
+  // TODO: Find a way to get contraint-solver output sent to a stream
+  //       so we can log it.
   // swift_ast_context->GetLanguageOptions().DebugConstraintSolver = true;
-
   swift_ast_context->ClearDiagnostics();
 
   // Make a class that will set/restore the colorize setting in the
-  // SwiftASTContext for us
+  // SwiftASTContext for us.
+  
   // SetColorize colorize(swift_ast_context,
   // stream.GetFlags().Test(Stream::eANSIColor));
-
   swift_ast_context->GetLanguageOptions().DebuggerSupport = true;
-  swift_ast_context->GetLanguageOptions().EnableDollarIdentifiers =
-      true; // No longer part of debugger support, set it separately.
+  // No longer part of debugger support, set it separately.
+  swift_ast_context->GetLanguageOptions().EnableDollarIdentifiers = true;
   swift_ast_context->GetLanguageOptions().EnableAccessControl =
       (repl || playground);
   swift_ast_context->GetLanguageOptions().EnableTargetOSChecking = false;
@@ -1193,13 +951,18 @@ static swift::ASTContext *SetupASTContext(
     swift_ast_context->GetLanguageOptions().EnableThrowWithoutTry = true;
 
   // SWIFT_ENABLE_TENSORFLOW
-  // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
-  // switch this back to NoOptimization.
+  // FIXME: we have come to rely on the optimizations in Jupyter notebooks.  We
+  // will leave them here even though the upstream does not have them turned on.
+  // Perhaps, we should add new "notebook" mode (a la repl mode) to
+  // conditionally turn optimizations on?
   swift_ast_context->GetIRGenOptions().OptMode =
       swift::OptimizationMode::ForSpeed;
   // Normally we'd like to verify, but unfortunately the verifier's
   // error mode is abort().
   swift_ast_context->GetIRGenOptions().Verify = false;
+  swift_ast_context->GetIRGenOptions().ForcePublicLinkage = true;
+
+  swift_ast_context->GetIRGenOptions().DisableRoundTripDebugTypes = true;
   return ast_context;
 }
 
@@ -1263,9 +1026,8 @@ MaterializeVariable(SwiftASTManipulatorBase::VariableInfo &variable,
     Status error;
 
     if (repl) {
-      if (swift::TypeBase *swift_type =
-              (swift::TypeBase *)variable.GetType().GetOpaqueQualType()) {
-        if (!swift_type->getCanonicalType()->isVoid()) {
+      if (swift::Type swift_type = GetSwiftType(variable.GetType())) {
+        if (!swift_type->isVoid()) {
           auto &repl_mat = *llvm::cast<SwiftREPLMaterializer>(&materializer);
           if (is_result)
             offset = repl_mat.AddREPLResultVariable(
@@ -1279,7 +1041,7 @@ MaterializeVariable(SwiftASTManipulatorBase::VariableInfo &variable,
       }
     } else {
       CompilerType actual_type(variable.GetType());
-      auto *orig_swift_type = (swift::TypeBase *)actual_type.GetOpaqueQualType();
+      auto orig_swift_type = GetSwiftType(actual_type);
       auto *swift_type = orig_swift_type->mapTypeOutOfContext().getPointer();
       actual_type.SetCompilerType(actual_type.GetTypeSystem(), swift_type);
       lldb::StackFrameSP stack_frame_sp = stack_frame_wp.lock();
@@ -1290,36 +1052,24 @@ MaterializeVariable(SwiftASTManipulatorBase::VariableInfo &variable,
                                                     ->GetProcess()
                                                     ->GetSwiftLanguageRuntime();
           if (swift_runtime) {
-            StreamString type_name;
-            if (SwiftLanguageRuntime::GetAbstractTypeName(type_name, swift_type))
-              actual_type = swift_runtime->GetConcreteType(
-                  stack_frame_sp.get(), ConstString(type_name.GetString()));
-            if (actual_type.IsValid())
-              variable.SetType(actual_type);
-            else
-              actual_type = variable.GetType();
+            actual_type = swift_runtime->DoArchetypeBindingForType(
+                *stack_frame_sp, actual_type);
           }
         }
       }
 
-      if (stack_frame_sp) {
-        auto *ctx = llvm::cast<SwiftASTContext>(actual_type.GetTypeSystem());
-        actual_type = ctx->MapIntoContext(stack_frame_sp,
-                                          actual_type.GetOpaqueQualType());
-      }
-      swift::Type actual_swift_type =
-        (swift::TypeBase *)actual_type.GetOpaqueQualType();
-      if (actual_swift_type->hasTypeParameter())
-        actual_swift_type = orig_swift_type;
-
-      swift::Type fixed_type = manipulator.FixupResultType(
-          actual_swift_type, user_expression.GetLanguageFlags());
-
-      if (!fixed_type.isNull()) {
-        actual_type =
-            CompilerType(actual_type.GetTypeSystem(), fixed_type.getPointer());
-        variable.SetType(actual_type);
-      }
+      // Desugar '$lldb_context', etc.
+      auto transformed_type = GetSwiftType(actual_type).transform(
+        [](swift::Type t) -> swift::Type {
+          if (auto *aliasTy = swift::dyn_cast<swift::TypeAliasType>(t.getPointer())) {
+            if (aliasTy && aliasTy->getDecl()->isDebuggerAlias()) {
+              return aliasTy->getSinglyDesugaredType();
+            }
+          }
+          return t;
+      });
+      actual_type.SetCompilerType(actual_type.GetTypeSystem(),
+                                  transformed_type.getPointer());
 
       if (is_result)
         offset = materializer.AddResultVariable(
@@ -1348,8 +1098,8 @@ MaterializeVariable(SwiftASTManipulatorBase::VariableInfo &variable,
         static_cast<VariableMetadataVariable *>(variable.m_metadata.get());
 
     // FIXME: It would be nice if we could do something like
-    // variable_metadata->m_variable_sp->SetType(variable.GetType())
-    // here.
+    //        variable_metadata->m_variable_sp->SetType(variable.GetType())
+    //        here.
     offset = materializer.AddVariable(variable_metadata->m_variable_sp, error);
 
     if (!error.Success()) {
@@ -1379,7 +1129,10 @@ MaterializeVariable(SwiftASTManipulatorBase::VariableInfo &variable,
     // correctly handles zero-sized types. Unfortunately we currently have
     // this check scattered in several places in the codebase, we should at
     // some point centralize it.
-    if (repl && SwiftASTContext::IsPossibleZeroSizeType(variable.GetType())) {
+    lldb::StackFrameSP stack_frame_sp = stack_frame_wp.lock();
+    llvm::Optional<uint64_t> size =
+        variable.GetType().GetByteSize(stack_frame_sp.get());
+    if (repl && size && *size == 0) {
       auto &repl_mat = *llvm::cast<SwiftREPLMaterializer>(&materializer);
       offset = repl_mat.AddREPLResultVariable(
           variable.GetType(), variable.GetDecl(),
@@ -1490,9 +1243,11 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
   if (!ast_context)
     return make_error<SwiftASTContextError>();
 
-  // If we are using the playground, hand import the necessary modules.
-  // FIXME: We won't have to do this once the playground adds import statements
-  // for the things it needs itself.
+  // If we are using the playground, hand import the necessary
+  // modules.
+  //
+  // FIXME: We won't have to do this once the playground adds import
+  //        statements for the things it needs itself.
   if (playground) {
     auto *persistent_state =
         sc.target_sp->GetSwiftPersistentExpressionState(exe_scope);
@@ -1517,6 +1272,21 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
   invocation.getFrontendOptions().ModuleName = expr_name_buf;
   invocation.getIRGenOptions().ModuleName = expr_name_buf;
 
+  auto should_use_prestable_abi = [&]() {
+    lldb::StackFrameSP this_frame_sp(stack_frame_wp.lock());
+    if (!this_frame_sp)
+      return false;
+    lldb::ProcessSP process_sp(this_frame_sp->CalculateProcess());
+    if (!process_sp)
+      return false;
+    auto *runtime = process_sp->GetSwiftLanguageRuntime();
+    return !runtime->IsABIStable();
+    return true;
+  };
+
+  invocation.getLangOptions().UseDarwinPreStableABIBit =
+      should_use_prestable_abi();
+
   swift::SourceFileKind source_file_kind = swift::SourceFileKind::Library;
 
   if (playground || repl) {
@@ -1540,15 +1310,17 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
   }
 
   // FIXME: This call is here just so that the we keep the
-  // DebuggerClients alive as long as the Module we are not inserting
-  // them in.
+  //        DebuggerClients alive as long as the Module we are not
+  //        inserting them in.
   swift_ast_context->AddDebuggerClient(external_lookup);
 
   swift::PersistentParserState persistent_state(*ast_context);
 
   while (!done) {
+    // Note, we disable delayed parsing for the swift expression parser.
     swift::parseIntoSourceFile(*source_file, buffer_id, &done, nullptr,
-                               &persistent_state);
+                               &persistent_state, nullptr,
+                               /*DelayBodyParsing=*/false);
 
     if (swift_ast_context->HasErrors())
       return make_error<SwiftASTContextError>();
@@ -1570,8 +1342,9 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
   }
 
   Status auto_import_error;
-  if (!PerformAutoImport(*swift_ast_context, sc, exe_scope, stack_frame_wp,
-                         *source_file, false, auto_import_error))
+  if (!SwiftASTContext::PerformAutoImport(*swift_ast_context, sc,
+                                          stack_frame_wp, source_file,
+                                          auto_import_error))
     return make_error<ModuleImportError>(llvm::Twine("in auto-import:\n") +
                                          auto_import_error.AsCString());
 
@@ -1608,10 +1381,11 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
 
     if (local_context_is_swift) {
       AddRequiredAliases(sc.block, stack_frame_sp, *swift_ast_context,
-                         *code_manipulator, expr.GetSwiftGenericInfo());
+                         *code_manipulator);
 
       // Register all local variables so that lookups to them resolve.
-      CountLocals(sc, stack_frame_sp, *swift_ast_context, local_variables);
+      RegisterAllVariables(sc, stack_frame_sp, *swift_ast_context,
+                           local_variables);
     }
 
     // Register all magic variables.
@@ -1635,37 +1409,41 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
   if (swift_ast_context->HasErrors())
     return make_error<SwiftASTContextError>();
 
-  // Do the auto-importing after Name Binding, that's when the Imports for the
-  // source file are figured out.
+  // Do the auto-importing after Name Binding, that's when the Imports
+  // for the source file are figured out.
   {
     std::lock_guard<std::recursive_mutex> global_context_locker(
         IRExecutionUnit::GetLLVMGlobalContextMutex());
 
     Status auto_import_error;
-    if (!PerformAutoImport(*swift_ast_context, sc, exe_scope, stack_frame_wp,
-                           *source_file, true, auto_import_error)) {
-      return make_error<ModuleImportError>(llvm::Twine("in auto-import:\n") +
+    if (!SwiftASTContext::PerformUserImport(*swift_ast_context, sc, exe_scope,
+                                            stack_frame_wp, *source_file,
+                                            auto_import_error)) {
+      return make_error<ModuleImportError>(llvm::Twine("in user-import:\n") +
                                            auto_import_error.AsCString());
     }
   }
 
-  // After the swift code manipulator performed AST transformations, verify
-  // that the AST we have in our hands is valid. This is a nop for release
-  // builds, but helps catching bug when assertions are turned on.
+  // After the swift code manipulator performed AST transformations,
+  // verify that the AST we have in our hands is valid. This is a nop
+  // for release builds, but helps catching bug when assertions are
+  // turned on.
   swift::verify(*source_file);
 
-  ParsedExpression result = {std::move(code_manipulator),
-                             *ast_context,
-                             module,
-                             *external_lookup,
-                             *source_file,
-                             std::move(main_filename)};
+  ParsedExpression result = {
+    std::move(code_manipulator), *ast_context, module, *external_lookup,
+    *source_file, std::move(main_filename), /*buffer_id*/0,
+  };
   return std::move(result);
 }
 
+bool SwiftExpressionParser::Complete(CompletionRequest &request, unsigned line,
+				     unsigned pos, unsigned typed_pos) {
+  return false;
+}
+
 unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
-                                      uint32_t first_line, uint32_t last_line,
-                                      uint32_t line_offset) {
+                                      uint32_t first_line, uint32_t last_line) {
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   SwiftExpressionParser::SILVariableMap variable_map;
@@ -1675,8 +1453,8 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   unsigned buffer_id = UINT32_MAX;
   auto DiagnoseSwiftASTContextError = [&]() {
     assert(swift_ast_ctx->HasErrors() && "error expected");
-    swift_ast_ctx->PrintDiagnostics(diagnostic_manager, buffer_id,
-                                          first_line, last_line, line_offset);
+    swift_ast_ctx->PrintDiagnostics(diagnostic_manager, buffer_id, first_line,
+                                    last_line);
   };
 
   // In the case of playgrounds, we turn all rewriting functionality off.
@@ -1721,8 +1499,8 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     if (!retry)
       return 1;
 
-    // Signal that we want to retry the expression exactly once with
-    // a fresh SwiftASTContext initialized with the flags from the
+    // Signal that we want to retry the expression exactly once with a
+    // fresh SwiftASTContext initialized with the flags from the
     // current lldb::Module / Swift dylib to avoid header search
     // mismatches.
     m_sc.target_sp->SetUseScratchTypesystemPerModule(true);
@@ -1767,10 +1545,9 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     swift::typeCheckExternalDefinitions(parsed_expr->source_file);
   }
 
-  // I think we now have to do the name binding and type checking again, but
-  // there should be only the result
-  // variable to bind up at this point.
-
+  // FIXME: We now should have to do the name binding and type
+  //        checking again, but there should be only the result
+  //        variable to bind up at this point.
   if (log) {
     std::string s;
     llvm::raw_string_ostream ss(s);
@@ -1809,7 +1586,13 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
                       ConstString(variable_info.GetName().str()), imported_type,
                       m_sc.target_sp->GetArchitecture().GetByteOrder(),
                       m_sc.target_sp->GetArchitecture().GetAddressByteSize()));
-
+          // Detect global resilient variables in a fixed value buffer.
+          // Globals without a fixed size are placed in a fixed-size buffer.
+          auto *var_decl = variable_info.GetDecl();
+          if (var_decl && var_decl->getDeclContext()->isModuleScopeContext())
+            if (!scratch_ast_context->IsFixedSize(imported_type))
+              persistent_variable->m_flags |=
+                  ExpressionVariable::EVIsSwiftFixedBuffer;
           if (repl) {
             persistent_variable->m_flags |= ExpressionVariable::EVKeepInTarget;
             persistent_variable->m_flags |=
@@ -1856,19 +1639,20 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   if (!playground && !repl) {
     parsed_expr->code_manipulator->FixCaptures();
 
-    // This currently crashes with Assertion failed: (BufferID != -1),
-    // function findBufferContainingLoc, file
-    // llvm/tools/swift/include/swift/Basic/SourceManager.h, line 92.
-    //        if (log)
-    //        {
-    //            std::string s;
-    //            llvm::raw_string_ostream ss(s);
-    //            parsed_expr->source_file.dump(ss);
-    //            ss.flush();
+    // FIXME: This currently crashes with Assertion failed: (BufferID != -1),
+    //        function findBufferContainingLoc, file
+    //        llvm/tools/swift/include/swift/Basic/SourceManager.h, line 92.
     //
-    //            log->Printf("Source file after capture fixing:");
-    //            log->PutCString(s.c_str());
-    //        }
+    // if (log)
+    // {
+    //     std::string s;
+    //     llvm::raw_string_ostream ss(s);
+    //     parsed_expr->source_file.dump(ss);
+    //     ss.flush();
+    //
+    //     log->Printf("Source file after capture fixing:");
+    //     log->PutCString(s.c_str());
+    // }
 
     if (log) {
       log->Printf("Variables:");
@@ -1930,59 +1714,18 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
     log->PutCString(s.c_str());
   }
 
-  // SWIFT_ENABLE_TENSORFLOW
-  // Serialize the file if modules directory is set.
-  // Note that the serialization should be done immediately after
-  // SILGen and before any other passes run. This is important
-  // because of the following reasons:
-  //  - passes like differentation need to see the code before optimizations.
-  //  - Some passes may create new functions, but only the functions defined in
-  //    the lldb repl line should be serialized.
-  bool done_serialization = false;
-  if (swift_ast_ctx->UseSerialization()) {
-    sil_module->setSerializeSILAction(
-        [&sil_module, &parsed_expr, &done_serialization, log, swift_ast_ctx]() {
-          if (done_serialization)
-            return;
-          // Serialize the module now.
-          auto expr_module_dir = swift_ast_ctx->GetReplExprModulesDir();
-          assert(expr_module_dir != nullptr);
-          llvm::SmallString<256> filename(expr_module_dir);
-          std::string module_name;
-          GetNameFromModule(&parsed_expr->module, module_name);
-          llvm::sys::path::append(filename, module_name);
-          llvm::sys::path::replace_extension(filename, ".swiftmodule");
-          // TODO: Check language is swift
-          swift::SerializationOptions serializationOpts;
-          serializationOpts.OutputPath = filename.c_str();
-          serializationOpts.SerializeAllSIL = true;
-          serializationOpts.IsSIB = true;
-          if (log) {
-            log->Printf("Serializing module %s to %s\n", module_name.c_str(),
-                        serializationOpts.OutputPath);
-          }
-          swift::serialize(sil_module->getSwiftModule(), serializationOpts,
-                           sil_module.get());
-          done_serialization = true;
-        });
-  } else {
-    sil_module->setSerializeSILAction([] {});
-  }
+  sil_module->setSerializeSILAction([] {});
 
   // SWIFT_ENABLE_TENSORFLOW
   if (!runSILDiagnosticPasses(*sil_module)) {
-    // Diagnostic passes succeeded. Run the optimziations.
-    if (!swift_ast_ctx->UseSerialization()) {
-      // FIXME: When partitioning joins the mandatory pass pipeline, we should be able to
-      // stop running the optimization passes and drop the explicit call of the partitioning
-      // pass.
-      runSILOptPreparePasses(*sil_module);
-      runSILOptimizationPasses(*sil_module);
-    }
+    // Diagnostic passes succeeded. Run the optimizations.
 
-    // FIXME: These passes should be moved to the mandatory pass pipeline that
-    // runs at -O0.  We need a proper deabstraction pass to do that though.
-    runSILTFPartitionPass(*sil_module);
+    // FIXME: we have come to rely on the optimizations in Jupyter notebooks.  We
+    // will leave them here even though the upstream does not have them turned on.
+    // Perhaps, we should add new "notebook" mode (a la repl mode) to
+    // conditionally turn optimizations on?
+    runSILOptPreparePasses(*sil_module);
+    runSILOptimizationPasses(*sil_module);
   }
 
   if (log) {
@@ -2045,55 +1788,11 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
   if (swift_ast_ctx->HasErrors())
     return 1;
 
-  // The Parse succeeded!  Now put this module into the context's
-  // list of loaded modules, and copy the Decls that were globalized
-  // as part of the parse from the staging area in the external
-  // lookup object into the SwiftPersistentExpressionState.
-  // SWIFT_ENABLE_TENSORFLOW
-  swift::ModuleDecl *module = nullptr;
-  if (!swift_ast_ctx->UseSerialization()) {
-    // Just reuse the module if no serialization is requested.
-    module = &parsed_expr->module;
-  } else {
-    // Reload the serialized module so that we can look
-    // into SIL functions in subsequent cells if needed (e.g., differentiation).
-    if (log) {
-      log->Printf("Reloading the serialized module.\n");
-    }
-
-    lldb::StackFrameSP this_frame_sp(m_stack_frame_wp.lock());
-
-    if (this_frame_sp) {
-      lldb::ProcessSP process_sp(this_frame_sp->CalculateProcess());
-      Status error;
-      std::string module_name = parsed_expr->module.getName().str();
-      if (process_sp && !module_name.empty()) {
-        ConstString module_const_str(module_name);
-        module = swift_ast_ctx->FindAndLoadModule(module_const_str,
-                                                  *process_sp.get(), error);
-      }
-    }
-
-    if (!module || swift_ast_ctx->HasErrors()) {
-      diagnostic_manager.PutString(eDiagnosticSeverityError,
-                                   "Couldn't reload the serialized module file.");
-      return 1;
-    }
-
-    // Update persistent non-variable decls to the ones in the serialized module.
-    // Otherwise, we will have deserialization errors.
-    auto *persistent_state =
-        m_sc.target_sp->GetSwiftPersistentExpressionState(*m_exe_scope);
-    llvm::SmallVector<swift::Decl*, 8> decls;
-    module->getTopLevelDecls(decls);
-    for (swift::Decl *decl : decls) {
-      if (swift::ValueDecl *value_decl = llvm::dyn_cast<swift::ValueDecl>(decl)) {
-        if (!llvm::isa<swift::VarDecl>(value_decl) && value_decl->hasName()) {
-          persistent_state->RegisterSwiftPersistentDecl(value_decl);
-        }
-      }
-    }
-  }
+  // The Parse succeeded!  Now put this module into the context's list
+  // of loaded modules, and copy the Decls that were globalized as
+  // part of the parse from the staging area in the external lookup
+  // object into the SwiftPersistentExpressionState.
+  swift::ModuleDecl *module = &parsed_expr->module;
   parsed_expr->ast_context.LoadedModules.insert({module->getName(), module});
   swift_ast_ctx->CacheModule(module);
   if (m_sc.target_sp) {
@@ -2123,9 +1822,9 @@ static bool FindFunctionInModule(ConstString &mangled_name,
         return true;
       }
 
-      // The new demangling is cannier about compression, so the name may
-      // not be in the mangled name plain.  Let's demangle it and see if we
-      // can find it in the demangled nodes.
+      // The new demangling is cannier about compression, so the name
+      // may not be in the mangled name plain.  Let's demangle it and
+      // see if we can find it in the demangled nodes.
       demangle_ctx.clear();
 
       swift::Demangle::NodePointer node_ptr =
@@ -2204,15 +1903,13 @@ Status SwiftExpressionParser::PrepareForExecution(
   std::vector<std::string> features;
 
   std::unique_ptr<llvm::LLVMContext> llvm_context_up;
+  // m_module is handed off here.
   m_execution_unit_sp.reset(
-      new IRExecutionUnit(llvm_context_up,
-                          m_module, // handed off here
-                          function_name, exe_ctx.GetTargetSP(), sc, features));
+      new IRExecutionUnit(llvm_context_up, m_module, function_name,
+                          exe_ctx.GetTargetSP(), sc, features));
 
-  // TODO figure out some way to work ClangExpressionDeclMap into this or do the
-  // equivalent
-  //   for Swift
-
+  // TODO: figure out some way to work ClangExpressionDeclMap into
+  //       this or do the equivalent for Swift.
   m_execution_unit_sp->GetRunnableInfo(err, func_addr, func_end);
 
   execution_unit_sp = m_execution_unit_sp;
@@ -2223,8 +1920,8 @@ Status SwiftExpressionParser::PrepareForExecution(
 
 bool SwiftExpressionParser::RewriteExpression(
     DiagnosticManager &diagnostic_manager) {
-  // There isn't a Swift equivalent to clang::Rewriter, so we'll just use
-  // that...
+  // There isn't a Swift equivalent to clang::Rewriter, so we'll just
+  // use that.
   auto *swift_ast_ctx = m_swift_ast_context->get();
   if (!swift_ast_ctx)
     return false;
@@ -2254,8 +1951,8 @@ bool SwiftExpressionParser::RewriteExpression(
       const swift::CharSourceRange &range = fixit.getRange();
       swift::SourceLoc start_loc = range.getStart();
       if (!start_loc.isValid()) {
-        // getLocOffsetInBuffer will assert if you pass it an invalid location,
-        // so we have to check that first.
+        // getLocOffsetInBuffer will assert if you pass it an invalid
+        // location, so we have to check that first.
         if (log)
           log->Printf(
               "SwiftExpressionParser::RewriteExpression: ignoring fixit since "
@@ -2264,9 +1961,8 @@ bool SwiftExpressionParser::RewriteExpression(
         return false;
       }
 
-      // ReplaceText can't handle replacing the same source range more than
-      // once, so we have to check that
-      // before we proceed:
+      // ReplaceText can't handle replacing the same source range more
+      // than once, so we have to check that before we proceed:
       if (std::find(source_ranges.begin(), source_ranges.end(), range) !=
           source_ranges.end()) {
         if (log)
@@ -2278,11 +1974,10 @@ bool SwiftExpressionParser::RewriteExpression(
       } else
         source_ranges.push_back(range);
 
-      // ReplaceText will either assert or crash if the start_loc isn't inside
-      // the buffer it is said to
-      // reside in.  That shouldn't happen, but it doesn't hurt to check before
-      // we call ReplaceText.
-
+      // ReplaceText will either assert or crash if the start_loc
+      // isn't inside the buffer it is said to reside in.  That
+      // shouldn't happen, but it doesn't hurt to check before we call
+      // ReplaceText.
       auto *Buffer = source_manager.getLLVMSourceMgr().getMemoryBuffer(
           diagnostic->GetBufferID());
       if (!(start_loc.getOpaquePointerValue() >= Buffer->getBuffer().begin() &&

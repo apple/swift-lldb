@@ -1,9 +1,8 @@
 //===-- TypeList.h ----------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -34,7 +33,7 @@ public:
   //    lldb::TypeSP
   //    FindType(lldb::user_id_t uid);
 
-  TypeList FindTypes(const ConstString &name);
+  TypeList FindTypes(ConstString name);
 
   void Insert(const lldb::TypeSP &type);
 

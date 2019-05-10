@@ -1,18 +1,13 @@
 //===-- DisassemblerLLVMC.cpp -----------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
-// C Includes
-// C++ Includes
-// Project includes
 #include "DisassemblerLLVMC.h"
 
-// Other libraries and framework includes
 #include "llvm-c/Disassembler.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/MC/MCAsmInfo.h"
@@ -1201,7 +1196,12 @@ DisassemblerLLVMC::DisassemblerLLVMC(const ArchSpec &arch,
   if (triple.getArch() == llvm::Triple::aarch64)
     features_str += "+v8.2a";
 
-  // We use m_disasm_ap.get() to tell whether we are valid or not, so if this
+  if (triple.getArch() == llvm::Triple::aarch64
+      && triple.getVendor() == llvm::Triple::Apple) {
+    cpu = "apple-latest";
+  }
+
+  // We use m_disasm_up.get() to tell whether we are valid or not, so if this
   // isn't good for some reason, we won't be valid and FindPlugin will fail and
   // we won't get used.
   m_disasm_up = MCDisasmInstance::Create(triple_str, cpu, features_str.c_str(),
@@ -1242,11 +1242,11 @@ DisassemblerLLVMC::~DisassemblerLLVMC() = default;
 Disassembler *DisassemblerLLVMC::CreateInstance(const ArchSpec &arch,
                                                 const char *flavor) {
   if (arch.GetTriple().getArch() != llvm::Triple::UnknownArch) {
-    std::unique_ptr<DisassemblerLLVMC> disasm_ap(
+    std::unique_ptr<DisassemblerLLVMC> disasm_up(
         new DisassemblerLLVMC(arch, flavor));
 
-    if (disasm_ap.get() && disasm_ap->IsValid())
-      return disasm_ap.release();
+    if (disasm_up.get() && disasm_up->IsValid())
+      return disasm_up.release();
   }
   return NULL;
 }
@@ -1340,10 +1340,7 @@ bool DisassemblerLLVMC::FlavorValidForArchSpec(
 
   if (triple.getArch() == llvm::Triple::x86 ||
       triple.getArch() == llvm::Triple::x86_64) {
-    if (strcmp(flavor, "intel") == 0 || strcmp(flavor, "att") == 0)
-      return true;
-    else
-      return false;
+    return strcmp(flavor, "intel") == 0 || strcmp(flavor, "att") == 0;
   } else
     return false;
 }
@@ -1382,7 +1379,7 @@ const char *DisassemblerLLVMC::SymbolLookup(uint64_t value, uint64_t *type_ptr,
       }
 
       SymbolContext sym_ctx;
-      const uint32_t resolve_scope =
+      const SymbolContextItem resolve_scope =
           eSymbolContextFunction | eSymbolContextSymbol;
       if (pc_so_addr.IsValid() && pc_so_addr.GetModule()) {
         pc_so_addr.GetModule()->ResolveSymbolContextForAddress(

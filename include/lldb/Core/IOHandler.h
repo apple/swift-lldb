@@ -1,9 +1,8 @@
 //===-- IOHandler.h ---------------------------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -11,22 +10,23 @@
 #define liblldb_IOHandler_h_
 
 #include "lldb/Core/ValueObjectList.h"
-#include "lldb/Host/Predicate.h"
 #include "lldb/Utility/ConstString.h"
 #include "lldb/Utility/Flags.h"
+#include "lldb/Utility/Predicate.h"
+#include "lldb/Utility/Reproducer.h"
 #include "lldb/Utility/Stream.h"
 #include "lldb/Utility/StringList.h"
-#include "lldb/lldb-defines.h"  // for DISALLOW_COPY_AND_ASSIGN
-#include "lldb/lldb-forward.h"  // for IOHandlerSP, StreamFileSP
-#include "llvm/ADT/StringRef.h" // for StringRef
+#include "lldb/lldb-defines.h"
+#include "lldb/lldb-forward.h"
+#include "llvm/ADT/StringRef.h"
 
 #include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
 
-#include <stdint.h> // for uint32_t
-#include <stdio.h>  // for FILE
+#include <stdint.h>
+#include <stdio.h>
 
 namespace lldb_private {
 class Debugger;
@@ -59,7 +59,8 @@ public:
   IOHandler(Debugger &debugger, IOHandler::Type type,
             const lldb::StreamFileSP &input_sp,
             const lldb::StreamFileSP &output_sp,
-            const lldb::StreamFileSP &error_sp, uint32_t flags);
+            const lldb::StreamFileSP &error_sp, uint32_t flags,
+            repro::DataRecorder *data_recorder);
 
   virtual ~IOHandler();
 
@@ -170,6 +171,7 @@ protected:
   lldb::StreamFileSP m_input_sp;
   lldb::StreamFileSP m_output_sp;
   lldb::StreamFileSP m_error_sp;
+  repro::DataRecorder *m_data_recorder;
   Predicate<bool> m_popped;
   Flags m_flags;
   Type m_type;
@@ -198,14 +200,14 @@ public:
 
   virtual ~IOHandlerDelegate() = default;
 
-  virtual void IOHandlerActivated(IOHandler &io_handler) {}
+  virtual void IOHandlerActivated(IOHandler &io_handler, bool interactive) {}
 
   virtual void IOHandlerDeactivated(IOHandler &io_handler) {}
 
   virtual int IOHandlerComplete(IOHandler &io_handler, const char *current_line,
                                 const char *cursor, const char *last_char,
                                 int skip_first_n_matches, int max_matches,
-                                StringList &matches);
+                                StringList &matches, StringList &descriptions);
 
   virtual const char *IOHandlerGetFixIndentationCharacters() { return nullptr; }
 
@@ -344,7 +346,8 @@ public:
                     uint32_t line_number_start, // If non-zero show line numbers
                                                 // starting at
                                                 // 'line_number_start'
-                    IOHandlerDelegate &delegate);
+                    IOHandlerDelegate &delegate,
+                    repro::DataRecorder *data_recorder);
 
   IOHandlerEditline(Debugger &debugger, IOHandler::Type type,
                     const lldb::StreamFileSP &input_sp,
@@ -356,7 +359,8 @@ public:
                     uint32_t line_number_start, // If non-zero show line numbers
                                                 // starting at
                                                 // 'line_number_start'
-                    IOHandlerDelegate &delegate);
+                    IOHandlerDelegate &delegate,
+                    repro::DataRecorder *data_recorder);
 
   IOHandlerEditline(Debugger &, IOHandler::Type, const char *, const char *,
                     const char *, bool, bool, uint32_t,
@@ -430,12 +434,13 @@ private:
   static int AutoCompleteCallback(const char *current_line, const char *cursor,
                                   const char *last_char,
                                   int skip_first_n_matches, int max_matches,
-                                  StringList &matches, void *baton);
+                                  StringList &matches, StringList &descriptions,
+                                  void *baton);
 #endif
 
 protected:
 #ifndef LLDB_DISABLE_LIBEDIT
-  std::unique_ptr<Editline> m_editline_ap;
+  std::unique_ptr<Editline> m_editline_up;
 #endif
   IOHandlerDelegate &m_delegate;
   std::string m_prompt;
@@ -464,7 +469,7 @@ public:
   int IOHandlerComplete(IOHandler &io_handler, const char *current_line,
                         const char *cursor, const char *last_char,
                         int skip_first_n_matches, int max_matches,
-                        StringList &matches) override;
+                        StringList &matches, StringList &descriptions) override;
 
   void IOHandlerInputComplete(IOHandler &io_handler,
                               std::string &data) override;

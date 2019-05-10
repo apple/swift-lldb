@@ -1,31 +1,28 @@
 //===-- GDBRemoteRegisterContext.cpp ----------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
 #include "GDBRemoteRegisterContext.h"
 
-// C Includes
-// C++ Includes
-// Other libraries and framework includes
-#include "lldb/Core/RegisterValue.h"
-#include "lldb/Core/Scalar.h"
 #include "lldb/Target/ExecutionContext.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/DataExtractor.h"
+#include "lldb/Utility/RegisterValue.h"
+#include "lldb/Utility/Scalar.h"
 #include "lldb/Utility/StreamString.h"
-// Project includes
 #include "ProcessGDBRemote.h"
 #include "ProcessGDBRemoteLog.h"
 #include "ThreadGDBRemote.h"
 #include "Utility/ARM_DWARF_Registers.h"
 #include "Utility/ARM_ehframe_Registers.h"
 #include "lldb/Utility/StringExtractorGDBRemote.h"
+
+#include <memory>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -210,6 +207,14 @@ bool GDBRemoteRegisterContext::ReadRegisterBytes(const RegisterInfo *reg_info,
         if (buffer_sp->GetByteSize() >= m_reg_data.GetByteSize()) {
           SetAllRegisterValid(true);
           return true;
+        } else {
+          Log *log(ProcessGDBRemoteLog::GetLogIfAnyCategoryIsSet(GDBR_LOG_THREAD |
+                                                                GDBR_LOG_PACKETS));
+          if (log)
+            log->Printf ("error: GDBRemoteRegisterContext::ReadRegisterBytes tried to read the "
+                        "entire register context at once, expected at least %" PRId64 " bytes "
+                        "but only got %" PRId64 " bytes.", m_reg_data.GetByteSize(),
+                        buffer_sp->GetByteSize());
         }
       }
       return false;
@@ -462,7 +467,7 @@ bool GDBRemoteRegisterContext::ReadAllRegisterValues(
       ((ProcessGDBRemote *)process)->GetGDBRemote());
 
   const bool use_g_packet =
-      gdb_comm.AvoidGPackets((ProcessGDBRemote *)process) == false;
+      !gdb_comm.AvoidGPackets((ProcessGDBRemote *)process);
 
   GDBRemoteClientBase::Lock lock(gdb_comm, false);
   if (lock) {
@@ -485,8 +490,8 @@ bool GDBRemoteRegisterContext::ReadAllRegisterValues(
       // ReadRegisterBytes saves the contents of the register in to the
       // m_reg_data buffer
     }
-    data_sp.reset(new DataBufferHeap(m_reg_data.GetDataStart(),
-                                     m_reg_info.GetRegisterDataByteSize()));
+    data_sp = std::make_shared<DataBufferHeap>(
+        m_reg_data.GetDataStart(), m_reg_info.GetRegisterDataByteSize());
     return true;
   } else {
 
@@ -525,7 +530,7 @@ bool GDBRemoteRegisterContext::WriteAllRegisterValues(
       ((ProcessGDBRemote *)process)->GetGDBRemote());
 
   const bool use_g_packet =
-      gdb_comm.AvoidGPackets((ProcessGDBRemote *)process) == false;
+      !gdb_comm.AvoidGPackets((ProcessGDBRemote *)process);
 
   GDBRemoteClientBase::Lock lock(gdb_comm, false);
   if (lock) {

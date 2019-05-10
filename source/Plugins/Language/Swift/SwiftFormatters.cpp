@@ -18,6 +18,7 @@
 #include "lldb/Target/SwiftLanguageRuntime.h"
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/Status.h"
+#include "swift/AST/Types.h"
 #include "swift/Demangling/ManglingMacros.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/StringRef.h"
@@ -138,19 +139,18 @@ bool lldb_private::formatters::swift::StringGuts_SummaryProvider(
   if (ptrSize == 8) {
     // On 64-bit platforms, we simply need to get the raw integer
     // values of the two stored properties.
-    static ConstString g__countAndFlags("_countAndFlags");
+    static ConstString g__countAndFlagsBits("_countAndFlagsBits");
 
-    auto countAndFlags =
-        object_sp->GetChildAtNamePath({g__countAndFlags, g__storage, g__value});
-    if (!countAndFlags)
+    auto countAndFlagsBits = object_sp->GetChildAtNamePath(
+      {g__countAndFlagsBits, g__value});
+    if (!countAndFlagsBits)
       return false;
-    raw0 = countAndFlags->GetValueAsUnsigned(0);
+    raw0 = countAndFlagsBits->GetValueAsUnsigned(0);
 
     auto object = object_sp->GetChildMemberWithName(g__object, true);
     if (!object)
       return false;
     raw1 = object->GetValueAsUnsigned(0);
-
   } else if (ptrSize == 4) {
     // On 32-bit platforms, we emulate what `_StringObject.rawBits`
     // does. It involves inspecting the variant and rearranging bits
@@ -159,6 +159,7 @@ bool lldb_private::formatters::swift::StringGuts_SummaryProvider(
     static ConstString g__variant("_variant");
     static ConstString g__discriminator("_discriminator");
     static ConstString g__flags("_flags");
+    static ConstString g_immortal("immortal");
 
     auto count_sp = object_sp->GetChildAtNamePath({g__count, g__value});
     if (!count_sp)
@@ -166,21 +167,15 @@ bool lldb_private::formatters::swift::StringGuts_SummaryProvider(
     uint64_t count = count_sp->GetValueAsUnsigned(0);
 
     auto discriminator_sp =
-        object_sp->GetChildMemberWithName(g__discriminator, true);
+        object_sp->GetChildAtNamePath({g__discriminator, g__value});
     if (!discriminator_sp)
       return false;
-    uint64_t discriminator = discriminator_sp->GetValueAsUnsigned(0);
-    if (discriminator > 0x7F) {
-      // The discriminator only has 7 bits on 32-bit platforms.
-      return false;
-    }
+    uint64_t discriminator = discriminator_sp->GetValueAsUnsigned(0) & 0xff;
 
     auto flags_sp = object_sp->GetChildAtNamePath({g__flags, g__value});
     if (!flags_sp)
       return false;
-    uint64_t flags = flags_sp->GetValueAsUnsigned(0);
-    if (flags > 0xFFFF)
-      return false;
+    uint64_t flags = flags_sp->GetValueAsUnsigned(0) & 0xffff;
 
     auto variant_sp = object_sp->GetChildMemberWithName(g__variant, true);
     if (!variant_sp)
@@ -190,13 +185,9 @@ bool lldb_private::formatters::swift::StringGuts_SummaryProvider(
 
     ValueObjectSP payload_sp;
     if (variantCase.startswith("immortal")) {
-      static ConstString g_immortal("immortal");
-      // Set the immortal bit in the discriminator.
-      discriminator |= 0x80;
       payload_sp = variant_sp->GetChildAtNamePath({g_immortal, g__value});
     } else if (variantCase.startswith("native")) {
-      static ConstString g_native("native");
-      payload_sp = variant_sp->GetChildMemberWithName(g_native, true);
+      payload_sp = variant_sp->GetChildAtNamePath({g_immortal, g__value});
     } else if (variantCase.startswith("bridged")) {
       static ConstString g_bridged("bridged");
       auto anyobject_sp = variant_sp->GetChildMemberWithName(g_bridged, true);
@@ -204,7 +195,7 @@ bool lldb_private::formatters::swift::StringGuts_SummaryProvider(
         return false;
       payload_sp = anyobject_sp->GetChildAtIndex(0, true); // "instance"
     } else {
-      lldbassert("Uknown variant");
+      lldbassert(false && "Uknown variant");
       return false;
     }
     if (!payload_sp)
@@ -222,7 +213,7 @@ bool lldb_private::formatters::swift::StringGuts_SummaryProvider(
       raw1 = pointerBits | (discriminator << 56);
     }
   } else {
-    lldbassert("Unsupported arch?");
+    lldbassert(false && "Unsupported arch?");
     return false;
   }
 
@@ -231,34 +222,66 @@ bool lldb_private::formatters::swift::StringGuts_SummaryProvider(
   // TODO: Hyperlink to final set of documentation diagrams instead
   //
   /*
-  ┌─────────────────────╥─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐
-  │ Form                ║  7  │  6  │  5  │  4  │  3  │  2  │  1  │  0  │
-  ╞═════════════════════╬═════╪═════╪═════╪═════╪═════╧═════╧═════╧═════╡
-  │ Immortal, Small     ║  1  │ASCII│  1  │  0  │      small count      │
-  ├─────────────────────╫─────┼─────┼─────┼─────┼─────┬─────┬─────┬─────┤
-  │ Immortal, Large     ║  1  │  0  │  0  │  0  │  0  │ TBD │ TBD │ TBD │
-  ╞═════════════════════╬═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╡
-  │ Native              ║  0  │  0  │  0  │  0  │  0  │ TBD │ TBD │ TBD │
-  ├─────────────────────╫─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-  │ Shared              ║  x  │  0  │  0  │  0  │  1  │ TBD │ TBD │ TBD │
-  ├─────────────────────╫─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-  │ Shared, Bridged     ║  0  │  1  │  0  │  0  │  1  │ TBD │ TBD │ TBD │
-  ╞═════════════════════╬═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╡
-  │ Foreign             ║  x  │  0  │  0  │  1  │  1  │ TBD │ TBD │ TBD │
-  ├─────────────────────╫─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-  │ Foreign, Bridged    ║  0  │  1  │  0  │  1  │  1  │ TBD │ TBD │ TBD │
-  └─────────────────────╨─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘
+  On 64-bit platforms, the discriminator is the most significant 4 bits of the
+  bridge object.
 
-  b7: isImmortal: Should the Swift runtime skip ARC
+  ┌─────────────────────╥─────┬─────┬─────┬─────┐
+  │ Form                ║ b63 │ b62 │ b61 │ b60 │
+  ╞═════════════════════╬═════╪═════╪═════╪═════╡
+  │ Immortal, Small     ║  1  │ASCII│  1  │  0  │
+  ├─────────────────────╫─────┼─────┼─────┼─────┤
+  │ Immortal, Large     ║  1  │  0  │  0  │  0  │
+  ╞═════════════════════╬═════╪═════╪═════╪═════╡
+  │ Native              ║  0  │  0  │  0  │  0  │
+  ├─────────────────────╫─────┼─────┼─────┼─────┤
+  │ Shared              ║  x  │  0  │  0  │  0  │
+  ├─────────────────────╫─────┼─────┼─────┼─────┤
+  │ Shared, Bridged     ║  0  │  1  │  0  │  0  │
+  ╞═════════════════════╬═════╪═════╪═════╪═════╡
+  │ Foreign             ║  x  │  0  │  0  │  1  │
+  ├─────────────────────╫─────┼─────┼─────┼─────┤
+  │ Foreign, Bridged    ║  0  │  1  │  0  │  1  │
+  └─────────────────────╨─────┴─────┴─────┴─────┘
+
+  b63: isImmortal: Should the Swift runtime skip ARC
     - Small strings are just values, always immortal
     - Large strings can sometimes be immortal, e.g. literals
-  b6: (large) isBridged / (small) isASCII
+  b62: (large) isBridged / (small) isASCII
     - For large strings, this means lazily-bridged NSString: perform ObjC ARC
     - Small strings repurpose this as a dedicated bit to remember ASCII-ness
-  b5: isSmall: Dedicated bit to denote small strings
-  b4: isForeign: aka isSlow, cannot provide access to contiguous UTF-8
-  b3: (large) not isTailAllocated: payload isn't a biased pointer
-    - Shared strings provide contiguous UTF-8 through extra level of indirection
+  b61: isSmall: Dedicated bit to denote small strings
+  b60: isForeign: aka isSlow, cannot provide access to contiguous UTF-8
+
+ All non-small forms share the same structure for the other half of the bits
+ (i.e. non-object bits) as a word containing code unit count and various
+ performance flags. The top 16 bits are for performance flags, which are not
+ semantically relevant but communicate that some operations can be done more
+ efficiently on this particular string, and the lower 48 are the code unit
+ count (aka endIndex).
+
+┌─────────┬───────┬──────────────────┬─────────────────┬────────┬───────┐
+│   b63   │  b62  │       b61        │       b60       │ b59:48 │ b47:0 │
+├─────────┼───────┼──────────────────┼─────────────────┼────────┼───────┤
+│ isASCII │ isNFC │ isNativelyStored │ isTailAllocated │  TBD   │ count │
+└─────────┴───────┴──────────────────┴─────────────────┴────────┴───────┘
+
+ isASCII: set when all code units are known to be ASCII, enabling:
+   - Trivial Unicode scalars, they're just the code units
+   - Trivial UTF-16 transcoding (just bit-extend)
+   - Also, isASCII always implies isNFC
+ isNFC: set when the contents are in normal form C
+   - Enables trivial lexicographical comparisons: just memcmp
+   - `isASCII` always implies `isNFC`, but not vice versa
+ isNativelyStored: set for native stored strings
+   - `largeAddressBits` holds an instance of `_StringStorage`.
+   - I.e. the start of the code units is at the stored address + `nativeBias`
+ isTailAllocated: start of the code units is at the stored address + `nativeBias`
+   - `isNativelyStored` always implies `isTailAllocated`, but not vice versa
+      (e.g. literals)
+ TBD: Reserved for future usage
+   - Setting a TBD bit to 1 must be semantically equivalent to 0
+   - I.e. it can only be used to "cache" fast-path information in the future
+ count: stores the number of code units, corresponds to `endIndex`.
   */
 
   uint8_t discriminator = raw1 >> 56;
@@ -282,49 +305,59 @@ bool lldb_private::formatters::swift::StringGuts_SummaryProvider(
     return StringPrinter::ReadBufferAndDumpToStream<
         StringPrinter::StringElementType::UTF8>(options);
 
-  } else if ((discriminator & 0x78) == 0x00) { // x0000xxx: Biased address
+  }
+
+  uint64_t count = raw0 & 0x0000FFFFFFFFFFFF;
+  uint16_t flags = raw0 >> 48;
+  lldb::addr_t objectAddress = (raw1 & 0x0FFFFFFFFFFFFFFF);
+  if ((flags & 0x1000) != 0) { // Tail-allocated / biased address
+    lldbassert((discriminator & 0x70) == 0 &&
+      "tail-allocation is only for natively stored or literals");
     uint64_t bias = (ptrSize == 8 ? 32 : 20);
-    lldb::addr_t address = (raw1 & 0x00FFFFFFFFFFFFFF) + bias;
-    uint64_t count = raw0 & 0x0000FFFFFFFFFFFF;
+    auto address = objectAddress + bias;
     return readStringFromAddress(
       address, count, process, stream, summary_options, read_options);
+  }
 
-  } else if ((discriminator & 0xF8) == 0x08) { // 00001xxx: Shared
-    lldb::addr_t address = (raw1 & 0x00FFFFFFFFFFFFFF);
-    // FIXME: Verify that there is a _SharedStringStorage instance at `address`.
+  if ((discriminator & 0xF0) == 0x00) { // Shared string
+    // FIXME: Verify that there is a __SharedStringStorage instance at `address`.
+    lldbassert((flags & 0x3000) == 0);
     uint64_t startOffset = (ptrSize == 8 ? 24 : 12);
-
-    lldb::addr_t start =
-        process->ReadPointerFromMemory(address + startOffset, error);
+    auto address = objectAddress + startOffset;
+    lldb::addr_t start = process->ReadPointerFromMemory(address, error);
     if (error.Fail())
       return false;
 
-    uint64_t count = raw0 & 0x0000FFFFFFFFFFFF;
     return readStringFromAddress(
       start, count, process, stream, summary_options, read_options);
+  }
 
-  } else if ((discriminator & 0xE8) == 0x48) { // 010x1xxx: Bridged
+  lldbassert((discriminator & 0x70) != 0 &&
+    "native/shared strings already handled");
+
+  if ((discriminator & 0xE0) == 0x40) { // 010xxxxx: Bridged
     CompilerType id_type =
         process->GetTarget().GetScratchClangASTContext()->GetBasicType(
             lldb::eBasicTypeObjCID);
 
     // We may have an NSString pointer inline, so try formatting it directly.
-    lldb::addr_t address = (raw1 & 0x00FFFFFFFFFFFFFF);
-    DataExtractor DE(&address, ptrSize, process->GetByteOrder(), ptrSize);
+    DataExtractor DE(&objectAddress, ptrSize, process->GetByteOrder(), ptrSize);
     auto nsstring = ValueObject::CreateValueObjectFromData(
         "nsstring", DE, valobj.GetExecutionContextRef(), id_type);
     if (!nsstring || nsstring->GetError().Fail())
       return false;
 
     return NSStringSummaryProvider(*nsstring.get(), stream, summary_options);
+  }
 
-  } else if ((discriminator & 0xF8) == 0x18) { // 00011xxx: Foreign
+  if ((discriminator & 0xF8) == 0x18) { // 0001xxxx: Foreign
     // Not currently generated
-    lldbassert("Foreign non-bridged strings are not currently used in Swift");
+    lldbassert(
+      false && "Foreign non-bridged strings are not currently used in Swift");
     return false;
   }
 
-  lldbassert("Invalid discriminator");
+  lldbassert(false && "Invalid discriminator");
   return false;
 }
 
@@ -427,7 +460,7 @@ bool lldb_private::formatters::swift::SwiftSharedString_SummaryProvider_2(
   if (error.Fail())
     return false;
   lldb::addr_t raw0 =
-      process->ReadPointerFromMemory(address + startOffset + 8, error);
+      process->ReadPointerFromMemory(address + startOffset + ptr_size, error);
   if (error.Fail())
     return false;
 
@@ -464,7 +497,7 @@ bool lldb_private::formatters::swift::Bool_SummaryProvider(
   ValueObjectSP value_child(valobj.GetChildMemberWithName(g_value, true));
   if (!value_child)
     return false;
-    
+
   // Swift Bools are stored in a byte, but only the LSB of the byte is
   // significant.  The swift::irgen::FixedTypeInfo structure represents
   // this information by providing a mask of the "extra bits" for the type.
@@ -622,7 +655,7 @@ public:
 
   virtual bool MightHaveChildren();
 
-  virtual size_t GetIndexOfChildWithName(const ConstString &name);
+  virtual size_t GetIndexOfChildWithName(ConstString name);
 
   virtual ~EnumSyntheticFrontEnd() = default;
 
@@ -674,7 +707,7 @@ bool lldb_private::formatters::swift::EnumSyntheticFrontEnd::
 
 size_t
 lldb_private::formatters::swift::EnumSyntheticFrontEnd::GetIndexOfChildWithName(
-    const ConstString &name) {
+    ConstString name) {
   if (name == m_element_name)
     return 0;
   return UINT32_MAX;
@@ -965,8 +998,9 @@ llvm::Optional<std::vector<std::string>>
 ReadVector(Process &process, ValueObject &valobj,
            const SIMDElementFormatter &formatter, unsigned num_elements) {
   Status error;
+  static ConstString g_storage("_storage");
   static ConstString g_value("_value");
-  ValueObjectSP value_sp = valobj.GetChildAtNamePath({g_value});
+  ValueObjectSP value_sp = valobj.GetChildAtNamePath({g_storage, g_value});
   if (!value_sp)
     return llvm::None;
 
@@ -1018,17 +1052,86 @@ void PrintMatrix(Stream &stream,
 
 } // end anonymous namespace
 
-bool lldb_private::formatters::swift::AccelerateSIMD_SummaryProvider(
+bool lldb_private::formatters::swift::SIMDVector_SummaryProvider(
     ValueObject &valobj, Stream &stream, const TypeSummaryOptions &options) {
   Status error;
   ProcessSP process_sp(valobj.GetProcessSP());
   if (!process_sp)
     return false;
+  Process &process = *process_sp.get();
 
+  // SIMD vector contains an inner member `_storage` which is an opaque
+  // container. Given SIMD is always in the form SIMDX<Type> where X is a
+  // positive integer, we can calculate the number of elements and the
+  // dynamic archetype (and hence its size). Everything follows naturally
+  // as the elements are laid out in a contigous buffer without padding.
+  CompilerType simd_type = valobj.GetCompilerType();
+  void *type_buffer = reinterpret_cast<void *>(simd_type.GetOpaqueQualType());
+  llvm::Optional<uint64_t> opt_type_size = simd_type.GetByteSize(nullptr);
+  if (!opt_type_size)
+    return false;
+  uint64_t type_size = *opt_type_size;
+
+  auto swift_type = reinterpret_cast<::swift::TypeBase *>(type_buffer);
+  auto bound_type = dyn_cast<::swift::BoundGenericType>(swift_type);
+  if (!bound_type)
+    return false;
+  auto generic_args = bound_type->getGenericArgs();
+  lldbassert(generic_args.size() == 1 && "broken SIMD type");
+  if (generic_args.size() != 1)
+    return false;
+  auto swift_arg_type = generic_args[0];
+  CompilerType arg_type(swift_arg_type);
+
+  llvm::Optional<uint64_t> opt_arg_size = arg_type.GetByteSize(nullptr);
+  if (!opt_arg_size)
+    return false;
+  uint64_t arg_size = *opt_arg_size;
+
+  DataExtractor storage_buf;
+  uint64_t len = valobj.GetData(storage_buf, error);
+  lldbassert(len == type_size && "extracted less bytes than requested");
+  if (len < type_size)
+    return false;
+
+  // We deduce the number of elements looking at the size of the swift
+  // type and the size of the generic argument, as we know the type is
+  // laid out contiguosly in memory. SIMD3, though, has an element of
+  // padding. Given this is the only type in the standard library with
+  // padding, we special-case it.
+  ConstString full_type_name = valobj.GetTypeName();
+  llvm::StringRef type_name = full_type_name.GetStringRef();
+  uint64_t num_elements = type_size / arg_size;
+  if (type_name.startswith("Swift.SIMD3"))
+    num_elements = 3;
+
+  std::vector<std::string> elem_vector;
+  for (int i = 0; i < num_elements; ++i) {
+    DataExtractor elem_extractor(storage_buf, i * arg_size, arg_size);
+    auto simd_elem = ValueObject::CreateValueObjectFromData(
+        "simd_elem", elem_extractor, valobj.GetExecutionContextRef(), arg_type);
+    if (!simd_elem || simd_elem->GetError().Fail())
+      return false;
+
+    auto synthetic = simd_elem->GetSyntheticValue();
+    const char *value_string = synthetic->GetValueAsCString();
+    elem_vector.push_back(value_string);
+  }
+
+  return PrintRow(stream, elem_vector);
+}
+
+bool lldb_private::formatters::swift::LegacySIMD_SummaryProvider(
+    ValueObject &valobj, Stream &stream, const TypeSummaryOptions &options) {
+  Status error;
+  ProcessSP process_sp(valobj.GetProcessSP());
+  if (!process_sp)
+    return false;
   Process &process = *process_sp.get();
 
   // Get the type name without the "simd.simd_" prefix.
   ConstString full_type_name = valobj.GetTypeName();
+
   llvm::StringRef type_name = full_type_name.GetStringRef();
   if (type_name.startswith("simd."))
     type_name = type_name.drop_front(5);
@@ -1112,9 +1215,11 @@ bool lldb_private::formatters::swift::GLKit_SummaryProvider(
 
   Process &process = *process_sp.get();
 
-  // Get the type name without the "simd.simd_" prefix.
+  // Get the type name without the "GLKit." prefix.
   ConstString full_type_name = valobj.GetTypeName();
   llvm::StringRef type_name = full_type_name.GetStringRef();
+  if (type_name.startswith("GLKit."))
+    type_name = type_name.drop_front(6);
 
   // Get the type of object this is.
   bool is_quaternion = type_name == "GLKQuaternion";

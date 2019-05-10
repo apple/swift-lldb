@@ -1,9 +1,8 @@
 //===-- ValueObjectSyntheticFilter.h ----------------------------*- C++ -*-===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -13,17 +12,17 @@
 #include "lldb/Core/ThreadSafeSTLMap.h"
 #include "lldb/Core/ThreadSafeSTLVector.h"
 #include "lldb/Core/ValueObject.h"
-#include "lldb/Symbol/CompilerType.h"       // for CompilerType
-#include "lldb/Utility/ConstString.h"       // for ConstString
-#include "lldb/lldb-defines.h"              // for ThreadSafeSTLMap::operator=
-#include "lldb/lldb-enumerations.h"         // for DynamicValueType, Langua...
-#include "lldb/lldb-forward.h"              // for ValueObjectSP, Synthetic...
-#include "lldb/lldb-private-enumerations.h" // for LazyBool, LazyBool::eLaz...
+#include "lldb/Symbol/CompilerType.h"
+#include "lldb/Utility/ConstString.h"
+#include "lldb/lldb-defines.h"
+#include "lldb/lldb-enumerations.h"
+#include "lldb/lldb-forward.h"
+#include "lldb/lldb-private-enumerations.h"
 
-#include <cstdint> // for uint32_t, uint64_t
+#include <cstdint>
 #include <memory>
 
-#include <stddef.h> // for size_t
+#include <stddef.h>
 
 namespace lldb_private {
 class Declaration;
@@ -63,10 +62,10 @@ public:
 
   lldb::ValueObjectSP GetChildAtIndex(size_t idx, bool can_create) override;
 
-  lldb::ValueObjectSP GetChildMemberWithName(const ConstString &name,
+  lldb::ValueObjectSP GetChildMemberWithName(ConstString name,
                                              bool can_create) override;
 
-  size_t GetIndexOfChildWithName(const ConstString &name) override;
+  size_t GetIndexOfChildWithName(ConstString name) override;
 
   lldb::ValueObjectSP
   GetDynamicValue(lldb::DynamicValueType valueType) override;
@@ -158,7 +157,7 @@ protected:
   // we need to hold on to the SyntheticChildren because someone might delete
   // the type binding while we are alive
   lldb::SyntheticChildrenSP m_synth_sp;
-  std::unique_ptr<SyntheticChildrenFrontEnd> m_synth_filter_ap;
+  std::unique_ptr<SyntheticChildrenFrontEnd> m_synth_filter_up;
 
   typedef ThreadSafeSTLMap<uint32_t, ValueObject *> ByIndexMap;
   typedef ThreadSafeSTLMap<const char *, uint32_t> NameToIndexMap;
