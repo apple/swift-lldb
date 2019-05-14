@@ -1,3 +1,3 @@
-if(LLDB_TOOL_LLDB_SERVER_BUILD)
+if(LLDB_CAN_USE_LLDB_SERVER)
   add_subdirectory(lldb-server)
 endif()
