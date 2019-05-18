@@ -35,6 +35,11 @@ def use_lldb_substitutions(config):
     primary_tools = [
         ToolSubst('%lldb',
                   command=FindTool('lldb'),
+                  extra_args=['--no-lldbinit', '-S',
+                              os.path.join(config.test_source_root,
+                                           'lit-lldb-init')]),
+        ToolSubst('%lldb-init',
+                  command=FindTool('lldb'),
                   extra_args=['-S',
                               os.path.join(config.test_source_root,
                                            'lit-lldb-init')]),
@@ -52,7 +57,8 @@ def use_lldb_substitutions(config):
 
     llvm_config.add_tool_substitutions(primary_tools,
                                        [config.lldb_tools_dir])
-    if lldbmi.was_resolved:
+    # lldb-mi always fails without Python support
+    if lldbmi.was_resolved and not config.lldb_disable_python:
         config.available_features.add('lldb-mi')
 
 def _use_msvc_substitutions(config):

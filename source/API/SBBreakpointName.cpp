@@ -166,12 +166,12 @@ operator=(const SBBreakpointName &rhs) {
 
   if (!rhs.m_impl_up) {
     m_impl_up.reset();
-    return *this;
+    return LLDB_RECORD_RESULT(*this);
   }
 
   m_impl_up.reset(new SBBreakpointNameImpl(rhs.m_impl_up->GetTarget(),
                                            rhs.m_impl_up->GetName()));
-  return *this;
+  return LLDB_RECORD_RESULT(*this);
 }
 
 bool SBBreakpointName::operator==(const lldb::SBBreakpointName &rhs) {
@@ -579,7 +579,6 @@ void SBBreakpointName::SetScriptCallbackFunction(
   BreakpointOptions &bp_options = bp_name->GetOptions();
   m_impl_up->GetTarget()
       ->GetDebugger()
-      .GetCommandInterpreter()
       .GetScriptInterpreter()
       ->SetBreakpointCommandCallbackFunction(&bp_options,
                                              callback_function_name);
@@ -603,7 +602,6 @@ SBBreakpointName::SetScriptCallbackBody(const char *callback_body_text) {
   Status error =
       m_impl_up->GetTarget()
           ->GetDebugger()
-          .GetCommandInterpreter()
           .GetScriptInterpreter()
           ->SetBreakpointCommandCallback(&bp_options, callback_body_text);
   sb_error.SetError(error);

@@ -55,9 +55,6 @@
 #include "Plugins/Language/CPlusPlus/CPlusPlusLanguage.h"
 #include "Plugins/Language/ObjC/ObjCLanguage.h"
 
-#include "swift/Basic/LangOptions.h"
-#include "swift/Frontend/Frontend.h"
-#include "swift/Serialization/Validation.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/FileSystem.h"
@@ -1563,8 +1560,7 @@ bool Module::LoadScriptingResourceInTarget(Target *target, Status &error,
 
     const uint32_t num_specs = file_specs.GetSize();
     if (num_specs) {
-      ScriptInterpreter *script_interpreter =
-          debugger.GetCommandInterpreter().GetScriptInterpreter();
+      ScriptInterpreter *script_interpreter = debugger.GetScriptInterpreter();
       if (script_interpreter) {
         for (uint32_t i = 0; i < num_specs; ++i) {
           FileSpec scripting_fspec(file_specs.GetFileSpecAtIndex(i));

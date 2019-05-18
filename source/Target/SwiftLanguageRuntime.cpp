@@ -1303,6 +1303,9 @@ public:
       auto addr = address.getAddressData();
       if (addr >= m_local_buffer &&
           addr + size <= m_local_buffer + m_local_buffer_size) {
+        // If this crashes, the assumptions stated in
+        // GetDynamicTypeAndAddress_Protocol() most likely no longer
+        // hold.
         memcpy(dest, (void *) addr, size);
         return true;
       }
@@ -1926,14 +1929,18 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Protocol(
   lldb::addr_t existential_address;
   bool use_local_buffer = false;
 
-  if (in_value.GetValueType() == eValueTypeConstResult) {
+  if (in_value.GetValueType() == eValueTypeConstResult &&
+      in_value.GetValue().GetValueType() ==
+          lldb_private::Value::eValueTypeHostAddress) {
     if (log)
       log->Printf("existential value is a const result");
 
-    // We have a locally materialized value, so let our MemoryReader
-    // know where it is so that RemoteAST can read from it.
+    // We have a locally materialized value that is a host address;
+    // register it with MemoryReader so it does not treat it as a load
+    // address.  Note that this assumes that any address at that host
+    // address is also a load address. If this assumption breaks there
+    // will be a crash in readBytes().
     existential_address = in_value.GetValue().GetScalar().ULongLong();
-
     use_local_buffer = true;
   } else {
     existential_address = in_value.GetAddressOf();
@@ -2023,6 +2030,83 @@ SwiftLanguageRuntime::DoArchetypeBindingForType(StackFrame &stack_frame,
     // all conformances are always visible
     auto *module_decl = scratch_ctx->GetASTContext()->getStdlibModule();
 
+    // Replace opaque types with their underlying types when possible.
+    swift::Mangle::ASTMangler mangler(true);
+
+    while (target_swift_type->hasOpaqueArchetype()) {
+      auto old_type = target_swift_type;
+      target_swift_type = target_swift_type.subst(
+        [&](swift::SubstitutableType *type) -> swift::Type {
+          auto opaque_type =
+                          llvm::dyn_cast<swift::OpaqueTypeArchetypeType>(type);
+          if (!opaque_type)
+            return type;
+          
+          // Try to find the symbol for the opaque type descriptor in the
+          // process.
+          auto mangled_name = ConstString(
+                    mangler.mangleOpaqueTypeDescriptor(opaque_type->getDecl()));
+          
+          SymbolContextList found;
+          target.GetImages().FindSymbolsWithNameAndType(mangled_name,
+                                                        eSymbolTypeData, found);
+          
+          if (found.GetSize() == 0)
+            return type;
+          
+          swift::Type result_type;
+          
+          for (unsigned i = 0, e = found.GetSize(); i < e; ++i) {
+            SymbolContext found_sc;
+            if (!found.GetContextAtIndex(i, found_sc))
+              continue;
+            
+            // See if the symbol has an address.
+            if (!found_sc.symbol)
+              continue;
+
+            auto addr = found_sc.symbol->GetAddress()
+              .GetLoadAddress(&target);
+            if (!addr || addr == LLDB_INVALID_ADDRESS)
+              continue;
+
+            // Ask RemoteAST to get the underlying type out of the descriptor.
+            auto &remote_ast = GetRemoteASTContext(*scratch_ctx);
+            auto underlying_type_result =
+            remote_ast.getUnderlyingTypeForOpaqueType(
+                                            swift::remote::RemoteAddress(addr),
+                                            opaque_type->getSubstitutions(),
+                                            opaque_type->getOrdinal());
+            
+            if (!underlying_type_result)
+              continue;
+
+            // If we haven't yet gotten an underlying type, use this as our
+            // possible result.
+            if (!result_type) {
+              result_type = underlying_type_result.getValue();
+            }
+            // If we have two possibilities, they should match.
+            else if (!result_type->isEqual(underlying_type_result.getValue())) {
+              return type;
+            }
+          }
+          
+          if (!result_type)
+            return type;
+          
+          return result_type;
+        },
+        swift::LookUpConformanceInModule(module_decl),
+        swift::SubstFlags::DesugarMemberTypes
+          | swift::SubstFlags::SubstituteOpaqueArchetypes);
+      
+      // Stop if we've reached a fixpoint where we can't further resolve opaque
+      // types.
+      if (old_type->isEqual(target_swift_type))
+        break;
+    }
+    
     target_swift_type = target_swift_type.subst(
         [this, &stack_frame,
          &scratch_ctx](swift::SubstitutableType *type) -> swift::Type {

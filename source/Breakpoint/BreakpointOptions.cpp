@@ -324,8 +324,7 @@ std::unique_ptr<BreakpointOptions> BreakpointOptions::CreateFromStructuredData(
     if (cmd_data_up->interpreter == eScriptLanguageNone)
       bp_options->SetCommandDataCallback(cmd_data_up);
     else {
-      ScriptInterpreter *interp =
-          target.GetDebugger().GetCommandInterpreter().GetScriptInterpreter();
+      ScriptInterpreter *interp = target.GetDebugger().GetScriptInterpreter();
       if (!interp) {
         error.SetErrorStringWithFormat(
             "Can't set script commands - no script interpreter");
@@ -657,6 +656,7 @@ bool BreakpointOptions::BreakpointOptionsCallbackFunction(
       options.SetStopOnError(data->stop_on_error);
       options.SetEchoCommands(true);
       options.SetPrintResults(true);
+      options.SetPrintErrors(true);
       options.SetAddToHistory(false);
 
       debugger.GetCommandInterpreter().HandleCommands(commands, &exe_ctx,
