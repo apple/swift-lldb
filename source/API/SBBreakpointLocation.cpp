@@ -54,7 +54,7 @@ operator=(const SBBreakpointLocation &rhs) {
       rhs);
 
   m_opaque_wp = rhs.m_opaque_wp;
-  return *this;
+  return LLDB_RECORD_RESULT(*this);
 }
 
 SBBreakpointLocation::~SBBreakpointLocation() {}
@@ -220,7 +220,6 @@ void SBBreakpointLocation::SetScriptCallbackFunction(
     loc_sp->GetBreakpoint()
         .GetTarget()
         .GetDebugger()
-        .GetCommandInterpreter()
         .GetScriptInterpreter()
         ->SetBreakpointCommandCallbackFunction(bp_options,
                                                callback_function_name);
@@ -243,7 +242,6 @@ SBBreakpointLocation::SetScriptCallbackBody(const char *callback_body_text) {
         loc_sp->GetBreakpoint()
             .GetTarget()
             .GetDebugger()
-            .GetCommandInterpreter()
             .GetScriptInterpreter()
             ->SetBreakpointCommandCallback(bp_options, callback_body_text);
     sb_error.SetError(error);
