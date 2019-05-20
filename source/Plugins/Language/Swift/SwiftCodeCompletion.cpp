@@ -12,6 +12,7 @@
 
 #include "SwiftCodeCompletion.h"
 
+#include "swift/AST/DiagnosticSuppression.h"
 #include "swift/IDE/CodeCompletion.h"
 #include "swift/IDE/CodeCompletionCache.h"
 #include "swift/Parse/CodeCompletionCallbacks.h"
@@ -163,7 +164,7 @@ static unsigned
 doCodeCompletion(SourceFile &SF, StringRef EnteredCode,
                  CodeCompletionCallbacksFactory *CompletionCallbacksFactory) {
   ASTContext &Ctx = SF.getASTContext();
-  DiagnosticTransaction DelayedDiags(Ctx.Diags);
+  DiagnosticSuppression SuppressedDiags(Ctx.Diags);
 
   std::string AugmentedCode = EnteredCode.str();
   AugmentedCode += '\0';
@@ -190,7 +191,10 @@ doCodeCompletion(SourceFile &SF, StringRef EnteredCode,
   performDelayedParsing(&SF, PersistentState, CompletionCallbacksFactory);
 
   SF.Decls.resize(OriginalDeclCount);
-  DelayedDiags.abort();
+
+  // Reset the error state because it's only relevant to the code that we just
+  // processed, which now gets thrown away.
+  Ctx.Diags.resetHadAnyError();
 
   return BufferID;
 }
@@ -316,7 +320,7 @@ SwiftCompleteCode(SwiftASTContext &SwiftCtx,
   {
     // Parse `EnteredCode` to populate `NewDecls`.
     DenseMap<Identifier, SmallVector<ValueDecl *, 1>> NewDecls;
-    DiagnosticTransaction DelayedDiags(Ctx.Diags);
+    DiagnosticSuppression SuppressedDiags(Ctx.Diags);
     std::string AugmentedCode = EnteredCode.str();
     AugmentedCode += '\0';
     const unsigned BufferID =
@@ -334,7 +338,10 @@ SwiftCompleteCode(SwiftASTContext &SwiftCtx,
         NewDecls.FindAndConstruct(NewValueDecl->getBaseName().getIdentifier())
             .second.push_back(NewValueDecl);
     EnteredCodeFile->Decls.resize(OriginalDeclCount);
-    DelayedDiags.abort();
+
+    // Reset the error state because it's only relevant to the code that we just
+    // processed, which now gets thrown away.
+    Ctx.Diags.resetHadAnyError();
 
     // Subtract `NewDecls` from the decls in `PreviousDeclsFile`.
     auto ContainedInNewDecls = [&](Decl *OldDecl) -> bool {
