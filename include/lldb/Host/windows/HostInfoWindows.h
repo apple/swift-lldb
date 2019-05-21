@@ -36,6 +36,7 @@ public:
   static FileSpec GetProgramFileSpec();
   static FileSpec GetDefaultShell();
 
+  static bool ComputeSwiftDirectory(FileSpec &);
   static bool GetEnvironmentVar(const std::string &var_name, std::string &var);
 
 private:

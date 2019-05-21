@@ -107,6 +107,16 @@ FileSpec HostInfoWindows::GetDefaultShell() {
   return FileSpec("C:\\Windows\\system32\\cmd.exe");
 }
 
+bool HostInfoWindows::ComputeSwiftDirectory(FileSpec &file_spec) {
+  if (!ComputeSupportExeDirectory(file_spec))
+    return false;
+
+  file_spec.RemoveLastPathComponent();  // drop `/bin`
+  file_spec.AppendPathComponent("lib");
+  file_spec.AppendPathComponent("swift");
+  return true;
+}
+
 bool HostInfoWindows::GetEnvironmentVar(const std::string &var_name,
                                         std::string &var) {
   std::wstring wvar_name;
