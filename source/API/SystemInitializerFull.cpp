@@ -44,7 +44,10 @@
 #include "Plugins/DynamicLoader/POSIX-DYLD/DynamicLoaderPOSIXDYLD.h"
 #include "Plugins/DynamicLoader/Static/DynamicLoaderStatic.h"
 #include "Plugins/DynamicLoader/Windows-DYLD/DynamicLoaderWindowsDYLD.h"
+#include "Plugins/Instruction/ARM/EmulateInstructionARM.h"
 #include "Plugins/Instruction/ARM64/EmulateInstructionARM64.h"
+#include "Plugins/Instruction/MIPS/EmulateInstructionMIPS.h"
+#include "Plugins/Instruction/MIPS64/EmulateInstructionMIPS64.h"
 #include "Plugins/Instruction/PPC64/EmulateInstructionPPC64.h"
 #include "Plugins/InstrumentationRuntime/ASan/ASanRuntime.h"
 #include "Plugins/InstrumentationRuntime/MainThreadChecker/MainThreadCheckerRuntime.h"
@@ -60,6 +63,8 @@
 #include "Plugins/LanguageRuntime/ObjC/AppleObjCRuntime/AppleObjCRuntimeV2.h"
 #include "Plugins/LanguageRuntime/RenderScript/RenderScriptRuntime/RenderScriptRuntime.h"
 #include "Plugins/MemoryHistory/asan/MemoryHistoryASan.h"
+#include "Plugins/ObjectContainer/BSD-Archive/ObjectContainerBSDArchive.h"
+#include "Plugins/ObjectContainer/Universal-Mach-O/ObjectContainerUniversalMachO.h"
 #include "Plugins/ObjectFile/Breakpad/ObjectFileBreakpad.h"
 #include "Plugins/ObjectFile/ELF/ObjectFileELF.h"
 #include "Plugins/ObjectFile/Mach-O/ObjectFileMachO.h"
@@ -113,6 +118,7 @@
 #endif
 
 #if defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
+#include "Plugins/ExpressionParser/Swift/SwiftREPL.h"
 #include "Plugins/Language/Swift/SwiftLanguage.h"
 #include "lldb/Target/SwiftLanguageRuntime.h"
 #endif
@@ -131,6 +137,7 @@ static void SwiftInitialize() {
 #if defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
   SwiftLanguage::Initialize();
   SwiftLanguageRuntime::Initialize();
+  SwiftREPL::Initialize();
 #endif
 }
 
@@ -138,6 +145,7 @@ static void SwiftTerminate() {
 #if defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
   SwiftLanguage::Terminate();
   SwiftLanguageRuntime::Terminate();
+  SwiftREPL::Terminate();
 #endif
 }
 
@@ -149,6 +157,9 @@ llvm::Error SystemInitializerFull::Initialize() {
   ObjectFileELF::Initialize();
   ObjectFileMachO::Initialize();
   ObjectFilePECOFF::Initialize();
+
+  ObjectContainerBSDArchive::Initialize();
+  ObjectContainerUniversalMachO::Initialize();
 
   ScriptInterpreterNone::Initialize();
 
@@ -220,8 +231,13 @@ llvm::Error SystemInitializerFull::Initialize() {
   SymbolFileSymtab::Initialize();
   UnwindAssemblyInstEmulation::Initialize();
   UnwindAssembly_x86::Initialize();
+
+  EmulateInstructionARM::Initialize();
   EmulateInstructionARM64::Initialize();
+  EmulateInstructionMIPS::Initialize();
+  EmulateInstructionMIPS64::Initialize();
   EmulateInstructionPPC64::Initialize();
+
   SymbolFileDWARFDebugMap::Initialize();
   ItaniumABILanguageRuntime::Initialize();
   AppleObjCRuntimeV2::Initialize();
@@ -327,8 +343,13 @@ void SystemInitializerFull::Terminate() {
   SymbolFileSymtab::Terminate();
   UnwindAssembly_x86::Terminate();
   UnwindAssemblyInstEmulation::Terminate();
+
+  EmulateInstructionARM::Terminate();
   EmulateInstructionARM64::Terminate();
+  EmulateInstructionMIPS::Terminate();
+  EmulateInstructionMIPS64::Terminate();
   EmulateInstructionPPC64::Terminate();
+
   SymbolFileDWARFDebugMap::Terminate();
   ItaniumABILanguageRuntime::Terminate();
   AppleObjCRuntimeV2::Terminate();
@@ -389,6 +410,9 @@ void SystemInitializerFull::Terminate() {
   ObjectFileELF::Terminate();
   ObjectFileMachO::Terminate();
   ObjectFilePECOFF::Terminate();
+
+  ObjectContainerBSDArchive::Terminate();
+  ObjectContainerUniversalMachO::Terminate();
 
   // Now shutdown the common parts, in reverse order.
   SystemInitializerCommon::Terminate();
