@@ -2531,16 +2531,14 @@ public:
 
   OperatingSystem *GetOperatingSystem() { return m_os_up.get(); }
 
-  virtual LanguageRuntime *GetLanguageRuntime(lldb::LanguageType language,
-                                              bool retry_if_null = true);
+  LanguageRuntime *GetLanguageRuntime(lldb::LanguageType language,
+                                      bool retry_if_null = true);
 
-  virtual CPPLanguageRuntime *GetCPPLanguageRuntime(bool retry_if_null = true);
+  CPPLanguageRuntime *GetCPPLanguageRuntime(bool retry_if_null = true);
 
-  virtual ObjCLanguageRuntime *
-  GetObjCLanguageRuntime(bool retry_if_null = true);
+  ObjCLanguageRuntime *GetObjCLanguageRuntime(bool retry_if_null = true);
 
-  virtual SwiftLanguageRuntime *
-  GetSwiftLanguageRuntime(bool retry_if_null = true);
+  SwiftLanguageRuntime *GetSwiftLanguageRuntime(bool retry_if_null = true);
 
   bool IsPossibleDynamicValue(ValueObject &in_value);
 
@@ -3107,6 +3105,7 @@ protected:
   bool m_should_detach; /// Should we detach if the process object goes away
                         /// with an explicit call to Kill or Detach?
   LanguageRuntimeCollection m_language_runtimes;
+  std::recursive_mutex m_language_runtimes_mutex;
   InstrumentationRuntimeCollection m_instrumentation_runtimes;
   std::unique_ptr<NextEventAction> m_next_event_action_up;
   std::vector<PreResumeCallbackAndBaton> m_pre_resume_actions;
