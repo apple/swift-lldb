@@ -39,7 +39,6 @@
 #include "lldb/Symbol/Function.h"
 #include "lldb/Symbol/Symbol.h"
 #include "lldb/Target/ABI.h"
-#include "lldb/Target/CPPLanguageRuntime.h"
 #include "lldb/Target/DynamicLoader.h"
 #include "lldb/Target/InstrumentationRuntime.h"
 #include "lldb/Target/JITLoader.h"
@@ -48,14 +47,12 @@
 #include "lldb/Target/LanguageRuntime.h"
 #include "lldb/Target/MemoryHistory.h"
 #include "lldb/Target/MemoryRegionInfo.h"
-#include "lldb/Target/ObjCLanguageRuntime.h"
 #include "lldb/Target/OperatingSystem.h"
 #include "lldb/Target/Platform.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/StopInfo.h"
 #include "lldb/Target/StructuredDataPlugin.h"
-#include "lldb/Target/SwiftLanguageRuntime.h"
 #include "lldb/Target/SystemRuntime.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/TargetList.h"
@@ -1900,36 +1897,6 @@ LanguageRuntime *Process::GetLanguageRuntime(lldb::LanguageType language,
     assert(runtime->GetLanguageType() == Language::GetPrimaryLanguage(language));
 
   return runtime;
-}
-
-CPPLanguageRuntime *Process::GetCPPLanguageRuntime(bool retry_if_null) {
-  std::lock_guard<std::recursive_mutex> guard(m_language_runtimes_mutex);
-  LanguageRuntime *runtime =
-      GetLanguageRuntime(eLanguageTypeC_plus_plus, retry_if_null);
-  if (!runtime)
-    return nullptr;
-
-  return static_cast<CPPLanguageRuntime *>(runtime);
-}
-
-ObjCLanguageRuntime *Process::GetObjCLanguageRuntime(bool retry_if_null) {
-  std::lock_guard<std::recursive_mutex> guard(m_language_runtimes_mutex);
-  LanguageRuntime *runtime =
-      GetLanguageRuntime(eLanguageTypeObjC, retry_if_null);
-  if (!runtime)
-    return nullptr;
-
-  return static_cast<ObjCLanguageRuntime *>(runtime);
-}
-
-SwiftLanguageRuntime *Process::GetSwiftLanguageRuntime(bool retry_if_null) {
-  std::lock_guard<std::recursive_mutex> guard(m_language_runtimes_mutex);
-  LanguageRuntime *runtime =
-      GetLanguageRuntime(eLanguageTypeSwift, retry_if_null);
-  if (!runtime)
-    return nullptr;
-
-  return static_cast<SwiftLanguageRuntime *>(runtime);
 }
 
 bool Process::IsPossibleDynamicValue(ValueObject &in_value) {

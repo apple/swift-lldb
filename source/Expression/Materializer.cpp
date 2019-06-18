@@ -563,7 +563,7 @@ public:
           return;
         }
 
-        if (data.GetByteSize() < m_variable_sp->GetType()->GetByteSize()) {
+        if (data.GetByteSize() < m_variable_sp->GetType()->GetByteSize(scope)) {
           if (data.GetByteSize() == 0 &&
               !m_variable_sp->LocationExpression().IsValid()) {
             err.SetErrorStringWithFormat("the variable '%s' has no location, "
@@ -574,7 +574,9 @@ public:
                 "size of variable %s (%" PRIu64
                 ") is larger than the ValueObject's size (%" PRIu64 ")",
                 m_variable_sp->GetName().AsCString(),
-                m_variable_sp->GetType()->GetByteSize().getValueOr(0),
+                m_variable_sp->GetType()
+                    ->GetByteSize(map.GetBestExecutionContextScope())
+                    .getValueOr(0),
                 data.GetByteSize());
           }
           return;
@@ -590,7 +592,7 @@ public:
           lldb::ProcessSP process_sp =
               map.GetBestExecutionContextScope()->CalculateProcess();
           SwiftLanguageRuntime *language_runtime =
-              process_sp->GetSwiftLanguageRuntime();
+              SwiftLanguageRuntime::Get(*process_sp);
           if (language_runtime && frame_sp)
             layout_type = language_runtime->DoArchetypeBindingForType(
                 *frame_sp, layout_type);
@@ -988,7 +990,7 @@ public:
 
     if (lang == lldb::eLanguageTypeSwift) {
       SwiftLanguageRuntime *language_runtime =
-          process_sp->GetSwiftLanguageRuntime();
+          SwiftLanguageRuntime::Get(*process_sp);
       if (language_runtime && frame_sp)
         m_type = language_runtime->DoArchetypeBindingForType(*frame_sp, m_type);
     }

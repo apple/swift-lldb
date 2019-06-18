@@ -545,7 +545,7 @@ AddRequiredAliases(Block *block, lldb::StackFrameSP &stack_frame_sp,
     return;
 
   SwiftLanguageRuntime *swift_runtime =
-      stack_frame_sp->GetThread()->GetProcess()->GetSwiftLanguageRuntime();
+      SwiftLanguageRuntime::Get(*stack_frame_sp->GetThread()->GetProcess());
   auto *stack_frame = stack_frame_sp.get();
   imported_self_type =
       swift_runtime->DoArchetypeBindingForType(*stack_frame,
@@ -744,7 +744,7 @@ static void RegisterAllVariables(
 
   if (stack_frame_sp) {
     language_runtime =
-        stack_frame_sp->GetThread()->GetProcess()->GetSwiftLanguageRuntime();
+        SwiftLanguageRuntime::Get(*stack_frame_sp->GetThread()->GetProcess());
     scope = stack_frame_sp.get();
   }
 
@@ -891,13 +891,12 @@ static swift::ASTContext *SetupASTContext(
   // Lazily get the clang importer if we can to make sure it exists in
   // case we need it.
   if (!swift_ast_context->GetClangImporter()) {
-    std::string swift_error = "Fatal Swift ";
-    swift_error +=
+    std::string swift_error =
         swift_ast_context->GetFatalErrors().AsCString("error: unknown error.");
     diagnostic_manager.PutString(eDiagnosticSeverityError, swift_error);
-    diagnostic_manager.PutString(
-        eDiagnosticSeverityRemark,
-        "Swift expressions require OS X 10.10 / iOS 8 SDKs or later.\n");
+    diagnostic_manager.PutString(eDiagnosticSeverityRemark,
+                                 "Couldn't initialize Swift expression "
+                                 "evaluator due to previous errors.");
     return nullptr;
   }
 
@@ -1048,9 +1047,8 @@ MaterializeVariable(SwiftASTManipulatorBase::VariableInfo &variable,
       if (swift_type->hasTypeParameter()) {
         if (stack_frame_sp && stack_frame_sp->GetThread() &&
             stack_frame_sp->GetThread()->GetProcess()) {
-          SwiftLanguageRuntime *swift_runtime = stack_frame_sp->GetThread()
-                                                    ->GetProcess()
-                                                    ->GetSwiftLanguageRuntime();
+          SwiftLanguageRuntime *swift_runtime = SwiftLanguageRuntime::Get(
+              *stack_frame_sp->GetThread()->GetProcess());
           if (swift_runtime) {
             actual_type = swift_runtime->DoArchetypeBindingForType(
                 *stack_frame_sp, actual_type);
@@ -1234,7 +1232,7 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
     lldb::ProcessSP process_sp(this_frame_sp->CalculateProcess());
     if (!process_sp)
       return false;
-    return !process_sp->GetObjCLanguageRuntime();
+    return !ObjCLanguageRuntime::Get(*process_sp);
   };
 
   swift::ASTContext *ast_context =
@@ -1279,7 +1277,7 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
     lldb::ProcessSP process_sp(this_frame_sp->CalculateProcess());
     if (!process_sp)
       return false;
-    auto *runtime = process_sp->GetSwiftLanguageRuntime();
+    auto *runtime = SwiftLanguageRuntime::Get(*process_sp);
     return !runtime->IsABIStable();
     return true;
   };
