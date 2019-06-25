@@ -77,7 +77,7 @@ public:
   // llvm casting support
   //------------------------------------------------------------------
   static bool classof(const PersistentExpressionState *pv) {
-    return pv->getKind() == PersistentExpressionState::eKindClang;
+    return pv->getKind() == PersistentExpressionState::eKindSwift;
   }
 
   lldb::ExpressionVariableSP
@@ -94,6 +94,9 @@ public:
   }
 
   void RemovePersistentVariable(lldb::ExpressionVariableSP variable) override;
+
+  llvm::Optional<CompilerType>
+  GetCompilerTypeFromPersistentDecl(ConstString type_name) override;
 
   void RegisterSwiftPersistentDecl(swift::ValueDecl *value_decl);
 

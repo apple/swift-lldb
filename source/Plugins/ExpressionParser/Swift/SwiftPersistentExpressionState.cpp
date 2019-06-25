@@ -33,7 +33,7 @@ using namespace lldb;
 using namespace lldb_private;
 
 SwiftPersistentExpressionState::SwiftPersistentExpressionState()
-    : lldb_private::PersistentExpressionState(LLVMCastKind::eKindClang),
+    : lldb_private::PersistentExpressionState(LLVMCastKind::eKindSwift),
       m_next_persistent_variable_id(0), m_next_persistent_error_id(0) {}
 
 ExpressionVariableSP SwiftPersistentExpressionState::CreatePersistentVariable(
@@ -83,6 +83,12 @@ void SwiftPersistentExpressionState::RemovePersistentVariable(
     if (value == m_next_persistent_variable_id - 1)
       m_next_persistent_variable_id--;
   }
+}
+
+llvm::Optional<CompilerType>
+SwiftPersistentExpressionState::GetCompilerTypeFromPersistentDecl(
+    ConstString type_name) {
+  return llvm::None;
 }
 
 bool SwiftPersistentExpressionState::SwiftDeclMap::DeclsAreEquivalent(
