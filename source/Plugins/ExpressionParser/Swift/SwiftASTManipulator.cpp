@@ -788,6 +788,44 @@ void SwiftASTManipulator::FindNonVariableDeclarations(
   }
 }
 
+void SwiftASTManipulator::EnumerateDefaultValuedArguments(llvm::SmallVectorImpl<std::pair<swift::FuncDecl *, std::vector<int>>> &FDAI) {
+  class DefaultArgumentThunkFinder : public swift::ASTWalker {
+    swift::SourceFile *SF;
+    llvm::SmallVectorImpl<std::pair<swift::FuncDecl *, std::vector<int>>> &FDAI;
+
+  public:
+    explicit DefaultArgumentThunkFinder(llvm::SmallVectorImpl<std::pair<swift::FuncDecl *, std::vector<int>>> &FDAI) : SF(nullptr), FDAI(FDAI) {}
+
+    void scan(swift::SourceFile &SF) {
+      this->SF = &SF;
+      for (swift::Decl *D : SF.Decls)
+        D->walk(*this);
+      this->SF = nullptr;
+    }
+
+  private:
+    bool walkToDeclPre(swift::Decl *D) override {
+      if (auto *FD = llvm::dyn_cast<swift::FuncDecl>(D)) {
+        if (swift::ParameterList *PL = FD->getParameters()) {
+          std::vector<int> DAI;
+          for (unsigned AI = 0, AE = PL->size(); AI < AE; ++AI) {
+            if (PL->get(AI)->getDefaultArgumentKind() ==
+                    swift::DefaultArgumentKind::None)
+              continue;
+            DAI.push_back(AI);
+          }
+          if (!DAI.empty())
+            FDAI.push_back(std::make_pair(FD, DAI));
+        }
+      }
+      return true;
+    }
+  };
+
+  DefaultArgumentThunkFinder DATF(FDAI);
+  DATF.scan(m_source_file);
+}
+
 void SwiftASTManipulator::InsertResult(
     swift::VarDecl *result_var, swift::Type &result_type,
     SwiftASTManipulator::ResultLocationInfo &result_info) {
