@@ -436,6 +436,12 @@ static void LoadSwiftFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
       lldb_private::formatters::swift::SwiftSharedString_SummaryProvider,
       "SharedStringStorage summary provider",
       ConstString(SwiftLanguageRuntime::GetCurrentMangledName("_TtCs21__SharedStringStorage")), summary_flags);
+
+  AddCXXSummary(swift_category_sp,
+                lldb_private::formatters::swift::SwiftIndex_SummaryProvider,
+                "String Index summary provider", ConstString("String.Index"),
+                summary_flags);
+
   summary_flags.SetSkipPointers(true);
   AddCXXSummary(swift_category_sp,
                 lldb_private::formatters::swift::BuiltinObjC_SummaryProvider,

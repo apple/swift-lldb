@@ -66,6 +66,9 @@ bool SwiftSharedString_SummaryProvider_2(
     ValueObject &valobj, Stream &stream, const TypeSummaryOptions &,
     StringPrinter::ReadStringAndDumpToStreamOptions);
 
+bool SwiftIndex_SummaryProvider(ValueObject &valobj, Stream &stream,
+                                const TypeSummaryOptions &options);
+
 bool SwiftStringStorage_SummaryProvider(ValueObject &valobj, Stream &stream,
                                         const TypeSummaryOptions &);
 

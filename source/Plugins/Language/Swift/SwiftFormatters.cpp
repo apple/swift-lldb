@@ -68,6 +68,29 @@ bool lldb_private::formatters::swift::SwiftSharedString_SummaryProvider(
       StringPrinter::ReadStringAndDumpToStreamOptions());
 }
 
+// String's Index has the following layout:
+// (mirrored from StringIndex.swift in the standard library.
+//
+// ┌──────────┬───────────────────┬─────────╥────────────────┬──────────┐
+// │ b63:b16  │      b15:b14      │   b13   ║     b12:b8     │  b6:b0   │
+// ├──────────┼───────────────────┼─────────╫────────────────┼──────────┤
+// │ position │ transcoded offset │ aligned ║ grapheme cache │ reserved │
+// └──────────┴───────────────────┴─────────╨────────────────┴──────────┘
+bool lldb_private::formatters::swift::SwiftIndex_SummaryProvider(
+    ValueObject &valobj, Stream &stream, const TypeSummaryOptions &options) {
+  static ConstString raw_bits_child("_rawBits");
+  static ConstString value_child("_value");
+  auto raw_bits_obj = valobj.GetChildAtNamePath({raw_bits_child, value_child});
+  if (!raw_bits_obj)
+    return false;
+  uint64_t raw_bits = raw_bits_obj->GetValueAsUnsigned(UINT64_MAX);
+  if (raw_bits == UINT64_MAX)
+    return false;
+  uint64_t position = raw_bits >> 16;
+  stream.Printf("%llu", position);
+  return true;
+}
+
 /// Get an Obj-C object's class name, if one is present.
 static Optional<StringRef> getObjC_ClassName(ValueObject &valobj,
                                              Process &process) {
