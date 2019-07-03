@@ -446,7 +446,11 @@ NativeHashedStorageHandler::NativeHashedStorageHandler(
     m_value_stride = value_type.GetByteStride();
     if (SwiftASTContext *swift_ast =
             llvm::dyn_cast_or_null<SwiftASTContext>(key_type.GetTypeSystem())) {
-      auto scratch_ctx_reader = nativeStorage_sp->GetScratchSwiftASTContext();
+      Status error;
+      auto scratch_ctx_reader =
+          m_process->GetTarget().GetScratchSwiftASTContext(error, *nativeStorage_sp.get());
+      if (!error.Success())
+        return;
       auto scratch_ctx = scratch_ctx_reader.get();
       if (!scratch_ctx)
         return;

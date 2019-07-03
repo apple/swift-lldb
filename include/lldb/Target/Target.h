@@ -24,6 +24,7 @@
 #include "lldb/Core/Architecture.h"
 #include "lldb/Core/Disassembler.h"
 #include "lldb/Core/ModuleList.h"
+#include "lldb/Core/SwiftASTContextReader.h"
 #include "lldb/Core/UserSettingsController.h"
 #include "lldb/Expression/Expression.h"
 #include "lldb/Interpreter/OptionValueBoolean.h"
@@ -1210,6 +1211,10 @@ public:
   SwiftASTContextReader
   GetScratchSwiftASTContext(Status &error, ExecutionContextScope &exe_scope,
                             bool create_on_demand = true);
+
+  SwiftASTContextReader GetScratchSwiftASTContext(Status &error,
+                                                  ValueObject &valobj,
+                                                  bool create_on_demand = true);
 
 private:
   void DisplayFallbackSwiftContextErrors(SwiftASTContext *swift_ast_ctx);

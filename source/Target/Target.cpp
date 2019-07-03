@@ -2534,6 +2534,14 @@ SwiftASTContextReader Target::GetScratchSwiftASTContext(
   return SwiftASTContextReader(GetSwiftScratchContextLock(), swift_ast_ctx);
 }
 
+SwiftASTContextReader Target::GetScratchSwiftASTContext(Status &error,
+                                                        ValueObject &valobj,
+                                                        bool create_on_demand) {
+  ExecutionContext ctx = valobj.GetExecutionContextRef().Lock(false);
+  auto *exe_scope = ctx.GetBestExecutionContextScope();
+  return GetScratchSwiftASTContext(error, *exe_scope);
+}
+
 static SharedMutex *
 GetSwiftScratchContextMutex(const ExecutionContext *exe_ctx) {
   if (!exe_ctx)
