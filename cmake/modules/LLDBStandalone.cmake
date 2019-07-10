@@ -93,6 +93,28 @@ include(AddLLVM)
 include(TableGen)
 include(HandleLLVMOptions)
 include(CheckAtomic)
+include(LLVMDistributionSupport)
+
+if (PYTHON_EXECUTABLE STREQUAL "")
+  set(Python_ADDITIONAL_VERSIONS 3.5 3.4 3.3 3.2 3.1 3.0 2.7 2.6 2.5)
+  include(FindPythonInterp)
+  if( NOT PYTHONINTERP_FOUND )
+    message(FATAL_ERROR
+            "Unable to find Python interpreter, required for builds and testing.
+              Please install Python or specify the PYTHON_EXECUTABLE CMake variable.")
+  endif()
+else()
+  message(STATUS "Found PythonInterp: ${PYTHON_EXECUTABLE}")
+endif()
+
+# We append the directory in which LLVMConfig.cmake lives. We expect LLVM's
+# CMake modules to be in that directory as well.
+list(APPEND CMAKE_MODULE_PATH "${LLVM_DIR}")
+list(APPEND CMAKE_MODULE_PATH "${LLDB_PATH_TO_SWIFT_SOURCE}/cmake/modules/")
+include(AddLLVM)
+include(TableGen)
+include(HandleLLVMOptions)
+include(CheckAtomic)
 
 if (PYTHON_EXECUTABLE STREQUAL "")
   set(Python_ADDITIONAL_VERSIONS 3.7. 3.6 3.4 2.7)
