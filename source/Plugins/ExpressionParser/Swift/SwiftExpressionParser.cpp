@@ -525,18 +525,9 @@ AddRequiredAliases(Block *block, lldb::StackFrameSP &stack_frame_sp,
       self_type = valobj_sp->GetCompilerType();
   }
 
-  if (!self_type.IsValid()) {
-    if (Type *type = self_var_sp->GetType()) {
-      self_type = type->GetForwardCompilerType();
-    }
-  }
-
   if (!self_type.IsValid() ||
       !llvm::isa<SwiftASTContext>(self_type.GetTypeSystem()))
     return;
-
-  // Import before getting the unbound version, because the unbound
-  // version may not be in the mangled name map.
 
   CompilerType imported_self_type = ImportType(swift_ast_context, self_type);
 
@@ -550,51 +541,10 @@ AddRequiredAliases(Block *block, lldb::StackFrameSP &stack_frame_sp,
       swift_runtime->DoArchetypeBindingForType(*stack_frame,
                                                imported_self_type);
 
-  // This might be a referenced type, in which case we really want to
-  // extend the referent:
-  imported_self_type =
-      llvm::cast<SwiftASTContext>(imported_self_type.GetTypeSystem())
-          ->GetReferentType(imported_self_type);
-
-  // If we are extending a generic class it's going to be a metatype,
-  // and we have to grab the instance type:
-  imported_self_type =
-      llvm::cast<SwiftASTContext>(imported_self_type.GetTypeSystem())
-          ->GetInstanceType(imported_self_type.GetOpaqueQualType());
-
   Flags imported_self_type_flags(imported_self_type.GetTypeInfo());
 
   swift::Type object_type =
       GetSwiftType(imported_self_type)->getWithoutSpecifierType();
-
-  if (object_type.getPointer() &&
-      (object_type.getPointer() != imported_self_type.GetOpaqueQualType()))
-    imported_self_type = CompilerType(imported_self_type.GetTypeSystem(),
-                                      object_type.getPointer());
-
-  // If 'self' is a weak storage type, it must be an optional.  Look
-  // through it and unpack the argument of "optional".
-  if (swift::WeakStorageType *weak_storage_type =
-          GetSwiftType(imported_self_type)->getAs<swift::WeakStorageType>()) {
-    swift::Type referent_type = weak_storage_type->getReferentType();
-
-    swift::BoundGenericEnumType *optional_type =
-        referent_type->getAs<swift::BoundGenericEnumType>();
-
-    if (!optional_type)
-      return;
-
-    swift::Type first_arg_type = optional_type->getGenericArgs()[0];
-
-    swift::ClassType *self_class_type =
-        first_arg_type->getAs<swift::ClassType>();
-
-    if (!self_class_type)
-      return;
-
-    imported_self_type =
-        CompilerType(imported_self_type.GetTypeSystem(), self_class_type);
-  }
 
   imported_self_type_flags.Reset(imported_self_type.GetTypeInfo());
   if (imported_self_type_flags.AllClear(lldb::eTypeIsGenericTypeParam)) {
