@@ -1,0 +1,11 @@
+// RUN: %lldb --repl < %s 2>&1 | FileCheck %s
+
+struct Foo {}
+
+extension Foo: CustomStringConvertible {
+  var description: String {
+    return "foo"
+  }
+}
+
+// CHECK-NOT: error:
