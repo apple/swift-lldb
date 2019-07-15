@@ -5,4 +5,7 @@ set(LLVM_DISTRIBUTION_COMPONENTS
   liblldb
   lldb-argdumper
   lldb-server
+  repl_swift
   CACHE STRING "")
+
+set(LLDB_ALLOW_STATIC_BINDINGS ON CACHE BOOL "")
