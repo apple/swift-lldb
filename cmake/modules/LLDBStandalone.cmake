@@ -89,6 +89,7 @@ include(AddLLVM)
 include(TableGen)
 include(HandleLLVMOptions)
 include(CheckAtomic)
+include(LLVMDistributionSupport)
 
 if (PYTHON_EXECUTABLE STREQUAL "")
   set(Python_ADDITIONAL_VERSIONS 3.7. 3.6 3.4 2.7)
