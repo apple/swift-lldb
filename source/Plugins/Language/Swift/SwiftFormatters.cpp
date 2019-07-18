@@ -68,25 +68,6 @@ bool lldb_private::formatters::swift::SwiftSharedString_SummaryProvider(
       StringPrinter::ReadStringAndDumpToStreamOptions());
 }
 
-/// Get an Obj-C object's class name, if one is present.
-static Optional<StringRef> getObjC_ClassName(ValueObject &valobj,
-                                             Process &process) {
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process.GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
-  if (!runtime)
-    return None;
-
-  ObjCLanguageRuntime::ClassDescriptorSP descriptor(
-      runtime->GetClassDescriptor(valobj));
-
-  if (!descriptor.get() || !descriptor->IsValid())
-    return None;
-
-  ConstString class_name_cs = descriptor->GetClassName();
-  return class_name_cs.GetStringRef();
-}
-
 static bool readStringFromAddress(
     uint64_t startAddress, uint64_t length, ProcessSP process, Stream &stream,
     const TypeSummaryOptions &summary_options,
@@ -1065,7 +1046,7 @@ bool lldb_private::formatters::swift::SIMDVector_SummaryProvider(
   // positive integer, we can calculate the number of elements and the
   // dynamic archetype (and hence its size). Everything follows naturally
   // as the elements are laid out in a contigous buffer without padding.
-  CompilerType simd_type = valobj.GetCompilerType();
+  CompilerType simd_type = valobj.GetCompilerType().GetCanonicalType();
   void *type_buffer = reinterpret_cast<void *>(simd_type.GetOpaqueQualType());
   llvm::Optional<uint64_t> opt_type_size = simd_type.GetByteSize(nullptr);
   if (!opt_type_size)
@@ -1099,7 +1080,7 @@ bool lldb_private::formatters::swift::SIMDVector_SummaryProvider(
   // laid out contiguosly in memory. SIMD3, though, has an element of
   // padding. Given this is the only type in the standard library with
   // padding, we special-case it.
-  ConstString full_type_name = valobj.GetTypeName();
+  ConstString full_type_name = simd_type.GetTypeName();
   llvm::StringRef type_name = full_type_name.GetStringRef();
   uint64_t num_elements = type_size / arg_size;
   if (type_name.startswith("Swift.SIMD3"))
