@@ -1,6 +1,9 @@
 # Test that error messages from constructing ClangImporter
 # are surfaced to the user.
 
+# TODO(TF-659): Reenable this test.
+# REQUIRES: TF-659
+
 # RUN: rm -rf %t && mkdir %t && cd %t
 # RUN: cp %p/../../packages/Python/lldbsuite/test/lang/swift/deserialization_failure/Inputs/main.swift %t/main.swift
 # RUN: echo "{ 'version': 0, 'roots': [] }" >%t/overlay.yaml

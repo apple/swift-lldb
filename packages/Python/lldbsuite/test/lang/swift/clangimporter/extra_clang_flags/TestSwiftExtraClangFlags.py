@@ -11,6 +11,8 @@ class TestSwiftExtraClangFlags(TestBase):
     def setUp(self):
         TestBase.setUp(self)
 
+    # TODO(TF-659): Remove "@skipIfDarwin"
+    @skipIfDarwin
     @skipUnlessDarwin
     @swiftTest
     @add_test_categories(["swiftpr"])
@@ -21,6 +23,8 @@ class TestSwiftExtraClangFlags(TestBase):
         self.expect("frame var foo", "sanity check", substrs=['(Foo)'])
         self.expect("expr FromOverlay(i: 23)", error=True)
 
+    # TODO(TF-659): Remove "@skipIfDarwin"
+    @skipIfDarwin
     @skipUnlessDarwin
     @swiftTest
     @add_test_categories(["swiftpr"])
