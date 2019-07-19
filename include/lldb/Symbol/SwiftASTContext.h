@@ -295,7 +295,7 @@ public:
   size_t FindType(const char *name, std::set<CompilerType> &results,
                   bool append = true);
 
-  CompilerType GetTypeFromMangledTypename(const char *mangled_typename,
+  CompilerType GetTypeFromMangledTypename(ConstString mangled_typename,
                                           Status &error);
 
   // Retrieve the Swift.AnyObject type.
@@ -389,6 +389,7 @@ public:
   }
 
   Status GetFatalErrors();
+  void DiagnoseWarnings(Process &process, Module &module) const override;
 
   const swift::irgen::TypeInfo *GetSwiftTypeInfo(void *type);
 
@@ -780,12 +781,12 @@ public:
                                 swift::SourceFile *source_file, Status &error);
 
 protected:
-  // This map uses the string value of ConstStrings as the key, and the TypeBase
-  // * as the value. Since the ConstString strings are uniqued, we can use
-  // pointer equality for string value equality.
+  /// This map uses the string value of ConstStrings as the key, and the TypeBase
+  /// * as the value. Since the ConstString strings are uniqued, we can use
+  /// pointer equality for string value equality.
   typedef llvm::DenseMap<const char *, swift::TypeBase *>
       SwiftTypeFromMangledNameMap;
-  // Similar logic applies to this "reverse" map
+  /// Similar logic applies to this "reverse" map
   typedef llvm::DenseMap<swift::TypeBase *, const char *>
       SwiftMangledNameFromTypeMap;
 
@@ -799,9 +800,9 @@ protected:
 
   swift::ModuleDecl *GetCachedModule(const SourceModule &module);
 
-  void CacheDemangledType(const char *, swift::TypeBase *);
+  void CacheDemangledType(ConstString mangled_name, swift::TypeBase *found_type);
 
-  void CacheDemangledTypeFailure(const char *);
+  void CacheDemangledTypeFailure(ConstString mangled_name);
 
   bool LoadOneImage(Process &process, FileSpec &link_lib_spec, Status &error);
 
@@ -828,8 +829,9 @@ protected:
   llvm::once_flag m_ir_gen_module_once;
   std::unique_ptr<swift::DiagnosticConsumer> m_diagnostic_consumer_ap;
   std::unique_ptr<DWARFASTParser> m_dwarf_ast_parser_ap;
-  /// Any errors that were found while creating or using the AST context.
-  Status m_error;
+  /// A collection of (not necessarily fatal) error messages that
+  /// should be printed by Process::PrintWarningCantLoadSwift().
+  std::vector<std::string> m_module_import_warnings;
   swift::ModuleDecl *m_scratch_module = nullptr;
   std::unique_ptr<swift::SILModule> m_sil_module_ap;
   /// Owned by the AST.

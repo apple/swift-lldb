@@ -14,13 +14,13 @@
 
 #include "lldb/lldb-types.h"
 
-#include "Plugins/ExpressionParser/Clang/ClangPersistentVariables.h"
 #include "SBReproducerPrivate.h"
 #include "Utils.h"
 #include "lldb/Core/Address.h"
 #include "lldb/Core/StreamFile.h"
 #include "lldb/Core/ValueObjectRegister.h"
 #include "lldb/Core/ValueObjectVariable.h"
+#include "lldb/Expression/ExpressionVariable.h"
 #include "lldb/Expression/UserExpression.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Symbol/Block.h"
@@ -30,12 +30,12 @@
 #include "lldb/Symbol/Variable.h"
 #include "lldb/Symbol/VariableList.h"
 #include "lldb/Target/ExecutionContext.h"
+#include "lldb/Target/LanguageRuntime.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/StackFrame.h"
 #include "lldb/Target/StackFrameRecognizer.h"
 #include "lldb/Target/StackID.h"
-#include "lldb/Target/SwiftLanguageRuntime.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Utility/ConstString.h"
@@ -1226,7 +1226,10 @@ bool SBFrame::IsSwiftThunk() const {
   sc = frame->GetSymbolContext(eSymbolContextSymbol);
   if (!sc.symbol)
     return false;
-  return SwiftLanguageRuntime::IsSymbolARuntimeThunk(*sc.symbol);
+  auto *runtime = process->GetLanguageRuntime(eLanguageTypeSwift);
+  if (!runtime)
+    return false;
+  return runtime->IsSymbolARuntimeThunk(*sc.symbol);
 }
 
 const char *SBFrame::GetFunctionName() const {

@@ -8,9 +8,9 @@ function(add_python_test_target name test_script args comment)
   add_custom_target(${name}
     COMMAND ${PYTHON_TEST_COMMAND} ${ARG_DEFAULT_ARGS}
     COMMENT "${comment}"
-    DEPENDS ${LLDB_TEST_DEPS}
     USES_TERMINAL
     )
+  add_dependencies(${name} ${LLDB_TEST_DEPS})
 endfunction()
 
 # The default architecture with which to compile test executables is the default LLVM target
@@ -31,7 +31,8 @@ option(LLDB_TEST_SWIFT "Use in-tree swift when testing lldb" On)
 if(LLDB_TEST_SWIFT)
   set(SWIFT_TEST_ARGS
     --swift-compiler ${LLDB_SWIFTC}
-    --swift-library ${LLDB_SWIFT_LIBS})
+    --swift-library ${LLDB_SWIFT_LIBS}
+    --env "DYLD_LIBRARY_PATH=\\\"${LLDB_SWIFT_LIBS}\\\" LD_LIBRARY_PATH=\\\"${LLDB_SWIFT_LIBS}\\\" SIMCTL_CHILD_DYLD_LIBRARY_PATH=\\\"${LLDB_SWIFT_LIBS}\\\"")
 endif()
 # END - Swift Mods
 
@@ -121,13 +122,13 @@ add_python_test_target(check-lldb-single
   "--no-multiprocess;${LLDB_DOTEST_ARGS}"
   "Testing LLDB with args: ${LLDB_DOTEST_ARGS}"
   )
+set_target_properties(check-lldb-single PROPERTIES FOLDER "lldb misc")
 
 # If tests crash cause LLDB to crash, or things are otherwise unstable, or if machine-parsable
 # output is desired (i.e. in continuous integration contexts) check-lldb-single is a better target.
 add_custom_target(check-lldb)
-
-# Make check-lldb depend on all test dependencies.
 add_dependencies(check-lldb lldb-test-deps)
+set_target_properties(check-lldb PROPERTIES FOLDER "lldb misc")
 
 # If we're building with an in-tree clang, then list clang as a dependency
 # to run tests.

@@ -21,11 +21,13 @@
 // Other libraries and framework includes
 // Project includes
 #include "Plugins/LanguageRuntime/ObjC/AppleObjCRuntime/AppleObjCRuntimeV2.h"
+#include "lldb/Breakpoint/BreakpointPrecondition.h"
 #include "lldb/Core/PluginInterface.h"
 #include "lldb/Target/LanguageRuntime.h"
 #include "lldb/lldb-private.h"
 
 #include "llvm/ADT/Optional.h"
+#include "llvm/ADT/StringSet.h"
 #include "llvm/Support/Casting.h"
 
 namespace swift {
@@ -91,6 +93,9 @@ public:
     return llvm::cast_or_null<SwiftLanguageRuntime>(
         process.GetLanguageRuntime(lldb::eLanguageTypeSwift));
   }
+
+  static lldb::BreakpointPreconditionSP
+  GetBreakpointExceptionPrecondition(lldb::LanguageType language, bool throw_bp);
 
   //------------------------------------------------------------------
   // PluginInterface protocol
@@ -182,7 +187,7 @@ public:
     bool IsStaticallyDetermined();
   };
 
-  class SwiftExceptionPrecondition : public Breakpoint::BreakpointPrecondition {
+  class SwiftExceptionPrecondition : public BreakpointPrecondition {
   public:
     SwiftExceptionPrecondition();
 
@@ -232,7 +237,7 @@ public:
   
   static bool IsSwiftClassName(const char *name);
 
-  static bool IsSymbolARuntimeThunk(const Symbol &symbol);
+  bool IsSymbolARuntimeThunk(const Symbol &symbol) override;
 
   static const std::string GetCurrentMangledName(const char *mangled_name);
 
@@ -273,7 +278,7 @@ public:
   void FindFunctionPointersInCall(StackFrame &frame,
                                   std::vector<Address> &addresses,
                                   bool debug_only = true,
-                                  bool resolve_thunks = true);
+                                  bool resolve_thunks = true) override;
 
   lldb::ThreadPlanSP GetStepThroughTrampolinePlan(Thread &thread,
                                                   bool stop_others) override;
@@ -303,7 +308,7 @@ public:
   /// Ask Remote Mirrors for the size of a Swift type.
   llvm::Optional<uint64_t> GetBitSize(CompilerType type);
 
-  bool IsRuntimeSupportValue(ValueObject &valobj) override;
+  bool IsWhitelistedRuntimeValue(ConstString name) override;
 
   virtual CompilerType DoArchetypeBindingForType(StackFrame &stack_frame,
                                                  CompilerType base_type);
@@ -341,9 +346,9 @@ public:
   /// Determines wether \c variable is the "self" object.
   static bool IsSelf(Variable &variable);
 
-  void AddToLibraryNegativeCache(const char *library_name);
+  void AddToLibraryNegativeCache(llvm::StringRef library_name);
 
-  bool IsInLibraryNegativeCache(const char *library_name);
+  bool IsInLibraryNegativeCache(llvm::StringRef library_name);
 
   // Swift uses a few known-unused bits in ObjC pointers
   // to record useful-for-bridging information
@@ -428,12 +433,10 @@ protected:
 
   void PopLocalBuffer();
 
-  std::unordered_set<std::string> m_library_negative_cache; // We have to load
-                                                            // swift dependent
-                                                            // libraries by
-                                                            // hand,
-  std::mutex m_negative_cache_mutex; // but if they are missing, we shouldn't
-                                     // keep trying.
+  /// We have to load swift dependent libraries by hand, but if they
+  /// are missing, we shouldn't keep trying.
+  llvm::StringSet<> m_library_negative_cache;
+  std::mutex m_negative_cache_mutex;
 
   llvm::Optional<lldb::addr_t> m_SwiftNativeNSErrorISA;
 
@@ -460,8 +463,8 @@ protected:
     m_remote_ast_contexts;
 
 // [BEGIN GOOGLE] Change const char * -> std::string
-  std::unordered_map<std::string, lldb::SyntheticChildrenSP>
-      m_bridged_synthetics_map;
+  /// Uses ConstStrings as keys to avoid storing the strings twice.
+  std::map<std::string, lldb::SyntheticChildrenSP> m_bridged_synthetics_map;
 
   /// Cached member variable offsets.
   typename KeyHasher<const swift::TypeBase *, std::string, uint64_t>::MapType
