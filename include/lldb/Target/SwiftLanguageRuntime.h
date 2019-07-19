@@ -464,7 +464,7 @@ protected:
 
 // [BEGIN GOOGLE] Change const char * -> std::string
   /// Uses ConstStrings as keys to avoid storing the strings twice.
-  llvm::DenseMap<std::string, lldb::SyntheticChildrenSP> m_bridged_synthetics_map;
+  std::map<std::string, lldb::SyntheticChildrenSP> m_bridged_synthetics_map;
 
   /// Cached member variable offsets.
   typename KeyHasher<const swift::TypeBase *, std::string, uint64_t>::MapType
