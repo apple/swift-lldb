@@ -7,9 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "lldb/Target/Target.h"
-#include "Plugins/ExpressionParser/Clang/ClangASTSource.h"
 #include "Plugins/ExpressionParser/Clang/ClangModulesDeclVendor.h"
-#include "Plugins/ExpressionParser/Clang/ClangPersistentVariables.h"
 #include "lldb/Breakpoint/BreakpointIDList.h"
 #include "lldb/Breakpoint/BreakpointPrecondition.h"
 #include "lldb/Breakpoint/BreakpointResolver.h"
@@ -40,6 +38,7 @@
 #include "lldb/Interpreter/OptionValues.h"
 #include "lldb/Interpreter/Property.h"
 #include "lldb/Symbol/ClangASTContext.h"
+#include "lldb/Symbol/ClangASTImporter.h"
 #include "lldb/Symbol/Function.h"
 #include "lldb/Symbol/ObjectFile.h"
 #include "lldb/Symbol/Symbol.h"
@@ -2728,6 +2727,44 @@ lldb::addr_t Target::GetPersistentSymbol(ConstString name) {
       });
   return address;
 }
+
+lldb_private::Address Target::GetEntryPointAddress(Status &err) {
+  err.Clear();
+  Address entry_addr;
+  Module *exe_module = GetExecutableModulePointer();
+
+  if (!exe_module || !exe_module->GetObjectFile()) {
+    err.SetErrorStringWithFormat("No primary executable found");
+  } else {
+    entry_addr = exe_module->GetObjectFile()->GetEntryPointAddress();
+    if (!entry_addr.IsValid()) {
+      err.SetErrorStringWithFormat(
+         "Could not find entry point address for executable module \"%s\".",
+         exe_module->GetFileSpec().GetFilename().AsCString());
+    }
+  }
+
+  if (!entry_addr.IsValid()) {
+    const ModuleList &modules = GetImages();
+    const size_t num_images = modules.GetSize();
+    for (size_t idx = 0; idx < num_images; ++idx) {
+      ModuleSP module_sp(modules.GetModuleAtIndex(idx));
+      if (module_sp && module_sp->GetObjectFile()) {
+        entry_addr = module_sp->GetObjectFile()->GetEntryPointAddress();
+        if (entry_addr.IsValid()) {
+          // Clear out any old error messages from the original
+          // main-executable-binary search; one of the other modules
+          // was able to provide an address.
+          err.Clear();
+          break;
+        }
+      }
+    }
+  }
+
+  return entry_addr;
+}
+
 
 lldb::addr_t Target::GetCallableLoadAddress(lldb::addr_t load_addr,
                                             AddressClass addr_class) const {
