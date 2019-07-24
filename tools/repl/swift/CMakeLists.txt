@@ -10,9 +10,6 @@ if( CMAKE_SYSTEM_NAME MATCHES "Linux" )
   set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib/swift/linux:${CMAKE_INSTALL_RPATH}")
 endif()
 
-# Override locally, so the repl is ad-hoc signed.
-set(LLVM_CODESIGNING_IDENTITY "-")
-
 # Requires system-provided Swift libs.
 set(CMAKE_OSX_DEPLOYMENT_TARGET 10.14.4)
 
