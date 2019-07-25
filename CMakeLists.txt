@@ -7,7 +7,14 @@ set(CMAKE_MODULE_PATH
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules"
   )
 
-include(LLDBStandalone)
+# If we are not building as part of LLVM, build LLDB as a standalone project,
+# using LLVM as an external library.
+if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  include(LLDBStandalone)
+else()
+  set(LLDB_PATH_TO_SWIFT_BUILD ${CMAKE_BINARY_DIR})
+endif()
+
 include(LLDBConfig)
 include(AddLLDB)
 
