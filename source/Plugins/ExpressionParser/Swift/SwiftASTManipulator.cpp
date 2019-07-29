@@ -662,63 +662,6 @@ public:
 };
 }
 
-void SwiftASTManipulator::MakeDeclarationsPublic() {
-  if (!IsValid())
-    return;
-
-  class Publicist : public swift::ASTWalker {
-    static bool canMakePublic(swift::Decl *decl) {
-      // Properties within structs that have attached property wrappers
-      // shouldn't have their access reset; it impacts the implicit memberwise
-      // initializer.
-      if (llvm::isa<swift::StructDecl>(decl->getDeclContext())) {
-        if (auto var = llvm::dyn_cast<swift::VarDecl>(decl)) {
-          if (var->hasAttachedPropertyWrapper() ||
-              var->getOriginalWrappedProperty())
-            return false;
-
-          return true;
-        }
-
-        if (auto accessor = llvm::dyn_cast<swift::AccessorDecl>(decl)) {
-          return canMakePublic(accessor->getStorage());
-        }
-      }
-      return true;
-    }
-
-    bool walkToDeclPre(swift::Decl *D) override {
-      if (!canMakePublic(D))
-        return true;
-
-      if (auto *VD = llvm::dyn_cast<swift::ValueDecl>(D)) {
-        auto access = swift::AccessLevel::Public;
-
-        // We're making declarations 'public' so that they can be accessed from
-        // later expressions, but in the case of classes we also want to be able
-        // to subclass them, and override any overridable members. That is, we
-        // should use 'open' when it is possible and correct to do so, rather
-        // than just 'public'.
-        if (llvm::isa<swift::ClassDecl>(VD) || VD->isPotentiallyOverridable()) {
-          if (!VD->isFinal())
-            access = swift::AccessLevel::Open;
-        }
-
-        VD->overwriteAccess(access);
-        if (auto *ASD = llvm::dyn_cast<swift::AbstractStorageDecl>(D))
-          ASD->overwriteSetterAccess(access);
-      }
-      return true;
-    }
-  };
-
-  Publicist p;
-
-  for (swift::Decl *decl : m_source_file.Decls) {
-    decl->walk(p);
-  }
-}
-
 static bool hasInit(swift::PatternBindingDecl *pattern_binding) {
   for (unsigned i = 0, e = pattern_binding->getNumPatternEntries(); i != e; ++i)
     if (pattern_binding->getInit(i))

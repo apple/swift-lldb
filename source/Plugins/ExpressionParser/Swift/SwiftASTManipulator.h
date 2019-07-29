@@ -155,8 +155,6 @@ public:
 
   bool RewriteResult();
 
-  void MakeDeclarationsPublic();
-
   void
   FindVariableDeclarations(llvm::SmallVectorImpl<size_t> &found_declarations,
                            bool repl);

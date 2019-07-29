@@ -895,8 +895,7 @@ static swift::ASTContext *SetupASTContext(
   swift_ast_context->GetLanguageOptions().DebuggerSupport = true;
   // No longer part of debugger support, set it separately.
   swift_ast_context->GetLanguageOptions().EnableDollarIdentifiers = true;
-  swift_ast_context->GetLanguageOptions().EnableAccessControl =
-      (repl || playground);
+  swift_ast_context->GetLanguageOptions().EnableAccessControl = false;
   swift_ast_context->GetLanguageOptions().EnableTargetOSChecking = false;
 
   if (disable_objc_runtime())
@@ -1481,10 +1480,6 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
 
     log->Printf("Source file after type checking:");
     log->PutCString(s.c_str());
-  }
-
-  if (repl) {
-    parsed_expr->code_manipulator->MakeDeclarationsPublic();
   }
 
   Status error;
