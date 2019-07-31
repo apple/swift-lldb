@@ -109,7 +109,7 @@ CommandInterpreter::CommandInterpreter(Debugger &debugger,
       Properties(OptionValuePropertiesSP(
           new OptionValueProperties(ConstString("interpreter")))),
       IOHandlerDelegate(IOHandlerDelegate::Completion::LLDBCommand),
-      m_debugger(debugger), m_synchronous_execution(synchronous_execution),
+      m_debugger(debugger), m_synchronous_execution(true),
       m_skip_lldbinit_files(false), m_skip_app_init_files(false),
       m_command_io_handler_sp(), m_comment_char('#'),
       m_batch_command_mode(false), m_truncation_warning(eNoTruncation),
@@ -118,6 +118,7 @@ CommandInterpreter::CommandInterpreter(Debugger &debugger,
   SetEventName(eBroadcastBitThreadShouldExit, "thread-should-exit");
   SetEventName(eBroadcastBitResetPrompt, "reset-prompt");
   SetEventName(eBroadcastBitQuitCommandReceived, "quit");
+  SetSynchronous(synchronous_execution);
   CheckInWithManager();
   m_collection_sp->Initialize(g_interpreter_properties);
 }
@@ -2504,6 +2505,9 @@ void CommandInterpreter::HandleCommandsFromFile(
 bool CommandInterpreter::GetSynchronous() { return m_synchronous_execution; }
 
 void CommandInterpreter::SetSynchronous(bool value) {
+  // Asynchronous mode is not supported during reproducer replay.
+  if (repro::Reproducer::Instance().GetLoader())
+    return;
   m_synchronous_execution = value;
 }
 
@@ -2664,32 +2668,14 @@ void CommandInterpreter::UpdateExecutionContext(
   }
 }
 
-size_t CommandInterpreter::GetProcessOutput() {
-  //  The process has stuff waiting for stderr; get it and write it out to the
-  //  appropriate place.
-  char stdio_buffer[1024];
-  size_t len;
-  size_t total_bytes = 0;
-  Status error;
+void CommandInterpreter::GetProcessOutput() {
   TargetSP target_sp(m_debugger.GetTargetList().GetSelectedTarget());
-  if (target_sp) {
-    ProcessSP process_sp(target_sp->GetProcessSP());
-    if (process_sp) {
-      while ((len = process_sp->GetSTDOUT(stdio_buffer, sizeof(stdio_buffer),
-                                          error)) > 0) {
-        size_t bytes_written = len;
-        m_debugger.GetOutputFile()->Write(stdio_buffer, bytes_written);
-        total_bytes += len;
-      }
-      while ((len = process_sp->GetSTDERR(stdio_buffer, sizeof(stdio_buffer),
-                                          error)) > 0) {
-        size_t bytes_written = len;
-        m_debugger.GetErrorFile()->Write(stdio_buffer, bytes_written);
-        total_bytes += len;
-      }
-    }
-  }
-  return total_bytes;
+  if (!target_sp)
+    return;
+
+  if (ProcessSP process_sp = target_sp->GetProcessSP())
+    m_debugger.FlushProcessOutput(*process_sp, /*flush_stdout*/ true,
+                                  /*flush_stderr*/ true);
 }
 
 void CommandInterpreter::StartHandlingCommand() {
