@@ -104,7 +104,7 @@ bool SymbolFile::ForceInlineSourceFileCheck() {
   // file. Returning true for JIT files means all breakpoints set by file and
   // line
   // will be found correctly.
-  return m_obj_file->GetType() == ObjectFile::eTypeJIT;
+  return m_objfile_sp->GetType() == ObjectFile::eTypeJIT;
 }
 
 bool SymbolFile::SetLimitSourceFileRange(const FileSpec &file,

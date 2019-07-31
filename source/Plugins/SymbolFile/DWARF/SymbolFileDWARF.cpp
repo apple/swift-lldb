@@ -3067,7 +3067,7 @@ int SymbolFileDWARF::GetCompileOptions(const char *option,
 
 void SymbolFileDWARF::GetLoadedModules(lldb::LanguageType language,
                                        lldb_private::FileSpecList &modules) {
-  ModuleSP module_sp(m_obj_file->GetModule());
+  ModuleSP module_sp(m_objfile_sp->GetModule());
 
   if (IsSwiftLanguage(language)) {
     const uint32_t num_cus = module_sp->GetNumCompileUnits();
