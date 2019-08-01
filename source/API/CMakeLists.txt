@@ -187,7 +187,6 @@ else()
 endif()
 
 set(clang_headers_target ${CLANG_RESOURCE_PATH}/include)
-set(SWIFT_RESOURCE_PATH "${LLDB_PATH_TO_SWIFT_BUILD}/lib${LLVM_LIBDIR_SUFFIX}/swift")
 if(NOT LLDB_BUILT_STANDALONE)
   set(clang_headers_target clang-headers symlink_clang_headers)
 endif()
@@ -201,22 +200,9 @@ add_custom_command_target(
     ALL
     DEPENDS ${clang_headers_target})
 
-add_custom_command_target(
-    unused_var
-    COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${SWIFT_RESOURCE_PATH}" "${lib_dir}/lldb/swift/"
-    OUTPUT "${lib_dir}/lldb/swift/"
-    VERBATIM
-    ALL
-    DEPENDS ${SWIFT_RESOURCE_PATH})
-
 install(
   CODE "file(MAKE_DIRECTORY ${lib_dir}/lldb)")
 
 install(
   DIRECTORY "${lib_dir}/lldb/clang"
   DESTINATION lib${LLVM_LIBDIR_SUFFIX}/lldb/)
-
-install(
-  DIRECTORY "${lib_dir}/lldb/swift"
-  DESTINATION lib${LLVM_LIBDIR_SUFFIX}/lldb/)
-
