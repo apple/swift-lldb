@@ -288,6 +288,9 @@ public:
   /// Ask Remote Mirrors for the size of a Swift type.
   llvm::Optional<uint64_t> GetBitSize(CompilerType type);
 
+  /// Ask Remote mirrors for the stride of a Swift type.
+  llvm::Optional<uint64_t> GetByteStride(CompilerType type);
+ 
   bool IsRuntimeSupportValue(ValueObject &valobj) override;
 
   virtual CompilerType DoArchetypeBindingForType(StackFrame &stack_frame,

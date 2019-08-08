@@ -2588,6 +2588,13 @@ llvm::Optional<uint64_t> SwiftLanguageRuntime::GetBitSize(CompilerType type) {
   return type_info->getSize() * 8;
 }
 
+llvm::Optional<uint64_t> SwiftLanguageRuntime::GetByteStride(CompilerType type) {
+  auto *type_info = GetTypeInfo(type);
+  if (!type_info)
+    return {};
+  return type_info->getStride();
+}
+
 bool SwiftLanguageRuntime::IsRuntimeSupportValue(ValueObject &valobj) {
   // All runtime support values have to be marked as artificial by the
   // compiler. But not all artificial variables should be hidden from
