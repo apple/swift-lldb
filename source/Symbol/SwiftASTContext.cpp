@@ -6068,7 +6068,7 @@ SwiftASTContext::GetByteStride(lldb::opaque_compiler_type_t type,
 
   if (!exe_scope)
     return {};
-  if (auto *runtime = SwiftLanguageRuntime::Get(*exe_scope->CalculateProcess()))
+  if (auto *runtime = exe_scope->CalculateProcess()->GetSwiftLanguageRuntime())
     return runtime->GetByteStride({this, type});
   return {};
 }
