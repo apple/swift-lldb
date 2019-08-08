@@ -164,6 +164,8 @@ std::recursive_mutex g_log_mutex;
 
 using namespace lldb;
 using namespace lldb_private;
+using llvm::Optional;
+using llvm::function_ref;
 
 typedef lldb_private::ThreadSafeDenseMap<swift::ASTContext *, SwiftASTContext *>
     ThreadSafeSwiftASTMap;
@@ -6102,80 +6104,98 @@ bool SwiftASTContext::IsFixedSize(CompilerType compiler_type) {
   return false;
 }
 
-llvm::Optional<uint64_t>
-SwiftASTContext::GetBitSize(lldb::opaque_compiler_type_t type,
-                            ExecutionContextScope *exe_scope) {
+namespace {
+/// Helper that abstracts the common pattern in GetBitSize, GetByteStride, ...
+static Optional<uint64_t> GetTypeDimension(
+    CompilerType type, ExecutionContextScope *exe_scope,
+    function_ref<Optional<uint64_t>(CompilerType)> from_type,
+    function_ref<uint64_t(const swift::irgen::FixedTypeInfo &)> from_type_info,
+    function_ref<Optional<uint64_t>(SwiftLanguageRuntime &)> from_runtime) {
   if (!type)
     return {};
 
-  swift::CanType swift_can_type(GetCanonicalSwiftType(type));
+  // If the type has type parameters, bind them first.
+  opaque_compiler_type_t opaque_type = type.GetOpaqueQualType();
+  swift::CanType swift_can_type(GetCanonicalSwiftType(opaque_type));
   if (swift_can_type->hasTypeParameter()) {
     if (!exe_scope)
       return {};
     ExecutionContext exe_ctx;
     exe_scope->CalculateExecutionContext(exe_ctx);
     auto swift_scratch_ctx_lock = SwiftASTContextLock(&exe_ctx);
-    CompilerType bound_type = BindAllArchetypes({this, type}, exe_scope);
+    CompilerType bound_type = BindAllArchetypes(type, exe_scope);
     // Note thay the bound type may be in a different AST context.
-    return bound_type.GetBitSize(exe_scope);
+    return from_type(bound_type);
   }
 
-  // lldb ValueObject subsystem expects functions to be a single
-  // pointer in size to print them correctly. This is not true
-  // for swift (where functions aren't necessarily a single pointer
-  // in size), so we need to work around the limitation here.
-  if (swift_can_type->getKind() == swift::TypeKind::Function)
-    return GetPointerByteSize() * 8;
-
+  // Ask the static type type system.
+  auto *swift_ast_ctx = static_cast<SwiftASTContext *>(type.GetTypeSystem());
   const swift::irgen::FixedTypeInfo *fixed_type_info =
-      GetSwiftFixedTypeInfo(type);
+      swift_ast_ctx->GetSwiftFixedTypeInfo(opaque_type);
   if (fixed_type_info)
-    return fixed_type_info->getFixedSize().getValue() * 8;
+    return from_type_info(*fixed_type_info);
 
+  // Ask the dynamic type system.
   if (!exe_scope)
     return {};
   if (auto *runtime = SwiftLanguageRuntime::Get(*exe_scope->CalculateProcess()))
-    return runtime->GetBitSize({this, type});
+    return from_runtime(*runtime);
   return {};
+}
+} // namespace
+
+llvm::Optional<uint64_t>
+SwiftASTContext::GetBitSize(lldb::opaque_compiler_type_t type,
+                            ExecutionContextScope *exe_scope) {
+  swift::CanType swift_can_type(GetCanonicalSwiftType(type));
+  // LLDB's ValueObject subsystem expects functions to be a single
+  // pointer in size to print them correctly. This is not true for
+  // swift (where functions aren't necessarily a single pointer in
+  // size), so we need to work around the limitation here.
+  if (swift_can_type->getKind() == swift::TypeKind::Function)
+    return GetPointerByteSize() * 8;
+
+  return GetTypeDimension(
+      {this, type}, exe_scope,
+      [&](CompilerType bound_type) { return bound_type.GetBitSize(exe_scope); },
+      [](const swift::irgen::FixedTypeInfo &fixed_type_info) {
+        return fixed_type_info.getFixedSize().getValue() * 8;
+      },
+      [&](SwiftLanguageRuntime &runtime) {
+        return runtime.GetBitSize({this, type});
+      });
 }
 
 llvm::Optional<uint64_t>
 SwiftASTContext::GetByteStride(lldb::opaque_compiler_type_t type,
                                ExecutionContextScope *exe_scope) {
-  if (!type)
-    return {};
-  swift::CanType swift_can_type(GetCanonicalSwiftType(type));
-  if (swift_can_type->hasTypeParameter()) {
-    if (!exe_scope)
-      return {};
-    ExecutionContext exe_ctx;
-    exe_scope->CalculateExecutionContext(exe_ctx);
-    auto swift_scratch_ctx_lock = SwiftASTContextLock(&exe_ctx);
-    CompilerType bound_type = BindAllArchetypes({this, type}, exe_scope);
-    // Note thay the bound type may be in a different AST context.
-    return bound_type.GetByteStride(exe_scope);
-  }
-
-  const swift::irgen::FixedTypeInfo *fixed_type_info =
-      GetSwiftFixedTypeInfo(type);
-  if (fixed_type_info)
-    return fixed_type_info->getFixedStride().getValue();
-
-  if (!exe_scope)
-    return {};
-  if (auto *runtime = SwiftLanguageRuntime::Get(*exe_scope->CalculateProcess()))
-    return runtime->GetByteStride({this, type});
-  return {};
+  return GetTypeDimension(
+      {this, type}, exe_scope,
+      [&](CompilerType bound_type) {
+        return bound_type.GetByteStride(exe_scope);
+      },
+      [](const swift::irgen::FixedTypeInfo &fixed_type_info) {
+        return fixed_type_info.getFixedStride().getValue();
+      },
+      [&](SwiftLanguageRuntime &runtime) {
+        return runtime.GetByteStride({this, type});
+      });
 }
 
 size_t SwiftASTContext::GetTypeBitAlign(void *type) {
-  if (type) {
-    const swift::irgen::FixedTypeInfo *fixed_type_info =
-        GetSwiftFixedTypeInfo(type);
-    if (fixed_type_info)
-      return fixed_type_info->getFixedAlignment().getValue();
-  }
-  return 0;
+  return GetTypeDimension(
+             {this, type}, nullptr,
+             [&](CompilerType bound_type) {
+               return bound_type.GetTypeBitAlign();
+             },
+             [](const swift::irgen::FixedTypeInfo &fixed_type_info) {
+               return fixed_type_info.getFixedAlignment().getValue() * 8;
+             },
+             [&](SwiftLanguageRuntime &runtime) -> llvm::Optional<uint64_t> {
+               // SwiftLanguageRuntime doesn't implement this functionality.
+               return {};
+             })
+      .getValueOr(0);
 }
 
 lldb::Encoding SwiftASTContext::GetEncoding(void *type, uint64_t &count) {
