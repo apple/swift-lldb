@@ -512,9 +512,13 @@ static bool GetObjectDescription_ObjectCopy(SwiftLanguageRuntime *runtime,
     static_type = runtime->DoArchetypeBindingForType(*frame_sp, static_type);
   }
 
+  auto stride = 0;
+  auto opt_stride = static_type.GetByteStride(frame_sp.get());
+  if (opt_stride)
+    stride = *opt_stride;
+
   lldb::addr_t copy_location = process->AllocateMemory(
-      static_type.GetByteStride(), ePermissionsReadable | ePermissionsWritable,
-      error);
+      stride, ePermissionsReadable | ePermissionsWritable, error);
   if (copy_location == LLDB_INVALID_ADDRESS) {
     if (log)
       log->Printf("[GetObjectDescription_ObjectCopy] copy_location invalid");
@@ -2582,6 +2586,13 @@ llvm::Optional<uint64_t> SwiftLanguageRuntime::GetBitSize(CompilerType type) {
   if (!type_info)
     return {};
   return type_info->getSize() * 8;
+}
+
+llvm::Optional<uint64_t> SwiftLanguageRuntime::GetByteStride(CompilerType type) {
+  auto *type_info = GetTypeInfo(type);
+  if (!type_info)
+    return {};
+  return type_info->getStride();
 }
 
 bool SwiftLanguageRuntime::IsRuntimeSupportValue(ValueObject &valobj) {
