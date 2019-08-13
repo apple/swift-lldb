@@ -20,7 +20,10 @@
 #include "SymbolFileDWARF.h"
 
 #include "swift/AST/ASTContext.h"
+#include "swift/AST/Decl.h"
 #include "swift/Demangling/Demangle.h"
+
+#include "clang/AST/DeclObjC.h"
 
 #include "lldb/Core/Module.h"
 #include "lldb/Symbol/ClangASTContext.h"
@@ -117,20 +120,16 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
     }
     if (SwiftLanguageRuntime::IsSwiftMangledName(name.GetCString()))
       mangled_name = name;
-    else {
-      const char *type_name_cstr = name.GetCString();
-      // TODO: remove this once all mangled names are always included for all
-      // types in DWARF
-      swift::ModuleDecl *swift_module = m_ast.GetModule(decl.GetFile(), error);
-      if (swift_module)
-        compiler_type = m_ast.FindType(type_name_cstr, swift_module);
-    }
   }
 
   if (mangled_name) {
     type_sp = m_ast.GetCachedType(mangled_name);
     if (type_sp)
       return type_sp;
+
+    // Because of DWARFImporter, we may search for this type again while
+    // resolving the mangled name.
+    die.GetDWARF()->GetDIEToType()[die.GetDIE()] = DIE_IS_BEING_PARSED;
 
     // Try to import the type from one of the loaded Swift modules.
     compiler_type = m_ast.GetTypeFromMangledTypename(mangled_name, error);
@@ -151,7 +150,7 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
       GetClangType(die, mangled_name.GetStringRef(), clang_types);
 
       // Import the Clang type into the Clang context.
-      if (clang_types.GetSize())
+      if (!compiler_type && clang_types.GetSize())
         if (TypeSP clang_type_sp = clang_types.GetTypeAtIndex(0))
           if (clang_type_sp) {
             is_clang_type = true;
@@ -221,6 +220,7 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
   if (type_sp && mangled_name &&
       SwiftLanguageRuntime::IsSwiftMangledName(mangled_name.GetCString()))
     m_ast.SetCachedType(mangled_name, type_sp);
+  die.GetDWARF()->GetDIEToType()[die.GetDIE()] = type_sp.get();
 
   return type_sp;
 }

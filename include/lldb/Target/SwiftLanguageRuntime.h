@@ -308,6 +308,9 @@ public:
   /// Ask Remote Mirrors for the size of a Swift type.
   llvm::Optional<uint64_t> GetBitSize(CompilerType type);
 
+  /// Ask Remote mirrors for the stride of a Swift type.
+  llvm::Optional<uint64_t> GetByteStride(CompilerType type);
+
   bool IsWhitelistedRuntimeValue(ConstString name) override;
 
   virtual CompilerType DoArchetypeBindingForType(StackFrame &stack_frame,
@@ -442,47 +445,37 @@ protected:
 
   std::shared_ptr<swift::remote::MemoryReader> m_memory_reader_sp;
 
-  template <typename Key1, typename Key2, typename Value1> struct KeyHasher {
-    using KeyType = std::tuple<Key1, Key2>;
-    using HasherType = KeyHasher<Key1, Key2, Value1>;
-    using MapType = std::unordered_map<KeyType, Value1, HasherType>;
+  llvm::DenseMap<std::pair<swift::ASTContext *, lldb::addr_t>,
+                 MetadataPromiseSP>
+      m_promises_map;
 
-    size_t operator()(const std::tuple<Key1, Key2> &key) const {
-      // fairly trivial hash combiner function
-      auto hash1 = std::hash<Key1>()(std::get<0>(key));
-      auto hash2 = std::hash<Key2>()(std::get<1>(key));
-      return hash2 + 0x9e3779b9 + (hash1 << 6) + (hash1 >> 2);
-    }
-  };
-
-  typename KeyHasher<swift::ASTContext *, lldb::addr_t,
-                     MetadataPromiseSP>::MapType m_promises_map;
-
-  std::unordered_map<swift::ASTContext *,
-                     std::unique_ptr<swift::remoteAST::RemoteASTContext>>
-    m_remote_ast_contexts;
+  llvm::DenseMap<swift::ASTContext *,
+                 std::unique_ptr<swift::remoteAST::RemoteASTContext>>
+      m_remote_ast_contexts;
 
 // [BEGIN GOOGLE] Change const char * -> std::string
   /// Uses ConstStrings as keys to avoid storing the strings twice.
   std::map<std::string, lldb::SyntheticChildrenSP> m_bridged_synthetics_map;
 
   /// Cached member variable offsets.
-  typename KeyHasher<const swift::TypeBase *, std::string, uint64_t>::MapType
-    m_member_offsets;
+  using MemberID = std::pair<const swift::TypeBase *, std::string>;
+  llvm::DenseMap<MemberID, uint64_t> m_member_offsets;
 // [END GOOGLE]
 
   CompilerType m_box_metadata_type;
 
-  // These members are used to track and toggle the state of the "dynamic
-  // exclusivity enforcement flag" in the swift runtime. This flag is set to
-  // true when an LLDB expression starts running, and reset to its original
-  // state after that expression (and any other concurrently running
-  // expressions) terminates.
+  /// These members are used to track and toggle the state of the "dynamic
+  /// exclusivity enforcement flag" in the swift runtime. This flag is set to
+  /// true when an LLDB expression starts running, and reset to its original
+  /// state after that expression (and any other concurrently running
+  /// expressions) terminates.
+  /// \{
   std::mutex m_active_user_expr_mutex;
   uint32_t m_active_user_expr_count = 0;
   llvm::Optional<lldb::addr_t> m_dynamic_exclusivity_flag_addr =
     llvm::Optional<lldb::addr_t>();
   bool m_original_dynamic_exclusivity_flag_state = false;
+  /// \}
 
 private:
   using NativeReflectionContext = swift::reflection::ReflectionContext<

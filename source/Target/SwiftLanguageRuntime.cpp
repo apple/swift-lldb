@@ -514,9 +514,13 @@ static bool GetObjectDescription_ObjectCopy(SwiftLanguageRuntime *runtime,
     static_type = runtime->DoArchetypeBindingForType(*frame_sp, static_type);
   }
 
+  auto stride = 0;
+  auto opt_stride = static_type.GetByteStride(frame_sp.get());
+  if (opt_stride)
+    stride = *opt_stride;
+
   lldb::addr_t copy_location = process->AllocateMemory(
-      static_type.GetByteStride(), ePermissionsReadable | ePermissionsWritable,
-      error);
+      stride, ePermissionsReadable | ePermissionsWritable, error);
   if (copy_location == LLDB_INVALID_ADDRESS) {
     if (log)
       log->Printf("[GetObjectDescription_ObjectCopy] copy_location invalid");
@@ -1537,16 +1541,13 @@ SwiftLanguageRuntime::GetMetadataPromise(lldb::addr_t addr,
   if (addr == 0 || addr == LLDB_INVALID_ADDRESS)
     return nullptr;
 
-  typename decltype(m_promises_map)::key_type key{
-      swift_ast_ctx->GetASTContext(), addr};
-
-  auto iter = m_promises_map.find(key), end = m_promises_map.end();
-  if (iter != end)
+  auto key = std::make_pair(swift_ast_ctx->GetASTContext(), addr);
+  auto iter = m_promises_map.find(key);
+  if (iter != m_promises_map.end())
     return iter->second;
 
-  MetadataPromiseSP promise_sp(
-      new MetadataPromise(for_object, *this, std::get<1>(key)));
-  m_promises_map.emplace(key, promise_sp);
+  MetadataPromiseSP promise_sp(new MetadataPromise(for_object, *this, addr));
+  m_promises_map.insert({key, promise_sp});
   return promise_sp;
 }
 
@@ -1559,11 +1560,12 @@ SwiftLanguageRuntime::GetRemoteASTContext(SwiftASTContext &swift_ast_ctx) {
     return *known->second;
 
   // Initialize a new remote AST context.
-  return *m_remote_ast_contexts
-              .emplace(swift_ast_ctx.GetASTContext(),
-                       llvm::make_unique<swift::remoteAST::RemoteASTContext>(
-                           *swift_ast_ctx.GetASTContext(), GetMemoryReader()))
-              .first->second;
+  auto remote_ast_up = llvm::make_unique<swift::remoteAST::RemoteASTContext>(
+      *swift_ast_ctx.GetASTContext(), GetMemoryReader());
+  auto &remote_ast = *remote_ast_up;
+  m_remote_ast_contexts.insert(
+      {swift_ast_ctx.GetASTContext(), std::move(remote_ast_up)});
+  return remote_ast;
 }
 
 void SwiftLanguageRuntime::ReleaseAssociatedRemoteASTContext(
@@ -1632,10 +1634,11 @@ SwiftLanguageRuntime::GetMemberVariableOffset(CompilerType instance_type,
         member_name.AsCString());
 
   // Check whether we've already cached this offset.
-  auto *swift_type = GetCanonicalSwiftType(instance_type).getPointer();
+  swift::TypeBase *swift_type =
+      GetCanonicalSwiftType(instance_type).getPointer();
 
   // Perform the cache lookup.
-  auto key = std::make_tuple(swift_type, member_name.GetCString());
+  MemberID key{swift_type, member_name.GetCString()};
   auto it = m_member_offsets.find(key);
   if (it != m_member_offsets.end())
     return it->second;
@@ -1676,7 +1679,7 @@ SwiftLanguageRuntime::GetMemberVariableOffset(CompilerType instance_type,
                 bound.GetTypeName().AsCString());
 
           swift_type = GetCanonicalSwiftType(bound).getPointer();
-          auto key = std::make_tuple(swift_type, member_name.GetCString());
+          MemberID key{swift_type, member_name.GetCString()};
           auto it = m_member_offsets.find(key);
           if (it != m_member_offsets.end())
             return it->second;
@@ -1704,8 +1707,8 @@ SwiftLanguageRuntime::GetMemberVariableOffset(CompilerType instance_type,
             (uint64_t)result.getValue());
 
       // Cache this result.
-      auto key = std::make_tuple(swift_type, member_name.GetCString());
-      m_member_offsets.insert(std::make_pair(key, result.getValue()));
+      MemberID key{swift_type, member_name.GetCString()};
+      m_member_offsets.insert({key, result.getValue()});
       return result.getValue();
     }
 
@@ -2574,17 +2577,21 @@ SwiftLanguageRuntime::GetTypeInfo(CompilerType type) {
 }
 
 bool SwiftLanguageRuntime::IsStoredInlineInBuffer(CompilerType type) {
-  auto *type_info = GetTypeInfo(type);
-  if (!type_info)
-    return true;
-  return type_info->isBitwiseTakable() && type_info->getSize() <= 24;
+  if (auto *type_info = GetTypeInfo(type))
+    return type_info->isBitwiseTakable() && type_info->getSize() <= 24;
+  return true;
 }
 
 llvm::Optional<uint64_t> SwiftLanguageRuntime::GetBitSize(CompilerType type) {
-  auto *type_info = GetTypeInfo(type);
-  if (!type_info)
-    return {};
-  return type_info->getSize() * 8;
+  if (auto *type_info = GetTypeInfo(type))
+    return type_info->getSize() * 8;
+  return {};
+}
+
+llvm::Optional<uint64_t> SwiftLanguageRuntime::GetByteStride(CompilerType type) {
+  if (auto *type_info = GetTypeInfo(type))
+    return type_info->getStride();
+  return {};
 }
 
 bool SwiftLanguageRuntime::IsWhitelistedRuntimeValue(ConstString name) {

@@ -44,8 +44,6 @@ class TestSwiftDWARFImporterC(lldbtest.TestBase):
         lldb.SBDebugger.MemoryPressureDetected()
         self.runCmd("settings set symbols.use-swift-dwarfimporter true")
         self.build()
-        log = self.getBuildArtifact("types.log")
-        self.runCmd('log enable lldb types -f "%s"' % log)
         target, process, thread, bkpt = lldbutil.run_to_source_breakpoint(
             self, 'break here', lldb.SBFileSpec('main.swift'))
         lldbutil.check_variable(self,
@@ -53,12 +51,14 @@ class TestSwiftDWARFImporterC(lldbtest.TestBase):
                                 value="42")
         lldbutil.check_variable(self,
                                 target.FindFirstGlobalVariable("point"),
-                                typename="Point", num_children=2)
+                                typename='__ObjC.Point', num_children=2)
         self.expect("fr v point", substrs=["x = 1", "y = 2"])
         self.expect("fr v point", substrs=["x = 1", "y = 2"])
+        self.expect("fr v enumerator", substrs=[".yellow"])
         self.expect("fr v pureSwiftStruct", substrs=["pure swift"])
         self.expect("fr v swiftStructCMember",
-                    substrs=["swift struct c member"])
+                    substrs=["x = 3", "y = 4", "swift struct c member"])
+        self.expect("fr v typedef", substrs=["x = 5", "y = 6"])
         process.Clear()
         target.Clear()
         lldb.SBDebugger.MemoryPressureDetected()

@@ -241,6 +241,8 @@ public:
 
   void CacheModule(swift::ModuleDecl *module);
 
+  Module *GetModule() const { return m_module; }
+
   // Call this after the search paths are set up, it will find the module given
   // by module, load the module into the AST context, and also load any
   // "LinkLibraries" that the module requires.
@@ -272,10 +274,6 @@ public:
   swift::Identifier GetIdentifier(const char *name);
 
   swift::Identifier GetIdentifier(const llvm::StringRef &name);
-
-  // Find a type by a fully qualified name that includes the module name
-  // (the format being "<module_name>.<type_name>").
-  CompilerType FindQualifiedType(const char *qualified_name);
 
   CompilerType FindType(const char *name, swift::ModuleDecl *swift_module);
 
@@ -316,8 +314,6 @@ public:
   bool SetTriple(const llvm::Triple triple,
                  lldb_private::Module *module = nullptr);
 
-  uint32_t GetPointerBitAlignment();
-
   // Imports the type from the passed in type into this SwiftASTContext. The
   // type must be a Swift type. If the type can be imported, returns the
   // CompilerType for the imported type.
@@ -326,13 +322,7 @@ public:
   CompilerType ImportType(CompilerType &type, Status &error);
 
   swift::ClangImporter *GetClangImporter();
-
-  // ***********************************************************
-  //  these calls create non-nominal types which are given in
-  //  metadata just in terms of their building blocks and for
-  //  which there is no one basic type to compose from
-  // ***********************************************************
-  CompilerType CreateTupleType(const std::vector<CompilerType> &elements);
+  swift::DWARFImporter *GetDWARFImporter();
 
   struct TupleElement {
     ConstString element_name;
@@ -342,10 +332,6 @@ public:
   CompilerType CreateTupleType(const std::vector<TupleElement> &elements);
 
   CompilerType GetErrorType();
-
-  CompilerType GetNSErrorType(Status &error);
-
-  CompilerType CreateMetatypeType(CompilerType instance_type);
 
   bool HasErrors();
 
@@ -514,9 +500,6 @@ public:
       const CompilerType &type, NonTriviallyManagedReferenceStrategy &strategy,
       CompilerType *underlying_type = nullptr);
 
-  bool IsObjCObjectPointerType(const CompilerType &type,
-                               CompilerType *class_type_ptr);
-
   //----------------------------------------------------------------------
   // Type Completion
   //----------------------------------------------------------------------
@@ -581,7 +564,9 @@ public:
   GetBitSize(lldb::opaque_compiler_type_t type,
              ExecutionContextScope *exe_scope) override;
 
-  uint64_t GetByteStride(lldb::opaque_compiler_type_t type) override;
+  llvm::Optional<uint64_t>
+  GetByteStride(lldb::opaque_compiler_type_t type,
+                ExecutionContextScope *exe_scope) override;
 
   lldb::Encoding GetEncoding(void *type, uint64_t &count) override;
 
@@ -778,6 +763,9 @@ public:
                                 lldb::StackFrameWP &stack_frame_wp,
                                 swift::SourceFile *source_file, Status &error);
 
+  /// Import a Clang declaration into Swift.
+  swift::ValueDecl *importDecl(clang::Decl *clangDecl);
+  
 protected:
   /// This map uses the string value of ConstStrings as the key, and the TypeBase
   /// * as the value. Since the ConstString strings are uniqued, we can use
@@ -849,6 +837,7 @@ protected:
   /// Only if this AST belongs to a target, and an expression has been
   /// evaluated will the target's process pointer be filled in
   lldb_private::Process *m_process = nullptr;
+  Module *m_module = nullptr;
   std::string m_platform_sdk_path;
   std::string m_resource_dir;
 
