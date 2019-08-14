@@ -142,8 +142,13 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
     // that look like they might be come from Objective-C (or C) as
     // Clang types. LLDB's Objective-C part is very robust against
     // malformed object pointers, so this isn't very risky.
-    if (auto *clang_ctx = llvm::dyn_cast_or_null<ClangASTContext>(
-            sc.module_sp->GetTypeSystemForLanguage(eLanguageTypeObjC))) {
+    auto type_system_or_err = sc.module_sp->GetTypeSystemForLanguage(eLanguageTypeObjC);
+    if (!type_system_or_err) {
+      llvm::consumeError(type_system_or_err.takeError());
+      return nullptr;
+    }
+
+    if (auto *clang_ctx = llvm::dyn_cast_or_null<ClangASTContext>(&*type_system_or_err)) {
       DWARFASTParserClang *clang_ast_parser =
           static_cast<DWARFASTParserClang *>(clang_ctx->GetDWARFParser());
       TypeMap clang_types;
@@ -261,8 +266,8 @@ void DWARFASTParserSwift::GetClangType(const DWARFDIE &die,
   };
   fixup_typedef();
 
-  auto *sym_file = die.GetCU()->GetSymbolFileDWARF();
-  sym_file->UpdateExternalModuleListIfNeeded();
+  auto &sym_file = die.GetCU()->GetSymbolFileDWARF();
+  sym_file.UpdateExternalModuleListIfNeeded();
 
   CompilerContextKind kinds[] = {decl_context.back().type,
                                  CompilerContextKind::Union,
@@ -272,17 +277,18 @@ void DWARFASTParserSwift::GetClangType(const DWARFDIE &die,
   for (CompilerContextKind kind : kinds) {
     decl_context.back().type = kind;
     // Search any modules referenced by DWARF.
-    for (const auto &name_module : sym_file->getExternalTypeModules()) {
+    for (const auto &name_module : sym_file.getExternalTypeModules()) {
       if (!name_module.second)
         continue;
-      SymbolVendor *sym_vendor = name_module.second->GetSymbolVendor();
-      if (sym_vendor->FindTypes(decl_context, true, clang_types))
+      if (name_module.second->GetSymbolFile()->FindTypes(decl_context, true,
+                                                         clang_types))
         return;
     }
+
     // Next search the .dSYM the DIE came from, if applicable.
-    if (SymbolFileDWARF *sym_file = die.GetCU()->GetSymbolFileDWARF())
-      if (sym_file->FindTypes(decl_context, true, clang_types))
-        return;
+    SymbolFileDWARF &sym_file = die.GetCU()->GetSymbolFileDWARF();
+    if (sym_file.FindTypes(decl_context, true, clang_types))
+      return;
   }
 }
 
@@ -297,7 +303,7 @@ Function *DWARFASTParserSwift::ParseFunctionFromDWARF(
   int call_file = 0;
   int call_line = 0;
   int call_column = 0;
-  DWARFExpression frame_base(die.GetCU());
+  DWARFExpression frame_base;
 
   if (die.Tag() != DW_TAG_subprogram)
     return NULL;

@@ -5,8 +5,6 @@ Test watchpoint modify command to set condition on a watchpoint.
 from __future__ import print_function
 
 
-import os
-import time
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -36,10 +34,12 @@ class WatchpointConditionCmdTestCase(TestBase):
     @expectedFailureAll(
         oslist=["linux"],
         archs=["aarch64"],
+        triple=no_match(".*-android"),
         bugnumber="llvm.org/pr27710")
     @expectedFailureAll(
         oslist=["windows"],
         bugnumber="llvm.org/pr24446: WINDOWS XFAIL TRIAGE - Watchpoints not supported on Windows")
+    @expectedFailureNetBSD
     def test_watchpoint_cond(self):
         """Test watchpoint condition."""
         self.build(dictionary=self.d)

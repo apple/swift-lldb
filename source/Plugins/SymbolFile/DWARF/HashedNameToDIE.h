@@ -53,18 +53,21 @@ public:
   };
 
   struct DIEInfo {
-    dw_offset_t cu_offset;
-    dw_offset_t offset; // The DIE offset
-    dw_tag_t tag;
-    uint32_t type_flags;          // Any flags for this DIEInfo
-    uint32_t qualified_name_hash; // A 32 bit hash of the fully qualified name
-    uint64_t strp;                // 64 bit string table offset
+    dw_offset_t die_offset = DW_INVALID_OFFSET;
+    dw_tag_t tag = 0;
 
-    DIEInfo();
-    DIEInfo(dw_offset_t c, dw_offset_t o, dw_tag_t t, uint32_t f, uint32_t h,
-            uint64_t s = UINT64_MAX);
+    /// Any flags for this DIEInfo
+    uint32_t type_flags = 0;
 
-    explicit operator DIERef() const { return {cu_offset, offset}; }
+    /// A 32 bit hash of the fully qualified name
+    uint32_t qualified_name_hash = 0;
+
+    DIEInfo() = default;
+    DIEInfo(dw_offset_t o, dw_tag_t t, uint32_t f, uint32_t h);
+
+    explicit operator DIERef() const {
+      return DIERef(llvm::None, DIERef::Section::DebugInfo, die_offset);
+    }
   };
 
   struct Atom {
@@ -113,8 +116,6 @@ public:
 
     bool Read(const lldb_private::DWARFDataExtractor &data,
               lldb::offset_t *offset_ptr, DIEInfo &hash_data) const;
-
-    void Dump(lldb_private::Stream &strm, const DIEInfo &hash_data) const;
   };
 
   // A class for reading and using a saved hash table from a block of data

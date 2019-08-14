@@ -45,41 +45,26 @@
 #include <stddef.h>
 #include <stdio.h>
 
-namespace lldb_private {
-class Address;
-}
-namespace lldb_private {
-class CommandInterpreter;
-}
-namespace lldb_private {
-class Process;
-}
-namespace lldb_private {
-class Stream;
-}
-namespace lldb_private {
-class SymbolContext;
-}
-namespace lldb_private {
-class Target;
-}
-namespace lldb_private {
-namespace repro {
-class DataRecorder;
-}
-} // namespace lldb_private
 namespace llvm {
 class raw_ostream;
 }
 
 namespace lldb_private {
+class Address;
+class CommandInterpreter;
+class Process;
+class Stream;
+class SymbolContext;
+class Target;
 
-//----------------------------------------------------------------------
-/// @class Debugger Debugger.h "lldb/Core/Debugger.h"
+namespace repro {
+class DataRecorder;
+}
+
+/// \class Debugger Debugger.h "lldb/Core/Debugger.h"
 /// A class to manage flag bits.
 ///
 /// Provides a global root objects for the debugger core.
-//----------------------------------------------------------------------
 
 class Debugger : public std::enable_shared_from_this<Debugger>,
                  public UserID,
@@ -171,16 +156,14 @@ public:
   }
 
   ExecutionContext GetSelectedExecutionContext();
-  //------------------------------------------------------------------
   /// Get accessor for the target list.
   ///
   /// The target list is part of the global debugger object. This the single
   /// debugger shared instance to control where targets get created and to
   /// allow for tracking and searching for targets based on certain criteria.
   ///
-  /// @return
+  /// \return
   ///     A global shared target list.
-  //------------------------------------------------------------------
   TargetList &GetTargetList() { return m_target_list; }
 
   PlatformList &GetPlatformList() { return m_platform_list; }
@@ -189,10 +172,8 @@ public:
 
   void DispatchInputEndOfFile();
 
-  //------------------------------------------------------------------
   // If any of the streams are not set, set them to the in/out/err stream of
   // the top most input reader to ensure they at least have something
-  //------------------------------------------------------------------
   void AdoptTopIOHandlerFilesIfInvalid(lldb::StreamFileSP &in,
                                        lldb::StreamFileSP &out,
                                        lldb::StreamFileSP &err);
@@ -234,9 +215,7 @@ public:
 
   void SetLoggingCallback(lldb::LogOutputCallback log_callback, void *baton);
 
-  //----------------------------------------------------------------------
   // Properties Functions
-  //----------------------------------------------------------------------
   enum StopDisassemblyType {
     eStopDisassemblyTypeNever = 0,
     eStopDisassemblyTypeNoDebugInfo,
@@ -374,9 +353,10 @@ protected:
 
   void HandleThreadEvent(const lldb::EventSP &event_sp);
 
-  size_t GetProcessSTDOUT(Process *process, Stream *stream);
-
-  size_t GetProcessSTDERR(Process *process, Stream *stream);
+  // Ensures two threads don't attempt to flush process output in parallel.
+  std::mutex m_output_flush_mutex;
+  void FlushProcessOutput(Process &process, bool flush_stdout,
+                          bool flush_stderr);
 
   SourceManager::SourceFileCache &GetSourceFileCache() {
     return m_source_file_cache;
@@ -429,9 +409,7 @@ protected:
   lldb::ListenerSP m_forward_listener_sp;
   std::once_flag m_clear_once;
 
-  //----------------------------------------------------------------------
   // Events for m_sync_broadcaster
-  //----------------------------------------------------------------------
   enum {
     eBroadcastBitEventThreadIsListening = (1 << 0),
   };

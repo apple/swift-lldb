@@ -19,16 +19,9 @@
 using namespace lldb;
 using namespace lldb_private;
 
-//-------------------------------------------------------------------------
 // CommandObjectSettingsSet
-//-------------------------------------------------------------------------
-
-static constexpr OptionDefinition g_settings_set_options[] = {
-    // clang-format off
-  { LLDB_OPT_SET_2, false, "global", 'g', OptionParser::eNoArgument, nullptr, {}, 0, eArgTypeNone, "Apply the new value to the global default value." },
-  { LLDB_OPT_SET_2, false, "force",  'f', OptionParser::eNoArgument, nullptr, {}, 0, eArgTypeNone, "Force an empty value to be accepted as the default." }
-    // clang-format on
-};
+#define LLDB_OPTIONS_settings_set
+#include "CommandOptions.inc"
 
 class CommandObjectSettingsSet : public CommandObjectRaw {
 public:
@@ -163,9 +156,8 @@ insert-before or insert-after.");
           const char *setting_var_name =
               request.GetParsedLine().GetArgumentAtIndex(setting_var_idx);
           Status error;
-          lldb::OptionValueSP value_sp(
-              m_interpreter.GetDebugger().GetPropertyValue(
-                  &m_exe_ctx, setting_var_name, false, error));
+          lldb::OptionValueSP value_sp(GetDebugger().GetPropertyValue(
+              &m_exe_ctx, setting_var_name, false, error));
           if (value_sp) {
             value_sp->AutoComplete(m_interpreter, request);
           }
@@ -204,7 +196,7 @@ protected:
     // A missing value corresponds to clearing the setting when "force" is
     // specified.
     if (argc == 1 && m_options.m_force) {
-      Status error(m_interpreter.GetDebugger().SetPropertyValue(
+      Status error(GetDebugger().SetPropertyValue(
           &m_exe_ctx, eVarSetOperationClear, var_name, llvm::StringRef()));
       if (error.Fail()) {
         result.AppendError(error.AsCString());
@@ -222,8 +214,8 @@ protected:
 
     Status error;
     if (m_options.m_global) {
-      error = m_interpreter.GetDebugger().SetPropertyValue(
-          nullptr, eVarSetOperationAssign, var_name, var_value_cstr);
+      error = GetDebugger().SetPropertyValue(nullptr, eVarSetOperationAssign,
+                                             var_name, var_value_cstr);
     }
 
     if (error.Success()) {
@@ -234,8 +226,8 @@ protected:
       // if we did not clear the command's exe_ctx first
       ExecutionContext exe_ctx(m_exe_ctx);
       m_exe_ctx.Clear();
-      error = m_interpreter.GetDebugger().SetPropertyValue(
-          &exe_ctx, eVarSetOperationAssign, var_name, var_value_cstr);
+      error = GetDebugger().SetPropertyValue(&exe_ctx, eVarSetOperationAssign,
+                                             var_name, var_value_cstr);
     }
 
     if (error.Fail()) {
@@ -253,9 +245,7 @@ private:
   CommandOptions m_options;
 };
 
-//-------------------------------------------------------------------------
 // CommandObjectSettingsShow -- Show current values
-//-------------------------------------------------------------------------
 
 class CommandObjectSettingsShow : public CommandObjectParsed {
 public:
@@ -296,7 +286,7 @@ protected:
 
     if (!args.empty()) {
       for (const auto &arg : args) {
-        Status error(m_interpreter.GetDebugger().DumpPropertyValue(
+        Status error(GetDebugger().DumpPropertyValue(
             &m_exe_ctx, result.GetOutputStream(), arg.ref,
             OptionValue::eDumpGroupValue));
         if (error.Success()) {
@@ -307,24 +297,17 @@ protected:
         }
       }
     } else {
-      m_interpreter.GetDebugger().DumpAllPropertyValues(
-          &m_exe_ctx, result.GetOutputStream(), OptionValue::eDumpGroupValue);
+      GetDebugger().DumpAllPropertyValues(&m_exe_ctx, result.GetOutputStream(),
+                                          OptionValue::eDumpGroupValue);
     }
 
     return result.Succeeded();
   }
 };
 
-//-------------------------------------------------------------------------
 // CommandObjectSettingsWrite -- Write settings to file
-//-------------------------------------------------------------------------
-
-static constexpr OptionDefinition g_settings_write_options[] = {
-    // clang-format off
-  { LLDB_OPT_SET_ALL, true,  "file",  'f', OptionParser::eRequiredArgument, nullptr, {}, CommandCompletions::eDiskFileCompletion, eArgTypeFilename,    "The file into which to write the settings." },
-  { LLDB_OPT_SET_ALL, false, "append",'a', OptionParser::eNoArgument,       nullptr, {}, 0,                                       eArgTypeNone,        "Append to saved settings file if it exists."},
-    // clang-format on
-};
+#define LLDB_OPTIONS_settings_write
+#include "CommandOptions.inc"
 
 class CommandObjectSettingsWrite : public CommandObjectParsed {
 public:
@@ -421,13 +404,13 @@ protected:
     ExecutionContext clean_ctx;
 
     if (args.empty()) {
-      m_interpreter.GetDebugger().DumpAllPropertyValues(
-          &clean_ctx, out_file, OptionValue::eDumpGroupExport);
+      GetDebugger().DumpAllPropertyValues(&clean_ctx, out_file,
+                                          OptionValue::eDumpGroupExport);
       return result.Succeeded();
     }
 
     for (const auto &arg : args) {
-      Status error(m_interpreter.GetDebugger().DumpPropertyValue(
+      Status error(GetDebugger().DumpPropertyValue(
           &clean_ctx, out_file, arg.ref, OptionValue::eDumpGroupExport));
       if (!error.Success()) {
         result.AppendError(error.AsCString());
@@ -442,15 +425,9 @@ private:
   CommandOptions m_options;
 };
 
-//-------------------------------------------------------------------------
 // CommandObjectSettingsRead -- Read settings from file
-//-------------------------------------------------------------------------
-
-static constexpr OptionDefinition g_settings_read_options[] = {
-    // clang-format off
-  {LLDB_OPT_SET_ALL, true, "file",'f', OptionParser::eRequiredArgument, nullptr, {}, CommandCompletions::eDiskFileCompletion, eArgTypeFilename,       "The file from which to read the breakpoints." },
-    // clang-format on
-};
+#define LLDB_OPTIONS_settings_read
+#include "CommandOptions.inc"
 
 class CommandObjectSettingsRead : public CommandObjectParsed {
 public:
@@ -520,9 +497,7 @@ private:
   CommandOptions m_options;
 };
 
-//-------------------------------------------------------------------------
 // CommandObjectSettingsList -- List settable variables
-//-------------------------------------------------------------------------
 
 class CommandObjectSettingsList : public CommandObjectParsed {
 public:
@@ -576,7 +551,7 @@ protected:
         const char *property_path = args.GetArgumentAtIndex(i);
 
         const Property *property =
-            m_interpreter.GetDebugger().GetValueProperties()->GetPropertyAtPath(
+            GetDebugger().GetValueProperties()->GetPropertyAtPath(
                 &m_exe_ctx, will_modify, property_path);
 
         if (property) {
@@ -589,17 +564,15 @@ protected:
         }
       }
     } else {
-      m_interpreter.GetDebugger().DumpAllDescriptions(m_interpreter,
-                                                      result.GetOutputStream());
+      GetDebugger().DumpAllDescriptions(m_interpreter,
+                                        result.GetOutputStream());
     }
 
     return result.Succeeded();
   }
 };
 
-//-------------------------------------------------------------------------
 // CommandObjectSettingsRemove
-//-------------------------------------------------------------------------
 
 class CommandObjectSettingsRemove : public CommandObjectRaw {
 public:
@@ -685,7 +658,7 @@ protected:
     const char *var_value_cstr =
         Args::StripSpaces(var_value_string, true, true, false);
 
-    Status error(m_interpreter.GetDebugger().SetPropertyValue(
+    Status error(GetDebugger().SetPropertyValue(
         &m_exe_ctx, eVarSetOperationRemove, var_name, var_value_cstr));
     if (error.Fail()) {
       result.AppendError(error.AsCString());
@@ -697,9 +670,7 @@ protected:
   }
 };
 
-//-------------------------------------------------------------------------
 // CommandObjectSettingsReplace
-//-------------------------------------------------------------------------
 
 class CommandObjectSettingsReplace : public CommandObjectRaw {
 public:
@@ -787,7 +758,7 @@ protected:
     const char *var_value_cstr =
         Args::StripSpaces(var_value_string, true, true, false);
 
-    Status error(m_interpreter.GetDebugger().SetPropertyValue(
+    Status error(GetDebugger().SetPropertyValue(
         &m_exe_ctx, eVarSetOperationReplace, var_name, var_value_cstr));
     if (error.Fail()) {
       result.AppendError(error.AsCString());
@@ -801,9 +772,7 @@ protected:
   }
 };
 
-//-------------------------------------------------------------------------
 // CommandObjectSettingsInsertBefore
-//-------------------------------------------------------------------------
 
 class CommandObjectSettingsInsertBefore : public CommandObjectRaw {
 public:
@@ -895,7 +864,7 @@ protected:
     const char *var_value_cstr =
         Args::StripSpaces(var_value_string, true, true, false);
 
-    Status error(m_interpreter.GetDebugger().SetPropertyValue(
+    Status error(GetDebugger().SetPropertyValue(
         &m_exe_ctx, eVarSetOperationInsertBefore, var_name, var_value_cstr));
     if (error.Fail()) {
       result.AppendError(error.AsCString());
@@ -907,9 +876,7 @@ protected:
   }
 };
 
-//-------------------------------------------------------------------------
 // CommandObjectSettingInsertAfter
-//-------------------------------------------------------------------------
 
 class CommandObjectSettingsInsertAfter : public CommandObjectRaw {
 public:
@@ -1000,7 +967,7 @@ protected:
     const char *var_value_cstr =
         Args::StripSpaces(var_value_string, true, true, false);
 
-    Status error(m_interpreter.GetDebugger().SetPropertyValue(
+    Status error(GetDebugger().SetPropertyValue(
         &m_exe_ctx, eVarSetOperationInsertAfter, var_name, var_value_cstr));
     if (error.Fail()) {
       result.AppendError(error.AsCString());
@@ -1012,9 +979,7 @@ protected:
   }
 };
 
-//-------------------------------------------------------------------------
 // CommandObjectSettingsAppend
-//-------------------------------------------------------------------------
 
 class CommandObjectSettingsAppend : public CommandObjectRaw {
 public:
@@ -1096,7 +1061,7 @@ protected:
     const char *var_value_cstr =
         Args::StripSpaces(var_value_string, true, true, false);
 
-    Status error(m_interpreter.GetDebugger().SetPropertyValue(
+    Status error(GetDebugger().SetPropertyValue(
         &m_exe_ctx, eVarSetOperationAppend, var_name, var_value_cstr));
     if (error.Fail()) {
       result.AppendError(error.AsCString());
@@ -1108,9 +1073,7 @@ protected:
   }
 };
 
-//-------------------------------------------------------------------------
 // CommandObjectSettingsClear
-//-------------------------------------------------------------------------
 
 class CommandObjectSettingsClear : public CommandObjectParsed {
 public:
@@ -1166,7 +1129,7 @@ protected:
       return false;
     }
 
-    Status error(m_interpreter.GetDebugger().SetPropertyValue(
+    Status error(GetDebugger().SetPropertyValue(
         &m_exe_ctx, eVarSetOperationClear, var_name, llvm::StringRef()));
     if (error.Fail()) {
       result.AppendError(error.AsCString());
@@ -1178,9 +1141,7 @@ protected:
   }
 };
 
-//-------------------------------------------------------------------------
 // CommandObjectMultiwordSettings
-//-------------------------------------------------------------------------
 
 CommandObjectMultiwordSettings::CommandObjectMultiwordSettings(
     CommandInterpreter &interpreter)

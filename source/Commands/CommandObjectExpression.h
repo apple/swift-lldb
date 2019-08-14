@@ -60,9 +60,7 @@ public:
   int HandleCompletion(CompletionRequest &request) override;
 
 protected:
-  //------------------------------------------------------------------
   // IOHandler::Delegate functions
-  //------------------------------------------------------------------
   void IOHandlerInputComplete(IOHandler &io_handler,
                               std::string &line) override;
 
@@ -73,7 +71,7 @@ protected:
 
   bool EvaluateExpression(llvm::StringRef expr, Stream *output_stream,
                           Stream *error_stream,
-                          CommandReturnObject *result = NULL);
+                          CommandReturnObject *result = nullptr);
 
   void GetMultilineExpression();
 

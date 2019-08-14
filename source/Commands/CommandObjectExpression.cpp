@@ -41,34 +41,24 @@ CommandObjectExpression::CommandOptions::CommandOptions() : OptionGroup() {}
 CommandObjectExpression::CommandOptions::~CommandOptions() = default;
 
 static constexpr OptionEnumValueElement g_description_verbosity_type[] = {
-    {eLanguageRuntimeDescriptionDisplayVerbosityCompact, "compact",
-     "Only show the description string"},
-    {eLanguageRuntimeDescriptionDisplayVerbosityFull, "full",
-     "Show the full output, including persistent variable's name and type"} };
+    {
+        eLanguageRuntimeDescriptionDisplayVerbosityCompact,
+        "compact",
+        "Only show the description string",
+    },
+    {
+        eLanguageRuntimeDescriptionDisplayVerbosityFull,
+        "full",
+        "Show the full output, including persistent variable's name and type",
+    },
+};
 
 static constexpr OptionEnumValues DescriptionVerbosityTypes() {
   return OptionEnumValues(g_description_verbosity_type);
 }
 
-static constexpr OptionDefinition g_expression_options[] = {
-    // clang-format off
-  {LLDB_OPT_SET_1 | LLDB_OPT_SET_2, false, "all-threads",           'a', OptionParser::eRequiredArgument, nullptr, {},                          0, eArgTypeBoolean,              "Should we run all threads if the execution doesn't complete on one thread."},
-  {LLDB_OPT_SET_1 | LLDB_OPT_SET_2, false, "ignore-breakpoints",    'i', OptionParser::eRequiredArgument, nullptr, {},                          0, eArgTypeBoolean,              "Ignore breakpoint hits while running expressions"},
-  {LLDB_OPT_SET_1 | LLDB_OPT_SET_2, false, "timeout",               't', OptionParser::eRequiredArgument, nullptr, {},                          0, eArgTypeUnsignedInteger,      "Timeout value (in microseconds) for running the expression."},
-  {LLDB_OPT_SET_1 | LLDB_OPT_SET_2, false, "unwind-on-error",       'u', OptionParser::eRequiredArgument, nullptr, {},                          0, eArgTypeBoolean,              "Clean up program state if the expression causes a crash, or raises a signal.  "
-                                                                                                                                                                                  "Note, unlike gdb hitting a breakpoint is controlled by another option (-i)."},
-  {LLDB_OPT_SET_1 | LLDB_OPT_SET_2, false, "debug",                 'g', OptionParser::eNoArgument,       nullptr, {},                          0, eArgTypeNone,                 "When specified, debug the JIT code by setting a breakpoint on the first instruction "
-                                                                                                                                                                                  "and forcing breakpoints to not be ignored (-i0) and no unwinding to happen on error (-u0)."},
-  {LLDB_OPT_SET_1 | LLDB_OPT_SET_2, false, "language",              'l', OptionParser::eRequiredArgument, nullptr, {},                          0, eArgTypeLanguage,             "Specifies the Language to use when parsing the expression.  If not set the target.language "
-                                                                                                                                                                                  "setting is used." },
-  {LLDB_OPT_SET_1 | LLDB_OPT_SET_2, false, "apply-fixits",          'X', OptionParser::eRequiredArgument, nullptr, {},                          0, eArgTypeLanguage,             "If true, simple fix-it hints will be automatically applied to the expression." },
-  {LLDB_OPT_SET_1,                  false, "description-verbosity", 'v', OptionParser::eOptionalArgument, nullptr, DescriptionVerbosityTypes(), 0, eArgTypeDescriptionVerbosity, "How verbose should the output of this expression be, if the object description is asked for."},
-  {LLDB_OPT_SET_1 | LLDB_OPT_SET_2, false, "top-level",             'p', OptionParser::eNoArgument,       nullptr, {},                          0, eArgTypeNone,                 "Interpret the expression as a complete translation unit, without injecting it into the local "
-                                                                                                                                                                                  "context.  Allows declaration of persistent, top-level entities without a $ prefix."},
-  {LLDB_OPT_SET_1 | LLDB_OPT_SET_2, false, "allow-jit",             'j', OptionParser::eRequiredArgument, nullptr, {},                          0, eArgTypeBoolean,              "Controls whether the expression can fall back to being JITted if it's not supported by "
-                                                                                                                                                                                  "the interpreter (defaults to true)."}
-    // clang-format on
-};
+#define LLDB_OPTIONS_expression
+#include "CommandOptions.inc"
 
 Status CommandObjectExpression::CommandOptions::SetOptionValue(
     uint32_t option_idx, llvm::StringRef option_arg,
@@ -376,7 +366,7 @@ int CommandObjectExpression::HandleCompletion(CompletionRequest &request) {
   Status error;
   lldb::UserExpressionSP expr(target->GetUserExpressionForLanguage(exe_ctx,
       code, llvm::StringRef(), language, UserExpression::eResultTypeAny,
-      options, error));
+      options, nullptr, error));
   if (error.Fail())
     return 0;
 
@@ -515,8 +505,7 @@ bool CommandObjectExpression::EvaluateExpression(llvm::StringRef expr,
       } else {
         if (result_valobj_sp->GetError().GetError() ==
             UserExpression::kNoResult) {
-          if (format != eFormatVoid &&
-              m_interpreter.GetDebugger().GetNotifyVoid()) {
+          if (format != eFormatVoid && GetDebugger().GetNotifyVoid()) {
             error_stream->PutCString("(void)\n");
           }
 
@@ -638,6 +627,29 @@ void CommandObjectExpression::GetMultilineExpression() {
   debugger.PushIOHandler(io_handler_sp);
 }
 
+static EvaluateExpressionOptions
+GetExprOptions(ExecutionContext &ctx,
+               CommandObjectExpression::CommandOptions command_options) {
+  command_options.OptionParsingStarting(&ctx);
+
+  // Default certain settings for REPL regardless of the global settings.
+  command_options.unwind_on_error = false;
+  command_options.ignore_breakpoints = false;
+  command_options.debug = false;
+
+  EvaluateExpressionOptions expr_options;
+  expr_options.SetUnwindOnError(command_options.unwind_on_error);
+  expr_options.SetIgnoreBreakpoints(command_options.ignore_breakpoints);
+  expr_options.SetTryAllThreads(command_options.try_all_threads);
+
+  if (command_options.timeout > 0)
+    expr_options.SetTimeout(std::chrono::microseconds(command_options.timeout));
+  else
+    expr_options.SetTimeout(llvm::None);
+
+  return expr_options;
+}
+
 bool CommandObjectExpression::DoExecute(llvm::StringRef command,
                                         CommandReturnObject &result) {
   m_fixed_expression.clear();
@@ -704,7 +716,8 @@ bool CommandObjectExpression::DoExecute(llvm::StringRef command,
 
           if (repl_sp) {
             if (initialize) {
-              repl_sp->SetCommandOptions(m_command_options);
+              repl_sp->SetEvaluateOptions(
+                  GetExprOptions(exe_ctx, m_command_options));
               repl_sp->SetFormatOptions(m_format_options);
               repl_sp->SetValueObjectDisplayOptions(m_varobj_options);
             }

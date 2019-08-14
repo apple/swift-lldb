@@ -4,8 +4,6 @@ Test require hardware breakpoints.
 
 from __future__ import print_function
 
-import os
-import time
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -79,12 +77,11 @@ class BreakpointLocationsTestCase(TestBase):
         self.runCmd("settings set target.require-hardware-breakpoint true")
 
         # Step over doesn't fail immediately but fails later on.
-        self.expect("thread step-over")
         self.expect(
-            "process status",
+            "thread step-over",
+            error=True,
             substrs=[
-                'step over failed',
-                'Could not create hardware breakpoint for thread plan'
+                'error: Could not create hardware breakpoint for thread plan.'
             ])
 
     @skipIfWindows

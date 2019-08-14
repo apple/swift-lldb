@@ -5,9 +5,6 @@ Test that you can set breakpoint and hit the C++ language exception breakpoint
 from __future__ import print_function
 
 
-import os
-import re
-import sys
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -21,6 +18,7 @@ class TestCPPExceptionBreakpoint (TestBase):
 
     @add_test_categories(['pyapi'])
     @expectedFailureAll(oslist=["windows"], bugnumber="llvm.org/pr24538")
+    @expectedFailureNetBSD
     def test_cpp_exception_breakpoint(self):
         """Test setting and hitting the C++ exception breakpoint."""
         self.build()

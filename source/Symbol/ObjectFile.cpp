@@ -26,6 +26,8 @@
 using namespace lldb;
 using namespace lldb_private;
 
+char ObjectFile::ID;
+
 ObjectFileSP
 ObjectFile::FindPlugin(const lldb::ModuleSP &module_sp, const FileSpec *file,
                        lldb::offset_t file_offset, lldb::offset_t file_size,
@@ -264,7 +266,7 @@ ObjectFile::ObjectFile(const lldb::ModuleSP &module_sp,
       m_file(), // This file could be different from the original module's file
       m_type(eTypeInvalid), m_strata(eStrataInvalid),
       m_file_offset(file_offset), m_length(length), m_data(),
-      m_unwind_table(*this), m_process_wp(),
+      m_process_wp(),
       m_memory_addr(LLDB_INVALID_ADDRESS), m_sections_up(), m_symtab_up(),
       m_synthetic_symbol_idx(0) {
   if (file_spec_ptr)
@@ -272,13 +274,13 @@ ObjectFile::ObjectFile(const lldb::ModuleSP &module_sp,
   if (data_sp)
     m_data.SetData(data_sp, data_offset, length);
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_OBJECT));
-  if (log)
-    log->Printf("%p ObjectFile::ObjectFile() module = %p (%s), file = %s, "
-                "file_offset = 0x%8.8" PRIx64 ", size = %" PRIu64,
-                static_cast<void *>(this), static_cast<void *>(module_sp.get()),
-                module_sp->GetSpecificationDescription().c_str(),
-                m_file ? m_file.GetPath().c_str() : "<NULL>", m_file_offset,
-                m_length);
+  LLDB_LOGF(log,
+            "%p ObjectFile::ObjectFile() module = %p (%s), file = %s, "
+            "file_offset = 0x%8.8" PRIx64 ", size = %" PRIu64,
+            static_cast<void *>(this), static_cast<void *>(module_sp.get()),
+            module_sp->GetSpecificationDescription().c_str(),
+            m_file ? m_file.GetPath().c_str() : "<NULL>", m_file_offset,
+            m_length);
 }
 
 ObjectFile::ObjectFile(const lldb::ModuleSP &module_sp,
@@ -286,24 +288,23 @@ ObjectFile::ObjectFile(const lldb::ModuleSP &module_sp,
                        DataBufferSP &header_data_sp)
     : ModuleChild(module_sp), m_file(), m_type(eTypeInvalid),
       m_strata(eStrataInvalid), m_file_offset(0), m_length(0), m_data(),
-      m_unwind_table(*this), m_process_wp(process_sp),
+      m_process_wp(process_sp),
       m_memory_addr(header_addr), m_sections_up(), m_symtab_up(),
       m_synthetic_symbol_idx(0) {
   if (header_data_sp)
     m_data.SetData(header_data_sp, 0, header_data_sp->GetByteSize());
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_OBJECT));
-  if (log)
-    log->Printf("%p ObjectFile::ObjectFile() module = %p (%s), process = %p, "
-                "header_addr = 0x%" PRIx64,
-                static_cast<void *>(this), static_cast<void *>(module_sp.get()),
-                module_sp->GetSpecificationDescription().c_str(),
-                static_cast<void *>(process_sp.get()), m_memory_addr);
+  LLDB_LOGF(log,
+            "%p ObjectFile::ObjectFile() module = %p (%s), process = %p, "
+            "header_addr = 0x%" PRIx64,
+            static_cast<void *>(this), static_cast<void *>(module_sp.get()),
+            module_sp->GetSpecificationDescription().c_str(),
+            static_cast<void *>(process_sp.get()), m_memory_addr);
 }
 
 ObjectFile::~ObjectFile() {
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_OBJECT));
-  if (log)
-    log->Printf("%p ObjectFile::~ObjectFile ()\n", static_cast<void *>(this));
+  LLDB_LOGF(log, "%p ObjectFile::~ObjectFile ()\n", static_cast<void *>(this));
 }
 
 bool ObjectFile::SetModulesArchitecture(const ArchSpec &new_arch) {
@@ -367,6 +368,7 @@ AddressClass ObjectFile::GetAddressClass(addr_t file_addr) {
           case eSectionTypeDWARFDebugStrOffsets:
           case eSectionTypeDWARFDebugStrOffsetsDwo:
           case eSectionTypeDWARFDebugTypes:
+          case eSectionTypeDWARFDebugTypesDwo:
           case eSectionTypeDWARFAppleNames:
           case eSectionTypeDWARFAppleTypes:
           case eSectionTypeDWARFAppleExternalTypes:
@@ -542,9 +544,7 @@ size_t ObjectFile::ReadSectionData(Section *section,
   return 0;
 }
 
-//----------------------------------------------------------------------
 // Get the section data the file on disk
-//----------------------------------------------------------------------
 size_t ObjectFile::ReadSectionData(Section *section,
                                    DataExtractor &section_data) {
   // If some other objectfile owns this data, pass this to them.
@@ -605,10 +605,9 @@ void ObjectFile::ClearSymtab() {
   if (module_sp) {
     std::lock_guard<std::recursive_mutex> guard(module_sp->GetMutex());
     Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_OBJECT));
-    if (log)
-      log->Printf("%p ObjectFile::ClearSymtab () symtab = %p",
-                  static_cast<void *>(this),
-                  static_cast<void *>(m_symtab_up.get()));
+    LLDB_LOGF(log, "%p ObjectFile::ClearSymtab () symtab = %p",
+              static_cast<void *>(this),
+              static_cast<void *>(m_symtab_up.get()));
     m_symtab_up.reset();
   }
 }

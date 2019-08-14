@@ -4,9 +4,7 @@ Test lldb process launch flags.
 
 from __future__ import print_function
 
-import copy
 import os
-import time
 
 import lldb
 from lldbsuite.test.decorators import *
@@ -85,6 +83,7 @@ class ProcessLaunchTestCase(TestBase):
     # not working?
     @not_remote_testsuite_ready
     @expectedFailureAll(oslist=["linux"], bugnumber="llvm.org/pr20265")
+    @expectedFailureNetBSD
     def test_set_working_dir_nonexisting(self):
         """Test that '-w dir' fails to set the working dir when running the inferior with a dir which doesn't exist."""
         d = {'CXX_SOURCES': 'print_cwd.cpp'}
@@ -165,7 +164,6 @@ class ProcessLaunchTestCase(TestBase):
         try:
             os.remove(out_file_path)
             os.remove(err_file_path)
-            pass
         except OSError:
             pass
 
@@ -205,4 +203,3 @@ class ProcessLaunchTestCase(TestBase):
         self.assertEqual(value, evil_var)
         process.Continue()
         self.assertEqual(process.GetState(), lldb.eStateExited, PROCESS_EXITED)
-        pass

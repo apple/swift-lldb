@@ -18,18 +18,10 @@
 class StdStringExtractor {
 public:
   enum { BigEndian = 0, LittleEndian = 1 };
-  //------------------------------------------------------------------
   // Constructors and Destructors
-  //------------------------------------------------------------------
   StdStringExtractor();
   StdStringExtractor(const char *packet_cstr);
-  StdStringExtractor(const StdStringExtractor &rhs);
   virtual ~StdStringExtractor();
-
-  //------------------------------------------------------------------
-  // Operators
-  //------------------------------------------------------------------
-  const StdStringExtractor &operator=(const StdStringExtractor &rhs);
 
   // Returns true if the file position is still valid for the data
   // contained in this string extractor object.
@@ -107,9 +99,7 @@ public:
   }
 
 protected:
-  //------------------------------------------------------------------
   // For StdStringExtractor only
-  //------------------------------------------------------------------
   std::string m_packet; // The string in which to extract data.
   uint64_t m_index;     // When extracting data from a packet, this index
                         // will march along as things get extracted. If set

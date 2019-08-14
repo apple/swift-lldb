@@ -1552,9 +1552,7 @@ PluginManager::GetScriptInterpreterForLanguage(lldb::ScriptLanguage script_lang,
 #pragma mark -
 #pragma mark StructuredDataPlugin
 
-// -----------------------------------------------------------------------------
 // StructuredDataPlugin
-// -----------------------------------------------------------------------------
 
 struct StructuredDataPluginInstance {
   StructuredDataPluginInstance()

@@ -36,12 +36,10 @@ from __future__ import print_function
 
 # System modules
 import abc
-import collections
 from distutils.version import LooseVersion
 from functools import wraps
 import gc
 import glob
-import inspect
 import io
 import os.path
 import re
@@ -51,7 +49,6 @@ from subprocess import *
 import sys
 import time
 import traceback
-import types
 import distutils.spawn
 
 # Third-party modules
@@ -61,7 +58,6 @@ from six import StringIO as SixStringIO
 import six
 
 # LLDB modules
-import use_lldb_suite
 import lldb
 from . import configuration
 from . import decorators
@@ -201,14 +197,6 @@ def EXP_MSG(str, actual, exe):
 def SETTING_MSG(setting):
     '''A generic "Value of setting '%s' is correct" message generator.'''
     return "Value of setting '%s' is correct" % setting
-
-
-def EnvArray():
-    """Returns an env variable array from the os.environ map object."""
-    return list(map(lambda k,
-                    v: k + "=" + v,
-                    list(os.environ.keys()),
-                    list(os.environ.values())))
 
 
 def line_number(filename, string_to_match):
@@ -706,6 +694,17 @@ class Base(unittest2.TestCase):
         """Return absolute path to a file in the test's source directory."""
         return os.path.join(self.getSourceDir(), name)
 
+    @staticmethod
+    def setUpCommands():
+        return [
+            # Disable Spotlight lookup. The testsuite creates
+            # different binaries with the same UUID, because they only
+            # differ in the debug info, which is not being hashed.
+            "settings set symbols.enable-external-lookup false",
+
+            # Testsuite runs in parallel and the host can have also other load.
+            "settings set plugin.process.gdb-remote.packet-timeout 60"]
+
     def setUp(self):
         """Fixture for unittest test case setup.
 
@@ -719,22 +718,18 @@ class Base(unittest2.TestCase):
         else:
             self.libcxxPath = None
 
-        if "LLDBMI_EXEC" in os.environ:
-            self.lldbMiExec = os.environ["LLDBMI_EXEC"]
-        else:
-            self.lldbMiExec = None
-
         if "LLDBVSCODE_EXEC" in os.environ:
             self.lldbVSCodeExec = os.environ["LLDBVSCODE_EXEC"]
         else:
             self.lldbVSCodeExec = None
 
+        self.lldbOption = " ".join(
+            "-o '" + s + "'" for s in self.setUpCommands())
+
         # If we spawn an lldb process for test (via pexpect), do not load the
         # init file unless told otherwise.
-        if "NO_LLDBINIT" in os.environ and "NO" == os.environ["NO_LLDBINIT"]:
-            self.lldbOption = ""
-        else:
-            self.lldbOption = "--no-lldbinit"
+        if os.environ.get("NO_LLDBINIT") != "NO":
+            self.lldbOption += " --no-lldbinit"
 
         # Assign the test method name to self.testMethodName.
         #
@@ -979,7 +974,6 @@ class Base(unittest2.TestCase):
                     # unexpected error
                     raise
                 # child is already terminated
-                pass
             finally:
                 # Give it one final blow to make sure the child is terminated.
                 self.child.close()
@@ -1671,7 +1665,8 @@ class Base(unittest2.TestCase):
         elif self.getPlatform() == "openbsd":
             cflags += " -stdlib=libc++"
         elif self.getPlatform() == "netbsd":
-            cflags += " -stdlib=libstdc++"
+            # NetBSD defaults to libc++
+            pass
         elif "clang" in self.getCompiler():
             cflags += " -stdlib=libstdc++"
 
@@ -1707,7 +1702,7 @@ class Base(unittest2.TestCase):
         if self.getPlatform() in ('freebsd', 'linux', 'netbsd', 'openbsd'):
             return ['libc++.so.1']
         else:
-            return ['libc++.1.dylib', 'libc++abi.dylib']
+            return ['libc++.1.dylib', 'libc++abi.']
 
 # Metaclass for TestBase to change the list of test metods when a new TestCase is loaded.
 # We change the test methods to create a new test method for each test for each debug info we are
@@ -1869,15 +1864,23 @@ class TestBase(Base):
         Base.setUp(self)
 
         # Set the clang modules cache path used by LLDB.
-        mod_cache = os.path.join(os.path.join(os.environ["LLDB_BUILD"],
-                                              "module-cache-lldb"))
+        mod_cache = os.path.join(os.environ["LLDB_BUILD"], "module-cache-lldb")
         self.runCmd('settings set symbols.clang-modules-cache-path "%s"'
                     % mod_cache)
 
-        # Disable Spotlight lookup. The testsuite creates
-        # different binaries with the same UUID, because they only
-        # differ in the debug info, which is not being hashed.
-        self.runCmd('settings set symbols.enable-external-lookup false')
+        for s in self.setUpCommands():
+            self.runCmd(s)
+
+        # Disable color.
+        self.runCmd("settings set use-color false")
+
+        # Make sure that a sanitizer LLDB's environment doesn't get passed on.
+        if 'DYLD_LIBRARY_PATH' in os.environ:
+            self.runCmd('settings set target.env-vars DYLD_LIBRARY_PATH=')
+
+        # Set environment variables for the inferior.
+        if lldbtest_config.inferior_env:
+            self.runCmd('settings set target.env-vars {}'.format(lldbtest_config.inferior_env))
 
         if "LLDB_MAX_LAUNCH_COUNT" in os.environ:
             self.maxLaunchCount = int(os.environ["LLDB_MAX_LAUNCH_COUNT"])
@@ -2320,8 +2323,6 @@ FileCheck output:
             with recording(self, trace) as sbuf:
                 print("looking at:", output, file=sbuf)
 
-        if output is None:
-            output = ""
         # The heading says either "Expecting" or "Not expecting".
         heading = "Expecting" if matching else "Not expecting"
 

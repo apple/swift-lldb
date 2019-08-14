@@ -6,7 +6,6 @@ from __future__ import print_function
 
 
 import lldb
-import sys
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
 from lldbsuite.test import lldbutil
@@ -39,9 +38,6 @@ class targetCommandTestCase(TestBase):
 
         self.do_target_command()
 
-    # rdar://problem/9763907
-    # 'target variable' command fails if the target program has been run
-    @expectedFailureAndroid(archs=['aarch64'])
     def test_target_variable_command(self):
         """Test 'target variable' command before and after starting the inferior."""
         d = {'C_SOURCES': 'globals.c', 'EXE': self.getBuildArtifact('globals')}
@@ -50,7 +46,6 @@ class targetCommandTestCase(TestBase):
 
         self.do_target_variable_command('globals')
 
-    @expectedFailureAndroid(archs=['aarch64'])
     def test_target_variable_command_no_fail(self):
         """Test 'target variable' command before and after starting the inferior."""
         d = {'C_SOURCES': 'globals.c', 'EXE': self.getBuildArtifact('globals')}

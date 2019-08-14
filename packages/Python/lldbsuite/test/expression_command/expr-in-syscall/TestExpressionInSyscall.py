@@ -3,7 +3,6 @@
 from __future__ import print_function
 
 
-import os
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -17,6 +16,7 @@ class ExprSyscallTestCase(TestBase):
     @expectedFailureAll(
         oslist=["windows"],
         bugnumber="llvm.org/pr21765, getpid() does not exist on Windows")
+    @expectedFailureNetBSD
     def test_setpgid(self):
         self.build()
         self.expr_syscall()

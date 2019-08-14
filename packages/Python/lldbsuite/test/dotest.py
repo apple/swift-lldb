@@ -29,7 +29,6 @@ import logging
 import platform
 import re
 import signal
-import socket
 import subprocess
 import sys
 
@@ -58,7 +57,7 @@ def is_exe(fpath):
 
 def which(program):
     """Returns the full path to a program; None otherwise."""
-    fpath, fname = os.path.split(program)
+    fpath, _ = os.path.split(program)
     if fpath:
         if is_exe(program):
             return program
@@ -68,27 +67,6 @@ def which(program):
             if is_exe(exe_file):
                 return exe_file
     return None
-
-
-class _WritelnDecorator(object):
-    """Used to decorate file-like objects with a handy 'writeln' method"""
-
-    def __init__(self, stream):
-        self.stream = stream
-
-    def __getattr__(self, attr):
-        if attr in ('stream', '__getstate__'):
-            raise AttributeError(attr)
-        return getattr(self.stream, attr)
-
-    def writeln(self, arg=None):
-        if arg:
-            self.write(arg)
-        self.write('\n')  # text-mode streams translate to \r\n if needed
-
-#
-# Global variables:
-#
 
 
 def usage(parser):
@@ -169,9 +147,6 @@ ENABLING LOGS FROM TESTS
 Option 1:
 
 Writing logs into different files per test case::
-
-This option is particularly useful when multiple dotest instances are created
-by dosep.py
 
 $ ./dotest.py --channel "lldb all"
 
@@ -269,6 +244,9 @@ def parseOptionsAndInitTestdirs():
                 os.environ[parts[0]] = ""
             else:
                 os.environ[parts[0]] = parts[1]
+
+    if args.set_inferior_env_vars:
+        lldbtest_config.inferior_env = ' '.join(args.set_inferior_env_vars)
 
     # only print the args if being verbose (and parsable is off)
     if args.v and not args.q:
@@ -385,17 +363,6 @@ def parseOptionsAndInitTestdirs():
         if any([x.startswith('-') for x in args.f]):
             usage(parser)
         configuration.filters.extend(args.f)
-        # Shut off multiprocessing mode when additional filters are specified.
-        # The rational is that the user is probably going after a very specific
-        # test and doesn't need a bunch of parallel test runners all looking for
-        # it in a frenzy.  Also, '-v' now spits out all test run output even
-        # on success, so the standard recipe for redoing a failing test (with -v
-        # and a -f to filter to the specific test) now causes all test scanning
-        # (in parallel) to print results for do-nothing runs in a very distracting
-        # manner.  If we really need filtered parallel runs in the future, consider
-        # adding a --no-output-on-success that prevents -v from setting
-        # output-on-success.
-        configuration.no_multiprocess_test_runner = True
 
     if args.l:
         configuration.skip_long_running_test = False
@@ -453,23 +420,8 @@ def parseOptionsAndInitTestdirs():
     if do_help:
         usage(parser)
 
-    if args.no_multiprocess:
-        configuration.no_multiprocess_test_runner = True
-
-    if args.inferior:
-        configuration.is_inferior_test_runner = True
-
-    if args.num_threads:
-        configuration.num_threads = args.num_threads
-
-    if args.test_subdir:
-        configuration.exclusive_test_subdir = args.test_subdir
-
-    if args.test_runner_name:
-        configuration.test_runner_name = args.test_runner_name
-
     # Capture test results-related args.
-    if args.curses and not args.inferior:
+    if args.curses:
         # Act as if the following args were set.
         args.results_formatter = "lldbsuite.test_event.formatter.curses.Curses"
         args.results_file = "stdout"
@@ -491,9 +443,8 @@ def parseOptionsAndInitTestdirs():
     if args.results_formatter_options:
         configuration.results_formatter_options = args.results_formatter_options
 
-    # Default to using the BasicResultsFormatter if no formatter is specified
-    # and we're not a test inferior.
-    if not args.inferior and configuration.results_formatter_name is None:
+    # Default to using the BasicResultsFormatter if no formatter is specified.
+    if configuration.results_formatter_name is None:
         configuration.results_formatter_name = (
             "lldbsuite.test_event.formatter.results_formatter.ResultsFormatter")
 
@@ -530,14 +481,9 @@ def parseOptionsAndInitTestdirs():
 
     # Gather all the dirs passed on the command line.
     if len(args.args) > 0:
-        configuration.testdirs = list(
-            map(lambda x: os.path.realpath(os.path.abspath(x)), args.args))
-        # Shut off multiprocessing mode when test directories are specified.
-        configuration.no_multiprocess_test_runner = True
+        configuration.testdirs = [os.path.realpath(os.path.abspath(x)) for x in args.args]
 
     lldbtest_config.codesign_identity = args.codesign_identity
-
-    #print("testdirs:", testdirs)
 
 
 def getXcodeOutputPaths(lldbRootDirectory):
@@ -565,17 +511,6 @@ def getXcodeOutputPaths(lldbRootDirectory):
     return result
 
 
-def createSocketToLocalPort(port):
-    def socket_closer(s):
-        """Close down an opened socket properly."""
-        s.shutdown(socket.SHUT_RDWR)
-        s.close()
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(("localhost", port))
-    return (sock, lambda: socket_closer(sock))
-
-
 def setupTestResults():
     """Sets up test results-related objects based on arg settings."""
     # Setup the results formatter configuration.
@@ -594,17 +529,7 @@ def setupTestResults():
 
         # Send an initialize message to the formatter.
         initialize_event = EventBuilder.bare_event("initialize")
-        if isMultiprocessTestRunner():
-            if (configuration.test_runner_name is not None and
-                    configuration.test_runner_name == "serial"):
-                # Only one worker queue here.
-                worker_count = 1
-            else:
-                # Workers will be the number of threads specified.
-                worker_count = configuration.num_threads
-        else:
-            worker_count = 1
-        initialize_event["worker_count"] = worker_count
+        initialize_event["worker_count"] = 1
 
         formatter_spec.formatter.handle_event(initialize_event)
 
@@ -672,7 +597,7 @@ def getOutputPaths(lldbRootDirectory):
 def get_llvm_bin_dirs():
     """
     Returns an array of paths that may have the llvm/clang/etc binaries
-    in them, relative to this current file.  
+    in them, relative to this current file.
     Returns an empty array if none are found.
     """
     result = []
@@ -685,8 +610,11 @@ def get_llvm_bin_dirs():
         "llvm-build/Release/x86_64/bin",
         "llvm-build/Debug/x86_64/bin",
         "llvm-build/Ninja-DebugAssert/llvm-macosx-x86_64/bin",
+        "llvm-build/Ninja-DebugAssert+asan/llvm-macosx-x86_64/bin",
         "llvm-build/Ninja-ReleaseAssert/llvm-macosx-x86_64/bin",
+        "llvm-build/Ninja-ReleaseAssert+asan/llvm-macosx-x86_64/bin",
         "llvm-build/Ninja-RelWithDebInfoAssert/llvm-macosx-x86_64/bin",
+        "llvm-build/Ninja-RelWithDebInfoAssert+asan/llvm-macosx-x86_64/bin",
     ]
     for p in paths_to_try:
         path = os.path.join(lldb_root_path, p)
@@ -723,16 +651,11 @@ def setupSysPath():
     os.environ["LLDB_SRC"] = lldbsuite.lldb_root
 
     pluginPath = os.path.join(scriptPath, 'plugins')
-    toolsLLDBMIPath = os.path.join(scriptPath, 'tools', 'lldb-mi')
     toolsLLDBVSCode = os.path.join(scriptPath, 'tools', 'lldb-vscode')
     toolsLLDBServerPath = os.path.join(scriptPath, 'tools', 'lldb-server')
 
-    # Insert script dir, plugin dir, lldb-mi dir and lldb-server dir to the
-    # sys.path.
+    # Insert script dir, plugin dir and lldb-server dir to the sys.path.
     sys.path.insert(0, pluginPath)
-    # Adding test/tools/lldb-mi to the path makes it easy
-    sys.path.insert(0, toolsLLDBMIPath)
-    # to "import lldbmi_testcase" from the MI tests
     # Adding test/tools/lldb-vscode to the path makes it easy to
     # "import lldb_vscode_testcase" from the VSCode tests
     sys.path.insert(0, toolsLLDBVSCode)
@@ -791,19 +714,7 @@ def setupSysPath():
     print("LLDB import library dir:", os.environ["LLDB_IMPLIB_DIR"])
     os.system('%s -v' % lldbtest_config.lldbExec)
 
-    # Assume lldb-mi is in same place as lldb
-    # If not found, disable the lldb-mi tests
-    # TODO: Append .exe on Windows
-    #   - this will be in a separate commit in case the mi tests fail horribly
     lldbDir = os.path.dirname(lldbtest_config.lldbExec)
-    lldbMiExec = os.path.join(lldbDir, "lldb-mi")
-    if is_exe(lldbMiExec):
-        os.environ["LLDBMI_EXEC"] = lldbMiExec
-    else:
-        if not configuration.shouldSkipBecauseOfCategories(["lldb-mi"]):
-            print(
-                "The 'lldb-mi' executable cannot be located.  The lldb-mi tests can not be run as a result.")
-            configuration.skipCategories.append("lldb-mi")
 
     lldbVSCodeExec = os.path.join(lldbDir, "lldb-vscode")
     if is_exe(lldbVSCodeExec):
@@ -1118,15 +1029,6 @@ def exitTestSuite(exitCode=None):
         sys.exit(exitCode)
 
 
-def isMultiprocessTestRunner():
-    # We're not multiprocess when we're either explicitly
-    # the inferior (as specified by the multiprocess test
-    # runner) OR we've been told to skip using the multiprocess
-    # test runner
-    return not (
-        configuration.is_inferior_test_runner or configuration.no_multiprocess_test_runner)
-
-
 def getVersionForSDK(sdk):
     sdk = str.lower(sdk)
     full_path = seven.get_command_output('xcrun -sdk %s --show-sdk-path' % sdk)
@@ -1135,14 +1037,6 @@ def getVersionForSDK(sdk):
     basename = str.lower(basename)
     ver = basename.replace(sdk, '')
     return ver
-
-
-def getPathForSDK(sdk):
-    sdk = str.lower(sdk)
-    full_path = seven.get_command_output('xcrun -sdk %s --show-sdk-path' % sdk)
-    if os.path.exists(full_path):
-        return full_path
-    return None
 
 
 def setDefaultTripleForPlatform():
@@ -1201,8 +1095,10 @@ def canRunLibstdcxxTests():
     from lldbsuite.test import lldbplatformutil
 
     platform = lldbplatformutil.getPlatform()
+    if lldbplatformutil.target_is_android():
+        platform = "android"
     if platform == "linux":
-      return True, "libstdcxx always present"
+        return True, "libstdcxx always present"
     return False, "Don't know how to build with libstdcxx on %s" % platform
 
 def checkLibstdcxxSupport():
@@ -1213,6 +1109,32 @@ def checkLibstdcxxSupport():
         return # libstdcxx category explicitly requested, let it run.
     print("libstdcxx tests will not be run because: " + reason)
     configuration.skipCategories.append("libstdcxx")
+
+def canRunWatchpointTests():
+    from lldbsuite.test import lldbplatformutil
+
+    platform = lldbplatformutil.getPlatform()
+    if platform == "netbsd":
+      if os.geteuid() == 0:
+        return True, "root can always write dbregs"
+      try:
+        output = subprocess.check_output(["/sbin/sysctl", "-n",
+          "security.models.extensions.user_set_dbregs"]).decode().strip()
+        if output == "1":
+          return True, "security.models.extensions.user_set_dbregs enabled"
+      except subprocess.CalledProcessError:
+        pass
+      return False, "security.models.extensions.user_set_dbregs disabled"
+    return True, "watchpoint support available"
+
+def checkWatchpointSupport():
+    result, reason = canRunWatchpointTests()
+    if result:
+        return # watchpoints supported
+    if "watchpoint" in configuration.categoriesList:
+        return # watchpoint category explicitly requested, let it run.
+    print("watchpoint tests will not be run because: " + reason)
+    configuration.skipCategories.append("watchpoint")
 
 def checkDebugInfoSupport():
     import lldb
@@ -1236,7 +1158,6 @@ def run_suite():
     if sys.platform.startswith("darwin"):
         checkDsymForUUIDIsNotOn()
 
-    #
     # Start the actions by first parsing the options while setting up the test
     # directories, followed by setting up the search paths for lldb utilities;
     # then, we walk the directory trees and collect the tests into our test suite.
@@ -1245,20 +1166,6 @@ def run_suite():
 
     # Setup test results (test results formatter and output handling).
     setupTestResults()
-
-    # If we are running as the multiprocess test runner, kick off the
-    # multiprocess test runner here.
-    if isMultiprocessTestRunner():
-        from . import dosep
-        dosep.main(
-            configuration.num_threads,
-            configuration.test_runner_name,
-            configuration.results_formatter_object)
-        raise Exception("should never get here")
-    elif configuration.is_inferior_test_runner:
-        # Shut off Ctrl-C processing in inferiors.  The parallel
-        # test runner handles this more holistically.
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
 
     setupSysPath()
 
@@ -1338,13 +1245,14 @@ def run_suite():
 
     checkLibcxxSupport()
     checkLibstdcxxSupport()
+    checkWatchpointSupport()
     checkDebugInfoSupport()
 
     # Don't do debugserver tests on anything except OS X.
     configuration.dont_do_debugserver_test = "linux" in target_platform or "freebsd" in target_platform or "windows" in target_platform
 
-    # Don't do lldb-server (llgs) tests on anything except Linux.
-    configuration.dont_do_llgs_test = not ("linux" in target_platform)
+    # Don't do lldb-server (llgs) tests on anything except Linux and Windows.
+    configuration.dont_do_llgs_test = not ("linux" in target_platform) and not ("windows" in target_platform)
 
     # Collect tests from the specified testing directories. If a test
     # subdirectory filter is explicitly specified, limit the search to that

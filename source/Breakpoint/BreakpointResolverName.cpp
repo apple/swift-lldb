@@ -235,9 +235,9 @@ void BreakpointResolverName::AddNameLookup(ConstString name,
   if (Language *lang = Language::FindPlugin(m_language)) {
     add_variant_funcs(lang);
   } else {
-    // Most likely m_language is eLanguageTypeUnknown. We check each language
-    // for possible variants or more qualified names and create lookups for
-    // those as well.
+    // Most likely m_language is eLanguageTypeUnknown. We check each language for
+    // possible variants or more qualified names and create lookups for those as
+    // well.
     Language::ForEach(add_variant_funcs);
   }
 }
@@ -388,7 +388,7 @@ BreakpointResolverName::SearchCallback(SearchFilter &filter,
               if (log) {
                 StreamString s;
                 bp_loc_sp->GetDescription(&s, lldb::eDescriptionLevelVerbose);
-                log->Printf("Added location: %s\n", s.GetData());
+                LLDB_LOGF(log, "Added location: %s\n", s.GetData());
               }
             }
           }

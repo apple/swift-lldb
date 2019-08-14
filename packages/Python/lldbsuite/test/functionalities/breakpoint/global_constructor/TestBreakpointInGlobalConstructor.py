@@ -5,7 +5,6 @@ Test that we can hit breakpoints in global constructors
 from __future__ import print_function
 
 
-import os
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -17,6 +16,7 @@ class TestBreakpointInGlobalConstructors(TestBase):
     mydir = TestBase.compute_mydir(__file__)
     NO_DEBUG_INFO_TESTCASE = True
 
+    @expectedFailureNetBSD
     def test(self):
         self.build()
         self.line_foo = line_number('foo.cpp', '// !BR_foo')

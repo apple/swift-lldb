@@ -1,6 +1,7 @@
 # -*- Python -*-
 
 import os
+import platform
 import re
 import shutil
 import site
@@ -81,10 +82,28 @@ for i in ['module-cache-clang', 'module-cache-lldb']:
         shutil.rmtree(cachedir)
 
 # Set a default per-test timeout of 10 minutes. Setting a timeout per test
-# requires the psutil module and lit complains if the value is set but the
-# module can't be found.
-try:
-    import psutil  # noqa: F401
+# requires that killProcessAndChildren() is supported on the platform and
+# lit complains if the value is set but it is not supported.
+supported, errormsg = lit_config.maxIndividualTestTimeIsSupported
+if supported:
     lit_config.maxIndividualTestTime = 600
-except ImportError:
-    pass
+else:
+    lit_config.warning("Could not set a default per-test timeout. " + errormsg)
+
+
+# If running tests natively, check for CPU features needed for some tests.
+
+if 'native' in config.available_features:
+    cpuid_exe = lit.util.which('lit-cpuid', config.lldb_tools_dir)
+    if cpuid_exe is None:
+        lit_config.warning("lit-cpuid not found, tests requiring CPU extensions will be skipped")
+    else:
+        out, err, exitcode = lit.util.executeCommand([cpuid_exe])
+        if exitcode == 0:
+            for x in out.split():
+                config.available_features.add('native-cpu-%s' % x)
+        else:
+            lit_config.warning("lit-cpuid failed: %s" % err)
+
+if not config.lldb_disable_python:
+    config.available_features.add('python')

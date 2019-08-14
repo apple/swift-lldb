@@ -5,8 +5,6 @@ Test some lldb platform commands.
 from __future__ import print_function
 
 
-import os
-import time
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -48,6 +46,7 @@ class PlatformCommandTestCase(TestBase):
                 'Kernel',
                 'Hostname'])
 
+    @expectedFailureAll(oslist=["windows"])
     @no_debug_info_test
     def test_shell(self):
         """ Test that the platform shell command can invoke ls. """

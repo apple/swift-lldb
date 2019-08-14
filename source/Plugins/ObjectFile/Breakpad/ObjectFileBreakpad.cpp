@@ -42,6 +42,8 @@ llvm::Optional<Header> Header::parse(llvm::StringRef text) {
   return Header{ArchSpec(triple), std::move(uuid)};
 }
 
+char ObjectFileBreakpad::ID;
+
 void ObjectFileBreakpad::Initialize() {
   PluginManager::RegisterPlugin(GetPluginNameStatic(),
                                 GetPluginDescriptionStatic(), CreateInstance,
@@ -122,11 +124,6 @@ Symtab *ObjectFileBreakpad::GetSymtab() {
   return nullptr;
 }
 
-bool ObjectFileBreakpad::GetUUID(UUID *uuid) {
-  *uuid = m_uuid;
-  return true;
-}
-
 void ObjectFileBreakpad::CreateSections(SectionList &unified_section_list) {
   if (m_sections_up)
     return;
@@ -153,7 +150,7 @@ void ObjectFileBreakpad::CreateSections(SectionList &unified_section_list) {
     llvm::StringRef line;
     std::tie(line, text) = text.split('\n');
 
-    Record::Kind next_section = Record::classify(line);
+    llvm::Optional<Record::Kind> next_section = Record::classify(line);
     if (next_section == Record::Line) {
       // Line records logically belong to the preceding Func record, so we put
       // them in the same section.

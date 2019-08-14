@@ -3,8 +3,6 @@
 from __future__ import print_function
 
 
-import os
-import time
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -25,6 +23,7 @@ class TestWatchpointEvents (TestBase):
     @expectedFailureAll(
         oslist=["linux"],
         archs=["aarch64"],
+        triple=no_match(".*-android"),
         bugnumber="llvm.org/pr27710")
     @expectedFailureAll(
         oslist=["windows"],

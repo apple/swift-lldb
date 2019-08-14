@@ -23,7 +23,6 @@
 #include "lldb/Interpreter/OptionGroupValueObjectDisplay.h"
 #include "lldb/Interpreter/OptionGroupVariable.h"
 #include "lldb/Interpreter/Options.h"
-#include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Symbol/CompilerType.h"
 #include "lldb/Symbol/Function.h"
 #include "lldb/Symbol/ObjectFile.h"
@@ -50,21 +49,12 @@ using namespace lldb_private;
 
 #pragma mark CommandObjectFrameDiagnose
 
-//-------------------------------------------------------------------------
 // CommandObjectFrameInfo
-//-------------------------------------------------------------------------
 
-//-------------------------------------------------------------------------
 // CommandObjectFrameDiagnose
-//-------------------------------------------------------------------------
 
-static constexpr OptionDefinition g_frame_diag_options[] = {
-    // clang-format off
-  { LLDB_OPT_SET_1, false, "register", 'r', OptionParser::eRequiredArgument, nullptr, {}, 0, eArgTypeRegisterName,    "A register to diagnose." },
-  { LLDB_OPT_SET_1, false, "address",  'a', OptionParser::eRequiredArgument, nullptr, {}, 0, eArgTypeAddress,         "An address to diagnose." },
-  { LLDB_OPT_SET_1, false, "offset",   'o', OptionParser::eRequiredArgument, nullptr, {}, 0, eArgTypeOffset,          "An optional offset.  Requires --register." }
-    // clang-format on
-};
+#define LLDB_OPTIONS_frame_diag
+#include "CommandOptions.inc"
 
 class CommandObjectFrameDiagnose : public CommandObjectParsed {
 public:
@@ -216,9 +206,7 @@ protected:
 
 #pragma mark CommandObjectFrameInfo
 
-//-------------------------------------------------------------------------
 // CommandObjectFrameInfo
-//-------------------------------------------------------------------------
 
 class CommandObjectFrameInfo : public CommandObjectParsed {
 public:
@@ -242,15 +230,10 @@ protected:
 
 #pragma mark CommandObjectFrameSelect
 
-//-------------------------------------------------------------------------
 // CommandObjectFrameSelect
-//-------------------------------------------------------------------------
 
-static OptionDefinition g_frame_select_options[] = {
-    // clang-format off
-  { LLDB_OPT_SET_1, false, "relative", 'r', OptionParser::eRequiredArgument, nullptr, {}, 0, eArgTypeOffset, "A relative frame index offset from the current frame index." },
-    // clang-format on
-};
+#define LLDB_OPTIONS_frame_select
+#include "CommandOptions.inc"
 
 class CommandObjectFrameSelect : public CommandObjectParsed {
 public:
@@ -412,9 +395,7 @@ protected:
 };
 
 #pragma mark CommandObjectFrameVariable
-//----------------------------------------------------------------------
 // List images with associated information
-//----------------------------------------------------------------------
 class CommandObjectFrameVariable : public CommandObjectParsed {
 public:
   CommandObjectFrameVariable(CommandInterpreter &interpreter)
@@ -754,14 +735,8 @@ protected:
 
 #pragma mark CommandObjectFrameRecognizer
 
-static OptionDefinition g_frame_recognizer_add_options[] = {
-    // clang-format off
-  { LLDB_OPT_SET_ALL, false, "shlib",         's', OptionParser::eRequiredArgument, nullptr, {}, CommandCompletions::eModuleCompletion, eArgTypeShlibName,   "Name of the module or shared library that this recognizer applies to." },
-  { LLDB_OPT_SET_ALL, false, "function",      'n', OptionParser::eRequiredArgument, nullptr, {}, CommandCompletions::eSymbolCompletion, eArgTypeName,        "Name of the function that this recognizer applies to." },
-  { LLDB_OPT_SET_2,   false, "python-class",  'l', OptionParser::eRequiredArgument, nullptr, {}, 0,                                     eArgTypePythonClass, "Give the name of a Python class to use for this frame recognizer." },
-  { LLDB_OPT_SET_ALL, false, "regex",         'x', OptionParser::eNoArgument,       nullptr, {}, 0,                                     eArgTypeNone,        "Function name and module name are actually regular expressions." }
-    // clang-format on
-};
+#define LLDB_OPTIONS_frame_recognizer_add
+#include "CommandOptions.inc"
 
 class CommandObjectFrameRecognizerAdd : public CommandObjectParsed {
 private:
@@ -1118,9 +1093,7 @@ class CommandObjectFrameRecognizer : public CommandObjectMultiword {
 
 #pragma mark CommandObjectMultiwordFrame
 
-//-------------------------------------------------------------------------
 // CommandObjectMultiwordFrame
-//-------------------------------------------------------------------------
 
 CommandObjectMultiwordFrame::CommandObjectMultiwordFrame(
     CommandInterpreter &interpreter)

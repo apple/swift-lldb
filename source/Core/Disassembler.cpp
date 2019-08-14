@@ -1087,13 +1087,16 @@ void InstructionList::Append(lldb::InstructionSP &inst_sp) {
 
 uint32_t
 InstructionList::GetIndexOfNextBranchInstruction(uint32_t start,
-                                                 Target &target) const {
+                                                 Target &target,
+                                                 bool ignore_calls) const {
   size_t num_instructions = m_instructions.size();
 
   uint32_t next_branch = UINT32_MAX;
   size_t i;
   for (i = start; i < num_instructions; i++) {
     if (m_instructions[i]->DoesBranch()) {
+      if (ignore_calls && m_instructions[i]->IsCall())
+        continue;
       next_branch = i;
       break;
     }
@@ -1237,9 +1240,7 @@ size_t Disassembler::ParseInstructions(const ExecutionContext *exe_ctx,
   return m_instruction_list.GetSize();
 }
 
-//----------------------------------------------------------------------
 // Disassembler copy constructor
-//----------------------------------------------------------------------
 Disassembler::Disassembler(const ArchSpec &arch, const char *flavor)
     : m_arch(arch), m_instruction_list(), m_base_addr(LLDB_INVALID_ADDRESS),
       m_flavor() {
@@ -1271,9 +1272,7 @@ const InstructionList &Disassembler::GetInstructionList() const {
   return m_instruction_list;
 }
 
-//----------------------------------------------------------------------
 // Class PseudoInstruction
-//----------------------------------------------------------------------
 
 PseudoInstruction::PseudoInstruction()
     : Instruction(Address(), AddressClass::eUnknown), m_description() {}

@@ -4,8 +4,6 @@ Test the lldb command line completion mechanism for the 'expr' command.
 
 from __future__ import print_function
 
-import random
-import os
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -18,7 +16,6 @@ class CommandLineExprCompletionTestCase(TestBase):
 
     NO_DEBUG_INFO_TESTCASE = True
 
-    @expectedFailureAll(bugnumber="rdar://47370292")
     def test_expr_completion(self):
         self.build()
         self.main_source = "main.cpp"

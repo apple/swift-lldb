@@ -6,8 +6,6 @@ from __future__ import print_function
 
 import unittest2
 
-import os
-import time
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -47,6 +45,7 @@ class IRInterpreterTestCase(TestBase):
     @expectedFailureAll(
         oslist=['windows'],
         bugnumber="http://llvm.org/pr21765")
+    @expectedFailureNetBSD
     @expectedFailureAll(
         oslist=['linux'],
         archs=['arm'],

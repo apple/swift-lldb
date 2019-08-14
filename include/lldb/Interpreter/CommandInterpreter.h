@@ -29,27 +29,26 @@ namespace lldb_private {
 
 class CommandInterpreterRunOptions {
 public:
-  //------------------------------------------------------------------
   /// Construct a CommandInterpreterRunOptions object. This class is used to
   /// control all the instances where we run multiple commands, e.g.
   /// HandleCommands, HandleCommandsFromFile, RunCommandInterpreter.
   ///
   /// The meanings of the options in this object are:
   ///
-  /// @param[in] stop_on_continue
+  /// \param[in] stop_on_continue
   ///    If \b true, execution will end on the first command that causes the
   ///    process in the execution context to continue. If \b false, we won't
   ///    check the execution status.
-  /// @param[in] stop_on_error
+  /// \param[in] stop_on_error
   ///    If \b true, execution will end on the first command that causes an
   ///    error.
-  /// @param[in] stop_on_crash
+  /// \param[in] stop_on_crash
   ///    If \b true, when a command causes the target to run, and the end of the
   ///    run is a signal or exception, stop executing the commands.
-  /// @param[in] echo_commands
+  /// \param[in] echo_commands
   ///    If \b true, echo the command before executing it. If \b false, execute
   ///    silently.
-  /// @param[in] echo_comments
+  /// \param[in] echo_comments
   ///    If \b true, echo command even if it is a pure comment line. If
   ///    \b false, print no ouput in this case. This setting has an effect only
   ///    if \param echo_commands is \b true.
@@ -62,7 +61,6 @@ public:
   /// \param[in] add_to_history
   ///    If \b true add the commands to the command history. If \b false, don't
   ///    add them.
-  //------------------------------------------------------------------
   CommandInterpreterRunOptions(LazyBool stop_on_continue,
                                LazyBool stop_on_error, LazyBool stop_on_crash,
                                LazyBool echo_commands, LazyBool echo_comments,
@@ -202,8 +200,7 @@ public:
     eCommandTypesAllThem = 0xFFFF  // all commands
   };
 
-  CommandInterpreter(Debugger &debugger, lldb::ScriptLanguage script_language,
-                     bool synchronous_execution);
+  CommandInterpreter(Debugger &debugger, bool synchronous_execution);
 
   ~CommandInterpreter() override;
 
@@ -267,48 +264,44 @@ public:
 
   bool WasInterrupted() const;
 
-  //------------------------------------------------------------------
   /// Execute a list of commands in sequence.
   ///
-  /// @param[in] commands
+  /// \param[in] commands
   ///    The list of commands to execute.
-  /// @param[in,out] context
+  /// \param[in,out] context
   ///    The execution context in which to run the commands. Can be nullptr in
   ///    which case the default
   ///    context will be used.
-  /// @param[in] options
+  /// \param[in] options
   ///    This object holds the options used to control when to stop, whether to
   ///    execute commands,
   ///    etc.
-  /// @param[out] result
+  /// \param[out] result
   ///    This is marked as succeeding with no output if all commands execute
   ///    safely,
   ///    and failed with some explanation if we aborted executing the commands
   ///    at some point.
-  //------------------------------------------------------------------
   void HandleCommands(const StringList &commands, ExecutionContext *context,
                       CommandInterpreterRunOptions &options,
                       CommandReturnObject &result);
 
-  //------------------------------------------------------------------
   /// Execute a list of commands from a file.
   ///
-  /// @param[in] file
+  /// \param[in] file
   ///    The file from which to read in commands.
-  /// @param[in,out] context
+  /// \param[in,out] context
   ///    The execution context in which to run the commands. Can be nullptr in
   ///    which case the default
   ///    context will be used.
-  /// @param[in] options
+  /// \param[in] options
   ///    This object holds the options used to control when to stop, whether to
   ///    execute commands,
   ///    etc.
-  /// @param[out] result
+  /// \param[out] result
   ///    This is marked as succeeding with no output if all commands execute
   ///    safely,
   ///    and failed with some explanation if we aborted executing the commands
   ///    at some point.
-  //------------------------------------------------------------------
   void HandleCommandsFromFile(FileSpec &file, ExecutionContext *context,
                               CommandInterpreterRunOptions &options,
                               CommandReturnObject &result);
@@ -332,8 +325,7 @@ public:
   //
   // FIXME: Only max_return_elements == -1 is supported at present.
   int HandleCompletion(const char *current_line, const char *cursor,
-                       const char *last_char, int match_start_point,
-                       int max_return_elements, StringList &matches,
+                       const char *last_char, StringList &matches,
                        StringList &descriptions);
 
   // This version just returns matches, and doesn't compute the substring.  It
@@ -390,8 +382,6 @@ public:
   void Initialize();
 
   void Clear();
-
-  void SetScriptLanguage(lldb::ScriptLanguage lang);
 
   bool HasCommands() const;
 
@@ -450,8 +440,6 @@ public:
            "the target.max-children-count setting.\n";
   }
 
-  const CommandHistory &GetCommandHistory() const { return m_command_history; }
-
   CommandHistory &GetCommandHistory() { return m_command_history; }
 
   bool IsActive();
@@ -468,9 +456,7 @@ public:
 
   const char *GetCommandPrefix();
 
-  //------------------------------------------------------------------
   // Properties
-  //------------------------------------------------------------------
   bool GetExpandRegexAliases() const;
 
   bool GetPromptOnQuit() const;
@@ -483,28 +469,22 @@ public:
   bool GetEchoCommentCommands() const;
   void SetEchoCommentCommands(bool b);
 
-  //------------------------------------------------------------------
   /// Specify if the command interpreter should allow that the user can
   /// specify a custom exit code when calling 'quit'.
-  //------------------------------------------------------------------
   void AllowExitCodeOnQuit(bool allow);
 
-  //------------------------------------------------------------------
   /// Sets the exit code for the quit command.
-  /// @param[in] exit_code
+  /// \param[in] exit_code
   ///     The exit code that the driver should return on exit.
-  /// @return True if the exit code was successfully set; false if the
+  /// \return True if the exit code was successfully set; false if the
   ///         interpreter doesn't allow custom exit codes.
-  /// @see AllowExitCodeOnQuit
-  //------------------------------------------------------------------
+  /// \see AllowExitCodeOnQuit
   LLVM_NODISCARD bool SetQuitExitCode(int exit_code);
 
-  //------------------------------------------------------------------
   /// Returns the exit code that the user has specified when running the
   /// 'quit' command.
-  /// @param[out] exited
+  /// \param[out] exited
   ///     Set to true if the user has called quit with a custom exit code.
-  //------------------------------------------------------------------
   int GetQuitExitCode(bool &exited) const;
 
   void ResolveCommand(const char *command_line, CommandReturnObject &result);
@@ -526,9 +506,7 @@ public:
 protected:
   friend class Debugger;
 
-  //------------------------------------------------------------------
   // IOHandlerDelegate functions
-  //------------------------------------------------------------------
   void IOHandlerInputComplete(IOHandler &io_handler,
                               std::string &line) override;
 
@@ -540,7 +518,7 @@ protected:
 
   bool IOHandlerInterrupt(IOHandler &io_handler) override;
 
-  size_t GetProcessOutput();
+  void GetProcessOutput();
 
   void SetSynchronous(bool value);
 

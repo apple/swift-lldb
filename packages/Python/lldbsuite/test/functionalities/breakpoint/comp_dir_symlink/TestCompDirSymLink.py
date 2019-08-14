@@ -5,7 +5,6 @@ from __future__ import print_function
 
 
 import os
-import shutil
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -48,6 +47,8 @@ class CompDirSymLinkTestCase(TestBase):
             "settings set %s %s" %
             (_COMP_DIR_SYM_LINK_PROP, pwd_symlink))
         src_path = self.getBuildArtifact(_SRC_FILE)
+        # /proc/self/cwd points to a realpath form of current directory.
+        src_path = os.path.realpath(src_path)
         lldbutil.run_break_set_by_file_and_line(self, src_path, self.line)
 
     @skipIf(hostoslist=["windows"])

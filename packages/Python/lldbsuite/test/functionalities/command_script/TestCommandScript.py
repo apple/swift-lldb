@@ -5,8 +5,6 @@ Test lldb Python commands.
 from __future__ import print_function
 
 
-import os
-import time
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -17,7 +15,6 @@ class CmdPythonTestCase(TestBase):
     mydir = TestBase.compute_mydir(__file__)
     NO_DEBUG_INFO_TESTCASE = True
 
-    @expectedFailureAll(oslist=["windows"], bugnumber="llvm.org/pr32343")
     def test(self):
         self.build()
         self.pycmd_tests()

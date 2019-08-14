@@ -46,12 +46,16 @@ string(REPLACE ${CMAKE_CFG_INTDIR} ${LLVM_BUILD_MODE} LLDB_TOOLS_DIR ${LLVM_RUNT
 list(APPEND LLDB_TEST_DEPS
   LLDBUnitTests
   dsymutil
+  lit-cpuid
   llc
   lldb
   lldb-test
+  lli
   llvm-config
+  llvm-dwarfdump
   llvm-mc
   llvm-objcopy
+  llvm-readobj
   )
 
 if(TARGET lld)
