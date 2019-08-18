@@ -68,6 +68,7 @@
 #include "swift/Frontend/Frontend.h"
 #include "swift/Parse/LocalContext.h"
 #include "swift/Parse/PersistentParserState.h"
+#include "swift/SIL/SILDeclRef.h"
 #include "swift/SIL/SILDebuggerClient.h"
 #include "swift/SIL/SILFunction.h"
 #include "swift/SIL/SILModule.h"
@@ -1634,8 +1635,21 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
         variable_map[name] = *var_info;
       }
 
+  llvm::SmallVector<std::pair<swift::FuncDecl *, std::vector<int>>, 4> FDAIs;
+  parsed_expr->code_manipulator->EnumerateDefaultValuedArguments(FDAIs);
+
   std::unique_ptr<swift::SILModule> sil_module(swift::performSILGeneration(
       parsed_expr->source_file, swift_ast_ctx->GetSILOptions()));
+
+  for (const auto &FDAI : FDAIs) {
+    swift::FuncDecl *FD = FDAI.first;
+    std::vector<int> DAI = FDAI.second;
+    for (int AI : DAI) {
+      auto DAG = swift::SILDeclRef::getDefaultArgGenerator(FD, AI);
+      swift::SILFunction *F = sil_module->lookUpFunction(DAG);
+      F->dump();
+    }
+  }
 
   if (log) {
     std::string s;

@@ -164,6 +164,9 @@ public:
   void FindNonVariableDeclarations(
       llvm::SmallVectorImpl<swift::ValueDecl *> &non_variables);
 
+  void EnumerateDefaultValuedArguments(
+    llvm::SmallVectorImpl<std::pair<swift::FuncDecl *, std::vector<int>>> &DefaultValuedArgumentIndices);
+
   bool FixCaptures();
 
   swift::ValueDecl *MakeGlobalTypealias(swift::Identifier name,
