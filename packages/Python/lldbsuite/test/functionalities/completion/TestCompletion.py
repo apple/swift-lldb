@@ -84,6 +84,55 @@ class CommandLineCompletionTestCase(TestBase):
             'process attach --con',
             'process attach --continue ')
 
+    @skipIfFreeBSD  # timing out on the FreeBSD buildbot
+    def test_process_launch_arch(self):
+        self.complete_from_to('process launch --arch ',
+                              ['mips',
+                               'arm64'])
+
+    @skipIfFreeBSD  # timing out on the FreeBSD buildbot
+    def test_quoted_command(self):
+        self.complete_from_to('"set',
+                              ['"settings" '])
+
+    @skipIfFreeBSD  # timing out on the FreeBSD buildbot
+    def test_quoted_arg_with_quoted_command(self):
+        self.complete_from_to('"settings" "repl',
+                              ['"replace" '])
+
+    @skipIfFreeBSD  # timing out on the FreeBSD buildbot
+    def test_quoted_arg_without_quoted_command(self):
+        self.complete_from_to('settings "repl',
+                              ['"replace" '])
+
+    @skipIfFreeBSD  # timing out on the FreeBSD buildbot
+    def test_single_quote_command(self):
+        self.complete_from_to("'set",
+                              ["'settings' "])
+
+    @skipIfFreeBSD  # timing out on the FreeBSD buildbot
+    def test_terminated_quote_command(self):
+        # This should not crash, but we don't get any
+        # reasonable completions from this.
+        self.complete_from_to("'settings'", [])
+
+    @skipIfFreeBSD  # timing out on the FreeBSD buildbot
+    def test_process_launch_arch_arm(self):
+        self.complete_from_to('process launch --arch arm',
+                              ['arm64'])
+
+    @skipIfFreeBSD  # timing out on the FreeBSD buildbot
+    def test_target_symbols_add_shlib(self):
+        # Doesn't seem to work, but at least it shouldn't crash.
+        self.complete_from_to('target symbols add --shlib ', [])
+
+    @skipIfFreeBSD  # timing out on the FreeBSD buildbot
+    def test_log_file(self):
+        # Complete in our source directory which contains a 'main.cpp' file.
+        src_dir =  os.path.dirname(os.path.realpath(__file__)) + '/'
+        self.complete_from_to('log enable lldb expr -f ' + src_dir,
+                              ['main.cpp'])
+
     # <rdar://problem/11052829>
     @skipIfFreeBSD  # timing out on the FreeBSD buildbot
     def test_infinite_loop_while_completing(self):
