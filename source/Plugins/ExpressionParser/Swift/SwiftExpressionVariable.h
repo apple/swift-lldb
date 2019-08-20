@@ -28,6 +28,7 @@
 
 // Project includes
 #include "lldb/Core/ClangForward.h"
+#include "lldb/Core/SwiftForward.h"
 #include "lldb/Core/Value.h"
 #include "lldb/Expression/ExpressionVariable.h"
 #include "lldb/Symbol/TaggedASTType.h"

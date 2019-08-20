@@ -739,6 +739,8 @@ public:
                                 lldb::StackFrameWP &stack_frame_wp,
                                 swift::SourceFile *source_file, Status &error);
 
+  static CompilerType GetCompilerType(swift::Type swift_type);
+
 protected:
   /// This map uses the string value of ConstStrings as the key, and the TypeBase
   /// * as the value. Since the ConstString strings are uniqued, we can use
