@@ -174,7 +174,7 @@ static ThreadSafeSwiftASTMap &GetASTMap() {
   // gone away. So we will leak this list intentionally so we can
   // avoid global destructor problems.
   static ThreadSafeSwiftASTMap *g_map_ptr = NULL;
-  static std::once_flag g_once_flag;
+  static llvm::once_flag g_once_flag;
   std::call_once(g_once_flag, []() {
     // Intentional leak.
     g_map_ptr = new ThreadSafeSwiftASTMap();
@@ -984,7 +984,7 @@ static SDKTypeMinVersion GetSDKType(const llvm::Triple &target,
 }
 
 static StringRef GetXcodeContentsPath() {
-  static std::once_flag g_once_flag;
+  static llvm::once_flag g_once_flag;
   static std::string g_xcode_contents_path;
   std::call_once(g_once_flag, [&]() {
     const char substr[] = ".app/Contents/";

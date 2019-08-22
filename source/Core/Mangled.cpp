@@ -154,7 +154,7 @@ get_demangled_name_without_arguments(ConstString mangled,
 static ThreadSafeDenseMap<const char *, ConstString> *
 GetDisplayDemangledNamesCache() {
   ThreadSafeDenseMap<const char *, ConstString> *g_cache;
-  std::once_flag g_flag;
+  llvm::once_flag g_flag;
   std::call_once(g_flag, [&g_cache]() -> void {
     g_cache = new ThreadSafeDenseMap<const char *, ConstString>();
   });

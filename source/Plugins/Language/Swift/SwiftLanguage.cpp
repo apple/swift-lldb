@@ -659,7 +659,7 @@ LoadFoundationValueTypesFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
 }
 
 lldb::TypeCategoryImplSP SwiftLanguage::GetFormatters() {
-  static std::once_flag g_initialize;
+  static llvm::once_flag g_initialize;
   static TypeCategoryImplSP g_category;
 
   std::call_once(g_initialize, [this]() -> void {
@@ -674,7 +674,7 @@ lldb::TypeCategoryImplSP SwiftLanguage::GetFormatters() {
 
 HardcodedFormatters::HardcodedSummaryFinder
 SwiftLanguage::GetHardcodedSummaries() {
-  static std::once_flag g_initialize;
+  static llvm::once_flag g_initialize;
   static HardcodedFormatters::HardcodedSummaryFinder g_formatters;
 
   std::call_once(g_initialize, []() -> void {
@@ -744,7 +744,7 @@ SwiftLanguage::GetHardcodedSummaries() {
 
 HardcodedFormatters::HardcodedSyntheticFinder
 SwiftLanguage::GetHardcodedSynthetics() {
-  static std::once_flag g_initialize;
+  static llvm::once_flag g_initialize;
   static ConstString g_runtime_synths_category_name("runtime-synthetics");
   static HardcodedFormatters::HardcodedSyntheticFinder g_formatters;
 
@@ -1183,7 +1183,7 @@ std::unique_ptr<Language::TypeScavenger> SwiftLanguage::GetTypeScavenger() {
 
     static Hoarders &GetHoarders() {
       static Hoarders g_hoarders;
-      static std::once_flag g_init;
+      static llvm::once_flag g_init;
       std::call_once(g_init, []() -> void {
         g_hoarders.push_back([](const char *input,
                                 ExecutionContextScope *exe_scope,

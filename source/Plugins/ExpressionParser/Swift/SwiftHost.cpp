@@ -90,7 +90,7 @@ bool lldb_private::ComputeSwiftResourceDirectory(FileSpec &lldb_shlib_spec,
 }
 
 FileSpec lldb_private::GetSwiftResourceDir() {
-  static std::once_flag g_once_flag;
+  static llvm::once_flag g_once_flag;
   static FileSpec g_swift_resource_dir;
   std::call_once(g_once_flag, []() {
     FileSpec lldb_file_spec = HostInfo::GetShlibDir();
