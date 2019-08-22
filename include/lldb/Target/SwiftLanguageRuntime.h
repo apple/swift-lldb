@@ -459,7 +459,7 @@ protected:
 
   /// Cached member variable offsets.
   using MemberID = std::pair<const swift::TypeBase *, std::string>;
-  llvm::DenseMap<MemberID, uint64_t> m_member_offsets;
+  std::map<MemberID, uint64_t> m_member_offsets;
 // [END GOOGLE]
 
   CompilerType m_box_metadata_type;
