@@ -30,6 +30,7 @@
 #include "swift/AST/ParameterList.h"
 #include "swift/AST/Pattern.h"
 #include "swift/AST/Stmt.h"
+#include "swift/AST/TypeCheckRequests.h"
 #include "swift/AST/TypeRepr.h"
 #include "swift/AST/Types.h"
 #include "llvm/ADT/SmallSet.h"
@@ -1283,7 +1284,8 @@ static void AppendToCaptures(swift::ASTContext &ast_context,
   captures.push_back(swift::CapturedValue(capture_decl, 0, swift::SourceLoc()));
   capture_info.setCaptures(ast_context.AllocateCopy(captures));
 
-  func_decl->setCaptureInfo(capture_info);
+  auto request = swift::ComputeCaptureInfoRequest{func_decl};
+  request.cacheResult(capture_info);
 }
 
 static swift::VarDecl *FindArgInFunction(swift::ASTContext &ast_context,
