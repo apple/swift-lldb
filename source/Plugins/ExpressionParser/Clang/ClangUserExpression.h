@@ -43,15 +43,6 @@ class ClangUserExpression : public LLVMUserExpression {
 public:
   enum { kDefaultTimeout = 500000u };
 
-  enum {
-    eLanguageFlagNeedsObjectPointer = 1 << 0,
-    eLanguageFlagEnforceValidObject = 1 << 1,
-    eLanguageFlagInCPlusPlusMethod = 1 << 2,
-    eLanguageFlagInObjectiveCMethod = 1 << 3,
-    eLanguageFlagInStaticMethod = 1 << 4,
-    eLanguageFlagConstObject = 1 << 5
-  };
-
   class ClangUserExpressionHelper : public ClangExpressionHelper {
   public:
     ClangUserExpressionHelper(Target &target, bool top_level)
