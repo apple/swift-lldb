@@ -108,9 +108,6 @@ protected:
                                                    /// expression.
   lldb::ModuleWP m_jit_module_wp;
 
-  uint32_t
-      m_language_flags; ///< Populated by the language-specific ScanContext()
-
   Target *m_target; ///< The target for storing persistent data like types and
                     ///variables.
 

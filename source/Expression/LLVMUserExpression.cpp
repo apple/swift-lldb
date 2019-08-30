@@ -50,7 +50,7 @@ LLVMUserExpression::LLVMUserExpression(ExecutionContextScope &exe_scope,
       m_allow_objc(false),
       m_transformed_text(),
       m_execution_unit_sp(), m_materializer_up(), m_jit_module_wp(),
-      m_language_flags(0), m_target(NULL), m_can_interpret(false),
+      m_target(NULL), m_can_interpret(false),
       m_materialized_address(LLDB_INVALID_ADDRESS) {}
 
 LLVMUserExpression::~LLVMUserExpression() {

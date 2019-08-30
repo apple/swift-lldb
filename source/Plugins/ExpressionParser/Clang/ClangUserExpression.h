@@ -217,6 +217,8 @@ private:
   /// were not able to calculate this position.
   llvm::Optional<size_t> m_user_expression_start_pos;
   ResultDelegate m_result_delegate;
+
+  uint32_t m_language_flags = 0;
 };
 
 } // namespace lldb_private

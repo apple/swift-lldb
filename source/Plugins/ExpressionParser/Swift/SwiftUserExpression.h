@@ -181,6 +181,7 @@ private:
   PersistentVariableDelegate m_persistent_variable_delegate;
   std::unique_ptr<SwiftExpressionParser> m_parser;
   bool m_runs_in_playground_or_repl;
+  uint32_t m_language_flags = 0;
 };
 
 } // namespace lldb_private
