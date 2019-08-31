@@ -20,7 +20,10 @@
 #include "SymbolFileDWARF.h"
 
 #include "swift/AST/ASTContext.h"
+#include "swift/AST/Decl.h"
 #include "swift/Demangling/Demangle.h"
+
+#include "clang/AST/DeclObjC.h"
 
 #include "lldb/Core/Module.h"
 #include "lldb/Symbol/ClangASTContext.h"
@@ -117,20 +120,16 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
     }
     if (SwiftLanguageRuntime::IsSwiftMangledName(name.GetCString()))
       mangled_name = name;
-    else {
-      const char *type_name_cstr = name.GetCString();
-      // TODO: remove this once all mangled names are always included for all
-      // types in DWARF
-      swift::ModuleDecl *swift_module = m_ast.GetModule(decl.GetFile(), error);
-      if (swift_module)
-        compiler_type = m_ast.FindType(type_name_cstr, swift_module);
-    }
   }
 
   if (mangled_name) {
     type_sp = m_ast.GetCachedType(mangled_name);
     if (type_sp)
       return type_sp;
+
+    // Because of DWARFImporter, we may search for this type again while
+    // resolving the mangled name.
+    die.GetDWARF()->GetDIEToType()[die.GetDIE()] = DIE_IS_BEING_PARSED;
 
     // Try to import the type from one of the loaded Swift modules.
     compiler_type = m_ast.GetTypeFromMangledTypename(mangled_name, error);
@@ -151,7 +150,7 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
       GetClangType(die, mangled_name.GetStringRef(), clang_types);
 
       // Import the Clang type into the Clang context.
-      if (clang_types.GetSize())
+      if (!compiler_type && clang_types.GetSize())
         if (TypeSP clang_type_sp = clang_types.GetTypeAtIndex(0))
           if (clang_type_sp) {
             is_clang_type = true;
@@ -168,7 +167,7 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
       // Fall back to (id), which is not necessarily correct.
       if (!compiler_type) {
         is_clang_type = true;
-        compiler_type = clang_ctx->GetBasicType(eBasicTypeObjCClass);
+        compiler_type = clang_ctx->GetBasicType(eBasicTypeObjCID);
       }
     }
   }
@@ -221,6 +220,7 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
   if (type_sp && mangled_name &&
       SwiftLanguageRuntime::IsSwiftMangledName(mangled_name.GetCString()))
     m_ast.SetCachedType(mangled_name, type_sp);
+  die.GetDWARF()->GetDIEToType()[die.GetDIE()] = type_sp.get();
 
   return type_sp;
 }
@@ -228,7 +228,7 @@ lldb::TypeSP DWARFASTParserSwift::ParseTypeFromDWARF(const SymbolContext &sc,
 void DWARFASTParserSwift::GetClangType(const DWARFDIE &die,
                                        llvm::StringRef mangled_name,
                                        TypeMap &clang_types) const {
-  std::vector<CompilerContext> decl_context;
+  llvm::SmallVector<CompilerContext, 4> decl_context;
   die.GetDeclContext(decl_context);
   if (!decl_context.size())
     return;
@@ -254,7 +254,7 @@ void DWARFASTParserSwift::GetClangType(const DWARFDIE &die,
       return;
     for (NodePointer child : *node)
       if (child->getKind() == Node::Kind::Identifier && child->hasText()) {
-        decl_context.back().type = CompilerContextKind::Typedef;
+        decl_context.back().kind = CompilerContextKind::Typedef;
         decl_context.back().name = ConstString(child->getText());
         return;
       }
@@ -264,13 +264,13 @@ void DWARFASTParserSwift::GetClangType(const DWARFDIE &die,
   auto *sym_file = die.GetCU()->GetSymbolFileDWARF();
   sym_file->UpdateExternalModuleListIfNeeded();
 
-  CompilerContextKind kinds[] = {decl_context.back().type,
+  CompilerContextKind kinds[] = {decl_context.back().kind,
                                  CompilerContextKind::Union,
-                                 CompilerContextKind::Enumeration};
+                                 CompilerContextKind::Enum};
 
   // The Swift projection of all Clang type is a struct; search every kind.
   for (CompilerContextKind kind : kinds) {
-    decl_context.back().type = kind;
+    decl_context.back().kind = kind;
     // Search any modules referenced by DWARF.
     for (const auto &name_module : sym_file->getExternalTypeModules()) {
       if (!name_module.second)

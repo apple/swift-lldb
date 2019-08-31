@@ -41,7 +41,6 @@
 #include "swift/Basic/SourceManager.h"
 #include "swift/ClangImporter/ClangImporter.h"
 #include "swift/ClangImporter/ClangImporterOptions.h"
-#include "swift/DWARFImporter/DWARFImporter.h"
 #include "swift/Demangling/Demangle.h"
 #include "swift/Demangling/ManglingMacros.h"
 #include "swift/Frontend/Frontend.h"
@@ -99,6 +98,7 @@
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Host/StringConvert.h"
 #include "lldb/Symbol/ClangASTContext.h"
+#include "lldb/Symbol/ClangUtil.h"
 #include "lldb/Symbol/CompileUnit.h"
 #include "lldb/Symbol/ObjectFile.h"
 #include "lldb/Symbol/SourceModule.h"
@@ -117,6 +117,7 @@
 #include "lldb/Utility/Status.h"
 
 #include "Plugins/Platform/MacOSX/PlatformDarwin.h"
+#include "Plugins/SymbolFile/DWARF/DWARFASTParserClang.h"
 #include "Plugins/SymbolFile/DWARF/DWARFASTParserSwift.h"
 
 #define VALID_OR_RETURN(value)                                                 \
@@ -837,6 +838,9 @@ SwiftASTContext::SwiftASTContext(std::string description, llvm::Triple triple,
     : TypeSystem(TypeSystem::eKindSwift),
       m_compiler_invocation_ap(new swift::CompilerInvocation()),
       m_description(description) {
+  // rdar://53971116
+  m_compiler_invocation_ap->disableASTScopeLookup();
+
   // Set the clang modules cache path.
   m_compiler_invocation_ap->setClangModuleCachePath(GetClangModulesCacheProperty());
 
@@ -855,6 +859,9 @@ SwiftASTContext::SwiftASTContext(const SwiftASTContext &rhs)
     : TypeSystem(rhs.getKind()),
       m_compiler_invocation_ap(new swift::CompilerInvocation()),
       m_description(rhs.m_description) {
+  // rdar://53971116
+  m_compiler_invocation_ap->disableASTScopeLookup();
+
   if (rhs.m_compiler_invocation_ap) {
     SetTriple(rhs.GetTriple());
     llvm::StringRef module_cache_path =
@@ -1706,6 +1713,7 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
 
   // This is a module AST context, mark it as such.
   swift_ast_sp->m_is_scratch_context = false;
+  swift_ast_sp->m_module = &module;
   swift_ast_sp->GetLanguageOptions().DebuggerSupport = true;
   swift_ast_sp->GetLanguageOptions().EnableAccessControl = false;
   swift_ast_sp->GetLanguageOptions().EnableTargetOSChecking = false;
@@ -3134,6 +3142,157 @@ private:
   unsigned m_num_errors = 0;
   bool m_colorize;
 };
+
+/// Implements a swift::DWARFImporterDelegate to look up Clang types in DWARF.
+///
+/// During compile time, ClangImporter-imported Clang modules are compiled with
+/// -gmodules, which emits a DWARF rendition of all types defined in the module
+/// into the .pcm file. On Darwin, these types can be collected by
+/// dsymutil. This delegate allows DWARFImporter to ask LLDB to look up a Clang
+/// type by name, synthesize a Clang AST from it. DWARFImporter then hands this
+/// Clang AST to ClangImporter to import the type into Swift.
+class SwiftDWARFImporterDelegate : public swift::DWARFImporterDelegate {
+  SwiftASTContext &m_swift_ast_ctx;
+
+  /// Used to filter out types with mismatching kinds.
+  bool HasTypeKind(TypeSP clang_type_sp, swift::ClangTypeKind kind) {
+    CompilerType fwd_type = clang_type_sp->GetForwardCompilerType();
+    clang::QualType qual_type = ClangUtil::GetQualType(fwd_type);
+    switch (kind) {
+    case swift::ClangTypeKind::Typedef:
+      /*=swift::ClangTypeKind::ObjCClass:*/
+      return !qual_type->isObjCObjectOrInterfaceType() &&
+             !qual_type->getAs<clang::TypedefType>();
+    case swift::ClangTypeKind::Tag:
+      return !qual_type->isStructureOrClassType() &&
+             !qual_type->isEnumeralType();
+    case swift::ClangTypeKind::ObjCProtocol:
+      // Not implemented since Objective-C protocols aren't yet
+      // described in DWARF.
+      return true;
+    default:
+      return true;
+    }
+  }
+
+  clang::Decl *GetDeclForTypeAndKind(clang::QualType qual_type,
+                                     swift::ClangTypeKind kind) {
+    switch (kind) {
+    case swift::ClangTypeKind::Typedef:
+      /*=swift::ClangTypeKind::ObjCClass:*/
+      if (auto *obj_type = qual_type->getAsObjCInterfaceType())
+        return obj_type->getInterface();
+      if (auto *typedef_type = qual_type->getAs<clang::TypedefType>())
+        return typedef_type->getDecl();
+      break;
+    case swift::ClangTypeKind::Tag:
+      return qual_type->getAsTagDecl();
+    case swift::ClangTypeKind::ObjCProtocol:
+      // Not implemented since Objective-C protocols aren't yet
+      // described in DWARF.
+      break;
+    }
+    return nullptr;
+  }
+  
+  static CompilerContextKind
+  GetCompilerContextKind(llvm::Optional<swift::ClangTypeKind> kind) {
+    if (!kind)
+      return CompilerContextKind::AnyType;
+    switch (*kind) {
+    case swift::ClangTypeKind::Typedef:
+      /*=swift::ClangTypeKind::ObjCClass:*/
+      return (CompilerContextKind)((uint16_t)CompilerContextKind::Any |
+                                   (uint16_t)CompilerContextKind::Typedef |
+                                   (uint16_t)CompilerContextKind::Struct);
+      break;
+    case swift::ClangTypeKind::Tag:
+      return (CompilerContextKind)((uint16_t)CompilerContextKind::Any |
+                                   (uint16_t)CompilerContextKind::Class |
+                                   (uint16_t)CompilerContextKind::Struct |
+                                   (uint16_t)CompilerContextKind::Union |
+                                   (uint16_t)CompilerContextKind::Enum);
+      // case swift::ClangTypeKind::ObjCProtocol:
+      // Not implemented since Objective-C protocols aren't yet
+      // described in DWARF.
+    default:
+      return CompilerContextKind::Invalid;
+    }
+  }
+
+
+public:
+  SwiftDWARFImporterDelegate(SwiftASTContext &swift_ast_ctx)
+      : m_swift_ast_ctx(swift_ast_ctx) {}
+
+  void lookupValue(StringRef name, llvm::Optional<swift::ClangTypeKind> kind,
+                   StringRef inModule,
+                   llvm::SmallVectorImpl<clang::Decl *> &results) override {
+    auto clang_importer = m_swift_ast_ctx.GetClangImporter();
+    if (!clang_importer)
+      return;
+    Module *module = m_swift_ast_ctx.GetModule();
+    if (!module)
+      return;
+
+    // Find the type in the debug info.
+    TypeMap clang_types;
+
+    llvm::SmallVector<CompilerContext, 3> decl_context;
+    // Perform a lookup in a specific module, if requested.
+    if (!inModule.empty())
+      decl_context.push_back(
+          {CompilerContextKind::Module, ConstString(inModule)});
+    // Swift doesn't keep track of submodules.
+    decl_context.push_back({CompilerContextKind::AnyModule, ConstString()});
+    decl_context.push_back({GetCompilerContextKind(kind), ConstString(name)});
+    module->GetSymbolVendor()->FindTypes(decl_context, true, clang_types);
+
+    clang::FileSystemOptions file_system_options;
+    clang::FileManager file_manager(file_system_options);
+    clang_types.ForEach([&](lldb::TypeSP &clang_type_sp) {
+      if (!clang_type_sp)
+        return true;
+
+      // Filter out types with a mismatching type kind.
+      if (kind && HasTypeKind(clang_type_sp, *kind))
+        return true;
+
+      // Realize the full type.
+      CompilerType compiler_type = clang_type_sp->GetFullCompilerType();
+
+      // Filter our non-Clang types.
+      auto *type_system = llvm::dyn_cast_or_null<ClangASTContext>(
+          compiler_type.GetTypeSystem());
+      if (!type_system)
+        return true;
+
+      // Import the type into the DWARFImporter's context.
+      clang::ASTContext &to_ctx = clang_importer->getClangASTContext();
+      clang::ASTContext *from_ctx = type_system->getASTContext();
+      if (!from_ctx)
+        return true;
+      clang::ASTImporter importer(to_ctx, file_manager, *from_ctx, file_manager,
+                                  false);
+      clang::QualType clang_type(
+          importer.Import(ClangUtil::GetQualType(compiler_type)));
+
+      // Retrieve the imported type's Decl.
+      if (kind) {
+        if (clang::Decl *clang_decl = GetDeclForTypeAndKind(clang_type, *kind))
+          results.push_back(clang_decl);
+      } else {
+        swift::ClangTypeKind kinds[] = {
+            swift::ClangTypeKind::Typedef, // =swift::ClangTypeKind::ObjCClass,
+            swift::ClangTypeKind::Tag, swift::ClangTypeKind::ObjCProtocol};
+        for (auto kind : kinds)
+          if (clang::Decl *clang_decl = GetDeclForTypeAndKind(clang_type, kind))
+            results.push_back(clang_decl);
+      }
+      return true;
+    });
+  }
+};
 } // namespace lldb_private
 
 swift::ASTContext *SwiftASTContext::GetASTContext() {
@@ -3163,8 +3322,18 @@ swift::ASTContext *SwiftASTContext::GetASTContext() {
   auto &clang_importer_options = GetClangImporterOptions();
   if (!m_ast_context_ap->SearchPathOpts.SDKPath.empty() || TargetHasNoSDK()) {
     if (!clang_importer_options.OverrideResourceDir.empty()) {
-      clang_importer_ap = swift::ClangImporter::create(*m_ast_context_ap,
-                                                       clang_importer_options);
+      if (!m_is_scratch_context) {
+        // Create the DWARFImporterDelegate.
+        auto props = ModuleList::GetGlobalModuleListProperties();
+        if (props.GetUseDWARFImporter())
+          m_dwarf_importer_delegate_up =
+              llvm::make_unique<SwiftDWARFImporterDelegate>(*this);
+      }
+      clang_importer_ap = swift::ClangImporter::create(
+          *m_ast_context_ap, clang_importer_options, "", nullptr,
+          m_dwarf_importer_delegate_up.get());
+
+      // Handle any errors.
       if (!clang_importer_ap || HasErrors()) {
         std::string message;
         if (!HasErrors())
@@ -3271,20 +3440,6 @@ swift::ASTContext *SwiftASTContext::GetASTContext() {
     m_clang_importer = (swift::ClangImporter *)clang_importer_ap.get();
     m_ast_context_ap->addModuleLoader(std::move(clang_importer_ap),
                                       /*isClang=*/true);
-  }
-
-  // 5. Create and install the DWARF importer, but only for the module AST
-  //    context.
-  if (!m_is_scratch_context) {
-    auto props = ModuleList::GetGlobalModuleListProperties();
-    if (props.GetUseDWARFImporter()) {
-      auto dwarf_importer_ap = swift::DWARFImporter::create(
-          *m_ast_context_ap, clang_importer_options);
-      if (dwarf_importer_ap) {
-        m_dwarf_importer = dwarf_importer_ap.get();
-        m_ast_context_ap->addModuleLoader(std::move(dwarf_importer_ap));
-      }
-    }
   }
 
   // Set up the required state for the evaluator in the TypeChecker.
@@ -4050,12 +4205,6 @@ void SwiftASTContext::ValidateSectionModules(
   }
 }
 
-swift::Identifier SwiftASTContext::GetIdentifier(const char *name) {
-  VALID_OR_RETURN(swift::Identifier());
-
-  return GetASTContext()->getIdentifier(llvm::StringRef(name));
-}
-
 swift::Identifier SwiftASTContext::GetIdentifier(const llvm::StringRef &name) {
   VALID_OR_RETURN(swift::Identifier());
 
@@ -4232,33 +4381,6 @@ static CompilerType ValueDeclToType(swift::ValueDecl *decl,
     }
   }
   return CompilerType();
-}
-
-CompilerType SwiftASTContext::FindQualifiedType(const char *qualified_name) {
-  VALID_OR_RETURN(CompilerType());
-
-  if (qualified_name && qualified_name[0]) {
-    const char *dot_pos = strchr(qualified_name, '.');
-    if (dot_pos) {
-      ConstString module_name(qualified_name, dot_pos - qualified_name);
-      SourceModule module_info;
-      module_info.path.push_back(module_name);
-      swift::ModuleDecl *swift_module = GetCachedModule(module_info);
-      if (swift_module) {
-        swift::ModuleDecl::AccessPathTy access_path;
-        llvm::SmallVector<swift::ValueDecl *, 4> decls;
-        const char *module_type_name = dot_pos + 1;
-        swift_module->lookupValue(access_path, GetIdentifier(module_type_name),
-                                  swift::NLKind::UnqualifiedLookup, decls);
-        for (auto decl : decls) {
-          CompilerType type = ValueDeclToType(decl, GetASTContext());
-          if (type)
-            return type;
-        }
-      }
-    }
-  }
-  return {};
 }
 
 static CompilerType DeclToType(swift::Decl *decl, swift::ASTContext *ast) {
@@ -4447,7 +4569,7 @@ size_t SwiftASTContext::FindTypesOrDecls(const char *name,
   if (name && name[0] && swift_module) {
     swift::ModuleDecl::AccessPathTy access_path;
     llvm::SmallVector<swift::ValueDecl *, 4> value_decls;
-    swift::Identifier identifier(GetIdentifier(name));
+    swift::Identifier identifier(GetIdentifier(llvm::StringRef(name)));
     if (strchr(name, '.'))
       swift_module->lookupValue(access_path, identifier,
                                 swift::NLKind::QualifiedLookup, value_decls);
@@ -4656,26 +4778,6 @@ swift::irgen::IRGenModule &SwiftASTContext::GetIRGenModule() {
 }
 
 CompilerType
-SwiftASTContext::CreateTupleType(const std::vector<CompilerType> &elements) {
-  VALID_OR_RETURN(CompilerType());
-
-  Status error;
-  if (elements.size() == 0)
-    return {GetASTContext()->TheEmptyTupleType};
-  else {
-    std::vector<swift::TupleTypeElt> tuple_elems;
-    for (const CompilerType &type : elements) {
-      if (auto swift_type = GetSwiftType(type))
-        tuple_elems.push_back(swift::TupleTypeElt(swift_type));
-      else
-        return CompilerType();
-    }
-    llvm::ArrayRef<swift::TupleTypeElt> fields(tuple_elems);
-    return {swift::TupleType::get(fields, *GetASTContext()).getPointer()};
-  }
-}
-
-CompilerType
 SwiftASTContext::CreateTupleType(const std::vector<TupleElement> &elements) {
   VALID_OR_RETURN(CompilerType());
 
@@ -4717,23 +4819,6 @@ CompilerType SwiftASTContext::GetErrorType() {
   return {};
 }
 
-CompilerType SwiftASTContext::GetNSErrorType(Status &error) {
-  VALID_OR_RETURN(CompilerType());
-
-  std::string mangled =
-      SwiftLanguageRuntime::GetCurrentMangledName("_TtC10Foundation7NSError");
-  return GetTypeFromMangledTypename(ConstString(StringRef(mangled)), error);
-}
-
-CompilerType SwiftASTContext::CreateMetatypeType(CompilerType instance_type) {
-  VALID_OR_RETURN(CompilerType());
-
-  if (llvm::dyn_cast_or_null<SwiftASTContext>(instance_type.GetTypeSystem()))
-    return {swift::MetatypeType::get(GetSwiftType(instance_type),
-                                     *GetASTContext())};
-  return {};
-}
-
 SwiftASTContext *SwiftASTContext::GetSwiftASTContext(swift::ASTContext *ast) {
   SwiftASTContext *swift_ast = GetASTMap().Lookup(ast);
   return swift_ast;
@@ -4748,17 +4833,6 @@ uint32_t SwiftASTContext::GetPointerByteSize() {
             .GetByteSize(nullptr)
             .getValueOr(0);
   return m_pointer_byte_size;
-}
-
-uint32_t SwiftASTContext::GetPointerBitAlignment() {
-  VALID_OR_RETURN(0);
-
-  if (m_pointer_bit_align == 0) {
-    swift::ASTContext *ast = GetASTContext();
-    m_pointer_bit_align =
-        CompilerType(ast->TheRawPointerType.getPointer()).GetAlignedBitSize();
-  }
-  return m_pointer_bit_align;
 }
 
 bool SwiftASTContext::HasErrors() {
@@ -5359,22 +5433,6 @@ SwiftASTContext::GetAllocationStrategy(const CompilerType &type) {
 }
 
 bool SwiftASTContext::IsBeingDefined(void *type) { return false; }
-
-bool SwiftASTContext::IsObjCObjectPointerType(const CompilerType &type,
-                                              CompilerType *class_type_ptr) {
-  if (!type)
-    return false;
-
-  swift::CanType swift_can_type(GetCanonicalSwiftType(type));
-  const swift::TypeKind type_kind = swift_can_type->getKind();
-  if (type_kind == swift::TypeKind::BuiltinNativeObject ||
-      type_kind == swift::TypeKind::BuiltinUnknownObject)
-    return true;
-
-  if (class_type_ptr)
-    class_type_ptr->Clear();
-  return false;
-}
 
 //----------------------------------------------------------------------
 // Type Completion
@@ -6013,6 +6071,7 @@ SwiftASTContext::GetBitSize(lldb::opaque_compiler_type_t type,
   if (!type)
     return {};
 
+  // If the type has type parameters, bind them first.
   swift::CanType swift_can_type(GetCanonicalSwiftType(type));
   if (swift_can_type->hasTypeParameter()) {
     if (!exe_scope)
@@ -6022,21 +6081,23 @@ SwiftASTContext::GetBitSize(lldb::opaque_compiler_type_t type,
     auto swift_scratch_ctx_lock = SwiftASTContextLock(&exe_ctx);
     CompilerType bound_type = BindAllArchetypes({this, type}, exe_scope);
     // Note thay the bound type may be in a different AST context.
-    return bound_type.GetBitSize(nullptr).getValueOr(0);
+    return bound_type.GetBitSize(exe_scope);
   }
 
-  // lldb ValueObject subsystem expects functions to be a single
-  // pointer in size to print them correctly. This is not true
-  // for swift (where functions aren't necessarily a single pointer
-  // in size), so we need to work around the limitation here.
+  // LLDB's ValueObject subsystem expects functions to be a single
+  // pointer in size to print them correctly. This is not true for
+  // swift (where functions aren't necessarily a single pointer in
+  // size), so we need to work around the limitation here.
   if (swift_can_type->getKind() == swift::TypeKind::Function)
     return GetPointerByteSize() * 8;
 
+  // Ask the static type type system.
   const swift::irgen::FixedTypeInfo *fixed_type_info =
       GetSwiftFixedTypeInfo(type);
   if (fixed_type_info)
     return fixed_type_info->getFixedSize().getValue() * 8;
 
+  // Ask the dynamic type system.
   if (!exe_scope)
     return {};
   if (auto *runtime = SwiftLanguageRuntime::Get(*exe_scope->CalculateProcess()))
@@ -6044,24 +6105,68 @@ SwiftASTContext::GetBitSize(lldb::opaque_compiler_type_t type,
   return {};
 }
 
-uint64_t SwiftASTContext::GetByteStride(lldb::opaque_compiler_type_t type) {
-  if (type) {
-    const swift::irgen::FixedTypeInfo *fixed_type_info =
-        GetSwiftFixedTypeInfo(type);
-    if (fixed_type_info)
-      return fixed_type_info->getFixedStride().getValue();
+llvm::Optional<uint64_t>
+SwiftASTContext::GetByteStride(lldb::opaque_compiler_type_t type,
+                               ExecutionContextScope *exe_scope) {
+  if (!type)
+    return {};
+
+  // If the type has type parameters, bind them first.
+  swift::CanType swift_can_type(GetCanonicalSwiftType(type));
+  if (swift_can_type->hasTypeParameter()) {
+    if (!exe_scope)
+      return {};
+    ExecutionContext exe_ctx;
+    exe_scope->CalculateExecutionContext(exe_ctx);
+    auto swift_scratch_ctx_lock = SwiftASTContextLock(&exe_ctx);
+    CompilerType bound_type = BindAllArchetypes({this, type}, exe_scope);
+    // Note thay the bound type may be in a different AST context.
+    return bound_type.GetByteStride(exe_scope);
   }
-  return 0;
+
+  // Ask the static type type system.
+  const swift::irgen::FixedTypeInfo *fixed_type_info =
+      GetSwiftFixedTypeInfo(type);
+  if (fixed_type_info)
+    return fixed_type_info->getFixedStride().getValue();
+
+  // Ask the dynamic type system.
+  if (!exe_scope)
+    return {};
+  if (auto *runtime = SwiftLanguageRuntime::Get(*exe_scope->CalculateProcess()))
+    return runtime->GetByteStride({this, type});
+  return {};
 }
 
-size_t SwiftASTContext::GetTypeBitAlign(void *type) {
-  if (type) {
-    const swift::irgen::FixedTypeInfo *fixed_type_info =
-        GetSwiftFixedTypeInfo(type);
-    if (fixed_type_info)
-      return fixed_type_info->getFixedAlignment().getValue();
+llvm::Optional<size_t> SwiftASTContext::GetTypeBitAlign(void *type,
+                                                        ExecutionContextScope *exe_scope) {
+  if (!type)
+    return {};
+
+  // If the type has type parameters, bind them first.
+  swift::CanType swift_can_type(GetCanonicalSwiftType(type));
+  if (swift_can_type->hasTypeParameter()) {
+    if (!exe_scope)
+      return {};
+    ExecutionContext exe_ctx;
+    exe_scope->CalculateExecutionContext(exe_ctx);
+    auto swift_scratch_ctx_lock = SwiftASTContextLock(&exe_ctx);
+    CompilerType bound_type = BindAllArchetypes({this, type}, exe_scope);
+    // Note thay the bound type may be in a different AST context.
+    return bound_type.GetTypeBitAlign(exe_scope);
   }
-  return 0;
+
+  const swift::irgen::FixedTypeInfo *fixed_type_info =
+      GetSwiftFixedTypeInfo(type);
+  if (fixed_type_info)
+    return fixed_type_info->getFixedAlignment().getValue();
+
+  // Ask the dynamic type system.
+  if (!exe_scope)
+    return {};
+  if (auto *runtime = SwiftLanguageRuntime::Get(*exe_scope->CalculateProcess()))
+    return runtime->GetBitAlignment({this, type});
+  return {};
 }
 
 lldb::Encoding SwiftASTContext::GetEncoding(void *type, uint64_t &count) {

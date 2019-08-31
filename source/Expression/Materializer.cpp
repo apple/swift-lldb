@@ -15,9 +15,9 @@
 #include "lldb/Symbol/Type.h"
 #include "lldb/Symbol/Variable.h"
 #include "lldb/Target/ExecutionContext.h"
+#include "lldb/Target/LanguageRuntime.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/StackFrame.h"
-#include "lldb/Target/SwiftLanguageRuntime.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Utility/Log.h"
@@ -44,20 +44,6 @@ uint32_t Materializer::AddStructMember(Entity &entity) {
   m_current_offset += size;
 
   return ret;
-}
-
-void Materializer::Entity::SetSizeAndAlignmentFromType(CompilerType &type) {
-  if (llvm::Optional<uint64_t> size = type.GetByteSize(nullptr))
-    m_size = *size;
-
-  uint32_t bit_alignment = type.GetTypeBitAlign();
-
-  if (bit_alignment % 8) {
-    bit_alignment += 8;
-    bit_alignment &= ~((uint32_t)0x111u);
-  }
-
-  m_alignment = bit_alignment / 8;
 }
 
 class EntityPersistentVariable : public Materializer::Entity {
@@ -582,27 +568,15 @@ public:
           return;
         }
 
-        // FIXME: It would be better to map the type into the context when the
-        //        variable is created. 
-        auto layout_type = m_variable_sp->GetType()->GetLayoutCompilerType();
-
-        // IRGen wants a fully realized type so we do archetype binding
-        // before asking informations about this type (e.g. its size).
-        if (layout_type.GetMinimumLanguage() == lldb::eLanguageTypeSwift) {
-          lldb::ProcessSP process_sp =
-              map.GetBestExecutionContextScope()->CalculateProcess();
-          SwiftLanguageRuntime *language_runtime =
-              SwiftLanguageRuntime::Get(*process_sp);
-          if (language_runtime && frame_sp)
-            layout_type = language_runtime->DoArchetypeBindingForType(
-                *frame_sp, layout_type);
+        llvm::Optional<size_t> opt_bit_align =
+            m_variable_sp->GetType()->GetLayoutCompilerType().GetTypeBitAlign(scope);
+        if (!opt_bit_align) {
+          err.SetErrorStringWithFormat("can't get the type alignment for %s",
+                                       m_variable_sp->GetName().AsCString());
+          return;
         }
 
-        size_t bit_align = layout_type.GetTypeBitAlign();
-        size_t byte_align = (bit_align + 7) / 8;
-
-        if (!byte_align)
-          byte_align = 1;
+        size_t byte_align = (*opt_bit_align + 7) / 8;
 
         Status alloc_error;
         const bool zero_memory = false;
@@ -873,11 +847,14 @@ public:
         err.SetErrorString("can't get size of type");
         return;
       }
-      size_t bit_align = m_type.GetTypeBitAlign();
-      size_t byte_align = (bit_align + 7) / 8;
 
-      if (!byte_align)
-        byte_align = 1;
+      llvm::Optional<size_t> opt_bit_align = m_type.GetTypeBitAlign(exe_scope);
+      if (!opt_bit_align) {
+        err.SetErrorStringWithFormat("can't get the type alignment");
+        return;
+      }
+
+      size_t byte_align = (*opt_bit_align + 7) / 8;
 
       Status alloc_error;
       const bool zero_memory = true;
@@ -987,13 +964,6 @@ public:
 
     lldb::ProcessSP process_sp =
         map.GetBestExecutionContextScope()->CalculateProcess();
-
-    if (lang == lldb::eLanguageTypeSwift) {
-      SwiftLanguageRuntime *language_runtime =
-          SwiftLanguageRuntime::Get(*process_sp);
-      if (language_runtime && frame_sp)
-        m_type = language_runtime->DoArchetypeBindingForType(*frame_sp, m_type);
-    }
 
     lldb::ExpressionVariableSP ret = persistent_state->CreatePersistentVariable(
         exe_scope, name, m_type, map.GetByteOrder(), map.GetAddressByteSize());
