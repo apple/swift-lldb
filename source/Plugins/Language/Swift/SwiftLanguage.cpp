@@ -45,9 +45,6 @@
 #include "Plugins/Language/ObjC/Cocoa.h"
 #include "Plugins/Language/ObjC/NSString.h"
 
-// SWIFT_ENABLE_TENSORFLOW
-#include "swift/Subsystems.h"
-
 using namespace lldb;
 using namespace lldb_private;
 
@@ -1706,20 +1703,15 @@ SwiftLanguage::CompleteCode(ExecutionContextScope &exe_scope,
                             const std::string &entered_code) {
   Target &target = *exe_scope.CalculateTarget();
   Status error;
-  if (!completion_ast_context) {
-    SwiftASTContext *context = llvm::dyn_cast_or_null<SwiftASTContext>(
-        target.GetScratchTypeSystemForLanguage(&error, eLanguageTypeSwift));
-    if (!context)
-      return CompletionResponse::error("could not get Swift ASTContext");
-    completion_ast_context.reset(new SwiftASTContext(*context));
-    swift::registerIDERequestFunctions(
-        completion_ast_context.get()->GetASTContext()->evaluator);
-  }
+  SwiftASTContext *swift_ast =
+      target.GetScratchSwiftASTContext(error, exe_scope).get();
+  if (!swift_ast)
+    return CompletionResponse::error("could not get Swift ASTContext");
   auto persistent_expression_state =
       target.GetSwiftPersistentExpressionState(exe_scope);
 
-  return SwiftCompleteCode(*completion_ast_context.get(),
-                           *persistent_expression_state, entered_code);
+  return SwiftCompleteCode(*swift_ast, *persistent_expression_state,
+                           entered_code);
 }
 
 //------------------------------------------------------------------
