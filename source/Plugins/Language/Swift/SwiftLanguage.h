@@ -98,6 +98,13 @@ public:
   virtual ConstString GetPluginName() override;
 
   virtual uint32_t GetPluginVersion() override;
+
+// SWIFT_ENABLE_TENSORFLOW
+private:
+  // An ASTContext used for completion requests. We use a different ASTContext
+  // from the one used for expression evaluation so that we can
+  // `registerIDERequestFunctions` on it when we create it.
+  lldb::SwiftASTContextSP completion_ast_context;
 };
 
 } // namespace lldb_private
