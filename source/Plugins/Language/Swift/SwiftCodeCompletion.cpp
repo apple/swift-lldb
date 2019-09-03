@@ -241,8 +241,11 @@ SwiftCompleteCode(SwiftASTContext &SwiftCtx,
 
   // Get or create the module that we do completions in.
   const char *CompletionsModuleName = "completions";
-  ModuleDecl *CompletionsModule =
-      Ctx.getLoadedModule(Ctx.getIdentifier(CompletionsModuleName));
+  ModuleDecl *CompletionsModule = nullptr;
+  auto CompletionsModuleIt =
+      SwiftCtx.GetModuleCache().find(CompletionsModuleName);
+  if (CompletionsModuleIt != SwiftCtx.GetModuleCache().end())
+    CompletionsModule = CompletionsModuleIt->second;
   if (!CompletionsModule) {
     static ConstString CompletionsModuleConstString(CompletionsModuleName);
     SourceModule CompletionsModuleInfo;
