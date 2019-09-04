@@ -52,14 +52,25 @@ class TestSwiftDWARFImporterC(lldbtest.TestBase):
                                 target.FindFirstGlobalVariable("point"),
                                 typename='__ObjC.Point', num_children=2)
         self.expect("ta v point", substrs=["x = 1", "y = 2"])
+        self.expect("expr point", substrs=["x = 1", "y = 2"])
         self.expect("ta v enumerator", substrs=[".yellow"])
+        self.expect("expr enumerator", substrs=[".yellow"])
         self.expect("ta v pureSwiftStruct", substrs=["pure swift"])
+        self.expect("expr pureSwiftStruct", substrs=["pure swift"])
         self.expect("ta v swiftStructCMember",
                     substrs=["point", "x = 3", "y = 4",
                              "sub", "x = 1", "y = 2", "z = 3",
                              "swift struct c member"])
+        self.expect("expr swiftStructCMember",
+                    substrs=["point", "x = 3", "y = 4",
+                             "sub", "x = 1", "y = 2", "z = 3",
+                             "swift struct c member"])
         self.expect("ta v typedef", substrs=["x = 5", "y = 6"])
+        self.expect("expr typedef", substrs=["x = 5", "y = 6"])
         self.expect("ta v union", substrs=["(DoubleLongUnion)", "long_val = 42"])
+        # FIXME: lookup fails for:
+        #   a.union.unsafeMutableAddressor : __C.DoubleLongUnion
+        self.expect("expr union", error=True)
         self.expect("ta v fromSubmodule",
                     substrs=["(FromSubmodule)", "x = 1", "y = 2", "z = 3"])
         process.Clear()

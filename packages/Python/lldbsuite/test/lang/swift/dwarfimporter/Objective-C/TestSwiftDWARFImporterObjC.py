@@ -49,8 +49,8 @@ class TestSwiftDWARFImporterObjC(lldbtest.TestBase):
                                 target.FindFirstGlobalVariable("obj"),
                                 typename="Swift.Optional<__ObjC.ObjCClass>",
                                 num_children=0)
-        self.expect("target var obj", substrs=["ObjCClass",
-                                               "private_ivar", "42"])
+        self.expect("ta v obj", substrs=["ObjCClass", "private_ivar", "42"])
+        self.expect("expr obj", substrs=["ObjCClass", "private_ivar", "42"])
         # FIXME: This triggers an assertion in ClangImporter:
         #        "ObjC property without getter"
         #self.expect("target var swiftChild", substrs=["ObjCClass",
