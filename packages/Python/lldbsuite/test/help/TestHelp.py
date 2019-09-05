@@ -243,6 +243,11 @@ class HelpCommandTestCase(TestBase):
                     substrs=["'alongaliasna' is an abbreviation for 'help'"])
 
     @no_debug_info_test
+    def test_help_unknown_flag(self):
+        self.expect("help -z", error=True,
+                    substrs=["unknown or ambiguous option"])
+
+    @no_debug_info_test
     def test_help_format_output(self):
         """Test that help output reaches TerminalWidth."""
         self.runCmd(
