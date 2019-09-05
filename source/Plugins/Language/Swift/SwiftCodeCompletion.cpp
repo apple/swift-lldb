@@ -240,12 +240,16 @@ SwiftCompleteCode(SwiftASTContext &SwiftCtx,
   // == Prepare a module and source files ==
 
   // Get or create the module that we do completions in.
-  static ConstString CompletionsModuleName("completions");
-  SourceModule CompletionsModuleInfo;
-  CompletionsModuleInfo.path.push_back(CompletionsModuleName);
-  ModuleDecl *CompletionsModule =
-      SwiftCtx.GetModule(CompletionsModuleInfo, Error);
+  const char *CompletionsModuleName = "completions";
+  ModuleDecl *CompletionsModule = nullptr;
+  auto CompletionsModuleIt =
+      SwiftCtx.GetModuleCache().find(CompletionsModuleName);
+  if (CompletionsModuleIt != SwiftCtx.GetModuleCache().end())
+    CompletionsModule = CompletionsModuleIt->second;
   if (!CompletionsModule) {
+    static ConstString CompletionsModuleConstString(CompletionsModuleName);
+    SourceModule CompletionsModuleInfo;
+    CompletionsModuleInfo.path.push_back(CompletionsModuleConstString);
     CompletionsModule = SwiftCtx.CreateModule(CompletionsModuleInfo, Error);
     if (!CompletionsModule)
       return CompletionResponse::error("could not make completions module");
