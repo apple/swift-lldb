@@ -1242,7 +1242,6 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
       return false;
     auto *runtime = SwiftLanguageRuntime::Get(*process_sp);
     return !runtime->IsABIStable();
-    return true;
   };
 
   invocation.getLangOptions().UseDarwinPreStableABIBit =

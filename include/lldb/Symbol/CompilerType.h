@@ -299,8 +299,9 @@ public:
   llvm::Optional<uint64_t> GetByteSize(ExecutionContextScope *exe_scope) const;
   /// Return the size of the type in bits.
   llvm::Optional<uint64_t> GetBitSize(ExecutionContextScope *exe_scope) const;
-
-  uint64_t GetByteStride() const;
+  /// Return the stride of the type in bits.
+  llvm::Optional<uint64_t>
+  GetByteStride(ExecutionContextScope *exe_scope) const;
 
   uint64_t GetAlignedBitSize() const;
 
@@ -308,7 +309,7 @@ public:
 
   lldb::Format GetFormat() const;
 
-  size_t GetTypeBitAlign() const;
+  llvm::Optional<size_t> GetTypeBitAlign(ExecutionContextScope *exe_scope) const;
 
   uint32_t GetNumChildren(bool omit_empty_base_classes,
                           const ExecutionContext *exe_ctx) const;

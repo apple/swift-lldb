@@ -34,7 +34,7 @@
 namespace swift {
 enum class IRGenDebugInfoLevel : unsigned;
 class CanType;
-class DWARFImporter;
+class DWARFImporterDelegate;
 class IRGenOptions;
 class NominalTypeDecl;
 class SearchPathOptions;
@@ -241,6 +241,8 @@ public:
 
   void CacheModule(swift::ModuleDecl *module);
 
+  Module *GetModule() const { return m_module; }
+
   // Call this after the search paths are set up, it will find the module given
   // by module, load the module into the AST context, and also load any
   // "LinkLibraries" that the module requires.
@@ -269,13 +271,7 @@ public:
 
   void LoadExtraDylibs(Process &process, Status &error);
 
-  swift::Identifier GetIdentifier(const char *name);
-
   swift::Identifier GetIdentifier(const llvm::StringRef &name);
-
-  // Find a type by a fully qualified name that includes the module name
-  // (the format being "<module_name>.<type_name>").
-  CompilerType FindQualifiedType(const char *qualified_name);
 
   CompilerType FindType(const char *name, swift::ModuleDecl *swift_module);
 
@@ -316,8 +312,6 @@ public:
   bool SetTriple(const llvm::Triple triple,
                  lldb_private::Module *module = nullptr);
 
-  uint32_t GetPointerBitAlignment();
-
   // Imports the type from the passed in type into this SwiftASTContext. The
   // type must be a Swift type. If the type can be imported, returns the
   // CompilerType for the imported type.
@@ -327,13 +321,6 @@ public:
 
   swift::ClangImporter *GetClangImporter();
 
-  // ***********************************************************
-  //  these calls create non-nominal types which are given in
-  //  metadata just in terms of their building blocks and for
-  //  which there is no one basic type to compose from
-  // ***********************************************************
-  CompilerType CreateTupleType(const std::vector<CompilerType> &elements);
-
   struct TupleElement {
     ConstString element_name;
     CompilerType element_type;
@@ -342,10 +329,6 @@ public:
   CompilerType CreateTupleType(const std::vector<TupleElement> &elements);
 
   CompilerType GetErrorType();
-
-  CompilerType GetNSErrorType(Status &error);
-
-  CompilerType CreateMetatypeType(CompilerType instance_type);
 
   bool HasErrors();
 
@@ -514,9 +497,6 @@ public:
       const CompilerType &type, NonTriviallyManagedReferenceStrategy &strategy,
       CompilerType *underlying_type = nullptr);
 
-  bool IsObjCObjectPointerType(const CompilerType &type,
-                               CompilerType *class_type_ptr);
-
   //----------------------------------------------------------------------
   // Type Completion
   //----------------------------------------------------------------------
@@ -581,7 +561,9 @@ public:
   GetBitSize(lldb::opaque_compiler_type_t type,
              ExecutionContextScope *exe_scope) override;
 
-  uint64_t GetByteStride(lldb::opaque_compiler_type_t type) override;
+  llvm::Optional<uint64_t>
+  GetByteStride(lldb::opaque_compiler_type_t type,
+                ExecutionContextScope *exe_scope) override;
 
   lldb::Encoding GetEncoding(void *type, uint64_t &count) override;
 
@@ -701,7 +683,8 @@ public:
 
   bool IsCStringType(void *type, uint32_t &length) override;
 
-  size_t GetTypeBitAlign(void *type) override;
+  llvm::Optional<size_t> GetTypeBitAlign(void *type,
+                                         ExecutionContextScope *exe_scope) override;
 
   CompilerType GetBasicTypeFromAST(lldb::BasicType basic_type) override;
 
@@ -817,9 +800,10 @@ protected:
   std::unique_ptr<swift::CompilerInvocation> m_compiler_invocation_ap;
   std::unique_ptr<swift::SourceManager> m_source_manager_up;
   std::unique_ptr<swift::DiagnosticEngine> m_diagnostic_engine_ap;
-  // CompilerInvocation, SourceMgr, and DiagEngine must come
-  // before the ASTContext, so they get deallocated *after* the
-  // ASTContext.
+  std::unique_ptr<swift::DWARFImporterDelegate> m_dwarf_importer_delegate_up;
+  // CompilerInvocation, SourceMgr, DiagEngine and
+  // DWARFImporterDelegate must come before the ASTContext, so they
+  // get deallocated *after* the ASTContext.
   std::unique_ptr<swift::ASTContext> m_ast_context_ap;
   std::unique_ptr<llvm::TargetOptions> m_target_options_ap;
   std::unique_ptr<swift::irgen::IRGenerator> m_ir_generator_ap;
@@ -836,7 +820,6 @@ protected:
   swift::MemoryBufferSerializedModuleLoader *m_memory_buffer_module_loader =
       nullptr;
   swift::ClangImporter *m_clang_importer = nullptr;
-  swift::DWARFImporter *m_dwarf_importer = nullptr;
   SwiftModuleMap m_swift_module_cache;
   SwiftTypeFromMangledNameMap m_mangled_name_to_type_map;
   SwiftMangledNameFromTypeMap m_type_to_mangled_name_map;
@@ -849,6 +832,7 @@ protected:
   /// Only if this AST belongs to a target, and an expression has been
   /// evaluated will the target's process pointer be filled in
   lldb_private::Process *m_process = nullptr;
+  Module *m_module = nullptr;
   std::string m_platform_sdk_path;
   std::string m_resource_dir;
 

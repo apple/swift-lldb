@@ -68,7 +68,7 @@ SwiftArrayNativeBufferHandler::SwiftArrayNativeBufferHandler(
     : m_metadata_ptr(LLDB_INVALID_ADDRESS),
       m_reserved_word(LLDB_INVALID_ADDRESS), m_size(0), m_capacity(0),
       m_first_elem_ptr(LLDB_INVALID_ADDRESS), m_elem_type(elem_type),
-      m_element_size(0), m_element_stride(elem_type.GetByteStride()),
+      m_element_size(0), m_element_stride(0),
       m_exe_ctx_ref(valobj.GetExecutionContextRef()) {
   if (native_ptr == LLDB_INVALID_ADDRESS)
     return;
@@ -87,6 +87,9 @@ SwiftArrayNativeBufferHandler::SwiftArrayNativeBufferHandler(
   auto opt_size = elem_type.GetByteSize(process_sp.get());
   if (opt_size)
     m_element_size = *opt_size;
+  auto opt_stride = elem_type.GetByteStride(process_sp.get());
+  if (opt_stride)
+    m_element_stride = *opt_stride;
   size_t ptr_size = process_sp->GetAddressByteSize();
   Status error;
   lldb::addr_t next_read = native_ptr;
@@ -194,7 +197,7 @@ SwiftArraySliceBufferHandler::GetElementAtIndex(size_t idx) {
 SwiftArraySliceBufferHandler::SwiftArraySliceBufferHandler(
     ValueObject &valobj, CompilerType elem_type)
     : m_size(0), m_first_elem_ptr(LLDB_INVALID_ADDRESS), m_elem_type(elem_type),
-      m_element_size(0), m_element_stride(elem_type.GetByteStride()),
+      m_element_size(0), m_element_stride(0),
       m_exe_ctx_ref(valobj.GetExecutionContextRef()), m_native_buffer(false),
       m_start_index(0) {
   static ConstString g_start("subscriptBaseAddress");
@@ -210,6 +213,10 @@ SwiftArraySliceBufferHandler::SwiftArraySliceBufferHandler(
   auto opt_size = elem_type.GetByteSize(process_sp.get());
   if (opt_size)
     m_element_size = *opt_size;
+
+  auto opt_stride = elem_type.GetByteStride(process_sp.get());
+  if (opt_stride)
+    m_element_stride = *opt_stride;
 
   ValueObjectSP value_sp(valobj.GetChildAtNamePath({g_start, g__rawValue}));
   if (!value_sp)
@@ -292,9 +299,8 @@ SwiftArrayBufferHandler::CreateBufferHandler(ValueObject &valobj) {
 
   // For now we have to keep the old mangled name since the Objc->Swift bindings
   // that are in Foundation don't get the new mangling.
-  if (valobj_typename.startswith(SwiftLanguageRuntime::GetCurrentMangledName("_TtCs23_ContiguousArrayStorage"))
-      || valobj_typename.startswith("_TtCs23_ContiguousArrayStorage")
-      || valobj_typename.startswith("Swift._ContiguousArrayStorage")) {
+  if (valobj_typename.startswith("_TtCs23_ContiguousArrayStorage") ||
+      valobj_typename.startswith("Swift._ContiguousArrayStorage")) {
     CompilerType anyobject_type =
         valobj.GetTargetSP()->GetScratchClangASTContext()->GetBasicType(
             lldb::eBasicTypeObjCID);
@@ -307,9 +313,8 @@ SwiftArrayBufferHandler::CreateBufferHandler(ValueObject &valobj) {
     return nullptr;
   }
 
-  if (valobj_typename.startswith(SwiftLanguageRuntime::GetCurrentMangledName("_TtCs22__SwiftDeferredNSArray"))
-      || valobj_typename.startswith("_TtCs22__SwiftDeferredNSArray")
-      || valobj_typename.startswith("Swift.__SwiftDeferredNSArray") ) {
+  if (valobj_typename.startswith("_TtCs22__SwiftDeferredNSArray") ||
+      valobj_typename.startswith("Swift.__SwiftDeferredNSArray")) {
     ProcessSP process_sp(valobj.GetProcessSP());
     if (!process_sp)
       return nullptr;
@@ -392,9 +397,6 @@ SwiftArrayBufferHandler::CreateBufferHandler(ValueObject &valobj) {
     static ConstString g_buffer("_buffer");
     static ConstString g__storage("_storage");
     static ConstString g_rawValue("rawValue");
-
-    static ConstString g___bufferPointer("__bufferPointer");
-    static ConstString g__nativeBuffer("_nativeBuffer");
 
     ValueObjectSP buffer_sp(valobj.GetNonSyntheticValue()->GetChildAtNamePath(
         {g_buffer, g__storage, g_rawValue}));
