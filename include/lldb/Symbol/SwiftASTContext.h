@@ -300,6 +300,10 @@ public:
   // Get a function type that returns nothing and take no parameters
   CompilerType GetVoidFunctionType();
 
+  /// Import and Swiftify a Clang type.
+  /// \return Returns an invalid type if unsuccessful.
+  CompilerType ImportClangType(CompilerType clang_type);
+
   static SwiftASTContext *GetSwiftASTContext(swift::ASTContext *ast);
 
   swift::irgen::IRGenerator &GetIRGenerator(swift::IRGenOptions &opts,
@@ -307,6 +311,8 @@ public:
 
   swift::irgen::IRGenModule &GetIRGenModule();
 
+  lldb::TargetWP GetTarget() const { return m_target_wp; }
+  
   llvm::Triple GetTriple() const;
 
   bool SetTriple(const llvm::Triple triple,

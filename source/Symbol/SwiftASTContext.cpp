@@ -27,6 +27,7 @@
 #include "swift/AST/DiagnosticsSema.h"
 #include "swift/AST/ExistentialLayout.h"
 #include "swift/AST/GenericSignature.h"
+#include "swift/AST/ImportCache.h"
 #include "swift/AST/IRGenOptions.h"
 #include "swift/AST/NameLookup.h"
 #include "swift/AST/SearchPathOptions.h"
@@ -3194,7 +3195,7 @@ class SwiftDWARFImporterDelegate : public swift::DWARFImporterDelegate {
     }
     return nullptr;
   }
-  
+
   static CompilerContextKind
   GetCompilerContextKind(llvm::Optional<swift::ClangTypeKind> kind) {
     if (!kind)
@@ -3220,19 +3221,69 @@ class SwiftDWARFImporterDelegate : public swift::DWARFImporterDelegate {
     }
   }
 
-
 public:
   SwiftDWARFImporterDelegate(SwiftASTContext &swift_ast_ctx)
       : m_swift_ast_ctx(swift_ast_ctx) {}
 
+  /// Look up a clang::Decl by name.
+  ///
+  /// There are two primary ways that this delegate method is called:
+  ///
+  ///    1. When resolving a type from a mangled name. In this case \p
+  ///       kind will be known, but the owning module of a Clang type
+  ///       in a mangled name is always __ObjC or __C.
+  ///
+  ///    2. When resolving a type from a serialized module
+  ///       cross reference. In this case \c kind will be unspecified,
+  ///       but the (top-level) module that the type is defined in
+  ///       will be known.
+  ///
+  /// The following diagram shows how the various components
+  /// interact. All paths lead to a call to the function
+  /// \c ClangImporter::Implementation::importDeclReal(), which turns
+  /// a \c clang::Decl into a \c swift::Decl.  The return paths leading
+  /// back from \c importDeclReal() are omitted from the diagram. Also
+  /// some auxiliary intermediate function calls are be omitted for
+  /// brevity.
+  ///
+  /// \verbatim
+  /// ╔═LLDB═════════════════════════════════════════════════════════════════╗
+  /// ║                                                                      ║
+  /// ║  ┌─DWARFASTParserSwift──────────┐   ┌─DWARFImporterDelegate──────┐   ║
+  /// ║  │                              │   │                            │   ║
+  /// ║  │ GetTypeFromMangledTypename() │ ┌─├→lookupValue()─────┐        │   ║
+  /// ║  │             │                │ │ │                   │        │   ║
+  /// ║  └─────────────┬────────────────┘ │ └───────────────────┬────────┘   ║
+  /// ║                │                  │                     │            ║
+  /// ╚════════════════╤══════════════════╧═════════════════════╤════════════╝
+  ///                  │                  │                     │
+  /// ╔═Swift Compiler═╤══════════════════╧═════════════════════╤════════════╗
+  /// ║                │                  │                     │            ║
+  /// ║  ┌─ASTDemangler┬─────────────┐    │ ┌─ClangImporter─────┬────┐       ║
+  /// ║  │             ↓             │    │ │                   │    │       ║
+  /// ║  │ findForeignTypeDecl()─────├──────├→lookupTypeDecl()  │    │       ║
+  /// ║  │                           │    │ │      ⇣            ↓    │       ║
+  /// ║  └───────────────────────────┘    └─┤─lookupTypeDeclDWARF()  │       ║
+  /// ║                                     │      ↓                 │       ║
+  /// ║                                     │ *importDeclReal()*     │       ║
+  /// ║                                     │      ↑                 │       ║
+  /// ║                                     │ lookupValueDWARF()     │       ║
+  /// ║                                     │      ↑                 │       ║
+  /// ║                                     └──────┴─────────────────┘       ║
+  /// ║                                            │                         ║
+  /// ║  ┌─Deserialization─────────┐               └──────────────────────┐  ║
+  /// ║  │ loadAllMembers()        │                                      │  ║
+  /// ║  │        ↓                │  ┌─ModuleDecl────┐ ┌─DWARFModuleUnit─┴┐ ║
+  /// ║  │ resolveCrossReference()─├──├→lookupValue()─├─├→lookupValue()───┘│ ║
+  /// ║  │                         │  └───────────────┘ └──────────────────┘ ║
+  /// ║  └─────────────────────────┘                                         ║
+  /// ╚══════════════════════════════════════════════════════════════════════╝
+  /// \endverbatim
   void lookupValue(StringRef name, llvm::Optional<swift::ClangTypeKind> kind,
                    StringRef inModule,
                    llvm::SmallVectorImpl<clang::Decl *> &results) override {
     auto clang_importer = m_swift_ast_ctx.GetClangImporter();
     if (!clang_importer)
-      return;
-    Module *module = m_swift_ast_ctx.GetModule();
-    if (!module)
       return;
 
     // Find the type in the debug info.
@@ -3246,7 +3297,19 @@ public:
     // Swift doesn't keep track of submodules.
     decl_context.push_back({CompilerContextKind::AnyModule, ConstString()});
     decl_context.push_back({GetCompilerContextKind(kind), ConstString(name)});
-    module->GetSymbolVendor()->FindTypes(decl_context, true, clang_types);
+    auto search = [&](Module &module) {
+      return module.GetSymbolVendor()->FindTypes(decl_context, true,
+                                                 clang_types);
+    };
+    if (Module *module = m_swift_ast_ctx.GetModule())
+      search(*module);
+    else if (TargetSP target_sp = m_swift_ast_ctx.GetTarget().lock()) {
+      // In a scratch context, search everywhere.
+      auto images = target_sp->GetImages();
+      for (size_t i = 0; i != images.GetSize(); ++i)
+        if (search(*images.GetModuleAtIndex(i)))
+          break;
+    }
 
     clang::FileSystemOptions file_system_options;
     clang::FileManager file_manager(file_system_options);
@@ -3322,13 +3385,11 @@ swift::ASTContext *SwiftASTContext::GetASTContext() {
   auto &clang_importer_options = GetClangImporterOptions();
   if (!m_ast_context_ap->SearchPathOpts.SDKPath.empty() || TargetHasNoSDK()) {
     if (!clang_importer_options.OverrideResourceDir.empty()) {
-      if (!m_is_scratch_context) {
-        // Create the DWARFImporterDelegate.
-        auto props = ModuleList::GetGlobalModuleListProperties();
-        if (props.GetUseDWARFImporter())
-          m_dwarf_importer_delegate_up =
-              llvm::make_unique<SwiftDWARFImporterDelegate>(*this);
-      }
+      // Create the DWARFImporterDelegate.
+      auto props = ModuleList::GetGlobalModuleListProperties();
+      if (props.GetUseDWARFImporter())
+        m_dwarf_importer_delegate_up =
+            llvm::make_unique<SwiftDWARFImporterDelegate>(*this);
       clang_importer_ap = swift::ClangImporter::create(
           *m_ast_context_ap, clang_importer_options, "", nullptr,
           m_dwarf_importer_delegate_up.get());
@@ -3369,7 +3430,7 @@ swift::ASTContext *SwiftASTContext::GetASTContext() {
   }
   LOG_PRINTF(LIBLLDB_LOG_TYPES, "Using Clang module cache path: %s",
              moduleCachePath.c_str());
-  
+
   // Compute the prebuilt module cache path to use:
   // <resource-dir>/<platform>/prebuilt-modules
   llvm::Triple triple(GetTriple());
@@ -3443,6 +3504,7 @@ swift::ASTContext *SwiftASTContext::GetASTContext() {
   }
 
   // Set up the required state for the evaluator in the TypeChecker.
+  registerParseRequestFunctions(m_ast_context_ap->evaluator);
   registerTypeCheckerRequestFunctions(m_ast_context_ap->evaluator);
 
   // SWIFT_ENABLE_TENSORFLOW
@@ -3796,7 +3858,6 @@ void SwiftASTContext::LoadModule(swift::ModuleDecl *swift_module,
     }
 
     SwiftLanguageRuntime *runtime = SwiftLanguageRuntime::Get(process);
-
     if (runtime && runtime->IsInLibraryNegativeCache(library_name))
       return;
 
@@ -3960,11 +4021,9 @@ void SwiftASTContext::LoadModule(swift::ModuleDecl *swift_module,
         all_dlopen_errors.GetData());
   };
 
-  swift_module->forAllVisibleModules(
-      {}, [&](swift::ModuleDecl::ImportedModule import) {
-        import.second->collectLinkLibraries(addLinkLibrary);
-        return true;
-      });
+  for (auto import : swift::namelookup::getAllImports(swift_module)) {
+    import.second->collectLinkLibraries(addLinkLibrary);
+  }
   error = current_error;
 }
 
