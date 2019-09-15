@@ -10,6 +10,7 @@
 
 #include "lldb/Core/Address.h"
 #include "lldb/Core/Module.h"
+#include "lldb/Core/SwiftASTContextReader.h"
 #include "lldb/Core/ValueObjectCast.h"
 #include "lldb/Core/ValueObjectChild.h"
 #include "lldb/Core/ValueObjectConstResult.h"
@@ -28,7 +29,6 @@
 #include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Symbol/CompileUnit.h"
 #include "lldb/Symbol/CompilerType.h"
-#include "lldb/Symbol/SwiftASTContext.h"
 #include "lldb/Symbol/Declaration.h"
 #include "lldb/Symbol/SymbolContext.h"
 #include "lldb/Symbol/Type.h"
@@ -1706,16 +1706,6 @@ LanguageType ValueObject::GetObjectRuntimeLanguage() {
   if (GetCompilerType().IsValid())
     return GetCompilerType().GetMinimumLanguage();
   return lldb::eLanguageTypeUnknown;
-}
-
-SwiftASTContextReader ValueObject::GetScratchSwiftASTContext() {
-  lldb::TargetSP target_sp(GetTargetSP());
-  if (!target_sp)
-    return {};
-  Status error;
-  ExecutionContext ctx = GetExecutionContextRef().Lock(false);
-  auto *exe_scope = ctx.GetBestExecutionContextScope();
-  return target_sp->GetScratchSwiftASTContext(error, *exe_scope);
 }
 
 void ValueObject::AddSyntheticChild(ConstString key,

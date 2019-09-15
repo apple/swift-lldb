@@ -1171,9 +1171,13 @@ SwiftLanguageRuntime::MetadataPromise::FulfillTypePromise(Status *error) {
   if (m_compiler_type.hasValue())
     return m_compiler_type.getValue();
 
-  auto swift_ast_ctx = m_for_object_sp->GetScratchSwiftASTContext();
+  TargetSP target_sp = m_for_object_sp->GetTargetSP();
+  Status type_system_error;
+  auto swift_ast_ctx =
+      target_sp->GetScratchSwiftASTContext(type_system_error, *m_for_object_sp);
   if (!swift_ast_ctx) {
-    error->SetErrorString("couldn't get Swift scratch context");
+    error->SetErrorStringWithFormat("couldn't get Swift scratch context: %s",
+                                    type_system_error.AsCString());
     return CompilerType();
   }
   auto &remote_ast = m_swift_runtime.GetRemoteASTContext(*swift_ast_ctx);
@@ -1213,9 +1217,13 @@ SwiftLanguageRuntime::MetadataPromise::FulfillKindPromise(Status *error) {
   if (m_metadata_kind.hasValue())
     return m_metadata_kind;
 
-  auto swift_ast_ctx = m_for_object_sp->GetScratchSwiftASTContext();
+  TargetSP target_sp = m_for_object_sp->GetTargetSP();
+  Status type_system_error;
+  auto swift_ast_ctx =
+      target_sp->GetScratchSwiftASTContext(type_system_error, *m_for_object_sp);
   if (!swift_ast_ctx) {
-    error->SetErrorString("couldn't get Swift scratch context");
+    error->SetErrorStringWithFormat("couldn't get Swift scratch context: %s",
+                                    type_system_error.AsCString());
     return llvm::None;
   }
   auto &remote_ast = m_swift_runtime.GetRemoteASTContext(*swift_ast_ctx);
@@ -1257,8 +1265,10 @@ bool SwiftLanguageRuntime::MetadataPromise::IsStaticallyDetermined() {
 SwiftLanguageRuntime::MetadataPromiseSP
 SwiftLanguageRuntime::GetMetadataPromise(lldb::addr_t addr,
                                          ValueObject &for_object) {
-  auto swift_ast_ctx = for_object.GetScratchSwiftASTContext();
-  if (!swift_ast_ctx || swift_ast_ctx->HasFatalErrors())
+  Status error;
+  auto swift_ast_ctx =
+      m_process->GetTarget().GetScratchSwiftASTContext(error, for_object);
+  if (!error.Success() || swift_ast_ctx->HasFatalErrors())
     return nullptr;
 
   if (addr == 0 || addr == LLDB_INVALID_ADDRESS)
@@ -1344,8 +1354,9 @@ SwiftLanguageRuntime::GetMemberVariableOffset(CompilerType instance_type,
 
   llvm::Optional<SwiftASTContextReader> scratch_ctx;
   if (instance) {
-    scratch_ctx = instance->GetScratchSwiftASTContext();
-    if (!scratch_ctx)
+    Status error;
+    scratch_ctx = m_process->GetTarget().GetScratchSwiftASTContext(error, *instance);
+    if (!error.Success())
       return llvm::None;
   }
   
@@ -2158,8 +2169,10 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress(
   // use the scratch context where such operations are legal and safe.
   assert(IsScratchContextLocked(in_value.GetTargetSP()) &&
          "Swift scratch context not locked ahead of dynamic type resolution");
-  auto scratch_ctx = in_value.GetScratchSwiftASTContext();
-  if (!scratch_ctx)
+  Status error;
+  auto scratch_ctx =
+      m_process->GetTarget().GetScratchSwiftASTContext(error, in_value);
+  if (!error.Success())
     return false;
 
   auto retry_once = [&]() {
@@ -3563,7 +3576,9 @@ SwiftLanguageRuntime::GetBridgedSyntheticChildProvider(ValueObject &valobj) {
   ProjectionSyntheticChildren::TypeProjectionUP type_projection(
       new ProjectionSyntheticChildren::TypeProjectionUP::element_type());
 
-  if (auto swift_ast_ctx = valobj.GetScratchSwiftASTContext()) {
+  Status type_system_error;
+  auto swift_ast_ctx = m_process->GetTarget().GetScratchSwiftASTContext(type_system_error, valobj);
+  if (type_system_error.Success()) {
     Status error;
     CompilerType swift_type =
         swift_ast_ctx->GetTypeFromMangledTypename(type_name, error);
