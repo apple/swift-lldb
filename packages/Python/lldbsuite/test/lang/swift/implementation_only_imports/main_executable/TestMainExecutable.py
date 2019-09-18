@@ -12,7 +12,14 @@
 """
 Test `@_implementationOnly import` in the main executable
 """
-import commands
+
+#SWIFT_TENSORFLOW: Since tensorflow uses Python 3 and commands is deprected
+# there, import subprocess instead.
+try
+    import commands
+except ImportError:    
+    import subprocess
+    
 import lldb
 from lldbsuite.test.lldbtest import *
 from lldbsuite.test.decorators import *
