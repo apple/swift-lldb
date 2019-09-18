@@ -1642,7 +1642,8 @@ bool SwiftLanguageRuntime::GetDynamicTypeAndAddress_Protocol(
   }
 
   auto type_and_address = result.getValue();
-  class_type_or_name.SetCompilerType(type_and_address.InstanceType);
+  class_type_or_name.SetCompilerType(
+      SwiftASTContext::GetCompilerType(type_and_address.InstanceType));
   address.SetRawAddress(type_and_address.PayloadAddress.getAddressData());
   return true;
 }
@@ -1801,7 +1802,7 @@ SwiftLanguageRuntime::DoArchetypeBindingForType(StackFrame &stack_frame,
         swift::SubstFlags::DesugarMemberTypes);
     assert(target_swift_type);
 
-    return {target_swift_type.getPointer()};
+    return SwiftASTContext::GetCompilerType(target_swift_type);
   }
   return base_type;
 }
@@ -2319,7 +2320,7 @@ lldb::addr_t SwiftLanguageRuntime::FixupAddress(lldb::addr_t addr,
 const swift::reflection::TypeInfo *
 SwiftLanguageRuntime::GetTypeInfo(CompilerType type) {
   swift::CanType swift_can_type(GetCanonicalSwiftType(type));
-  CompilerType can_type(swift_can_type);
+  CompilerType can_type = SwiftASTContext::GetCompilerType(swift_can_type);
   ConstString mangled_name(can_type.GetMangledTypeName());
   StringRef mangled_no_prefix =
       swift::Demangle::dropSwiftManglingPrefix(mangled_name.GetStringRef());
