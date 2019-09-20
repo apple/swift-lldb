@@ -176,7 +176,7 @@ doCodeCompletion(SourceFile &SF, StringRef EnteredCode,
 
   const unsigned OriginalDeclCount = SF.Decls.size();
 
-  PersistentParserState PersistentState(Ctx);
+  PersistentParserState PersistentState;
   bool Done;
   do {
     parseIntoSourceFile(SF, BufferID, &Done, nullptr, &PersistentState);
@@ -187,6 +187,8 @@ doCodeCompletion(SourceFile &SF, StringRef EnteredCode,
   performDelayedParsing(&SF, PersistentState, CompletionCallbacksFactory);
 
   SF.Decls.resize(OriginalDeclCount);
+
+  Ctx.SourceMgr.clearCodeCompletionPoint();
 
   // Reset the error state because it's only relevant to the code that we just
   // processed, which now gets thrown away.
@@ -326,11 +328,11 @@ SwiftCompleteCode(SwiftASTContext &SwiftCtx,
     const unsigned BufferID =
         Ctx.SourceMgr.addMemBufferCopy(AugmentedCode, "<REPL Input>");
     const unsigned OriginalDeclCount = EnteredCodeFile->Decls.size();
-    PersistentParserState PersistentState(Ctx);
+    PersistentParserState PersistentState;
     bool Done;
     do {
       parseIntoSourceFile(*EnteredCodeFile, BufferID, &Done, nullptr,
-                          &PersistentState, nullptr);
+                          &PersistentState);
     } while (!Done);
     for (auto it = EnteredCodeFile->Decls.begin() + OriginalDeclCount;
          it != EnteredCodeFile->Decls.end(); it++)
