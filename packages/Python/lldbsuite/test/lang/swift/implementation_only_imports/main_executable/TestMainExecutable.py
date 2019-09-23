@@ -12,7 +12,7 @@
 """
 Test `@_implementationOnly import` in the main executable
 """
-try
+try:
     import commands
 except ImportError:    
     import subprocess

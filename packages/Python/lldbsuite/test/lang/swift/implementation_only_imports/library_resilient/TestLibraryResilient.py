@@ -12,7 +12,7 @@
 """
 Test `@_implementationOnly import` in a resilient library used by the main executable
 """
-try
+try:
     import commands
 except ImportError:    
     import subprocess

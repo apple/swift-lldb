@@ -12,7 +12,7 @@
 """
 Test `@_implementationOnly import` behind some indirection in a library used by the main executable
 """
-try
+try:
     import commands
 except ImportError:    
     import subprocess
