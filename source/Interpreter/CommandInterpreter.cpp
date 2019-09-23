@@ -1762,7 +1762,7 @@ void CommandInterpreter::HandleCompletionMatches(CompletionRequest &request) {
 
   // For any of the command completions a unique match will be a complete word.
 
-  if (request.GetCursorIndex() == -1) {
+  if (request.GetPartialParsedLine().GetArgumentCount() == 0) {
     // We got nothing on the command line, so return the list of commands
     bool include_aliases = true;
     StringList new_matches, descriptions;
@@ -1786,7 +1786,7 @@ void CommandInterpreter::HandleCompletionMatches(CompletionRequest &request) {
         new_matches.DeleteStringAtIndex(0);
         new_descriptions.DeleteStringAtIndex(0);
         request.GetParsedLine().AppendArgument(llvm::StringRef());
-        request.SetCursorIndex(request.GetCursorIndex() + 1);
+        request.SetCursorIndex(request.GetCursorIndex() + 1U);
         request.SetCursorCharPosition(0);
       }
     }
@@ -1800,8 +1800,7 @@ void CommandInterpreter::HandleCompletionMatches(CompletionRequest &request) {
     CommandObject *command_object =
         GetCommandObject(request.GetParsedLine().GetArgumentAtIndex(0));
     if (command_object) {
-      request.GetParsedLine().Shift();
-      request.SetCursorIndex(request.GetCursorIndex() - 1);
+      request.ShiftArguments();
       command_object->HandleCompletion(request);
     }
   }
