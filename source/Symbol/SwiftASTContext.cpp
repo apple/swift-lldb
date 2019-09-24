@@ -45,11 +45,10 @@
 #include "swift/Demangling/Demangle.h"
 #include "swift/Demangling/ManglingMacros.h"
 #include "swift/Frontend/Frontend.h"
-#include "swift/Frontend/ParseableInterfaceModuleLoader.h"
+#include "swift/Frontend/ModuleInterfaceLoader.h"
 #include "swift/Frontend/PrintingDiagnosticConsumer.h"
 #include "swift/IRGen/Linking.h"
 #include "swift/SIL/SILModule.h"
-#include "swift/Serialization/ModuleFile.h"
 #include "swift/Serialization/Validation.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/DeclObjC.h"
@@ -3449,14 +3448,14 @@ swift::ASTContext *SwiftASTContext::GetASTContext() {
   case eSwiftModuleLoadingModePreferSerialized:
     loading_mode = swift::ModuleLoadingMode::PreferSerialized;
     break;
-  case eSwiftModuleLoadingModePreferParseable:
-    loading_mode = swift::ModuleLoadingMode::PreferParseable;
+  case eSwiftModuleLoadingModePreferInterface:
+    loading_mode = swift::ModuleLoadingMode::PreferInterface;
     break;
   case eSwiftModuleLoadingModeOnlySerialized:
     loading_mode = swift::ModuleLoadingMode::OnlySerialized;
     break;
-  case eSwiftModuleLoadingModeOnlyParseable:
-    loading_mode = swift::ModuleLoadingMode::OnlyParseable;
+  case eSwiftModuleLoadingModeOnlyInterface:
+    loading_mode = swift::ModuleLoadingMode::OnlyInterface;
     break;
   }
 
@@ -3472,21 +3471,21 @@ swift::ASTContext *SwiftASTContext::GetASTContext() {
     m_ast_context_ap->addModuleLoader(std::move(memory_buffer_loader_ap));
   }
 
-  // 2. Create and install the parseable interface module loader.
+  // 2. Create and install the module interface loader.
   //
-  // TODO: It may be nice to reverse the order between PIML and SML in
+  // TODO: It may be nice to reverse the order between MIL and SML in
   //       LLDB, since binary swift modules likely contain private
-  //       types that the parseable interfaces are missing. On the
+  //       types that the module interfaces are missing. On the
   //       other hand if we need to go looking for a module on disk,
   //       something is already screwed up in the debug info.
-  std::unique_ptr<swift::ModuleLoader> parseable_module_loader_ap;
+  std::unique_ptr<swift::ModuleLoader> module_interface_loader_ap;
   if (loading_mode != swift::ModuleLoadingMode::OnlySerialized) {
-    std::unique_ptr<swift::ModuleLoader> parseable_module_loader_ap(
-        swift::ParseableInterfaceModuleLoader::create(
+    std::unique_ptr<swift::ModuleLoader> module_interface_loader_ap(
+        swift::ModuleInterfaceLoader::create(
             *m_ast_context_ap, moduleCachePath, prebuiltModuleCachePath,
             tracker, loading_mode));
-    if (parseable_module_loader_ap)
-      m_ast_context_ap->addModuleLoader(std::move(parseable_module_loader_ap));
+    if (module_interface_loader_ap)
+      m_ast_context_ap->addModuleLoader(std::move(module_interface_loader_ap));
   }
 
   // 3. Create and install the serialized module loader.
@@ -4629,14 +4628,13 @@ size_t SwiftASTContext::FindTypesOrDecls(const char *name,
   size_t before = results.size();
 
   if (name && name[0] && swift_module) {
-    swift::ModuleDecl::AccessPathTy access_path;
     llvm::SmallVector<swift::ValueDecl *, 4> value_decls;
     swift::Identifier identifier(GetIdentifier(llvm::StringRef(name)));
     if (strchr(name, '.'))
-      swift_module->lookupValue(access_path, identifier,
+      swift_module->lookupValue(identifier,
                                 swift::NLKind::QualifiedLookup, value_decls);
     else
-      swift_module->lookupValue(access_path, identifier,
+      swift_module->lookupValue(identifier,
                                 swift::NLKind::UnqualifiedLookup, value_decls);
     if (identifier.isOperator()) {
       swift::OperatorDecl *op_decl =
@@ -4768,11 +4766,21 @@ swift::ModuleDecl *SwiftASTContext::GetScratchModule() {
   return m_scratch_module;
 }
 
+swift::Lowering::TypeConverter *SwiftASTContext::GetSILTypes() {
+  VALID_OR_RETURN(nullptr);
+
+  if (m_sil_types_ap.get() == NULL)
+    m_sil_types_ap.reset(new swift::Lowering::TypeConverter(*GetScratchModule()));
+
+  return m_sil_types_ap.get();
+}
+
 swift::SILModule *SwiftASTContext::GetSILModule() {
   VALID_OR_RETURN(nullptr);
 
   if (m_sil_module_ap.get() == NULL)
     m_sil_module_ap = swift::SILModule::createEmptyModule(GetScratchModule(),
+                                                          *GetSILTypes(),
                                                           GetSILOptions());
   return m_sil_module_ap.get();
 }
@@ -6951,17 +6959,11 @@ uint32_t SwiftASTContext::GetNumPointeeChildren(void *type) {
   case swift::TypeKind::Error:
     return 0;
   case swift::TypeKind::BuiltinInteger:
-    return 1;
   case swift::TypeKind::BuiltinFloat:
-    return 1;
   case swift::TypeKind::BuiltinRawPointer:
-    return 1;
   case swift::TypeKind::BuiltinUnsafeValueBuffer:
-    return 1;
   case swift::TypeKind::BuiltinNativeObject:
-    return 1;
   case swift::TypeKind::BuiltinUnknownObject:
-    return 1;
   case swift::TypeKind::BuiltinBridgeObject:
     return 1;
   case swift::TypeKind::BuiltinVector:
@@ -6972,55 +6974,33 @@ uint32_t SwiftASTContext::GetNumPointeeChildren(void *type) {
     return GetNumPointeeChildren(
         swift::cast<swift::ReferenceStorageType>(swift_can_type).getPointer());
   case swift::TypeKind::Tuple:
-    return 0;
   case swift::TypeKind::GenericTypeParam:
-    return 0;
   case swift::TypeKind::DependentMember:
-    return 0;
   case swift::TypeKind::Enum:
-    return 0;
   case swift::TypeKind::Struct:
-    return 0;
   case swift::TypeKind::Class:
-    return 0;
   case swift::TypeKind::Protocol:
-    return 0;
   case swift::TypeKind::Metatype:
-    return 0;
   case swift::TypeKind::Module:
-    return 0;
   case swift::TypeKind::PrimaryArchetype:
   case swift::TypeKind::OpenedArchetype:
   case swift::TypeKind::NestedArchetype:
-    return 0;
   case swift::TypeKind::Function:
-    return 0;
   case swift::TypeKind::GenericFunction:
-    return 0;
   case swift::TypeKind::ProtocolComposition:
     return 0;
   case swift::TypeKind::LValue:
     return 1;
   case swift::TypeKind::UnboundGeneric:
-    return 0;
   case swift::TypeKind::BoundGenericClass:
-    return 0;
   case swift::TypeKind::BoundGenericEnum:
-    return 0;
   case swift::TypeKind::BoundGenericStruct:
-    return 0;
   case swift::TypeKind::TypeVariable:
-    return 0;
   case swift::TypeKind::ExistentialMetatype:
-    return 0;
   case swift::TypeKind::DynamicSelf:
-    return 0;
   case swift::TypeKind::SILBox:
-    return 0;
   case swift::TypeKind::SILFunction:
-    return 0;
   case swift::TypeKind::SILBlockStorage:
-    return 0;
   case swift::TypeKind::Unresolved:
     return 0;
 

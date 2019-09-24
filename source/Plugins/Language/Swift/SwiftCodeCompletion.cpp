@@ -16,7 +16,6 @@
 #include "swift/IDE/CodeCompletion.h"
 #include "swift/IDE/CodeCompletionCache.h"
 #include "swift/Parse/CodeCompletionCallbacks.h"
-#include "swift/Parse/DelayedParsingCallbacks.h"
 #include "swift/Subsystems.h"
 
 #include "llvm/ADT/ArrayRef.h"
@@ -177,13 +176,10 @@ doCodeCompletion(SourceFile &SF, StringRef EnteredCode,
 
   const unsigned OriginalDeclCount = SF.Decls.size();
 
-  PersistentParserState PersistentState(Ctx);
-  std::unique_ptr<DelayedParsingCallbacks> DelayedCB(
-      new CodeCompleteDelayedCallbacks(Ctx.SourceMgr.getCodeCompletionLoc()));
+  PersistentParserState PersistentState;
   bool Done;
   do {
-    parseIntoSourceFile(SF, BufferID, &Done, nullptr, &PersistentState,
-                        DelayedCB.get());
+    parseIntoSourceFile(SF, BufferID, &Done, nullptr, &PersistentState);
   } while (!Done);
   performTypeChecking(SF, PersistentState.getTopLevelContext(), None,
                       OriginalDeclCount);
@@ -191,6 +187,8 @@ doCodeCompletion(SourceFile &SF, StringRef EnteredCode,
   performDelayedParsing(&SF, PersistentState, CompletionCallbacksFactory);
 
   SF.Decls.resize(OriginalDeclCount);
+
+  Ctx.SourceMgr.clearCodeCompletionPoint();
 
   // Reset the error state because it's only relevant to the code that we just
   // processed, which now gets thrown away.
@@ -330,11 +328,11 @@ SwiftCompleteCode(SwiftASTContext &SwiftCtx,
     const unsigned BufferID =
         Ctx.SourceMgr.addMemBufferCopy(AugmentedCode, "<REPL Input>");
     const unsigned OriginalDeclCount = EnteredCodeFile->Decls.size();
-    PersistentParserState PersistentState(Ctx);
+    PersistentParserState PersistentState;
     bool Done;
     do {
       parseIntoSourceFile(*EnteredCodeFile, BufferID, &Done, nullptr,
-                          &PersistentState, nullptr);
+                          &PersistentState);
     } while (!Done);
     for (auto it = EnteredCodeFile->Decls.begin() + OriginalDeclCount;
          it != EnteredCodeFile->Decls.end(); it++)

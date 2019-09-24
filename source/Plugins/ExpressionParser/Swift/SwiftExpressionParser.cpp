@@ -71,6 +71,7 @@
 #include "swift/SIL/SILDebuggerClient.h"
 #include "swift/SIL/SILFunction.h"
 #include "swift/SIL/SILModule.h"
+#include "swift/SIL/TypeLowering.h"
 #include "swift/SILOptimizer/PassManager/Passes.h"
 #include "swift/Serialization/SerializationOptions.h"
 #include "swift/Serialization/SerializedModuleLoader.h"
@@ -940,8 +941,7 @@ CreateMainFile(SwiftASTContext &swift_ast_context, StringRef filename,
 
   if (generate_debug_info) {
     std::string temp_source_path;
-    if (ExpressionSourceCode::SaveExpressionTextToTempFile(text, options,
-                                                           temp_source_path)) {
+    if (SwiftASTManipulator::SaveExpressionTextToTempFile(text, options, temp_source_path)) {
       auto error_or_buffer_ap =
           llvm::MemoryBuffer::getFile(temp_source_path.c_str());
       if (error_or_buffer_ap.getError() == std::error_condition()) {
@@ -1279,7 +1279,7 @@ ParseAndImport(SwiftASTContext *swift_ast_context, Expression &expr,
   while (!done) {
     // Note, we disable delayed parsing for the swift expression parser.
     swift::parseIntoSourceFile(*source_file, buffer_id, &done, nullptr,
-                               &persistent_state, nullptr,
+                               &persistent_state,
                                /*DelayBodyParsing=*/false);
 
     if (swift_ast_context->HasErrors())
@@ -1640,12 +1640,18 @@ unsigned SwiftExpressionParser::Parse(DiagnosticManager &diagnostic_manager,
         variable_map[name] = *var_info;
       }
 
+  // FIXME: Should share TypeConverter instances
+  std::unique_ptr<swift::Lowering::TypeConverter> sil_types(
+      new swift::Lowering::TypeConverter(
+          *parsed_expr->source_file.getParentModule()));
+
   // SWIFT_ENABLE_TENSORFLOW
   // Set optimization mode to -O for REPL/Playgrounds.
   auto &options = swift_ast_ctx->GetSILOptions();
   options.OptMode = swift::OptimizationMode::ForSpeed;
   std::unique_ptr<swift::SILModule> sil_module(swift::performSILGeneration(
-      parsed_expr->source_file, options));
+      parsed_expr->source_file, *sil_types, options));
+  // SWIFT_ENABLE_TENSORFLOW END
 
   if (log) {
     std::string s;

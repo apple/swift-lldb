@@ -84721,7 +84721,6 @@ SWIG_init(void) {
   SWIG_Python_SetConstant(d, "eSymbolTypeObjCClass",SWIG_From_int(static_cast< int >(lldb::eSymbolTypeObjCClass)));
   SWIG_Python_SetConstant(d, "eSymbolTypeObjCMetaClass",SWIG_From_int(static_cast< int >(lldb::eSymbolTypeObjCMetaClass)));
   SWIG_Python_SetConstant(d, "eSymbolTypeObjCIVar",SWIG_From_int(static_cast< int >(lldb::eSymbolTypeObjCIVar)));
-  SWIG_Python_SetConstant(d, "eSymbolTypeIVarOffset",SWIG_From_int(static_cast< int >(lldb::eSymbolTypeIVarOffset)));
   SWIG_Python_SetConstant(d, "eSymbolTypeReExported",SWIG_From_int(static_cast< int >(lldb::eSymbolTypeReExported)));
   SWIG_Python_SetConstant(d, "eSymbolTypeASTFile",SWIG_From_int(static_cast< int >(lldb::eSymbolTypeASTFile)));
   SWIG_Python_SetConstant(d, "eSectionTypeInvalid",SWIG_From_int(static_cast< int >(lldb::eSectionTypeInvalid)));
@@ -84756,7 +84755,6 @@ SWIG_init(void) {
   SWIG_Python_SetConstant(d, "eSectionTypeDWARFDebugStrOffsets",SWIG_From_int(static_cast< int >(lldb::eSectionTypeDWARFDebugStrOffsets)));
   SWIG_Python_SetConstant(d, "eSectionTypeDWARFAppleNames",SWIG_From_int(static_cast< int >(lldb::eSectionTypeDWARFAppleNames)));
   SWIG_Python_SetConstant(d, "eSectionTypeDWARFAppleTypes",SWIG_From_int(static_cast< int >(lldb::eSectionTypeDWARFAppleTypes)));
-  SWIG_Python_SetConstant(d, "eSectionTypeDWARFAppleExternalTypes",SWIG_From_int(static_cast< int >(lldb::eSectionTypeDWARFAppleExternalTypes)));
   SWIG_Python_SetConstant(d, "eSectionTypeDWARFAppleNamespaces",SWIG_From_int(static_cast< int >(lldb::eSectionTypeDWARFAppleNamespaces)));
   SWIG_Python_SetConstant(d, "eSectionTypeDWARFAppleObjC",SWIG_From_int(static_cast< int >(lldb::eSectionTypeDWARFAppleObjC)));
   SWIG_Python_SetConstant(d, "eSectionTypeELFSymbolTable",SWIG_From_int(static_cast< int >(lldb::eSectionTypeELFSymbolTable)));
@@ -84931,7 +84929,6 @@ SWIG_init(void) {
   SWIG_Python_SetConstant(d, "eGdbSignalBreakpoint",SWIG_From_int(static_cast< int >(lldb::eGdbSignalBreakpoint)));
   SWIG_Python_SetConstant(d, "ePathTypeLLDBShlibDir",SWIG_From_int(static_cast< int >(lldb::ePathTypeLLDBShlibDir)));
   SWIG_Python_SetConstant(d, "ePathTypeSupportExecutableDir",SWIG_From_int(static_cast< int >(lldb::ePathTypeSupportExecutableDir)));
-  SWIG_Python_SetConstant(d, "ePathTypeSupportFileDir",SWIG_From_int(static_cast< int >(lldb::ePathTypeSupportFileDir)));
   SWIG_Python_SetConstant(d, "ePathTypeHeaderDir",SWIG_From_int(static_cast< int >(lldb::ePathTypeHeaderDir)));
   SWIG_Python_SetConstant(d, "ePathTypePythonDir",SWIG_From_int(static_cast< int >(lldb::ePathTypePythonDir)));
   SWIG_Python_SetConstant(d, "ePathTypeLLDBSystemPlugins",SWIG_From_int(static_cast< int >(lldb::ePathTypeLLDBSystemPlugins)));
