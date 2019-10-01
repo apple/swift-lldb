@@ -48,6 +48,7 @@
 #include "swift/Frontend/ModuleInterfaceLoader.h"
 #include "swift/Frontend/PrintingDiagnosticConsumer.h"
 #include "swift/IRGen/Linking.h"
+#include "swift/Sema/IDETypeChecking.h"
 #include "swift/SIL/SILModule.h"
 #include "swift/Serialization/Validation.h"
 #include "clang/AST/ASTContext.h"
@@ -1764,58 +1765,6 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
         swift_ast_sp->SetPlatformSDKPath(serialized_sdk_path);
       }
     }
-
-    if (!got_serialized_options || swift_ast_sp->GetPlatformSDKPath().empty()) {
-      std::string platform_sdk_path;
-      if (sym_vendor->GetCompileOption("-sdk", platform_sdk_path)) {
-        FileSpec sdk_spec(platform_sdk_path.c_str());
-        if (FileSystem::Instance().Exists(sdk_spec)) {
-          swift_ast_sp->SetPlatformSDKPath(platform_sdk_path);
-        }
-
-        if (sym_vendor->GetCompileOption("-target", target_triple)) {
-          swift_ast_sp->SetTriple(llvm::Triple(target_triple), &module);
-          set_triple = true;
-        }
-      }
-    }
-
-    if (!got_serialized_options) {
-
-      std::vector<std::string> fw_paths;
-      if (sym_vendor->GetCompileOptions("-F", fw_paths))
-        for (std::string &fw_path : fw_paths)
-          framework_search_paths.push_back({fw_path, /*is_system*/ false});
-
-      std::vector<std::string> include_paths;
-      if (sym_vendor->GetCompileOptions("-I", include_paths)) {
-        for (std::string &search_path : include_paths) {
-          const FileSpec path_spec(search_path.c_str());
-
-          if (FileSystem::Instance().Exists(path_spec)) {
-            static const ConstString s_hmap_extension("hmap");
-
-            if (IsDirectory(path_spec)) {
-              module_search_paths.push_back(search_path);
-            } else if (IsRegularFile(path_spec) &&
-                       path_spec.GetFileNameExtension() == s_hmap_extension) {
-              std::string argument("-I");
-              argument.append(search_path);
-              swift_ast_sp->AddClangArgument(argument.c_str());
-            }
-          }
-        }
-      }
-
-      std::vector<std::string> cc_options;
-      if (sym_vendor->GetCompileOptions("-Xcc", cc_options)) {
-        for (size_t i = 0; i < cc_options.size(); ++i) {
-          if (!cc_options[i].compare("-iquote") && i + 1 < cc_options.size()) {
-            swift_ast_sp->AddClangArgumentPair("-iquote", cc_options[i + 1]);
-          }
-        }
-      }
-    }
   }
 
   if (!set_triple) {
@@ -3503,6 +3452,7 @@ swift::ASTContext *SwiftASTContext::GetASTContext() {
   }
 
   // Set up the required state for the evaluator in the TypeChecker.
+  (void)swift::createTypeChecker(*m_ast_context_ap);
   registerParseRequestFunctions(m_ast_context_ap->evaluator);
   registerTypeCheckerRequestFunctions(m_ast_context_ap->evaluator);
 
@@ -4419,7 +4369,7 @@ static CompilerType ValueDeclToType(swift::ValueDecl *decl,
       if (alias_decl->hasInterfaceType()) {
         swift::Type swift_type = swift::TypeAliasType::get(
             alias_decl, swift::Type(), swift::SubstitutionMap(),
-            alias_decl->getUnderlyingTypeLoc().getType());
+            alias_decl->getUnderlyingType());
         return {swift_type.getPointer()};
       }
       break;
@@ -4481,7 +4431,7 @@ static SwiftASTContext::TypeOrDecl DeclToTypeOrDecl(swift::ASTContext *ast,
       if (alias_decl->hasInterfaceType()) {
         swift::Type swift_type = swift::TypeAliasType::get(
             alias_decl, swift::Type(), swift::SubstitutionMap(),
-            alias_decl->getUnderlyingTypeLoc().getType());
+            alias_decl->getUnderlyingType());
         return CompilerType(swift_type.getPointer());
       }
     } break;
@@ -5246,7 +5196,6 @@ bool SwiftASTContext::IsPointerType(void *type, CompilerType *pointee_type) {
     return (referent_type->is<swift::BuiltinRawPointerType>() ||
             referent_type->is<swift::BuiltinNativeObjectType>() ||
             referent_type->is<swift::BuiltinUnsafeValueBufferType>() ||
-            referent_type->is<swift::BuiltinUnknownObjectType>() ||
             referent_type->is<swift::BuiltinBridgeObjectType>());
   }
 
@@ -5327,8 +5276,6 @@ bool SwiftASTContext::IsPossibleDynamicType(void *type,
       return true;
 
     if (can_type == GetASTContext()->TheRawPointerType)
-      return true;
-    if (can_type == GetASTContext()->TheUnknownObjectType)
       return true;
     if (can_type == GetASTContext()->TheNativeObjectType)
       return true;
@@ -5631,10 +5578,6 @@ SwiftASTContext::GetTypeInfo(void *type,
     swift_flags |= eTypeIsBuiltIn | eTypeHasChildren | eTypeIsPointer |
                    eTypeIsScalar | eTypeHasValue;
     break;
-  case swift::TypeKind::BuiltinUnknownObject:
-    swift_flags |= eTypeIsBuiltIn | eTypeHasChildren | eTypeIsPointer |
-                   eTypeIsScalar | eTypeHasValue | eTypeIsObjC;
-    break;
   case swift::TypeKind::BuiltinBridgeObject:
     swift_flags |= eTypeIsBuiltIn | eTypeHasChildren | eTypeIsPointer |
                    eTypeIsScalar | eTypeHasValue | eTypeIsObjC;
@@ -5754,8 +5697,6 @@ lldb::TypeClass SwiftASTContext::GetTypeClass(void *type) {
   case swift::TypeKind::BuiltinNativeObject:
     return lldb::eTypeClassBuiltin;
   case swift::TypeKind::BuiltinUnsafeValueBuffer:
-    return lldb::eTypeClassBuiltin;
-  case swift::TypeKind::BuiltinUnknownObject:
     return lldb::eTypeClassBuiltin;
   case swift::TypeKind::BuiltinBridgeObject:
     return lldb::eTypeClassBuiltin;
@@ -6263,7 +6204,6 @@ lldb::Encoding SwiftASTContext::GetEncoding(void *type, uint64_t &count) {
   case swift::TypeKind::BuiltinRawPointer:
   case swift::TypeKind::BuiltinNativeObject:
   case swift::TypeKind::BuiltinUnsafeValueBuffer:
-  case swift::TypeKind::BuiltinUnknownObject:
   case swift::TypeKind::BuiltinBridgeObject:
   case swift::TypeKind::Class: // Classes are pointers in swift...
   case swift::TypeKind::BoundGenericClass:
@@ -6345,7 +6285,6 @@ lldb::Format SwiftASTContext::GetFormat(void *type) {
 
   case swift::TypeKind::BuiltinRawPointer:
   case swift::TypeKind::BuiltinNativeObject:
-  case swift::TypeKind::BuiltinUnknownObject:
   case swift::TypeKind::BuiltinUnsafeValueBuffer:
   case swift::TypeKind::BuiltinBridgeObject:
   case swift::TypeKind::PrimaryArchetype:
@@ -6432,7 +6371,6 @@ uint32_t SwiftASTContext::GetNumChildren(void *type,
   case swift::TypeKind::BuiltinFloat:
   case swift::TypeKind::BuiltinRawPointer:
   case swift::TypeKind::BuiltinNativeObject:
-  case swift::TypeKind::BuiltinUnknownObject:
   case swift::TypeKind::BuiltinUnsafeValueBuffer:
   case swift::TypeKind::BuiltinBridgeObject:
   case swift::TypeKind::BuiltinVector:
@@ -6567,7 +6505,6 @@ uint32_t SwiftASTContext::GetNumFields(void *type) {
   case swift::TypeKind::BuiltinFloat:
   case swift::TypeKind::BuiltinRawPointer:
   case swift::TypeKind::BuiltinNativeObject:
-  case swift::TypeKind::BuiltinUnknownObject:
   case swift::TypeKind::BuiltinUnsafeValueBuffer:
   case swift::TypeKind::BuiltinBridgeObject:
   case swift::TypeKind::BuiltinVector:
@@ -6775,7 +6712,6 @@ CompilerType SwiftASTContext::GetFieldAtIndex(void *type, size_t idx,
   case swift::TypeKind::BuiltinRawPointer:
   case swift::TypeKind::BuiltinNativeObject:
   case swift::TypeKind::BuiltinUnsafeValueBuffer:
-  case swift::TypeKind::BuiltinUnknownObject:
   case swift::TypeKind::BuiltinBridgeObject:
   case swift::TypeKind::BuiltinVector:
     break;
@@ -6963,7 +6899,6 @@ uint32_t SwiftASTContext::GetNumPointeeChildren(void *type) {
   case swift::TypeKind::BuiltinRawPointer:
   case swift::TypeKind::BuiltinUnsafeValueBuffer:
   case swift::TypeKind::BuiltinNativeObject:
-  case swift::TypeKind::BuiltinUnknownObject:
   case swift::TypeKind::BuiltinBridgeObject:
     return 1;
   case swift::TypeKind::BuiltinVector:
@@ -7139,7 +7074,6 @@ CompilerType SwiftASTContext::GetChildCompilerTypeAtIndex(
   case swift::TypeKind::BuiltinFloat:
   case swift::TypeKind::BuiltinRawPointer:
   case swift::TypeKind::BuiltinNativeObject:
-  case swift::TypeKind::BuiltinUnknownObject:
   case swift::TypeKind::BuiltinUnsafeValueBuffer:
   case swift::TypeKind::BuiltinBridgeObject:
   case swift::TypeKind::BuiltinVector:
@@ -7404,7 +7338,6 @@ size_t SwiftASTContext::GetIndexOfChildMemberWithName(
     case swift::TypeKind::BuiltinFloat:
     case swift::TypeKind::BuiltinRawPointer:
     case swift::TypeKind::BuiltinNativeObject:
-    case swift::TypeKind::BuiltinUnknownObject:
     case swift::TypeKind::BuiltinUnsafeValueBuffer:
     case swift::TypeKind::BuiltinBridgeObject:
     case swift::TypeKind::BuiltinVector:
@@ -7810,7 +7743,6 @@ bool SwiftASTContext::DumpTypeValue(
   case swift::TypeKind::BuiltinRawPointer:
   case swift::TypeKind::BuiltinNativeObject:
   case swift::TypeKind::BuiltinUnsafeValueBuffer:
-  case swift::TypeKind::BuiltinUnknownObject:
   case swift::TypeKind::BuiltinBridgeObject:
   case swift::TypeKind::PrimaryArchetype:
   case swift::TypeKind::OpenedArchetype:
