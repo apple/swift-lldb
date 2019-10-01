@@ -48,6 +48,7 @@
 #include "swift/Frontend/ModuleInterfaceLoader.h"
 #include "swift/Frontend/PrintingDiagnosticConsumer.h"
 #include "swift/IRGen/Linking.h"
+#include "swift/Sema/IDETypeChecking.h"
 #include "swift/SIL/SILModule.h"
 #include "swift/Serialization/Validation.h"
 #include "clang/AST/ASTContext.h"
@@ -3503,6 +3504,7 @@ swift::ASTContext *SwiftASTContext::GetASTContext() {
   }
 
   // Set up the required state for the evaluator in the TypeChecker.
+  (void)swift::createTypeChecker(*m_ast_context_ap);
   registerParseRequestFunctions(m_ast_context_ap->evaluator);
   registerTypeCheckerRequestFunctions(m_ast_context_ap->evaluator);
 
@@ -4419,7 +4421,7 @@ static CompilerType ValueDeclToType(swift::ValueDecl *decl,
       if (alias_decl->hasInterfaceType()) {
         swift::Type swift_type = swift::TypeAliasType::get(
             alias_decl, swift::Type(), swift::SubstitutionMap(),
-            alias_decl->getUnderlyingTypeLoc().getType());
+            alias_decl->getUnderlyingType());
         return {swift_type.getPointer()};
       }
       break;
@@ -4481,7 +4483,7 @@ static SwiftASTContext::TypeOrDecl DeclToTypeOrDecl(swift::ASTContext *ast,
       if (alias_decl->hasInterfaceType()) {
         swift::Type swift_type = swift::TypeAliasType::get(
             alias_decl, swift::Type(), swift::SubstitutionMap(),
-            alias_decl->getUnderlyingTypeLoc().getType());
+            alias_decl->getUnderlyingType());
         return CompilerType(swift_type.getPointer());
       }
     } break;
