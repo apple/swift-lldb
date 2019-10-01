@@ -13,6 +13,7 @@
 #include "SwiftCodeCompletion.h"
 
 #include "swift/AST/DiagnosticSuppression.h"
+#include "swift/AST/SourceFile.h"
 #include "swift/IDE/CodeCompletion.h"
 #include "swift/IDE/CodeCompletionCache.h"
 #include "swift/Parse/CodeCompletionCallbacks.h"
