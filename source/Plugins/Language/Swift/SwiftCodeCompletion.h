@@ -23,7 +23,8 @@
 namespace lldb_private {
 
 CompletionResponse
-SwiftCompleteCode(SwiftASTContext &SwiftCtx,
+SwiftCompleteCode(const CompletionOptions &Options,
+                  SwiftASTContext &SwiftCtx,
                   SwiftPersistentExpressionState &PersistentExpressionState,
                   llvm::StringRef EnteredCode);
 
