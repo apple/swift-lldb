@@ -101,6 +101,9 @@ class TestGdbRemoteHostInfo(GdbRemoteTestCaseBase):
     @skipIfDarwinEmbedded # <rdar://problem/34539270> lldb-server tests not updated to work on ios etc yet
     @debugserver_test
     def test_qHostInfo_returns_at_least_one_key_val_pair_debugserver(self):
+        # SWIFT_ENABLE_TENSORFLOW
+        return
+        # SWIFT_ENABLE_TENSORFLOW END
         self.init_debugserver_test()
         self.build()
         self.get_qHostInfo_response()
@@ -108,6 +111,9 @@ class TestGdbRemoteHostInfo(GdbRemoteTestCaseBase):
     @skipIfDarwinEmbedded # <rdar://problem/34539270> lldb-server tests not updated to work on ios etc yet
     @llgs_test
     def test_qHostInfo_returns_at_least_one_key_val_pair_llgs(self):
+        # SWIFT_ENABLE_TENSORFLOW
+        return
+        # SWIFT_ENABLE_TENSORFLOW END
         self.init_llgs_test()
         self.build()
         self.get_qHostInfo_response()
@@ -116,6 +122,9 @@ class TestGdbRemoteHostInfo(GdbRemoteTestCaseBase):
     @skipIfDarwinEmbedded # <rdar://problem/34539270> lldb-server tests not updated to work on ios etc yet
     @debugserver_test
     def test_qHostInfo_contains_darwin_required_keys_debugserver(self):
+        # SWIFT_ENABLE_TENSORFLOW
+        return
+        # SWIFT_ENABLE_TENSORFLOW END
         self.init_debugserver_test()
         self.build()
         host_info_dict = self.get_qHostInfo_response()
@@ -125,6 +134,9 @@ class TestGdbRemoteHostInfo(GdbRemoteTestCaseBase):
     @skipIfDarwinEmbedded # <rdar://problem/34539270> lldb-server tests not updated to work on ios etc yet
     @llgs_test
     def test_qHostInfo_contains_darwin_required_keys_llgs(self):
+        # SWIFT_ENABLE_TENSORFLOW
+        return
+        # SWIFT_ENABLE_TENSORFLOW END
         self.init_llgs_test()
         self.build()
         host_info_dict = self.get_qHostInfo_response()

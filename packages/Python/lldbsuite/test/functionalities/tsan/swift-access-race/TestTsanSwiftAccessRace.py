@@ -30,6 +30,9 @@ class TsanSwiftAccessRaceTestCase(lldbtest.TestBase):
     @decorators.skipIfLinux
     @decorators.skipUnlessSwiftThreadSanitizer
     def test_tsan_swift(self):
+        # SWIFT_ENABLE_TENSORFLOW
+        return
+        # SWIFT_ENABLE_TENSORFLOW END
         self.build()
         self.do_test()
 
