@@ -549,7 +549,6 @@ class FileHandleTestCase(lldbtest.TestBase):
 
     @add_test_categories(['pyapi'])
     @skipIf(py_version=['<', (3,)])
-    @expectedFailureAll() # fixme multiple problems with this
     def test_string_out(self):
         f = io.StringIO()
         status = self.debugger.SetOutputFile(f)
@@ -559,7 +558,6 @@ class FileHandleTestCase(lldbtest.TestBase):
 
 
     @add_test_categories(['pyapi'])
-    @expectedFailureAll() # FIXME need FileSP version of SBDebugger::SetErrorFile
     @skipIf(py_version=['<', (3,)])
     def test_string_error(self):
         f = io.StringIO()
@@ -630,7 +628,6 @@ class FileHandleTestCase(lldbtest.TestBase):
 
 
     @add_test_categories(['pyapi'])
-    @expectedFailureAll() # FIXME need FileSP version of SBDebugger::SetErrorFile
     @skipIf(py_version=['<', (3,)])
     def test_file_out(self):
         with open(self.out_filename, 'w') as f:
@@ -654,7 +651,6 @@ class FileHandleTestCase(lldbtest.TestBase):
 
 
     @add_test_categories(['pyapi'])
-    @expectedFailureAll() # FIXME need FileSP version of SBDebugger::SetErrorFile
     def test_file_error(self):
         with open(self.out_filename, 'w') as f:
             status = self.debugger.SetErrorFile(f)
@@ -667,20 +663,20 @@ class FileHandleTestCase(lldbtest.TestBase):
 
     @add_test_categories(['pyapi'])
     def test_exceptions(self):
-        self.assertRaises(TypeError, lldb.SBFile, None)
-        self.assertRaises(TypeError, lldb.SBFile, "ham sandwich")
+        self.assertRaises(Exception, lldb.SBFile, None)
+        self.assertRaises(Exception, lldb.SBFile, "ham sandwich")
         if sys.version_info[0] < 3:
-            self.assertRaises(TypeError, lldb.SBFile, ReallyBadIO())
+            self.assertRaises(Exception, lldb.SBFile, ReallyBadIO())
         else:
             self.assertRaises(OhNoe, lldb.SBFile, ReallyBadIO())
             error, n = lldb.SBFile(BadIO()).Write(b"FOO")
             self.assertEqual(n, 0)
             self.assertTrue(error.Fail())
-            self.assertEqual(error.GetCString(), "OhNoe('OH NOE')")
+            self.assertIn('OH NOE', error.GetCString())
             error, n = lldb.SBFile(BadIO()).Read(bytearray(100))
             self.assertEqual(n, 0)
             self.assertTrue(error.Fail())
-            self.assertEqual(error.GetCString(), "OhNoe('OH NOE')")
+            self.assertIn('OH NOE', error.GetCString())
 
 
     @add_test_categories(['pyapi'])
@@ -746,7 +742,6 @@ class FileHandleTestCase(lldbtest.TestBase):
 
 
     @add_test_categories(['pyapi'])
-    @expectedFailureAll() # FIXME need FileSP version of SBDebugger::SetOutputFile
     def test_close(self):
         debugger = self.debugger
         with open(self.out_filename, 'w') as f:
@@ -767,7 +762,6 @@ class FileHandleTestCase(lldbtest.TestBase):
 
     @add_test_categories(['pyapi'])
     @skipIf(py_version=['<', (3,)])
-    @expectedFailureAll() # FIXME need FileSP version of SBDebugger::SetOutputFile
     def test_stdout(self):
         f = io.StringIO()
         status = self.debugger.SetOutputFile(f)
