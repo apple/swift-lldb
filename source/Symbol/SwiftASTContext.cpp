@@ -1827,6 +1827,7 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
     }
   }
 
+  triple = swift_ast_sp->GetTriple();
   StringRef resource_dir = swift_ast_sp->GetResourceDir(triple);
   ConfigureResourceDirs(swift_ast_sp->GetCompilerInvocation(),
                         FileSpec(resource_dir), triple);
@@ -2039,7 +2040,6 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
   if (target.GetArchitecture().IsFullySpecifiedTriple()) {
     swift_ast_sp->SetTriple(target.GetArchitecture().GetTriple());
   } else {
-    // Always run using the Host OS triple...
     bool set_triple = false;
     PlatformSP platform_sp(target.GetPlatform());
     llvm::Triple target_triple = target.GetArchitecture().GetTriple();
@@ -2064,7 +2064,7 @@ lldb::TypeSystemSP SwiftASTContext::CreateInstance(lldb::LanguageType language,
       }
   }
 
-  llvm::Triple triple(swift_ast_sp->GetTriple());
+  llvm::Triple triple = swift_ast_sp->GetTriple();
   StringRef resource_dir = swift_ast_sp->GetResourceDir(triple);
   ConfigureResourceDirs(swift_ast_sp->GetCompilerInvocation(),
                         FileSpec(resource_dir), triple);
