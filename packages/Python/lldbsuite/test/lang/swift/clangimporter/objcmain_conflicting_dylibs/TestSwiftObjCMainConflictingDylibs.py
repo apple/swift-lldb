@@ -27,7 +27,6 @@ class TestSwiftObjCMainConflictingDylibs(TestBase):
 
     @skipUnlessDarwin
     @swiftTest
-    @add_test_categories(["swiftpr"])
     def test(self):
         # To ensure we hit the rebuild problem remove the cache to avoid caching.
         mod_cache = self.getBuildArtifact("my-clang-modules-cache")
@@ -43,6 +42,8 @@ class TestSwiftObjCMainConflictingDylibs(TestBase):
         # Create the target
         target = self.dbg.CreateTarget(exe)
         self.assertTrue(target, VALID_TARGET)
+
+        self.registerSharedLibrariesWithTarget(target, ['Foo', 'Bar'])
 
         # Set the breakpoints
         bar_breakpoint = target.BreakpointCreateBySourceRegex(

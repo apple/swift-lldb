@@ -24,7 +24,6 @@ class FormatterConfig(object):
 
     def __init__(self):
         self.filename = None
-        self.port = None
         self.formatter_name = None
         self.formatter_options = None
 
@@ -89,7 +88,6 @@ def create_results_formatter(config):
     results_file_object = None
     cleanup_func = None
 
-    file_is_stream = False
     if config.filename:
         # Open the results file for writing.
         if config.filename == 'stdout':
@@ -103,12 +101,6 @@ def create_results_formatter(config):
             cleanup_func = results_file_object.close
         default_formatter_name = (
             "lldbsuite.test_event.formatter.xunit.XunitFormatter")
-    elif config.port:
-        # Connect to the specified localhost port.
-        results_file_object, cleanup_func = create_socket(config.port)
-        default_formatter_name = (
-            "lldbsuite.test_event.formatter.pickled.RawPickledFormatter")
-        file_is_stream = True
 
     # If we have a results formatter name specified and we didn't specify
     # a results file, we should use stdout.
@@ -146,8 +138,7 @@ def create_results_formatter(config):
         # Create the TestResultsFormatter given the processed options.
         results_formatter_object = cls(
             results_file_object,
-            formatter_options,
-            file_is_stream)
+            formatter_options)
 
         def shutdown_formatter():
             """Shuts down the formatter when it is no longer needed."""

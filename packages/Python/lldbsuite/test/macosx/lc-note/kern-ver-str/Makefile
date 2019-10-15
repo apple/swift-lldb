@@ -1,5 +1,3 @@
-LEVEL = ../../../make
-
 MAKE_DSYM := NO
 
 C_SOURCES := main.c
@@ -7,9 +5,7 @@ C_SOURCES := main.c
 all: a.out create-empty-corefile
 
 create-empty-corefile:
-	$(MAKE) VPATH=$(VPATH) -f $(SRCDIR)/create-empty-corefile.mk
+	$(MAKE) -f $(MAKEFILE_RULES) EXE=create-empty-corefile \
+		C_SOURCES=create-empty-corefile.c
 
-clean::
-	$(MAKE) -f create-empty-corefile.mk clean
-
-include $(LEVEL)/Makefile.rules
+include Makefile.rules

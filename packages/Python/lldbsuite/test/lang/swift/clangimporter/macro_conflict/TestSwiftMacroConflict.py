@@ -27,7 +27,6 @@ class TestSwiftMacroConflict(TestBase):
 
     @skipUnlessDarwin
     @swiftTest
-    @add_test_categories(["swiftpr"])
     def test(self):
         # To ensure we hit the rebuild problem remove the cache to avoid caching.
         mod_cache = self.getBuildArtifact("my-clang-modules-cache")
@@ -38,6 +37,10 @@ class TestSwiftMacroConflict(TestBase):
         self.runCmd('settings set symbols.clang-modules-cache-path "%s"'
                     % mod_cache)
         self.build()
+
+        target = self.dbg.CreateTarget(self.getBuildArtifact("a.out"))
+        self.registerSharedLibrariesWithTarget(target, ['Foo', 'Bar'])
+
         target, process, _, _ = lldbutil.run_to_source_breakpoint(
             self, 'break here', lldb.SBFileSpec('Bar.swift'))
         bar_value = self.frame().EvaluateExpression("bar")
@@ -60,7 +63,6 @@ class TestSwiftMacroConflict(TestBase):
 
     @skipUnlessDarwin
     @swiftTest
-    @add_test_categories(["swiftpr"])
     def test_with_dwarfimporter(self):
         """
         With DWARFImporter installed, both variables should be visible.
@@ -74,6 +76,10 @@ class TestSwiftMacroConflict(TestBase):
         self.runCmd('settings set symbols.clang-modules-cache-path "%s"'
                     % mod_cache)
         self.build()
+
+        target = self.dbg.CreateTarget(self.getBuildArtifact("a.out"))
+        self.registerSharedLibrariesWithTarget(target, ['Foo', 'Bar'])
+
         target, process, _, _ = lldbutil.run_to_source_breakpoint(
             self, 'break here', lldb.SBFileSpec('Bar.swift'))
         self.expect("v bar", substrs=["23"])
@@ -83,7 +89,7 @@ class TestSwiftMacroConflict(TestBase):
         self.expect("v foo", substrs=["42"])
         self.assertTrue(os.path.isdir(mod_cache), "module cache exists")
         lldb.SBDebugger.MemoryPressureDetected()
-        
+
 if __name__ == '__main__':
     import atexit
     lldb.SBDebugger.Initialize()

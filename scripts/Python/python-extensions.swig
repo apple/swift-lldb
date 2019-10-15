@@ -46,8 +46,8 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-        
-    %pythoncode %{ 
+
+    %pythoncode %{
         def __eq__(self, rhs):
             if not isinstance(rhs, type(self)):
                 return False
@@ -127,7 +127,7 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-        
+
         /* the write() and flush() calls are not part of the SB API proper, and are solely for Python usage
         they are meant to make an SBCommandReturnObject into a file-like object so that instructions of the sort
         print >>sb_command_return_object, "something"
@@ -156,7 +156,7 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-    %pythoncode %{ 
+    %pythoncode %{
         def __eq__(self, rhs):
             if not isinstance(rhs, type(self)):
                 return False
@@ -217,8 +217,8 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-        
-    %pythoncode %{ 
+
+    %pythoncode %{
         def __eq__(self, rhs):
             if not isinstance(rhs, type(self)):
                 return False
@@ -296,8 +296,8 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-        
-    %pythoncode %{ 
+
+    %pythoncode %{
         def __eq__(self, rhs):
             if not isinstance(rhs, type(self)):
                 return False
@@ -359,8 +359,8 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-        
-    %pythoncode %{ 
+
+    %pythoncode %{
         def __eq__(self, rhs):
             if not isinstance(rhs, type(self)):
                 return False
@@ -407,8 +407,8 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-        
-    %pythoncode %{ 
+
+    %pythoncode %{
         def __eq__(self, rhs):
             if not isinstance(rhs, type(self)):
                 return False
@@ -488,8 +488,8 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-        
-    %pythoncode %{ 
+
+    %pythoncode %{
         def __eq__(self, rhs):
             if not isinstance(rhs, type(self)):
                 return False
@@ -657,7 +657,7 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-    %pythoncode %{ 
+    %pythoncode %{
         def __eq__(self, rhs):
             if not isinstance(rhs, type(self)):
                 return False
@@ -750,7 +750,7 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-    %pythoncode %{ 
+    %pythoncode %{
         def __eq__(self, rhs):
             if not isinstance(rhs, type(self)):
                 return False
@@ -779,7 +779,7 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-    %pythoncode %{ 
+    %pythoncode %{
         def __eq__(self, rhs):
             if not isinstance(rhs, type(self)):
                 return False
@@ -808,7 +808,7 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-    %pythoncode %{ 
+    %pythoncode %{
         def __eq__(self, rhs):
             if not isinstance(rhs, type(self)):
                 return False
@@ -837,7 +837,7 @@
                     return lldb_private::PythonString("").release();
         }
         %clearnothreadallow;
-    %pythoncode %{ 
+    %pythoncode %{
         def __eq__(self, rhs):
             if not isinstance(rhs, type(self)):
                 return False
@@ -946,12 +946,15 @@ class value_iter(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         if self.index >= self.length:
             raise StopIteration()
         child_sbvalue = self.sbvalue.GetChildAtIndex(self.index)
         self.index += 1
         return value(child_sbvalue)
+
+    def next(self):
+        return self.__next__()
 
     def __init__(self,value):
         self.index = 0
@@ -965,7 +968,7 @@ class value(object):
     can be used as a variable would be in code. So if you have a Point structure
     variable in your code in the current frame named "pt", you can initialize an instance
     of this class with it:
-    
+
     pt = lldb.value(lldb.frame.FindVariable("pt"))
     print pt
     print pt.x
@@ -979,6 +982,9 @@ class value(object):
 
     def __nonzero__(self):
         return self.sbvalue.__nonzero__()
+
+    def __bool__(self):
+        return self.sbvalue.__bool__()
 
     def __str__(self):
         return self.sbvalue.__str__()

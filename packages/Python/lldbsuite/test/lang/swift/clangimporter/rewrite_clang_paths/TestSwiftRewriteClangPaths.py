@@ -27,14 +27,12 @@ class TestSwiftRewriteClangPaths(TestBase):
 
     @skipUnlessDarwin
     @swiftTest
-    @add_test_categories(["swiftpr"])
     @skipIf(debug_info=no_match(["dsym"]))
     def testWithRemap(self):
         self.dotest(True)
 
     @skipUnlessDarwin
     @swiftTest
-    @add_test_categories(["swiftpr"])
     @skipIf(debug_info=no_match(["dsym"]))
     def testWithoutRemap(self):
         self.dotest(False)
@@ -72,6 +70,12 @@ class TestSwiftRewriteClangPaths(TestBase):
             # Also delete the remapping plist from the .dSYM to verify
             # that this doesn't work by happy accident without it.
             os.remove(plist)
+
+        # Create the target
+        target = self.dbg.CreateTarget(self.getBuildArtifact("a.out"))
+        self.assertTrue(target, VALID_TARGET)
+
+        self.registerSharedLibrariesWithTarget(target, ['Foo'])
 
         target, process, thread, bkpt = lldbutil.run_to_source_breakpoint(
             self, 'break here', lldb.SBFileSpec('Foo.swift'))

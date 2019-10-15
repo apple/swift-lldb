@@ -22,6 +22,7 @@
 #include "lldb/DataFormatters/StringPrinter.h"
 // SWIFT_ENABLE_TENSORFLOW
 #include "lldb/Target/CompletionResponse.h"
+#include "lldb/Symbol/TypeSystem.h"
 #include "lldb/lldb-private.h"
 #include "lldb/lldb-public.h"
 
@@ -272,17 +273,12 @@ public:
 
   static std::set<lldb::LanguageType> GetSupportedLanguages();
 
-  static void GetLanguagesSupportingTypeSystems(
-      std::set<lldb::LanguageType> &languages,
-      std::set<lldb::LanguageType> &languages_for_expressions);
-
-  static void
-  GetLanguagesSupportingREPLs(std::set<lldb::LanguageType> &languages);
+  static LanguageSet GetLanguagesSupportingTypeSystems();
+  static LanguageSet GetLanguagesSupportingTypeSystemsForExpressions();
+  static LanguageSet GetLanguagesSupportingREPLs();
 
 protected:
-  //------------------------------------------------------------------
   // Classes that inherit from Language can see and modify these
-  //------------------------------------------------------------------
 
   Language();
 
