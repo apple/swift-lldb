@@ -1,7 +1,10 @@
 set(LLVM_NO_RTTI 1)
 
 include(AddLLVM)
-include(SwiftAddCustomCommandTarget)
+
+if (LLDB_ENABLE_SWIFT_SUPPORT)
+  include(SwiftAddCustomCommandTarget)
+endif()
 
 if ( CMAKE_SYSTEM_NAME MATCHES "Windows" )
   add_definitions( -DEXPORT_LIBLLDB )
@@ -14,8 +17,8 @@ if(NOT LLDB_DISABLE_PYTHON)
   set(lldb_python_wrapper ${lldb_scripts_dir}/LLDBWrapPython.cpp)
 endif()
 
-if(LLDB_BUILD_FRAMEWORK AND LLVM_EXTERNALIZE_DEBUGINFO)
-  set(LLVM_EXTERNALIZE_DEBUGINFO_EXTENSION framework.dSYM)
+if(LLDB_BUILD_FRAMEWORK)
+  set(option_install_prefix INSTALL_PREFIX ${LLDB_FRAMEWORK_INSTALL_DIR})
 endif()
 
 add_lldb_library(liblldb SHARED
@@ -107,7 +110,9 @@ add_lldb_library(liblldb SHARED
     ${SWIFT_ALL_LIBS}
   LINK_COMPONENTS
     Support
-  )
+
+  ${option_install_prefix}
+)
 
 if (MSVC)
   set_source_files_properties(SBReproducer.cpp PROPERTIES COMPILE_FLAGS /bigobj)
@@ -168,17 +173,21 @@ else()
   )
 endif()
 
+if (NOT LLDB_BUILT_STANDALONE)
+  add_dependencies(liblldb clang-resource-headers)
+endif()
+
 if(LLDB_BUILD_FRAMEWORK)
   include(LLDBFramework)
 endif()
 
 set(lib_dir "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/lib${LLVM_LIBDIR_SUFFIX}")
 
-if(EXISTS ${LLDB_PATH_TO_SWIFT_BUILD}/lib${LLVM_LIBDIR_SUFFIX}/swift/clang)
-  set(CLANG_RESOURCE_PATH "${LLDB_PATH_TO_SWIFT_BUILD}/lib${LLVM_LIBDIR_SUFFIX}/swift/clang")
+if(EXISTS ${SWIFT_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}/swift/clang)
+  set(CLANG_RESOURCE_PATH "${SWIFT_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}/swift/clang")
 elseif(LLDB_BUILT_STANDALONE)
   set(CLANG_VERSION ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH})
-  set(CLANG_RESOURCE_PATH "${LLDB_PATH_TO_CLANG_BUILD}/lib${LLVM_LIBDIR_SUFFIX}/clang/${CLANG_VERSION}")
+  set(CLANG_RESOURCE_PATH "${Clang_DIR}/../../../lib${LLVM_LIBDIR_SUFFIX}/clang/${CLANG_VERSION}")
   if(NOT EXISTS ${CLANG_RESOURCE_PATH})
     message(SEND_ERROR "standalone build cannot locate clang resource directory")
   endif()
@@ -189,12 +198,13 @@ else()
 endif()
 
 set(clang_headers_target ${CLANG_RESOURCE_PATH}/include)
-set(SWIFT_RESOURCE_PATH "${LLDB_PATH_TO_SWIFT_BUILD}/lib${LLVM_LIBDIR_SUFFIX}/swift")
+set(SWIFT_RESOURCE_PATH "${SWIFT_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}/swift")
 if(NOT LLDB_BUILT_STANDALONE)
-  set(clang_headers_target clang-headers symlink_clang_headers)
+  set(clang_headers_target clang-resource-headers symlink_clang_headers)
 endif()
 
 # Copy the clang resource directory.
+if (LLDB_ENABLE_SWIFT_SUPPORT)
 add_custom_command_target(
     copy-clang-resource-dir
     COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CLANG_RESOURCE_PATH}" "${lib_dir}/lldb/clang/"
@@ -216,6 +226,7 @@ if(LLDB_BUILT_STANDALONE)
 endif()
 
 add_dependencies(liblldb ${copy-clang-resource-dir} ${copy-swift-resource-dir})
+endif()
 
 install(
   CODE "file(MAKE_DIRECTORY ${lib_dir}/lldb)")
@@ -224,9 +235,10 @@ install(
   DIRECTORY "${lib_dir}/lldb/clang"
   DESTINATION lib${LLVM_LIBDIR_SUFFIX}/lldb/)
 
+if(LLDB_ENABLE_SWIFT_SUPPORT)
 if(LLDB_BUILT_STANDALONE)
   install(
     DIRECTORY "${lib_dir}/lldb/swift"
     DESTINATION lib${LLVM_LIBDIR_SUFFIX}/lldb/)
 endif()
-
+endif()

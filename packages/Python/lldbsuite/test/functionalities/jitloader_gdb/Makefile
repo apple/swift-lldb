@@ -1,5 +1,9 @@
-LEVEL = ../../make
-
 C_SOURCES := main.c
 
-include $(LEVEL)/Makefile.rules
+all: a.out simple
+
+include Makefile.rules
+
+simple:
+	$(MAKE) -f $(MAKEFILE_RULES) \
+		C_SOURCES=simple.c EXE=simple

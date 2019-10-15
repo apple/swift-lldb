@@ -28,7 +28,6 @@ class TestSwiftBridgingHeaderHeadermap(TestBase):
 
     @skipUnlessDarwin
     @swiftTest
-    @add_test_categories(["swiftpr"])
     def test(self):
         # To ensure we hit the rebuild problem remove the cache to avoid caching.
         mod_cache = self.getBuildArtifact("my-clang-modules-cache")
@@ -45,6 +44,8 @@ class TestSwiftBridgingHeaderHeadermap(TestBase):
         # Create the target
         target = self.dbg.CreateTarget(exe)
         self.assertTrue(target, VALID_TARGET)
+
+        self.registerSharedLibrariesWithTarget(target, ['dylib'])
 
         lldbutil.run_to_source_breakpoint(self, "break here",
                                           lldb.SBFileSpec('dylib.swift'))

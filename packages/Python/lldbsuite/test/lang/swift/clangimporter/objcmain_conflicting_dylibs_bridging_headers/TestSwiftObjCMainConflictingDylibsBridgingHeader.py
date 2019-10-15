@@ -27,7 +27,6 @@ class TestSwiftObjCMainConflictingDylibsBridgingHeader(TestBase):
 
     @skipUnlessDarwin
     @swiftTest
-    @add_test_categories(["swiftpr"])
     def test(self):
         self.build()
         exe_name = "a.out"
@@ -36,6 +35,8 @@ class TestSwiftObjCMainConflictingDylibsBridgingHeader(TestBase):
         # Create the target
         target = self.dbg.CreateTarget(exe)
         self.assertTrue(target, VALID_TARGET)
+
+        self.registerSharedLibrariesWithTarget(target, ['Foo', 'Bar'])
 
         # Set the breakpoints
         bar_breakpoint = target.BreakpointCreateBySourceRegex(

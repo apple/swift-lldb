@@ -1633,6 +1633,7 @@ SwigPyObject_repr(SwigPyObject *v, PyObject *args)
   return repr;  
 }
 
+<<<<<<< HEAD
 /* We need a version taking two PyObject* parameters so it's a valid
  * PyCFunction to use in swigobject_methods[]. */
 SWIGRUNTIME PyObject *
@@ -1641,6 +1642,8 @@ SwigPyObject_repr2(PyObject *v, PyObject *SWIGUNUSEDPARM(args))
   return SwigPyObject_repr((SwigPyObject*)v);
 }
 
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 SWIGRUNTIME int
 SwigPyObject_compare(SwigPyObject *v, SwigPyObject *w)
 {
@@ -1859,8 +1862,13 @@ SwigPyObject_own(PyObject *v, PyObject *args)
 #ifdef METH_O
 static PyMethodDef
 swigobject_methods[] = {
+<<<<<<< HEAD
   {(char *)"disown",  (PyCFunction)SwigPyObject_disown2, METH_NOARGS,  (char *)"releases ownership of the pointer"},
   {(char *)"acquire", (PyCFunction)SwigPyObject_acquire2,METH_NOARGS,  (char *)"acquires ownership of the pointer"},
+=======
+  {(char *)"disown",  (PyCFunction)SwigPyObject_disown,  METH_NOARGS,  (char *)"releases ownership of the pointer"},
+  {(char *)"acquire", (PyCFunction)SwigPyObject_acquire, METH_NOARGS,  (char *)"acquires ownership of the pointer"},
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
   {(char *)"own",     (PyCFunction)SwigPyObject_own,     METH_VARARGS, (char *)"returns/sets ownership of the pointer"},
   {(char *)"append",  (PyCFunction)SwigPyObject_append,  METH_O,       (char *)"appends another 'this' object"},
   {(char *)"next",    (PyCFunction)SwigPyObject_next,    METH_NOARGS,  (char *)"returns the next 'this' object"},
@@ -2667,6 +2675,7 @@ SWIG_Python_NewPointerObj(PyObject *self, void *ptr, swig_type_info *type, int f
 #ifdef SWIGPYTHON_BUILTIN
       newobj->dict = 0;
 #endif
+<<<<<<< HEAD
     }
     if (newobj) {
       newobj->ptr = ptr;
@@ -2675,6 +2684,16 @@ SWIG_Python_NewPointerObj(PyObject *self, void *ptr, swig_type_info *type, int f
       newobj->next = 0;
       return (PyObject*) newobj;
     }
+=======
+    }
+    if (newobj) {
+      newobj->ptr = ptr;
+      newobj->ty = type;
+      newobj->own = own;
+      newobj->next = 0;
+      return (PyObject*) newobj;
+    }
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
     return SWIG_Py_Void();
   }
 
@@ -2978,6 +2997,7 @@ SWIG_Python_NonDynamicSetAttr(PyObject *obj, PyObject *name, PyObject *value) {
   } else {
     Py_INCREF(name);
   }
+<<<<<<< HEAD
 
   if (!tp->tp_dict) {
     if (PyType_Ready(tp) < 0)
@@ -3008,6 +3028,38 @@ SWIG_Python_NonDynamicSetAttr(PyObject *obj, PyObject *name, PyObject *value) {
 #endif
 
 
+=======
+
+  if (!tp->tp_dict) {
+    if (PyType_Ready(tp) < 0)
+      goto done;
+  }
+
+  descr = _PyType_Lookup(tp, name);
+  f = NULL;
+  if (descr != NULL)
+    f = descr->ob_type->tp_descr_set;
+  if (!f) {
+    if (PyString_Check(name)) {
+      encoded_name = name;
+      Py_INCREF(name);
+    } else {
+      encoded_name = PyUnicode_AsUTF8String(name);
+    }
+    PyErr_Format(PyExc_AttributeError, "'%.100s' object has no attribute '%.200s'", tp->tp_name, PyString_AsString(encoded_name));
+    Py_DECREF(encoded_name);
+  } else {
+    res = f(descr, obj, value);
+  }
+  
+  done:
+  Py_DECREF(name);
+  return res;
+}
+#endif
+
+
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 #ifdef __cplusplus
 }
 #endif
@@ -3070,6 +3122,7 @@ void LLDBSwigPythonCallPythonLogOutputCallback(const char *str, void *baton);
 #define SWIGTYPE_p_lldb__SBCommandReturnObject swig_types[18]
 #define SWIGTYPE_p_lldb__SBCommunication swig_types[19]
 #define SWIGTYPE_p_lldb__SBCompileUnit swig_types[20]
+<<<<<<< HEAD
 #define SWIGTYPE_p_lldb__SBCompletionMatch swig_types[21]
 #define SWIGTYPE_p_lldb__SBCompletionResponse swig_types[22]
 #define SWIGTYPE_p_lldb__SBData swig_types[23]
@@ -3309,6 +3362,245 @@ void LLDBSwigPythonCallPythonLogOutputCallback(const char *str, void *baton);
 #define SWIGTYPE_p_void swig_types[257]
 static swig_type_info *swig_types[259];
 static swig_module_info swig_module = {swig_types, 258, 0, 0, 0, 0};
+=======
+#define SWIGTYPE_p_lldb__SBData swig_types[21]
+#define SWIGTYPE_p_lldb__SBDebugger swig_types[22]
+#define SWIGTYPE_p_lldb__SBDeclaration swig_types[23]
+#define SWIGTYPE_p_lldb__SBError swig_types[24]
+#define SWIGTYPE_p_lldb__SBEvent swig_types[25]
+#define SWIGTYPE_p_lldb__SBExecutionContext swig_types[26]
+#define SWIGTYPE_p_lldb__SBExpressionOptions swig_types[27]
+#define SWIGTYPE_p_lldb__SBFileSpec swig_types[28]
+#define SWIGTYPE_p_lldb__SBFileSpecList swig_types[29]
+#define SWIGTYPE_p_lldb__SBFrame swig_types[30]
+#define SWIGTYPE_p_lldb__SBFunction swig_types[31]
+#define SWIGTYPE_p_lldb__SBHostOS swig_types[32]
+#define SWIGTYPE_p_lldb__SBInstruction swig_types[33]
+#define SWIGTYPE_p_lldb__SBInstructionList swig_types[34]
+#define SWIGTYPE_p_lldb__SBLanguageRuntime swig_types[35]
+#define SWIGTYPE_p_lldb__SBLaunchInfo swig_types[36]
+#define SWIGTYPE_p_lldb__SBLineEntry swig_types[37]
+#define SWIGTYPE_p_lldb__SBListener swig_types[38]
+#define SWIGTYPE_p_lldb__SBMemoryRegionInfo swig_types[39]
+#define SWIGTYPE_p_lldb__SBMemoryRegionInfoList swig_types[40]
+#define SWIGTYPE_p_lldb__SBModule swig_types[41]
+#define SWIGTYPE_p_lldb__SBModuleSpec swig_types[42]
+#define SWIGTYPE_p_lldb__SBModuleSpecList swig_types[43]
+#define SWIGTYPE_p_lldb__SBPlatform swig_types[44]
+#define SWIGTYPE_p_lldb__SBPlatformConnectOptions swig_types[45]
+#define SWIGTYPE_p_lldb__SBPlatformShellCommand swig_types[46]
+#define SWIGTYPE_p_lldb__SBProcess swig_types[47]
+#define SWIGTYPE_p_lldb__SBProcessInfo swig_types[48]
+#define SWIGTYPE_p_lldb__SBQueue swig_types[49]
+#define SWIGTYPE_p_lldb__SBQueueItem swig_types[50]
+#define SWIGTYPE_p_lldb__SBSection swig_types[51]
+#define SWIGTYPE_p_lldb__SBSourceManager swig_types[52]
+#define SWIGTYPE_p_lldb__SBStream swig_types[53]
+#define SWIGTYPE_p_lldb__SBStringList swig_types[54]
+#define SWIGTYPE_p_lldb__SBStructuredData swig_types[55]
+#define SWIGTYPE_p_lldb__SBSymbol swig_types[56]
+#define SWIGTYPE_p_lldb__SBSymbolContext swig_types[57]
+#define SWIGTYPE_p_lldb__SBSymbolContextList swig_types[58]
+#define SWIGTYPE_p_lldb__SBTarget swig_types[59]
+#define SWIGTYPE_p_lldb__SBThread swig_types[60]
+#define SWIGTYPE_p_lldb__SBThreadCollection swig_types[61]
+#define SWIGTYPE_p_lldb__SBThreadPlan swig_types[62]
+#define SWIGTYPE_p_lldb__SBTrace swig_types[63]
+#define SWIGTYPE_p_lldb__SBTraceOptions swig_types[64]
+#define SWIGTYPE_p_lldb__SBType swig_types[65]
+#define SWIGTYPE_p_lldb__SBTypeCategory swig_types[66]
+#define SWIGTYPE_p_lldb__SBTypeEnumMember swig_types[67]
+#define SWIGTYPE_p_lldb__SBTypeEnumMemberList swig_types[68]
+#define SWIGTYPE_p_lldb__SBTypeFilter swig_types[69]
+#define SWIGTYPE_p_lldb__SBTypeFormat swig_types[70]
+#define SWIGTYPE_p_lldb__SBTypeList swig_types[71]
+#define SWIGTYPE_p_lldb__SBTypeMember swig_types[72]
+#define SWIGTYPE_p_lldb__SBTypeMemberFunction swig_types[73]
+#define SWIGTYPE_p_lldb__SBTypeNameSpecifier swig_types[74]
+#define SWIGTYPE_p_lldb__SBTypeSummary swig_types[75]
+#define SWIGTYPE_p_lldb__SBTypeSummaryOptions swig_types[76]
+#define SWIGTYPE_p_lldb__SBTypeSynthetic swig_types[77]
+#define SWIGTYPE_p_lldb__SBUnixSignals swig_types[78]
+#define SWIGTYPE_p_lldb__SBValue swig_types[79]
+#define SWIGTYPE_p_lldb__SBValueList swig_types[80]
+#define SWIGTYPE_p_lldb__SBVariablesOptions swig_types[81]
+#define SWIGTYPE_p_lldb__SBWatchpoint swig_types[82]
+#define SWIGTYPE_p_lldb_private__SharingPtrT_lldb_private__ValueObject_t swig_types[83]
+#define SWIGTYPE_p_long_double swig_types[84]
+#define SWIGTYPE_p_long_long swig_types[85]
+#define SWIGTYPE_p_p_void swig_types[86]
+#define SWIGTYPE_p_pthread_rwlock_t swig_types[87]
+#define SWIGTYPE_p_pthread_t swig_types[88]
+#define SWIGTYPE_p_short swig_types[89]
+#define SWIGTYPE_p_signed_char swig_types[90]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ABI_t swig_types[91]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Baton_t swig_types[92]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Block_t swig_types[93]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__BreakpointLocation_t swig_types[94]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__BreakpointPrecondition_t swig_types[95]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__BreakpointResolver_t swig_types[96]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__BreakpointSite_t swig_types[97]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Breakpoint_t swig_types[98]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__BroadcasterManager_t swig_types[99]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Broadcaster_t swig_types[100]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ClangASTImporter_t swig_types[101]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__CommandObject_t swig_types[102]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Communication_t swig_types[103]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__CompileUnit_t swig_types[104]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Connection_t swig_types[105]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__DataBuffer_t swig_types[106]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__DataExtractor_t swig_types[107]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Debugger_t swig_types[108]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Disassembler_t swig_types[109]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__DynamicLoader_t swig_types[110]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__EventDataStructuredData_t swig_types[111]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__EventData_t swig_types[112]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Event_t swig_types[113]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ExecutionContextRef_t swig_types[114]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ExpressionVariable_t swig_types[115]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__File_t swig_types[116]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__FuncUnwinders_t swig_types[117]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__FunctionCaller_t swig_types[118]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Function_t swig_types[119]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__IOHandler_t swig_types[120]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__IOObject_t swig_types[121]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__IRExecutionUnit_t swig_types[122]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__InlineFunctionInfo_t swig_types[123]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Instruction_t swig_types[124]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__InstrumentationRuntime_t swig_types[125]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__JITLoader_t swig_types[126]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__LanguageRuntime_t swig_types[127]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__LineTable_t swig_types[128]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Listener_t swig_types[129]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__MemoryHistory_t swig_types[130]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Module_t swig_types[131]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ObjectFileJITDelegate_t swig_types[132]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ObjectFile_t swig_types[133]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueArch_t swig_types[134]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueArgs_t swig_types[135]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueArray_t swig_types[136]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueBoolean_t swig_types[137]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueDictionary_t swig_types[138]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueFileSpecList_t swig_types[139]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueFileSpec_t swig_types[140]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueFormat_t swig_types[141]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValuePathMappings_t swig_types[142]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueProperties_t swig_types[143]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueRegex_t swig_types[144]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueSInt64_t swig_types[145]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueString_t swig_types[146]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueUInt64_t swig_types[147]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValueUUID_t swig_types[148]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__OptionValue_t swig_types[149]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Platform_t swig_types[150]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ProcessAttachInfo_t swig_types[151]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ProcessLaunchInfo_t swig_types[152]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Process_t swig_types[153]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Property_t swig_types[154]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__QueueItem_t swig_types[155]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Queue_t swig_types[156]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__REPL_t swig_types[157]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__RecognizedStackFrame_t swig_types[158]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__RegisterCheckpoint_t swig_types[159]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__RegisterContext_t swig_types[160]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__RegularExpression_t swig_types[161]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ScriptInterpreter_t swig_types[162]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ScriptSummaryFormat_t swig_types[163]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ScriptedSyntheticChildren_t swig_types[164]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__SearchFilter_t swig_types[165]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__SectionLoadList_t swig_types[166]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Section_t swig_types[167]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Settings_t swig_types[168]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__StackFrameList_t swig_types[169]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__StackFrameRecognizer_t swig_types[170]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__StackFrame_t swig_types[171]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__StopInfo_t swig_types[172]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__StoppointLocation_t swig_types[173]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__StreamFile_t swig_types[174]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Stream_t swig_types[175]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__StringSummaryFormat_t swig_types[176]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__StructuredDataPlugin_t swig_types[177]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__SwiftASTContext_t swig_types[178]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__SymbolContextSpecifier_t swig_types[179]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__SymbolFileType_t swig_types[180]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__SymbolFile_t swig_types[181]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__SyntheticChildrenFrontEnd_t swig_types[182]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__SyntheticChildren_t swig_types[183]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__SystemRuntime_t swig_types[184]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TargetProperties_t swig_types[185]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Target_t swig_types[186]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ThreadCollection_t swig_types[187]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ThreadPlanTracer_t swig_types[188]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ThreadPlan_t swig_types[189]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Thread_t swig_types[190]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TraceOptions_t swig_types[191]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TypeCategoryImpl_t swig_types[192]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TypeEnumMemberImpl_t swig_types[193]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TypeFilterImpl_t swig_types[194]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TypeFormatImpl_t swig_types[195]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TypeImpl_t swig_types[196]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TypeMemberFunctionImpl_t swig_types[197]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TypeNameSpecifierImpl_t swig_types[198]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TypeSummaryImpl_t swig_types[199]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TypeSummaryOptions_t swig_types[200]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TypeSystem_t swig_types[201]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__TypeValidatorImpl_t swig_types[202]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Type_t swig_types[203]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__UnixSignals_t swig_types[204]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__UnwindAssembly_t swig_types[205]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__UnwindPlan_t swig_types[206]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__UserExpression_t swig_types[207]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__UtilityFunction_t swig_types[208]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ValueList_t swig_types[209]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__ValueObjectList_t swig_types[210]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Value_t swig_types[211]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__VariableList_t swig_types[212]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Variable_t swig_types[213]
+#define SWIGTYPE_p_std__shared_ptrT_lldb_private__Watchpoint_t swig_types[214]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__ClangASTContext_t swig_types[215]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__ClangModulesDeclVendor_t swig_types[216]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__ClangPersistentVariables_t swig_types[217]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__DynamicCheckerFunctions_t swig_types[218]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__DynamicLoader_t swig_types[219]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__JITLoaderList_t swig_types[220]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__MemoryRegionInfo_t swig_types[221]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__OperatingSystem_t swig_types[222]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__ScriptInterpreter_t swig_types[223]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__SectionList_t swig_types[224]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__SourceManager_t swig_types[225]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__StackFrame_t swig_types[226]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__StructuredDataImpl_t swig_types[227]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__SymbolVendor_t swig_types[228]
+#define SWIGTYPE_p_std__unique_ptrT_lldb_private__SystemRuntime_t swig_types[229]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__BreakpointLocation_t swig_types[230]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__BreakpointSite_t swig_types[231]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__Breakpoint_t swig_types[232]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__BroadcasterManager_t swig_types[233]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__Debugger_t swig_types[234]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__Listener_t swig_types[235]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__Module_t swig_types[236]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__ObjectFileJITDelegate_t swig_types[237]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__ObjectFile_t swig_types[238]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__OptionValue_t swig_types[239]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__Process_t swig_types[240]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__Queue_t swig_types[241]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__Section_t swig_types[242]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__StackFrame_t swig_types[243]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__Stream_t swig_types[244]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__StructuredDataPlugin_t swig_types[245]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__SymbolFileType_t swig_types[246]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__Target_t swig_types[247]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__Thread_t swig_types[248]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__Type_t swig_types[249]
+#define SWIGTYPE_p_std__weak_ptrT_lldb_private__UnixSignals_t swig_types[250]
+#define SWIGTYPE_p_unsigned_char swig_types[251]
+#define SWIGTYPE_p_unsigned_int swig_types[252]
+#define SWIGTYPE_p_unsigned_long_long swig_types[253]
+#define SWIGTYPE_p_unsigned_short swig_types[254]
+#define SWIGTYPE_p_void swig_types[255]
+static swig_type_info *swig_types[257];
+static swig_module_info swig_module = {swig_types, 256, 0, 0, 0, 0};
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -5032,6 +5324,47 @@ fail:
 }
 
 
+<<<<<<< HEAD
+=======
+SWIGINTERN PyObject *_wrap_SBAddress___ne__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBAddress *arg1 = (lldb::SBAddress *) 0 ;
+  lldb::SBAddress *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBAddress___ne__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBAddress, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBAddress___ne__" "', argument " "1"" of type '" "lldb::SBAddress const *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBAddress * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBAddress,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBAddress___ne__" "', argument " "2"" of type '" "lldb::SBAddress const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBAddress___ne__" "', argument " "2"" of type '" "lldb::SBAddress const &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBAddress * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)((lldb::SBAddress const *)arg1)->operator !=((lldb::SBAddress const &)*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 SWIGINTERN PyObject *_wrap_SBAddress_Clear(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   lldb::SBAddress *arg1 = (lldb::SBAddress *) 0 ;
@@ -7787,6 +8120,82 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_SBBreakpoint___eq__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBBreakpoint *arg1 = (lldb::SBBreakpoint *) 0 ;
+  lldb::SBBreakpoint *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBBreakpoint___eq__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBBreakpoint, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBBreakpoint___eq__" "', argument " "1"" of type '" "lldb::SBBreakpoint *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBBreakpoint * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBBreakpoint,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBBreakpoint___eq__" "', argument " "2"" of type '" "lldb::SBBreakpoint const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBBreakpoint___eq__" "', argument " "2"" of type '" "lldb::SBBreakpoint const &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBBreakpoint * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)(arg1)->operator ==((lldb::SBBreakpoint const &)*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SBBreakpoint___ne__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBBreakpoint *arg1 = (lldb::SBBreakpoint *) 0 ;
+  lldb::SBBreakpoint *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBBreakpoint___ne__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBBreakpoint, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBBreakpoint___ne__" "', argument " "1"" of type '" "lldb::SBBreakpoint *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBBreakpoint * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBBreakpoint,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBBreakpoint___ne__" "', argument " "2"" of type '" "lldb::SBBreakpoint const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBBreakpoint___ne__" "', argument " "2"" of type '" "lldb::SBBreakpoint const &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBBreakpoint * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)(arg1)->operator !=((lldb::SBBreakpoint const &)*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_SBBreakpoint_GetID(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   lldb::SBBreakpoint *arg1 = (lldb::SBBreakpoint *) 0 ;
@@ -9162,82 +9571,6 @@ SWIGINTERN PyObject *_wrap_SBBreakpoint_AddLocation(PyObject *SWIGUNUSEDPARM(sel
     SWIG_PYTHON_THREAD_END_ALLOW;
   }
   resultobj = SWIG_NewPointerObj((new lldb::SBError(static_cast< const lldb::SBError& >(result))), SWIGTYPE_p_lldb__SBError, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_SBBreakpoint___eq__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  lldb::SBBreakpoint *arg1 = (lldb::SBBreakpoint *) 0 ;
-  lldb::SBBreakpoint *arg2 = 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  bool result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:SBBreakpoint___eq__",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBBreakpoint, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBBreakpoint___eq__" "', argument " "1"" of type '" "lldb::SBBreakpoint *""'"); 
-  }
-  arg1 = reinterpret_cast< lldb::SBBreakpoint * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBBreakpoint,  0  | 0);
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBBreakpoint___eq__" "', argument " "2"" of type '" "lldb::SBBreakpoint const &""'"); 
-  }
-  if (!argp2) {
-    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBBreakpoint___eq__" "', argument " "2"" of type '" "lldb::SBBreakpoint const &""'"); 
-  }
-  arg2 = reinterpret_cast< lldb::SBBreakpoint * >(argp2);
-  {
-    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
-    result = (bool)(arg1)->operator ==((lldb::SBBreakpoint const &)*arg2);
-    SWIG_PYTHON_THREAD_END_ALLOW;
-  }
-  resultobj = SWIG_From_bool(static_cast< bool >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_SBBreakpoint___ne__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  lldb::SBBreakpoint *arg1 = (lldb::SBBreakpoint *) 0 ;
-  lldb::SBBreakpoint *arg2 = 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  bool result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:SBBreakpoint___ne__",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBBreakpoint, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBBreakpoint___ne__" "', argument " "1"" of type '" "lldb::SBBreakpoint *""'"); 
-  }
-  arg1 = reinterpret_cast< lldb::SBBreakpoint * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBBreakpoint,  0  | 0);
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBBreakpoint___ne__" "', argument " "2"" of type '" "lldb::SBBreakpoint const &""'"); 
-  }
-  if (!argp2) {
-    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBBreakpoint___ne__" "', argument " "2"" of type '" "lldb::SBBreakpoint const &""'"); 
-  }
-  arg2 = reinterpret_cast< lldb::SBBreakpoint * >(argp2);
-  {
-    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
-    result = (bool)(arg1)->operator !=((lldb::SBBreakpoint const &)*arg2);
-    SWIG_PYTHON_THREAD_END_ALLOW;
-  }
-  resultobj = SWIG_From_bool(static_cast< bool >(result));
   return resultobj;
 fail:
   return NULL;
@@ -23338,11 +23671,11 @@ SWIGINTERN PyObject *_wrap_SBDebugger_RunCommandInterpreter(PyObject *SWIGUNUSED
   int ecode3 = 0 ;
   void *argp4 = 0 ;
   int res4 = 0 ;
-  void *argp5 = 0 ;
+  int temp5 ;
   int res5 = 0 ;
-  void *argp6 = 0 ;
+  bool temp6 ;
   int res6 = 0 ;
-  void *argp7 = 0 ;
+  bool temp7 ;
   int res7 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
@@ -23376,36 +23709,60 @@ SWIGINTERN PyObject *_wrap_SBDebugger_RunCommandInterpreter(PyObject *SWIGUNUSED
     SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBDebugger_RunCommandInterpreter" "', argument " "4"" of type '" "lldb::SBCommandInterpreterRunOptions &""'"); 
   }
   arg4 = reinterpret_cast< lldb::SBCommandInterpreterRunOptions * >(argp4);
-  res5 = SWIG_ConvertPtr(obj4, &argp5, SWIGTYPE_p_int,  0 );
-  if (!SWIG_IsOK(res5)) {
-    SWIG_exception_fail(SWIG_ArgError(res5), "in method '" "SBDebugger_RunCommandInterpreter" "', argument " "5"" of type '" "int &""'"); 
+  if (!(SWIG_IsOK((res5 = SWIG_ConvertPtr(obj4,SWIG_as_voidptrptr(&arg5),SWIGTYPE_p_int,0))))) {
+    int val;
+    int ecode = SWIG_AsVal_int(obj4, &val);
+    if (!SWIG_IsOK(ecode)) {
+      SWIG_exception_fail(SWIG_ArgError(ecode), "in method '" "SBDebugger_RunCommandInterpreter" "', argument " "5"" of type '" "int""'");
+    }
+    temp5 = static_cast< int >(val);
+    arg5 = &temp5;
+    res5 = SWIG_AddTmpMask(ecode);
   }
-  if (!argp5) {
-    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBDebugger_RunCommandInterpreter" "', argument " "5"" of type '" "int &""'"); 
+  if (!(SWIG_IsOK((res6 = SWIG_ConvertPtr(obj5,SWIG_as_voidptrptr(&arg6),SWIGTYPE_p_bool,0))))) {
+    bool val;
+    int ecode = SWIG_AsVal_bool(obj5, &val);
+    if (!SWIG_IsOK(ecode)) {
+      SWIG_exception_fail(SWIG_ArgError(ecode), "in method '" "SBDebugger_RunCommandInterpreter" "', argument " "6"" of type '" "bool""'");
+    }
+    temp6 = static_cast< bool >(val);
+    arg6 = &temp6;
+    res6 = SWIG_AddTmpMask(ecode);
   }
-  arg5 = reinterpret_cast< int * >(argp5);
-  res6 = SWIG_ConvertPtr(obj5, &argp6, SWIGTYPE_p_bool,  0 );
-  if (!SWIG_IsOK(res6)) {
-    SWIG_exception_fail(SWIG_ArgError(res6), "in method '" "SBDebugger_RunCommandInterpreter" "', argument " "6"" of type '" "bool &""'"); 
+  if (!(SWIG_IsOK((res7 = SWIG_ConvertPtr(obj6,SWIG_as_voidptrptr(&arg7),SWIGTYPE_p_bool,0))))) {
+    bool val;
+    int ecode = SWIG_AsVal_bool(obj6, &val);
+    if (!SWIG_IsOK(ecode)) {
+      SWIG_exception_fail(SWIG_ArgError(ecode), "in method '" "SBDebugger_RunCommandInterpreter" "', argument " "7"" of type '" "bool""'");
+    }
+    temp7 = static_cast< bool >(val);
+    arg7 = &temp7;
+    res7 = SWIG_AddTmpMask(ecode);
   }
-  if (!argp6) {
-    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBDebugger_RunCommandInterpreter" "', argument " "6"" of type '" "bool &""'"); 
-  }
-  arg6 = reinterpret_cast< bool * >(argp6);
-  res7 = SWIG_ConvertPtr(obj6, &argp7, SWIGTYPE_p_bool,  0 );
-  if (!SWIG_IsOK(res7)) {
-    SWIG_exception_fail(SWIG_ArgError(res7), "in method '" "SBDebugger_RunCommandInterpreter" "', argument " "7"" of type '" "bool &""'"); 
-  }
-  if (!argp7) {
-    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBDebugger_RunCommandInterpreter" "', argument " "7"" of type '" "bool &""'"); 
-  }
-  arg7 = reinterpret_cast< bool * >(argp7);
   {
     SWIG_PYTHON_THREAD_BEGIN_ALLOW;
     (arg1)->RunCommandInterpreter(arg2,arg3,*arg4,*arg5,*arg6,*arg7);
     SWIG_PYTHON_THREAD_END_ALLOW;
   }
   resultobj = SWIG_Py_Void();
+  if (SWIG_IsTmpObj(res5)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_int((*arg5)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res5) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg5), SWIGTYPE_p_int, new_flags));
+  }
+  if (SWIG_IsTmpObj(res6)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_bool((*arg6)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res6) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg6), SWIGTYPE_p_bool, new_flags));
+  }
+  if (SWIG_IsTmpObj(res7)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_bool((*arg7)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res7) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg7), SWIGTYPE_p_bool, new_flags));
+  }
   return resultobj;
 fail:
   return NULL;
@@ -28079,6 +28436,82 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_SBFileSpec___eq__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBFileSpec *arg1 = (lldb::SBFileSpec *) 0 ;
+  lldb::SBFileSpec *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBFileSpec___eq__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBFileSpec, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBFileSpec___eq__" "', argument " "1"" of type '" "lldb::SBFileSpec const *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBFileSpec * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBFileSpec,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBFileSpec___eq__" "', argument " "2"" of type '" "lldb::SBFileSpec const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBFileSpec___eq__" "', argument " "2"" of type '" "lldb::SBFileSpec const &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBFileSpec * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)((lldb::SBFileSpec const *)arg1)->operator ==((lldb::SBFileSpec const &)*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SBFileSpec___ne__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBFileSpec *arg1 = (lldb::SBFileSpec *) 0 ;
+  lldb::SBFileSpec *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBFileSpec___ne__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBFileSpec, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBFileSpec___ne__" "', argument " "1"" of type '" "lldb::SBFileSpec const *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBFileSpec * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBFileSpec,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBFileSpec___ne__" "', argument " "2"" of type '" "lldb::SBFileSpec const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBFileSpec___ne__" "', argument " "2"" of type '" "lldb::SBFileSpec const &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBFileSpec * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)((lldb::SBFileSpec const *)arg1)->operator !=((lldb::SBFileSpec const &)*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_SBFileSpec_IsValid(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   lldb::SBFileSpec *arg1 = (lldb::SBFileSpec *) 0 ;
@@ -30193,6 +30626,82 @@ SWIGINTERN PyObject *_wrap_SBFrame_Clear(PyObject *SWIGUNUSEDPARM(self), PyObjec
     SWIG_PYTHON_THREAD_END_ALLOW;
   }
   resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SBFrame___eq__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBFrame *arg1 = (lldb::SBFrame *) 0 ;
+  lldb::SBFrame *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBFrame___eq__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBFrame, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBFrame___eq__" "', argument " "1"" of type '" "lldb::SBFrame const *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBFrame * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBFrame,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBFrame___eq__" "', argument " "2"" of type '" "lldb::SBFrame const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBFrame___eq__" "', argument " "2"" of type '" "lldb::SBFrame const &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBFrame * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)((lldb::SBFrame const *)arg1)->operator ==((lldb::SBFrame const &)*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SBFrame___ne__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBFrame *arg1 = (lldb::SBFrame *) 0 ;
+  lldb::SBFrame *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBFrame___ne__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBFrame, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBFrame___ne__" "', argument " "1"" of type '" "lldb::SBFrame const *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBFrame * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBFrame,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBFrame___ne__" "', argument " "2"" of type '" "lldb::SBFrame const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBFrame___ne__" "', argument " "2"" of type '" "lldb::SBFrame const &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBFrame * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)((lldb::SBFrame const *)arg1)->operator !=((lldb::SBFrame const &)*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
   return resultobj;
 fail:
   return NULL;
@@ -37654,6 +38163,82 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_SBModule___eq__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBModule *arg1 = (lldb::SBModule *) 0 ;
+  lldb::SBModule *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBModule___eq__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBModule, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBModule___eq__" "', argument " "1"" of type '" "lldb::SBModule const *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBModule * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBModule,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBModule___eq__" "', argument " "2"" of type '" "lldb::SBModule const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBModule___eq__" "', argument " "2"" of type '" "lldb::SBModule const &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBModule * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)((lldb::SBModule const *)arg1)->operator ==((lldb::SBModule const &)*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SBModule___ne__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBModule *arg1 = (lldb::SBModule *) 0 ;
+  lldb::SBModule *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBModule___ne__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBModule, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBModule___ne__" "', argument " "1"" of type '" "lldb::SBModule const *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBModule * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBModule,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBModule___ne__" "', argument " "2"" of type '" "lldb::SBModule const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBModule___ne__" "', argument " "2"" of type '" "lldb::SBModule const &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBModule * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)((lldb::SBModule const *)arg1)->operator !=((lldb::SBModule const &)*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_SBModule_FindSection(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   lldb::SBModule *arg1 = (lldb::SBModule *) 0 ;
@@ -39054,82 +39639,6 @@ SWIGINTERN PyObject *_wrap_SBModule_GetObjectFileEntryPointAddress(PyObject *SWI
     SWIG_PYTHON_THREAD_END_ALLOW;
   }
   resultobj = SWIG_NewPointerObj((new lldb::SBAddress(static_cast< const lldb::SBAddress& >(result))), SWIGTYPE_p_lldb__SBAddress, SWIG_POINTER_OWN |  0 );
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_SBModule___eq__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  lldb::SBModule *arg1 = (lldb::SBModule *) 0 ;
-  lldb::SBModule *arg2 = 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  bool result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:SBModule___eq__",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBModule, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBModule___eq__" "', argument " "1"" of type '" "lldb::SBModule const *""'"); 
-  }
-  arg1 = reinterpret_cast< lldb::SBModule * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBModule,  0  | 0);
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBModule___eq__" "', argument " "2"" of type '" "lldb::SBModule const &""'"); 
-  }
-  if (!argp2) {
-    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBModule___eq__" "', argument " "2"" of type '" "lldb::SBModule const &""'"); 
-  }
-  arg2 = reinterpret_cast< lldb::SBModule * >(argp2);
-  {
-    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
-    result = (bool)((lldb::SBModule const *)arg1)->operator ==((lldb::SBModule const &)*arg2);
-    SWIG_PYTHON_THREAD_END_ALLOW;
-  }
-  resultobj = SWIG_From_bool(static_cast< bool >(result));
-  return resultobj;
-fail:
-  return NULL;
-}
-
-
-SWIGINTERN PyObject *_wrap_SBModule___ne__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
-  PyObject *resultobj = 0;
-  lldb::SBModule *arg1 = (lldb::SBModule *) 0 ;
-  lldb::SBModule *arg2 = 0 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  void *argp2 = 0 ;
-  int res2 = 0 ;
-  PyObject * obj0 = 0 ;
-  PyObject * obj1 = 0 ;
-  bool result;
-  
-  if (!PyArg_ParseTuple(args,(char *)"OO:SBModule___ne__",&obj0,&obj1)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBModule, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBModule___ne__" "', argument " "1"" of type '" "lldb::SBModule const *""'"); 
-  }
-  arg1 = reinterpret_cast< lldb::SBModule * >(argp1);
-  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBModule,  0  | 0);
-  if (!SWIG_IsOK(res2)) {
-    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBModule___ne__" "', argument " "2"" of type '" "lldb::SBModule const &""'"); 
-  }
-  if (!argp2) {
-    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBModule___ne__" "', argument " "2"" of type '" "lldb::SBModule const &""'"); 
-  }
-  arg2 = reinterpret_cast< lldb::SBModule * >(argp2);
-  {
-    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
-    result = (bool)((lldb::SBModule const *)arg1)->operator !=((lldb::SBModule const &)*arg2);
-    SWIG_PYTHON_THREAD_END_ALLOW;
-  }
-  resultobj = SWIG_From_bool(static_cast< bool >(result));
   return resultobj;
 fail:
   return NULL;
@@ -58520,6 +59029,7 @@ fail:
     "    lldb::SBTarget::EvaluateExpression(char const *)\n"
     "    lldb::SBTarget::EvaluateExpression(char const *,lldb::SBExpressionOptions const &)\n");
   return 0;
+<<<<<<< HEAD
 }
 
 
@@ -58576,6 +59086,8 @@ SWIGINTERN PyObject *_wrap_SBTarget_CompleteCode(PyObject *SWIGUNUSEDPARM(self),
 fail:
   if (alloc4 == SWIG_NEWOBJ) delete[] buf4;
   return NULL;
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 }
 
 
@@ -65677,6 +66189,82 @@ SWIGINTERN PyObject *_wrap_SBType_GetTypeFlags(PyObject *SWIGUNUSEDPARM(self), P
     SWIG_PYTHON_THREAD_END_ALLOW;
   }
   resultobj = SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SBType___eq__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBType *arg1 = (lldb::SBType *) 0 ;
+  lldb::SBType *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBType___eq__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBType, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBType___eq__" "', argument " "1"" of type '" "lldb::SBType *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBType * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBType,  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBType___eq__" "', argument " "2"" of type '" "lldb::SBType &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBType___eq__" "', argument " "2"" of type '" "lldb::SBType &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBType * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)(arg1)->operator ==(*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SBType___ne__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBType *arg1 = (lldb::SBType *) 0 ;
+  lldb::SBType *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBType___ne__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBType, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBType___ne__" "', argument " "1"" of type '" "lldb::SBType *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBType * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBType,  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBType___ne__" "', argument " "2"" of type '" "lldb::SBType &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBType___ne__" "', argument " "2"" of type '" "lldb::SBType &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBType * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)(arg1)->operator !=(*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
   return resultobj;
 fail:
   return NULL;
@@ -75330,6 +75918,233 @@ fail:
     "    lldb::SBValue::GetExpressionPath(lldb::SBStream &)\n"
     "    lldb::SBValue::GetExpressionPath(lldb::SBStream &,bool)\n");
   return 0;
+<<<<<<< HEAD
+=======
+}
+
+
+SWIGINTERN PyObject *_wrap_SBValue_EvaluateExpression__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBValue *arg1 = (lldb::SBValue *) 0 ;
+  char *arg2 = (char *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int res2 ;
+  char *buf2 = 0 ;
+  int alloc2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  lldb::SBValue result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBValue_EvaluateExpression",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBValue, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBValue_EvaluateExpression" "', argument " "1"" of type '" "lldb::SBValue const *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBValue * >(argp1);
+  res2 = SWIG_AsCharPtrAndSize(obj1, &buf2, NULL, &alloc2);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBValue_EvaluateExpression" "', argument " "2"" of type '" "char const *""'");
+  }
+  arg2 = reinterpret_cast< char * >(buf2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = ((lldb::SBValue const *)arg1)->EvaluateExpression((char const *)arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_NewPointerObj((new lldb::SBValue(static_cast< const lldb::SBValue& >(result))), SWIGTYPE_p_lldb__SBValue, SWIG_POINTER_OWN |  0 );
+  if (alloc2 == SWIG_NEWOBJ) delete[] buf2;
+  return resultobj;
+fail:
+  if (alloc2 == SWIG_NEWOBJ) delete[] buf2;
+  return NULL;
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+}
+
+
+SWIGINTERN PyObject *_wrap_SBValue_EvaluateExpression__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBValue *arg1 = (lldb::SBValue *) 0 ;
+  char *arg2 = (char *) 0 ;
+  lldb::SBExpressionOptions *arg3 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int res2 ;
+  char *buf2 = 0 ;
+  int alloc2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  lldb::SBValue result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:SBValue_EvaluateExpression",&obj0,&obj1,&obj2)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBValue, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBValue_EvaluateExpression" "', argument " "1"" of type '" "lldb::SBValue const *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBValue * >(argp1);
+  res2 = SWIG_AsCharPtrAndSize(obj1, &buf2, NULL, &alloc2);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBValue_EvaluateExpression" "', argument " "2"" of type '" "char const *""'");
+  }
+  arg2 = reinterpret_cast< char * >(buf2);
+  res3 = SWIG_ConvertPtr(obj2, &argp3, SWIGTYPE_p_lldb__SBExpressionOptions,  0  | 0);
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "SBValue_EvaluateExpression" "', argument " "3"" of type '" "lldb::SBExpressionOptions const &""'"); 
+  }
+  if (!argp3) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBValue_EvaluateExpression" "', argument " "3"" of type '" "lldb::SBExpressionOptions const &""'"); 
+  }
+  arg3 = reinterpret_cast< lldb::SBExpressionOptions * >(argp3);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = ((lldb::SBValue const *)arg1)->EvaluateExpression((char const *)arg2,(lldb::SBExpressionOptions const &)*arg3);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_NewPointerObj((new lldb::SBValue(static_cast< const lldb::SBValue& >(result))), SWIGTYPE_p_lldb__SBValue, SWIG_POINTER_OWN |  0 );
+  if (alloc2 == SWIG_NEWOBJ) delete[] buf2;
+  return resultobj;
+fail:
+  if (alloc2 == SWIG_NEWOBJ) delete[] buf2;
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SBValue_EvaluateExpression__SWIG_2(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBValue *arg1 = (lldb::SBValue *) 0 ;
+  char *arg2 = (char *) 0 ;
+  lldb::SBExpressionOptions *arg3 = 0 ;
+  char *arg4 = (char *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int res2 ;
+  char *buf2 = 0 ;
+  int alloc2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
+  int res4 ;
+  char *buf4 = 0 ;
+  int alloc4 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  lldb::SBValue result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOO:SBValue_EvaluateExpression",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBValue, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBValue_EvaluateExpression" "', argument " "1"" of type '" "lldb::SBValue const *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBValue * >(argp1);
+  res2 = SWIG_AsCharPtrAndSize(obj1, &buf2, NULL, &alloc2);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBValue_EvaluateExpression" "', argument " "2"" of type '" "char const *""'");
+  }
+  arg2 = reinterpret_cast< char * >(buf2);
+  res3 = SWIG_ConvertPtr(obj2, &argp3, SWIGTYPE_p_lldb__SBExpressionOptions,  0  | 0);
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "SBValue_EvaluateExpression" "', argument " "3"" of type '" "lldb::SBExpressionOptions const &""'"); 
+  }
+  if (!argp3) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBValue_EvaluateExpression" "', argument " "3"" of type '" "lldb::SBExpressionOptions const &""'"); 
+  }
+  arg3 = reinterpret_cast< lldb::SBExpressionOptions * >(argp3);
+  res4 = SWIG_AsCharPtrAndSize(obj3, &buf4, NULL, &alloc4);
+  if (!SWIG_IsOK(res4)) {
+    SWIG_exception_fail(SWIG_ArgError(res4), "in method '" "SBValue_EvaluateExpression" "', argument " "4"" of type '" "char const *""'");
+  }
+  arg4 = reinterpret_cast< char * >(buf4);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = ((lldb::SBValue const *)arg1)->EvaluateExpression((char const *)arg2,(lldb::SBExpressionOptions const &)*arg3,(char const *)arg4);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_NewPointerObj((new lldb::SBValue(static_cast< const lldb::SBValue& >(result))), SWIGTYPE_p_lldb__SBValue, SWIG_POINTER_OWN |  0 );
+  if (alloc2 == SWIG_NEWOBJ) delete[] buf2;
+  if (alloc4 == SWIG_NEWOBJ) delete[] buf4;
+  return resultobj;
+fail:
+  if (alloc2 == SWIG_NEWOBJ) delete[] buf2;
+  if (alloc4 == SWIG_NEWOBJ) delete[] buf4;
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SBValue_EvaluateExpression(PyObject *self, PyObject *args) {
+  Py_ssize_t argc;
+  PyObject *argv[5] = {
+    0
+  };
+  Py_ssize_t ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 4) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 2) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_lldb__SBValue, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      int res = SWIG_AsCharPtrAndSize(argv[1], 0, NULL, 0);
+      _v = SWIG_CheckState(res);
+      if (_v) {
+        return _wrap_SBValue_EvaluateExpression__SWIG_0(self, args);
+      }
+    }
+  }
+  if (argc == 3) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_lldb__SBValue, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      int res = SWIG_AsCharPtrAndSize(argv[1], 0, NULL, 0);
+      _v = SWIG_CheckState(res);
+      if (_v) {
+        int res = SWIG_ConvertPtr(argv[2], 0, SWIGTYPE_p_lldb__SBExpressionOptions, 0);
+        _v = SWIG_CheckState(res);
+        if (_v) {
+          return _wrap_SBValue_EvaluateExpression__SWIG_1(self, args);
+        }
+      }
+    }
+  }
+  if (argc == 4) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_lldb__SBValue, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      int res = SWIG_AsCharPtrAndSize(argv[1], 0, NULL, 0);
+      _v = SWIG_CheckState(res);
+      if (_v) {
+        int res = SWIG_ConvertPtr(argv[2], 0, SWIGTYPE_p_lldb__SBExpressionOptions, 0);
+        _v = SWIG_CheckState(res);
+        if (_v) {
+          int res = SWIG_AsCharPtrAndSize(argv[3], 0, NULL, 0);
+          _v = SWIG_CheckState(res);
+          if (_v) {
+            return _wrap_SBValue_EvaluateExpression__SWIG_2(self, args);
+          }
+        }
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'SBValue_EvaluateExpression'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    lldb::SBValue::EvaluateExpression(char const *) const\n"
+    "    lldb::SBValue::EvaluateExpression(char const *,lldb::SBExpressionOptions const &) const\n"
+    "    lldb::SBValue::EvaluateExpression(char const *,lldb::SBExpressionOptions const &,char const *) const\n");
+  return 0;
 }
 
 
@@ -76579,6 +77394,85 @@ fail:
 }
 
 
+<<<<<<< HEAD
+=======
+SWIGINTERN PyObject *_wrap_SBWatchpoint___eq__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBWatchpoint *arg1 = (lldb::SBWatchpoint *) 0 ;
+  lldb::SBWatchpoint *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBWatchpoint___eq__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBWatchpoint, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBWatchpoint___eq__" "', argument " "1"" of type '" "lldb::SBWatchpoint const *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBWatchpoint * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBWatchpoint,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBWatchpoint___eq__" "', argument " "2"" of type '" "lldb::SBWatchpoint const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBWatchpoint___eq__" "', argument " "2"" of type '" "lldb::SBWatchpoint const &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBWatchpoint * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)((lldb::SBWatchpoint const *)arg1)->operator ==((lldb::SBWatchpoint const &)*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_SBWatchpoint___ne__(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  lldb::SBWatchpoint *arg1 = (lldb::SBWatchpoint *) 0 ;
+  lldb::SBWatchpoint *arg2 = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  bool result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:SBWatchpoint___ne__",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_lldb__SBWatchpoint, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "SBWatchpoint___ne__" "', argument " "1"" of type '" "lldb::SBWatchpoint const *""'"); 
+  }
+  arg1 = reinterpret_cast< lldb::SBWatchpoint * >(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_lldb__SBWatchpoint,  0  | 0);
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "SBWatchpoint___ne__" "', argument " "2"" of type '" "lldb::SBWatchpoint const &""'"); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "SBWatchpoint___ne__" "', argument " "2"" of type '" "lldb::SBWatchpoint const &""'"); 
+  }
+  arg2 = reinterpret_cast< lldb::SBWatchpoint * >(argp2);
+  {
+    SWIG_PYTHON_THREAD_BEGIN_ALLOW;
+    result = (bool)((lldb::SBWatchpoint const *)arg1)->operator !=((lldb::SBWatchpoint const &)*arg2);
+    SWIG_PYTHON_THREAD_END_ALLOW;
+  }
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 SWIGINTERN PyObject *_wrap_SBWatchpoint_GetError(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   lldb::SBWatchpoint *arg1 = (lldb::SBWatchpoint *) 0 ;
@@ -78668,6 +79562,7 @@ static PyMethodDef SwigMethods[] = {
 		"SBAddress(SBSection section, lldb::addr_t offset)\n"
 		"new_SBAddress(lldb::addr_t load_addr, SBTarget target) -> SBAddress\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBAddress", _wrap_delete_SBAddress, METH_VARARGS, (char *)"delete_SBAddress(SBAddress self)"},
 	 { "SBAddress_IsValid", _wrap_SBAddress_IsValid, METH_VARARGS, (char *)"SBAddress_IsValid(SBAddress self) -> bool"},
 	 { "SBAddress___nonzero__", _wrap_SBAddress___nonzero__, METH_VARARGS, (char *)"SBAddress___nonzero__(SBAddress self) -> bool"},
@@ -78692,11 +79587,36 @@ static PyMethodDef SwigMethods[] = {
 		"/// or data address using 'void SBAddress::SetLoadAddress(...)' or \n"
 		"/// 'lldb::SBAddress SBTarget::ResolveLoadAddress (...)'. \n"
 		"//------------------------------------------------------------------\n"
+=======
+	 { (char *)"delete_SBAddress", _wrap_delete_SBAddress, METH_VARARGS, (char *)"delete_SBAddress(SBAddress self)"},
+	 { (char *)"SBAddress_IsValid", _wrap_SBAddress_IsValid, METH_VARARGS, (char *)"SBAddress_IsValid(SBAddress self) -> bool"},
+	 { (char *)"SBAddress___nonzero__", _wrap_SBAddress___nonzero__, METH_VARARGS, (char *)"SBAddress___nonzero__(SBAddress self) -> bool"},
+	 { (char *)"SBAddress___ne__", _wrap_SBAddress___ne__, METH_VARARGS, (char *)"SBAddress___ne__(SBAddress self, SBAddress rhs) -> bool"},
+	 { (char *)"SBAddress_Clear", _wrap_SBAddress_Clear, METH_VARARGS, (char *)"SBAddress_Clear(SBAddress self)"},
+	 { (char *)"SBAddress_GetFileAddress", _wrap_SBAddress_GetFileAddress, METH_VARARGS, (char *)"SBAddress_GetFileAddress(SBAddress self) -> lldb::addr_t"},
+	 { (char *)"SBAddress_GetLoadAddress", _wrap_SBAddress_GetLoadAddress, METH_VARARGS, (char *)"SBAddress_GetLoadAddress(SBAddress self, SBTarget target) -> lldb::addr_t"},
+	 { (char *)"SBAddress_SetLoadAddress", _wrap_SBAddress_SetLoadAddress, METH_VARARGS, (char *)"SBAddress_SetLoadAddress(SBAddress self, lldb::addr_t load_addr, SBTarget target)"},
+	 { (char *)"SBAddress_OffsetAddress", _wrap_SBAddress_OffsetAddress, METH_VARARGS, (char *)"SBAddress_OffsetAddress(SBAddress self, lldb::addr_t offset) -> bool"},
+	 { (char *)"SBAddress_GetDescription", _wrap_SBAddress_GetDescription, METH_VARARGS, (char *)"SBAddress_GetDescription(SBAddress self, SBStream description) -> bool"},
+	 { (char *)"SBAddress_GetSection", _wrap_SBAddress_GetSection, METH_VARARGS, (char *)"SBAddress_GetSection(SBAddress self) -> SBSection"},
+	 { (char *)"SBAddress_GetOffset", _wrap_SBAddress_GetOffset, METH_VARARGS, (char *)"SBAddress_GetOffset(SBAddress self) -> lldb::addr_t"},
+	 { (char *)"SBAddress_SetAddress", _wrap_SBAddress_SetAddress, METH_VARARGS, (char *)"SBAddress_SetAddress(SBAddress self, SBSection section, lldb::addr_t offset)"},
+	 { (char *)"SBAddress_GetSymbolContext", _wrap_SBAddress_GetSymbolContext, METH_VARARGS, (char *)"\n"
+		"SBAddress_GetSymbolContext(SBAddress self, uint32_t resolve_scope) -> SBSymbolContext\n"
 		"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"GetSymbolContext() and the following can lookup symbol information for a given address.\n"
+		"An address might refer to code or data from an existing module, or it\n"
+		"might refer to something on the stack or heap. The following functions\n"
+		"will only return valid values if the address has been resolved to a code\n"
+		"or data address using 'void SBAddress::SetLoadAddress(...)' or\n"
+		"'lldb::SBAddress SBTarget::ResolveLoadAddress (...)'.\n"
 		""},
 	 { "SBAddress_GetModule", _wrap_SBAddress_GetModule, METH_VARARGS, (char *)"\n"
 		"SBAddress_GetModule(SBAddress self) -> SBModule\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"//------------------------------------------------------------------\n"
 		"/// GetModule() and the following grab individual objects for a given address and\n"
@@ -78708,8 +79628,19 @@ static PyMethodDef SwigMethods[] = {
 		"/// One or more bits from the SymbolContextItem enumerations can be logically\n"
 		"/// OR'ed together to more efficiently retrieve multiple symbol objects.\n"
 		"//------------------------------------------------------------------\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"GetModule() and the following grab individual objects for a given address and\n"
+		"are less efficient if you want more than one symbol related objects.\n"
+		"Use one of the following when you want multiple debug symbol related\n"
+		"objects for an address:\n"
+		"   lldb::SBSymbolContext SBAddress::GetSymbolContext (uint32_t resolve_scope);\n"
+		"   lldb::SBSymbolContext SBTarget::ResolveSymbolContextForAddress (const SBAddress &addr, uint32_t resolve_scope);\n"
+		"One or more bits from the SymbolContextItem enumerations can be logically\n"
+		"OR'ed together to more efficiently retrieve multiple symbol objects.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBAddress_GetCompileUnit", _wrap_SBAddress_GetCompileUnit, METH_VARARGS, (char *)"SBAddress_GetCompileUnit(SBAddress self) -> SBCompileUnit"},
 	 { "SBAddress_GetFunction", _wrap_SBAddress_GetFunction, METH_VARARGS, (char *)"SBAddress_GetFunction(SBAddress self) -> SBFunction"},
 	 { "SBAddress_GetBlock", _wrap_SBAddress_GetBlock, METH_VARARGS, (char *)"SBAddress_GetBlock(SBAddress self) -> SBBlock"},
@@ -78718,15 +79649,31 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBAddress___str__", _wrap_SBAddress___str__, METH_VARARGS, (char *)"SBAddress___str__(SBAddress self) -> PyObject *"},
 	 { "SBAddress_swigregister", SBAddress_swigregister, METH_VARARGS, NULL},
 	 { "new_SBAttachInfo", _wrap_new_SBAttachInfo, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBAddress_GetCompileUnit", _wrap_SBAddress_GetCompileUnit, METH_VARARGS, (char *)"SBAddress_GetCompileUnit(SBAddress self) -> SBCompileUnit"},
+	 { (char *)"SBAddress_GetFunction", _wrap_SBAddress_GetFunction, METH_VARARGS, (char *)"SBAddress_GetFunction(SBAddress self) -> SBFunction"},
+	 { (char *)"SBAddress_GetBlock", _wrap_SBAddress_GetBlock, METH_VARARGS, (char *)"SBAddress_GetBlock(SBAddress self) -> SBBlock"},
+	 { (char *)"SBAddress_GetSymbol", _wrap_SBAddress_GetSymbol, METH_VARARGS, (char *)"SBAddress_GetSymbol(SBAddress self) -> SBSymbol"},
+	 { (char *)"SBAddress_GetLineEntry", _wrap_SBAddress_GetLineEntry, METH_VARARGS, (char *)"SBAddress_GetLineEntry(SBAddress self) -> SBLineEntry"},
+	 { (char *)"SBAddress___str__", _wrap_SBAddress___str__, METH_VARARGS, (char *)"SBAddress___str__(SBAddress self) -> PyObject *"},
+	 { (char *)"SBAddress_swigregister", SBAddress_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBAttachInfo", _wrap_new_SBAttachInfo, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBAttachInfo()\n"
 		"SBAttachInfo(lldb::pid_t pid)\n"
 		"SBAttachInfo(char const * path, bool wait_for)\n"
 		"SBAttachInfo(char const * path, bool wait_for, bool async)\n"
 		"new_SBAttachInfo(SBAttachInfo rhs) -> SBAttachInfo\n"
 		""},
+<<<<<<< HEAD
 	 { "SBAttachInfo_GetProcessID", _wrap_SBAttachInfo_GetProcessID, METH_VARARGS, (char *)"SBAttachInfo_GetProcessID(SBAttachInfo self) -> lldb::pid_t"},
 	 { "SBAttachInfo_SetProcessID", _wrap_SBAttachInfo_SetProcessID, METH_VARARGS, (char *)"SBAttachInfo_SetProcessID(SBAttachInfo self, lldb::pid_t pid)"},
 	 { "SBAttachInfo_SetExecutable", _wrap_SBAttachInfo_SetExecutable, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBAttachInfo_GetProcessID", _wrap_SBAttachInfo_GetProcessID, METH_VARARGS, (char *)"SBAttachInfo_GetProcessID(SBAttachInfo self) -> lldb::pid_t"},
+	 { (char *)"SBAttachInfo_SetProcessID", _wrap_SBAttachInfo_SetProcessID, METH_VARARGS, (char *)"SBAttachInfo_SetProcessID(SBAttachInfo self, lldb::pid_t pid)"},
+	 { (char *)"SBAttachInfo_SetExecutable", _wrap_SBAttachInfo_SetExecutable, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetExecutable(char const * path)\n"
 		"SBAttachInfo_SetExecutable(SBAttachInfo self, SBFileSpec exe_file)\n"
 		""},
@@ -78735,6 +79682,7 @@ static PyMethodDef SwigMethods[] = {
 		"SetWaitForLaunch(bool b)\n"
 		"SBAttachInfo_SetWaitForLaunch(SBAttachInfo self, bool b, bool async)\n"
 		""},
+<<<<<<< HEAD
 	 { "SBAttachInfo_GetIgnoreExisting", _wrap_SBAttachInfo_GetIgnoreExisting, METH_VARARGS, (char *)"SBAttachInfo_GetIgnoreExisting(SBAttachInfo self) -> bool"},
 	 { "SBAttachInfo_SetIgnoreExisting", _wrap_SBAttachInfo_SetIgnoreExisting, METH_VARARGS, (char *)"SBAttachInfo_SetIgnoreExisting(SBAttachInfo self, bool b)"},
 	 { "SBAttachInfo_GetResumeCount", _wrap_SBAttachInfo_GetResumeCount, METH_VARARGS, (char *)"SBAttachInfo_GetResumeCount(SBAttachInfo self) -> uint32_t"},
@@ -78761,6 +79709,34 @@ static PyMethodDef SwigMethods[] = {
 	 { "delete_SBAttachInfo", _wrap_delete_SBAttachInfo, METH_VARARGS, (char *)"delete_SBAttachInfo(SBAttachInfo self)"},
 	 { "SBAttachInfo_swigregister", SBAttachInfo_swigregister, METH_VARARGS, NULL},
 	 { "new_SBBlock", _wrap_new_SBBlock, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBAttachInfo_GetIgnoreExisting", _wrap_SBAttachInfo_GetIgnoreExisting, METH_VARARGS, (char *)"SBAttachInfo_GetIgnoreExisting(SBAttachInfo self) -> bool"},
+	 { (char *)"SBAttachInfo_SetIgnoreExisting", _wrap_SBAttachInfo_SetIgnoreExisting, METH_VARARGS, (char *)"SBAttachInfo_SetIgnoreExisting(SBAttachInfo self, bool b)"},
+	 { (char *)"SBAttachInfo_GetResumeCount", _wrap_SBAttachInfo_GetResumeCount, METH_VARARGS, (char *)"SBAttachInfo_GetResumeCount(SBAttachInfo self) -> uint32_t"},
+	 { (char *)"SBAttachInfo_SetResumeCount", _wrap_SBAttachInfo_SetResumeCount, METH_VARARGS, (char *)"SBAttachInfo_SetResumeCount(SBAttachInfo self, uint32_t c)"},
+	 { (char *)"SBAttachInfo_GetProcessPluginName", _wrap_SBAttachInfo_GetProcessPluginName, METH_VARARGS, (char *)"SBAttachInfo_GetProcessPluginName(SBAttachInfo self) -> char const *"},
+	 { (char *)"SBAttachInfo_SetProcessPluginName", _wrap_SBAttachInfo_SetProcessPluginName, METH_VARARGS, (char *)"SBAttachInfo_SetProcessPluginName(SBAttachInfo self, char const * plugin_name)"},
+	 { (char *)"SBAttachInfo_GetUserID", _wrap_SBAttachInfo_GetUserID, METH_VARARGS, (char *)"SBAttachInfo_GetUserID(SBAttachInfo self) -> uint32_t"},
+	 { (char *)"SBAttachInfo_GetGroupID", _wrap_SBAttachInfo_GetGroupID, METH_VARARGS, (char *)"SBAttachInfo_GetGroupID(SBAttachInfo self) -> uint32_t"},
+	 { (char *)"SBAttachInfo_UserIDIsValid", _wrap_SBAttachInfo_UserIDIsValid, METH_VARARGS, (char *)"SBAttachInfo_UserIDIsValid(SBAttachInfo self) -> bool"},
+	 { (char *)"SBAttachInfo_GroupIDIsValid", _wrap_SBAttachInfo_GroupIDIsValid, METH_VARARGS, (char *)"SBAttachInfo_GroupIDIsValid(SBAttachInfo self) -> bool"},
+	 { (char *)"SBAttachInfo_SetUserID", _wrap_SBAttachInfo_SetUserID, METH_VARARGS, (char *)"SBAttachInfo_SetUserID(SBAttachInfo self, uint32_t uid)"},
+	 { (char *)"SBAttachInfo_SetGroupID", _wrap_SBAttachInfo_SetGroupID, METH_VARARGS, (char *)"SBAttachInfo_SetGroupID(SBAttachInfo self, uint32_t gid)"},
+	 { (char *)"SBAttachInfo_GetEffectiveUserID", _wrap_SBAttachInfo_GetEffectiveUserID, METH_VARARGS, (char *)"SBAttachInfo_GetEffectiveUserID(SBAttachInfo self) -> uint32_t"},
+	 { (char *)"SBAttachInfo_GetEffectiveGroupID", _wrap_SBAttachInfo_GetEffectiveGroupID, METH_VARARGS, (char *)"SBAttachInfo_GetEffectiveGroupID(SBAttachInfo self) -> uint32_t"},
+	 { (char *)"SBAttachInfo_EffectiveUserIDIsValid", _wrap_SBAttachInfo_EffectiveUserIDIsValid, METH_VARARGS, (char *)"SBAttachInfo_EffectiveUserIDIsValid(SBAttachInfo self) -> bool"},
+	 { (char *)"SBAttachInfo_EffectiveGroupIDIsValid", _wrap_SBAttachInfo_EffectiveGroupIDIsValid, METH_VARARGS, (char *)"SBAttachInfo_EffectiveGroupIDIsValid(SBAttachInfo self) -> bool"},
+	 { (char *)"SBAttachInfo_SetEffectiveUserID", _wrap_SBAttachInfo_SetEffectiveUserID, METH_VARARGS, (char *)"SBAttachInfo_SetEffectiveUserID(SBAttachInfo self, uint32_t uid)"},
+	 { (char *)"SBAttachInfo_SetEffectiveGroupID", _wrap_SBAttachInfo_SetEffectiveGroupID, METH_VARARGS, (char *)"SBAttachInfo_SetEffectiveGroupID(SBAttachInfo self, uint32_t gid)"},
+	 { (char *)"SBAttachInfo_GetParentProcessID", _wrap_SBAttachInfo_GetParentProcessID, METH_VARARGS, (char *)"SBAttachInfo_GetParentProcessID(SBAttachInfo self) -> lldb::pid_t"},
+	 { (char *)"SBAttachInfo_SetParentProcessID", _wrap_SBAttachInfo_SetParentProcessID, METH_VARARGS, (char *)"SBAttachInfo_SetParentProcessID(SBAttachInfo self, lldb::pid_t pid)"},
+	 { (char *)"SBAttachInfo_ParentProcessIDIsValid", _wrap_SBAttachInfo_ParentProcessIDIsValid, METH_VARARGS, (char *)"SBAttachInfo_ParentProcessIDIsValid(SBAttachInfo self) -> bool"},
+	 { (char *)"SBAttachInfo_GetListener", _wrap_SBAttachInfo_GetListener, METH_VARARGS, (char *)"SBAttachInfo_GetListener(SBAttachInfo self) -> SBListener"},
+	 { (char *)"SBAttachInfo_SetListener", _wrap_SBAttachInfo_SetListener, METH_VARARGS, (char *)"SBAttachInfo_SetListener(SBAttachInfo self, SBListener listener)"},
+	 { (char *)"delete_SBAttachInfo", _wrap_delete_SBAttachInfo, METH_VARARGS, (char *)"delete_SBAttachInfo(SBAttachInfo self)"},
+	 { (char *)"SBAttachInfo_swigregister", SBAttachInfo_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBBlock", _wrap_new_SBBlock, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBBlock()\n"
 		"new_SBBlock(SBBlock rhs) -> SBBlock\n"
 		""},
@@ -78770,15 +79746,20 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		"Does this block represent an inlined function?\n"
 		""},
+<<<<<<< HEAD
 	 { "SBBlock_IsValid", _wrap_SBBlock_IsValid, METH_VARARGS, (char *)"SBBlock_IsValid(SBBlock self) -> bool"},
 	 { "SBBlock___nonzero__", _wrap_SBBlock___nonzero__, METH_VARARGS, (char *)"SBBlock___nonzero__(SBBlock self) -> bool"},
 	 { "SBBlock_GetInlinedName", _wrap_SBBlock_GetInlinedName, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBBlock_IsValid", _wrap_SBBlock_IsValid, METH_VARARGS, (char *)"SBBlock_IsValid(SBBlock self) -> bool"},
+	 { (char *)"SBBlock___nonzero__", _wrap_SBBlock___nonzero__, METH_VARARGS, (char *)"SBBlock___nonzero__(SBBlock self) -> bool"},
+	 { (char *)"SBBlock_GetInlinedName", _wrap_SBBlock_GetInlinedName, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBBlock_GetInlinedName(SBBlock self) -> char const *\n"
 		"\n"
 		"\n"
 		"Get the function name if this block represents an inlined function;\n"
 		"otherwise, return None.\n"
-		"\n"
 		""},
 	 { "SBBlock_GetInlinedCallSiteFile", _wrap_SBBlock_GetInlinedCallSiteFile, METH_VARARGS, (char *)"\n"
 		"SBBlock_GetInlinedCallSiteFile(SBBlock self) -> SBFileSpec\n"
@@ -78786,7 +79767,6 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		"Get the call site file if this block represents an inlined function;\n"
 		"otherwise, return an invalid file spec.\n"
-		"\n"
 		""},
 	 { "SBBlock_GetInlinedCallSiteLine", _wrap_SBBlock_GetInlinedCallSiteLine, METH_VARARGS, (char *)"\n"
 		"SBBlock_GetInlinedCallSiteLine(SBBlock self) -> uint32_t\n"
@@ -78794,7 +79774,6 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		"Get the call site line if this block represents an inlined function;\n"
 		"otherwise, return 0.\n"
-		"\n"
 		""},
 	 { "SBBlock_GetInlinedCallSiteColumn", _wrap_SBBlock_GetInlinedCallSiteColumn, METH_VARARGS, (char *)"\n"
 		"SBBlock_GetInlinedCallSiteColumn(SBBlock self) -> uint32_t\n"
@@ -78802,7 +79781,6 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		"Get the call site column if this block represents an inlined function;\n"
 		"otherwise, return 0.\n"
-		"\n"
 		""},
 	 { "SBBlock_GetParent", _wrap_SBBlock_GetParent, METH_VARARGS, (char *)"\n"
 		"SBBlock_GetParent(SBBlock self) -> SBBlock\n"
@@ -78824,6 +79802,7 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		"Get the first child block.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBBlock_GetNumRanges", _wrap_SBBlock_GetNumRanges, METH_VARARGS, (char *)"SBBlock_GetNumRanges(SBBlock self) -> uint32_t"},
 	 { "SBBlock_GetRangeStartAddress", _wrap_SBBlock_GetRangeStartAddress, METH_VARARGS, (char *)"SBBlock_GetRangeStartAddress(SBBlock self, uint32_t idx) -> SBAddress"},
 	 { "SBBlock_GetRangeEndAddress", _wrap_SBBlock_GetRangeEndAddress, METH_VARARGS, (char *)"SBBlock_GetRangeEndAddress(SBBlock self, uint32_t idx) -> SBAddress"},
@@ -78859,21 +79838,61 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBBreakpoint_SetCondition", _wrap_SBBreakpoint_SetCondition, METH_VARARGS, (char *)"\n"
 		"SBBreakpoint_SetCondition(SBBreakpoint self, char const * condition)\n"
 		"\n"
-		"\n"
-		"//--------------------------------------------------------------------------\n"
-		"/// The breakpoint stops only if the condition expression evaluates to true.\n"
-		"//--------------------------------------------------------------------------\n"
-		"\n"
+=======
+	 { (char *)"SBBlock_GetNumRanges", _wrap_SBBlock_GetNumRanges, METH_VARARGS, (char *)"SBBlock_GetNumRanges(SBBlock self) -> uint32_t"},
+	 { (char *)"SBBlock_GetRangeStartAddress", _wrap_SBBlock_GetRangeStartAddress, METH_VARARGS, (char *)"SBBlock_GetRangeStartAddress(SBBlock self, uint32_t idx) -> SBAddress"},
+	 { (char *)"SBBlock_GetRangeEndAddress", _wrap_SBBlock_GetRangeEndAddress, METH_VARARGS, (char *)"SBBlock_GetRangeEndAddress(SBBlock self, uint32_t idx) -> SBAddress"},
+	 { (char *)"SBBlock_GetRangeIndexForBlockAddress", _wrap_SBBlock_GetRangeIndexForBlockAddress, METH_VARARGS, (char *)"SBBlock_GetRangeIndexForBlockAddress(SBBlock self, SBAddress block_addr) -> uint32_t"},
+	 { (char *)"SBBlock_GetDescription", _wrap_SBBlock_GetDescription, METH_VARARGS, (char *)"SBBlock_GetDescription(SBBlock self, SBStream description) -> bool"},
+	 { (char *)"SBBlock_GetVariables", _wrap_SBBlock_GetVariables, METH_VARARGS, (char *)"\n"
+		"GetVariables(SBFrame frame, bool arguments, bool locals, bool statics, lldb::DynamicValueType use_dynamic) -> SBValueList\n"
+		"SBBlock_GetVariables(SBBlock self, SBTarget target, bool arguments, bool locals, bool statics) -> SBValueList\n"
 		""},
+	 { (char *)"SBBlock___str__", _wrap_SBBlock___str__, METH_VARARGS, (char *)"SBBlock___str__(SBBlock self) -> PyObject *"},
+	 { (char *)"SBBlock_swigregister", SBBlock_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBBreakpoint", _wrap_new_SBBreakpoint, METH_VARARGS, (char *)"\n"
+		"SBBreakpoint()\n"
+		"new_SBBreakpoint(SBBreakpoint rhs) -> SBBreakpoint\n"
+		""},
+	 { (char *)"delete_SBBreakpoint", _wrap_delete_SBBreakpoint, METH_VARARGS, (char *)"delete_SBBreakpoint(SBBreakpoint self)"},
+	 { (char *)"SBBreakpoint___eq__", _wrap_SBBreakpoint___eq__, METH_VARARGS, (char *)"SBBreakpoint___eq__(SBBreakpoint self, SBBreakpoint rhs) -> bool"},
+	 { (char *)"SBBreakpoint___ne__", _wrap_SBBreakpoint___ne__, METH_VARARGS, (char *)"SBBreakpoint___ne__(SBBreakpoint self, SBBreakpoint rhs) -> bool"},
+	 { (char *)"SBBreakpoint_GetID", _wrap_SBBreakpoint_GetID, METH_VARARGS, (char *)"SBBreakpoint_GetID(SBBreakpoint self) -> lldb::break_id_t"},
+	 { (char *)"SBBreakpoint_IsValid", _wrap_SBBreakpoint_IsValid, METH_VARARGS, (char *)"SBBreakpoint_IsValid(SBBreakpoint self) -> bool"},
+	 { (char *)"SBBreakpoint___nonzero__", _wrap_SBBreakpoint___nonzero__, METH_VARARGS, (char *)"SBBreakpoint___nonzero__(SBBreakpoint self) -> bool"},
+	 { (char *)"SBBreakpoint_ClearAllBreakpointSites", _wrap_SBBreakpoint_ClearAllBreakpointSites, METH_VARARGS, (char *)"SBBreakpoint_ClearAllBreakpointSites(SBBreakpoint self)"},
+	 { (char *)"SBBreakpoint_FindLocationByAddress", _wrap_SBBreakpoint_FindLocationByAddress, METH_VARARGS, (char *)"SBBreakpoint_FindLocationByAddress(SBBreakpoint self, lldb::addr_t vm_addr) -> SBBreakpointLocation"},
+	 { (char *)"SBBreakpoint_FindLocationIDByAddress", _wrap_SBBreakpoint_FindLocationIDByAddress, METH_VARARGS, (char *)"SBBreakpoint_FindLocationIDByAddress(SBBreakpoint self, lldb::addr_t vm_addr) -> lldb::break_id_t"},
+	 { (char *)"SBBreakpoint_FindLocationByID", _wrap_SBBreakpoint_FindLocationByID, METH_VARARGS, (char *)"SBBreakpoint_FindLocationByID(SBBreakpoint self, lldb::break_id_t bp_loc_id) -> SBBreakpointLocation"},
+	 { (char *)"SBBreakpoint_GetLocationAtIndex", _wrap_SBBreakpoint_GetLocationAtIndex, METH_VARARGS, (char *)"SBBreakpoint_GetLocationAtIndex(SBBreakpoint self, uint32_t index) -> SBBreakpointLocation"},
+	 { (char *)"SBBreakpoint_SetEnabled", _wrap_SBBreakpoint_SetEnabled, METH_VARARGS, (char *)"SBBreakpoint_SetEnabled(SBBreakpoint self, bool enable)"},
+	 { (char *)"SBBreakpoint_IsEnabled", _wrap_SBBreakpoint_IsEnabled, METH_VARARGS, (char *)"SBBreakpoint_IsEnabled(SBBreakpoint self) -> bool"},
+	 { (char *)"SBBreakpoint_SetOneShot", _wrap_SBBreakpoint_SetOneShot, METH_VARARGS, (char *)"SBBreakpoint_SetOneShot(SBBreakpoint self, bool one_shot)"},
+	 { (char *)"SBBreakpoint_IsOneShot", _wrap_SBBreakpoint_IsOneShot, METH_VARARGS, (char *)"SBBreakpoint_IsOneShot(SBBreakpoint self) -> bool"},
+	 { (char *)"SBBreakpoint_IsInternal", _wrap_SBBreakpoint_IsInternal, METH_VARARGS, (char *)"SBBreakpoint_IsInternal(SBBreakpoint self) -> bool"},
+	 { (char *)"SBBreakpoint_GetHitCount", _wrap_SBBreakpoint_GetHitCount, METH_VARARGS, (char *)"SBBreakpoint_GetHitCount(SBBreakpoint self) -> uint32_t"},
+	 { (char *)"SBBreakpoint_SetIgnoreCount", _wrap_SBBreakpoint_SetIgnoreCount, METH_VARARGS, (char *)"SBBreakpoint_SetIgnoreCount(SBBreakpoint self, uint32_t count)"},
+	 { (char *)"SBBreakpoint_GetIgnoreCount", _wrap_SBBreakpoint_GetIgnoreCount, METH_VARARGS, (char *)"SBBreakpoint_GetIgnoreCount(SBBreakpoint self) -> uint32_t"},
+	 { (char *)"SBBreakpoint_SetCondition", _wrap_SBBreakpoint_SetCondition, METH_VARARGS, (char *)"\n"
+		"SBBreakpoint_SetCondition(SBBreakpoint self, char const * condition)\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"\n"
+		"The breakpoint stops only if the condition expression evaluates to true.\n"
+		""},
+<<<<<<< HEAD
 	 { "SBBreakpoint_GetCondition", _wrap_SBBreakpoint_GetCondition, METH_VARARGS, (char *)"\n"
 		"SBBreakpoint_GetCondition(SBBreakpoint self) -> char const *\n"
 		"\n"
+=======
+	 { (char *)"SBBreakpoint_GetCondition", _wrap_SBBreakpoint_GetCondition, METH_VARARGS, (char *)"\n"
+		"SBBreakpoint_GetCondition(SBBreakpoint self) -> char const *\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Get the condition expression for the breakpoint.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Get the condition expression for the breakpoint.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBBreakpoint_SetAutoContinue", _wrap_SBBreakpoint_SetAutoContinue, METH_VARARGS, (char *)"SBBreakpoint_SetAutoContinue(SBBreakpoint self, bool auto_continue)"},
 	 { "SBBreakpoint_GetAutoContinue", _wrap_SBBreakpoint_GetAutoContinue, METH_VARARGS, (char *)"SBBreakpoint_GetAutoContinue(SBBreakpoint self) -> bool"},
 	 { "SBBreakpoint_SetThreadID", _wrap_SBBreakpoint_SetThreadID, METH_VARARGS, (char *)"SBBreakpoint_SetThreadID(SBBreakpoint self, lldb::tid_t sb_thread_id)"},
@@ -78887,28 +79906,44 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBBreakpoint_SetScriptCallbackFunction", _wrap_SBBreakpoint_SetScriptCallbackFunction, METH_VARARGS, (char *)"\n"
 		"SBBreakpoint_SetScriptCallbackFunction(SBBreakpoint self, char const * callback_function_name)\n"
 		"\n"
+=======
+	 { (char *)"SBBreakpoint_SetAutoContinue", _wrap_SBBreakpoint_SetAutoContinue, METH_VARARGS, (char *)"SBBreakpoint_SetAutoContinue(SBBreakpoint self, bool auto_continue)"},
+	 { (char *)"SBBreakpoint_GetAutoContinue", _wrap_SBBreakpoint_GetAutoContinue, METH_VARARGS, (char *)"SBBreakpoint_GetAutoContinue(SBBreakpoint self) -> bool"},
+	 { (char *)"SBBreakpoint_SetThreadID", _wrap_SBBreakpoint_SetThreadID, METH_VARARGS, (char *)"SBBreakpoint_SetThreadID(SBBreakpoint self, lldb::tid_t sb_thread_id)"},
+	 { (char *)"SBBreakpoint_GetThreadID", _wrap_SBBreakpoint_GetThreadID, METH_VARARGS, (char *)"SBBreakpoint_GetThreadID(SBBreakpoint self) -> lldb::tid_t"},
+	 { (char *)"SBBreakpoint_SetThreadIndex", _wrap_SBBreakpoint_SetThreadIndex, METH_VARARGS, (char *)"SBBreakpoint_SetThreadIndex(SBBreakpoint self, uint32_t index)"},
+	 { (char *)"SBBreakpoint_GetThreadIndex", _wrap_SBBreakpoint_GetThreadIndex, METH_VARARGS, (char *)"SBBreakpoint_GetThreadIndex(SBBreakpoint self) -> uint32_t"},
+	 { (char *)"SBBreakpoint_SetThreadName", _wrap_SBBreakpoint_SetThreadName, METH_VARARGS, (char *)"SBBreakpoint_SetThreadName(SBBreakpoint self, char const * thread_name)"},
+	 { (char *)"SBBreakpoint_GetThreadName", _wrap_SBBreakpoint_GetThreadName, METH_VARARGS, (char *)"SBBreakpoint_GetThreadName(SBBreakpoint self) -> char const *"},
+	 { (char *)"SBBreakpoint_SetQueueName", _wrap_SBBreakpoint_SetQueueName, METH_VARARGS, (char *)"SBBreakpoint_SetQueueName(SBBreakpoint self, char const * queue_name)"},
+	 { (char *)"SBBreakpoint_GetQueueName", _wrap_SBBreakpoint_GetQueueName, METH_VARARGS, (char *)"SBBreakpoint_GetQueueName(SBBreakpoint self) -> char const *"},
+	 { (char *)"SBBreakpoint_SetScriptCallbackFunction", _wrap_SBBreakpoint_SetScriptCallbackFunction, METH_VARARGS, (char *)"\n"
+		"SBBreakpoint_SetScriptCallbackFunction(SBBreakpoint self, char const * callback_function_name)\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Set the name of the script function to be called when the breakpoint is hit.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Set the name of the script function to be called when the breakpoint is hit.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBBreakpoint_SetScriptCallbackBody", _wrap_SBBreakpoint_SetScriptCallbackBody, METH_VARARGS, (char *)"\n"
 		"SBBreakpoint_SetScriptCallbackBody(SBBreakpoint self, char const * script_body_text) -> SBError\n"
 		"\n"
+=======
+	 { (char *)"SBBreakpoint_SetScriptCallbackBody", _wrap_SBBreakpoint_SetScriptCallbackBody, METH_VARARGS, (char *)"\n"
+		"SBBreakpoint_SetScriptCallbackBody(SBBreakpoint self, char const * script_body_text) -> SBError\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Provide the body for the script function to be called when the breakpoint is hit.\n"
-		"/// The body will be wrapped in a function, which be passed two arguments:\n"
-		"/// 'frame' - which holds the bottom-most SBFrame of the thread that hit the breakpoint\n"
-		"/// 'bpno'  - which is the SBBreakpointLocation to which the callback was attached.\n"
-		"///\n"
-		"/// The error parameter is currently ignored, but will at some point hold the Python\n"
-		"/// compilation diagnostics.\n"
-		"/// Returns true if the body compiles successfully, false if not.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Provide the body for the script function to be called when the breakpoint is hit.\n"
+		"The body will be wrapped in a function, which be passed two arguments:\n"
+		"'frame' - which holds the bottom-most SBFrame of the thread that hit the breakpoint\n"
+		"'bpno'  - which is the SBBreakpointLocation to which the callback was attached.\n"
+		"\n"
+		"The error parameter is currently ignored, but will at some point hold the Python\n"
+		"compilation diagnostics.\n"
+		"Returns true if the body compiles successfully, false if not.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBBreakpoint_SetCommandLineCommands", _wrap_SBBreakpoint_SetCommandLineCommands, METH_VARARGS, (char *)"SBBreakpoint_SetCommandLineCommands(SBBreakpoint self, SBStringList commands)"},
 	 { "SBBreakpoint_GetCommandLineCommands", _wrap_SBBreakpoint_GetCommandLineCommands, METH_VARARGS, (char *)"SBBreakpoint_GetCommandLineCommands(SBBreakpoint self, SBStringList commands) -> bool"},
 	 { "SBBreakpoint_AddName", _wrap_SBBreakpoint_AddName, METH_VARARGS, (char *)"SBBreakpoint_AddName(SBBreakpoint self, char const * new_name) -> bool"},
@@ -78960,49 +79995,107 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBBreakpointLocation_SetCondition", _wrap_SBBreakpointLocation_SetCondition, METH_VARARGS, (char *)"\n"
 		"SBBreakpointLocation_SetCondition(SBBreakpointLocation self, char const * condition)\n"
 		"\n"
-		"\n"
-		"//--------------------------------------------------------------------------\n"
-		"/// The breakpoint location stops only if the condition expression evaluates\n"
-		"/// to true.\n"
-		"//--------------------------------------------------------------------------\n"
-		"\n"
+=======
+	 { (char *)"SBBreakpoint_SetCommandLineCommands", _wrap_SBBreakpoint_SetCommandLineCommands, METH_VARARGS, (char *)"SBBreakpoint_SetCommandLineCommands(SBBreakpoint self, SBStringList commands)"},
+	 { (char *)"SBBreakpoint_GetCommandLineCommands", _wrap_SBBreakpoint_GetCommandLineCommands, METH_VARARGS, (char *)"SBBreakpoint_GetCommandLineCommands(SBBreakpoint self, SBStringList commands) -> bool"},
+	 { (char *)"SBBreakpoint_AddName", _wrap_SBBreakpoint_AddName, METH_VARARGS, (char *)"SBBreakpoint_AddName(SBBreakpoint self, char const * new_name) -> bool"},
+	 { (char *)"SBBreakpoint_RemoveName", _wrap_SBBreakpoint_RemoveName, METH_VARARGS, (char *)"SBBreakpoint_RemoveName(SBBreakpoint self, char const * name_to_remove)"},
+	 { (char *)"SBBreakpoint_MatchesName", _wrap_SBBreakpoint_MatchesName, METH_VARARGS, (char *)"SBBreakpoint_MatchesName(SBBreakpoint self, char const * name) -> bool"},
+	 { (char *)"SBBreakpoint_GetNames", _wrap_SBBreakpoint_GetNames, METH_VARARGS, (char *)"SBBreakpoint_GetNames(SBBreakpoint self, SBStringList names)"},
+	 { (char *)"SBBreakpoint_GetNumResolvedLocations", _wrap_SBBreakpoint_GetNumResolvedLocations, METH_VARARGS, (char *)"SBBreakpoint_GetNumResolvedLocations(SBBreakpoint self) -> size_t"},
+	 { (char *)"SBBreakpoint_GetNumLocations", _wrap_SBBreakpoint_GetNumLocations, METH_VARARGS, (char *)"SBBreakpoint_GetNumLocations(SBBreakpoint self) -> size_t"},
+	 { (char *)"SBBreakpoint_GetDescription", _wrap_SBBreakpoint_GetDescription, METH_VARARGS, (char *)"\n"
+		"GetDescription(SBStream description) -> bool\n"
+		"SBBreakpoint_GetDescription(SBBreakpoint self, SBStream description, bool include_locations) -> bool\n"
 		""},
+	 { (char *)"SBBreakpoint_AddLocation", _wrap_SBBreakpoint_AddLocation, METH_VARARGS, (char *)"SBBreakpoint_AddLocation(SBBreakpoint self, SBAddress address) -> SBError"},
+	 { (char *)"SBBreakpoint_EventIsBreakpointEvent", _wrap_SBBreakpoint_EventIsBreakpointEvent, METH_VARARGS, (char *)"SBBreakpoint_EventIsBreakpointEvent(SBEvent event) -> bool"},
+	 { (char *)"SBBreakpoint_GetBreakpointEventTypeFromEvent", _wrap_SBBreakpoint_GetBreakpointEventTypeFromEvent, METH_VARARGS, (char *)"SBBreakpoint_GetBreakpointEventTypeFromEvent(SBEvent event) -> lldb::BreakpointEventType"},
+	 { (char *)"SBBreakpoint_GetBreakpointFromEvent", _wrap_SBBreakpoint_GetBreakpointFromEvent, METH_VARARGS, (char *)"SBBreakpoint_GetBreakpointFromEvent(SBEvent event) -> SBBreakpoint"},
+	 { (char *)"SBBreakpoint_GetBreakpointLocationAtIndexFromEvent", _wrap_SBBreakpoint_GetBreakpointLocationAtIndexFromEvent, METH_VARARGS, (char *)"SBBreakpoint_GetBreakpointLocationAtIndexFromEvent(SBEvent event, uint32_t loc_idx) -> SBBreakpointLocation"},
+	 { (char *)"SBBreakpoint_GetNumBreakpointLocationsFromEvent", _wrap_SBBreakpoint_GetNumBreakpointLocationsFromEvent, METH_VARARGS, (char *)"SBBreakpoint_GetNumBreakpointLocationsFromEvent(SBEvent event_sp) -> uint32_t"},
+	 { (char *)"SBBreakpoint_IsHardware", _wrap_SBBreakpoint_IsHardware, METH_VARARGS, (char *)"SBBreakpoint_IsHardware(SBBreakpoint self) -> bool"},
+	 { (char *)"SBBreakpoint___str__", _wrap_SBBreakpoint___str__, METH_VARARGS, (char *)"SBBreakpoint___str__(SBBreakpoint self) -> PyObject *"},
+	 { (char *)"SBBreakpoint_swigregister", SBBreakpoint_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBBreakpointList", _wrap_new_SBBreakpointList, METH_VARARGS, (char *)"new_SBBreakpointList(SBTarget target) -> SBBreakpointList"},
+	 { (char *)"delete_SBBreakpointList", _wrap_delete_SBBreakpointList, METH_VARARGS, (char *)"delete_SBBreakpointList(SBBreakpointList self)"},
+	 { (char *)"SBBreakpointList_GetSize", _wrap_SBBreakpointList_GetSize, METH_VARARGS, (char *)"SBBreakpointList_GetSize(SBBreakpointList self) -> size_t"},
+	 { (char *)"SBBreakpointList_GetBreakpointAtIndex", _wrap_SBBreakpointList_GetBreakpointAtIndex, METH_VARARGS, (char *)"SBBreakpointList_GetBreakpointAtIndex(SBBreakpointList self, size_t idx) -> SBBreakpoint"},
+	 { (char *)"SBBreakpointList_FindBreakpointByID", _wrap_SBBreakpointList_FindBreakpointByID, METH_VARARGS, (char *)"SBBreakpointList_FindBreakpointByID(SBBreakpointList self, lldb::break_id_t arg3) -> SBBreakpoint"},
+	 { (char *)"SBBreakpointList_Append", _wrap_SBBreakpointList_Append, METH_VARARGS, (char *)"SBBreakpointList_Append(SBBreakpointList self, SBBreakpoint sb_bkpt)"},
+	 { (char *)"SBBreakpointList_AppendIfUnique", _wrap_SBBreakpointList_AppendIfUnique, METH_VARARGS, (char *)"SBBreakpointList_AppendIfUnique(SBBreakpointList self, SBBreakpoint sb_bkpt) -> bool"},
+	 { (char *)"SBBreakpointList_AppendByID", _wrap_SBBreakpointList_AppendByID, METH_VARARGS, (char *)"SBBreakpointList_AppendByID(SBBreakpointList self, lldb::break_id_t id)"},
+	 { (char *)"SBBreakpointList_Clear", _wrap_SBBreakpointList_Clear, METH_VARARGS, (char *)"SBBreakpointList_Clear(SBBreakpointList self)"},
+	 { (char *)"SBBreakpointList_swigregister", SBBreakpointList_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBBreakpointLocation", _wrap_new_SBBreakpointLocation, METH_VARARGS, (char *)"\n"
+		"SBBreakpointLocation()\n"
+		"new_SBBreakpointLocation(SBBreakpointLocation rhs) -> SBBreakpointLocation\n"
+		""},
+	 { (char *)"delete_SBBreakpointLocation", _wrap_delete_SBBreakpointLocation, METH_VARARGS, (char *)"delete_SBBreakpointLocation(SBBreakpointLocation self)"},
+	 { (char *)"SBBreakpointLocation_GetID", _wrap_SBBreakpointLocation_GetID, METH_VARARGS, (char *)"SBBreakpointLocation_GetID(SBBreakpointLocation self) -> lldb::break_id_t"},
+	 { (char *)"SBBreakpointLocation_IsValid", _wrap_SBBreakpointLocation_IsValid, METH_VARARGS, (char *)"SBBreakpointLocation_IsValid(SBBreakpointLocation self) -> bool"},
+	 { (char *)"SBBreakpointLocation___nonzero__", _wrap_SBBreakpointLocation___nonzero__, METH_VARARGS, (char *)"SBBreakpointLocation___nonzero__(SBBreakpointLocation self) -> bool"},
+	 { (char *)"SBBreakpointLocation_GetAddress", _wrap_SBBreakpointLocation_GetAddress, METH_VARARGS, (char *)"SBBreakpointLocation_GetAddress(SBBreakpointLocation self) -> SBAddress"},
+	 { (char *)"SBBreakpointLocation_GetLoadAddress", _wrap_SBBreakpointLocation_GetLoadAddress, METH_VARARGS, (char *)"SBBreakpointLocation_GetLoadAddress(SBBreakpointLocation self) -> lldb::addr_t"},
+	 { (char *)"SBBreakpointLocation_SetEnabled", _wrap_SBBreakpointLocation_SetEnabled, METH_VARARGS, (char *)"SBBreakpointLocation_SetEnabled(SBBreakpointLocation self, bool enabled)"},
+	 { (char *)"SBBreakpointLocation_IsEnabled", _wrap_SBBreakpointLocation_IsEnabled, METH_VARARGS, (char *)"SBBreakpointLocation_IsEnabled(SBBreakpointLocation self) -> bool"},
+	 { (char *)"SBBreakpointLocation_GetHitCount", _wrap_SBBreakpointLocation_GetHitCount, METH_VARARGS, (char *)"SBBreakpointLocation_GetHitCount(SBBreakpointLocation self) -> uint32_t"},
+	 { (char *)"SBBreakpointLocation_GetIgnoreCount", _wrap_SBBreakpointLocation_GetIgnoreCount, METH_VARARGS, (char *)"SBBreakpointLocation_GetIgnoreCount(SBBreakpointLocation self) -> uint32_t"},
+	 { (char *)"SBBreakpointLocation_SetIgnoreCount", _wrap_SBBreakpointLocation_SetIgnoreCount, METH_VARARGS, (char *)"SBBreakpointLocation_SetIgnoreCount(SBBreakpointLocation self, uint32_t n)"},
+	 { (char *)"SBBreakpointLocation_SetCondition", _wrap_SBBreakpointLocation_SetCondition, METH_VARARGS, (char *)"\n"
+		"SBBreakpointLocation_SetCondition(SBBreakpointLocation self, char const * condition)\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"\n"
+		"The breakpoint location stops only if the condition expression evaluates\n"
+		"to true.\n"
+		""},
+<<<<<<< HEAD
 	 { "SBBreakpointLocation_GetCondition", _wrap_SBBreakpointLocation_GetCondition, METH_VARARGS, (char *)"\n"
 		"SBBreakpointLocation_GetCondition(SBBreakpointLocation self) -> char const *\n"
 		"\n"
+=======
+	 { (char *)"SBBreakpointLocation_GetCondition", _wrap_SBBreakpointLocation_GetCondition, METH_VARARGS, (char *)"\n"
+		"SBBreakpointLocation_GetCondition(SBBreakpointLocation self) -> char const *\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Get the condition expression for the breakpoint location.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Get the condition expression for the breakpoint location.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBBreakpointLocation_GetAutoContinue", _wrap_SBBreakpointLocation_GetAutoContinue, METH_VARARGS, (char *)"SBBreakpointLocation_GetAutoContinue(SBBreakpointLocation self) -> bool"},
 	 { "SBBreakpointLocation_SetAutoContinue", _wrap_SBBreakpointLocation_SetAutoContinue, METH_VARARGS, (char *)"SBBreakpointLocation_SetAutoContinue(SBBreakpointLocation self, bool auto_continue)"},
 	 { "SBBreakpointLocation_SetScriptCallbackFunction", _wrap_SBBreakpointLocation_SetScriptCallbackFunction, METH_VARARGS, (char *)"\n"
 		"SBBreakpointLocation_SetScriptCallbackFunction(SBBreakpointLocation self, char const * callback_function_name)\n"
 		"\n"
+=======
+	 { (char *)"SBBreakpointLocation_GetAutoContinue", _wrap_SBBreakpointLocation_GetAutoContinue, METH_VARARGS, (char *)"SBBreakpointLocation_GetAutoContinue(SBBreakpointLocation self) -> bool"},
+	 { (char *)"SBBreakpointLocation_SetAutoContinue", _wrap_SBBreakpointLocation_SetAutoContinue, METH_VARARGS, (char *)"SBBreakpointLocation_SetAutoContinue(SBBreakpointLocation self, bool auto_continue)"},
+	 { (char *)"SBBreakpointLocation_SetScriptCallbackFunction", _wrap_SBBreakpointLocation_SetScriptCallbackFunction, METH_VARARGS, (char *)"\n"
+		"SBBreakpointLocation_SetScriptCallbackFunction(SBBreakpointLocation self, char const * callback_function_name)\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Set the callback to the given Python function name.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Set the callback to the given Python function name.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBBreakpointLocation_SetScriptCallbackBody", _wrap_SBBreakpointLocation_SetScriptCallbackBody, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBBreakpointLocation_SetScriptCallbackBody", _wrap_SBBreakpointLocation_SetScriptCallbackBody, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBBreakpointLocation_SetScriptCallbackBody(SBBreakpointLocation self, char const * script_body_text) -> SBError\n"
 		"\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Provide the body for the script function to be called when the breakpoint location is hit.\n"
-		"/// The body will be wrapped in a function, which be passed two arguments:\n"
-		"/// 'frame' - which holds the bottom-most SBFrame of the thread that hit the breakpoint\n"
-		"/// 'bpno'  - which is the SBBreakpointLocation to which the callback was attached.\n"
-		"///\n"
-		"/// The error parameter is currently ignored, but will at some point hold the Python\n"
-		"/// compilation diagnostics.\n"
-		"/// Returns true if the body compiles successfully, false if not.\n"
-		"//------------------------------------------------------------------\n"
+		"Provide the body for the script function to be called when the breakpoint location is hit.\n"
+		"The body will be wrapped in a function, which be passed two arguments:\n"
+		"'frame' - which holds the bottom-most SBFrame of the thread that hit the breakpoint\n"
+		"'bpno'  - which is the SBBreakpointLocation to which the callback was attached.\n"
 		"\n"
+		"The error parameter is currently ignored, but will at some point hold the Python\n"
+		"compilation diagnostics.\n"
+		"Returns true if the body compiles successfully, false if not.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBBreakpointLocation_SetCommandLineCommands", _wrap_SBBreakpointLocation_SetCommandLineCommands, METH_VARARGS, (char *)"SBBreakpointLocation_SetCommandLineCommands(SBBreakpointLocation self, SBStringList commands)"},
 	 { "SBBreakpointLocation_GetCommandLineCommands", _wrap_SBBreakpointLocation_GetCommandLineCommands, METH_VARARGS, (char *)"SBBreakpointLocation_GetCommandLineCommands(SBBreakpointLocation self, SBStringList commands) -> bool"},
 	 { "SBBreakpointLocation_SetThreadID", _wrap_SBBreakpointLocation_SetThreadID, METH_VARARGS, (char *)"SBBreakpointLocation_SetThreadID(SBBreakpointLocation self, lldb::tid_t sb_thread_id)"},
@@ -79019,11 +80112,30 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBBreakpointLocation___str__", _wrap_SBBreakpointLocation___str__, METH_VARARGS, (char *)"SBBreakpointLocation___str__(SBBreakpointLocation self) -> PyObject *"},
 	 { "SBBreakpointLocation_swigregister", SBBreakpointLocation_swigregister, METH_VARARGS, NULL},
 	 { "new_SBBreakpointName", _wrap_new_SBBreakpointName, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBBreakpointLocation_SetCommandLineCommands", _wrap_SBBreakpointLocation_SetCommandLineCommands, METH_VARARGS, (char *)"SBBreakpointLocation_SetCommandLineCommands(SBBreakpointLocation self, SBStringList commands)"},
+	 { (char *)"SBBreakpointLocation_GetCommandLineCommands", _wrap_SBBreakpointLocation_GetCommandLineCommands, METH_VARARGS, (char *)"SBBreakpointLocation_GetCommandLineCommands(SBBreakpointLocation self, SBStringList commands) -> bool"},
+	 { (char *)"SBBreakpointLocation_SetThreadID", _wrap_SBBreakpointLocation_SetThreadID, METH_VARARGS, (char *)"SBBreakpointLocation_SetThreadID(SBBreakpointLocation self, lldb::tid_t sb_thread_id)"},
+	 { (char *)"SBBreakpointLocation_GetThreadID", _wrap_SBBreakpointLocation_GetThreadID, METH_VARARGS, (char *)"SBBreakpointLocation_GetThreadID(SBBreakpointLocation self) -> lldb::tid_t"},
+	 { (char *)"SBBreakpointLocation_SetThreadIndex", _wrap_SBBreakpointLocation_SetThreadIndex, METH_VARARGS, (char *)"SBBreakpointLocation_SetThreadIndex(SBBreakpointLocation self, uint32_t index)"},
+	 { (char *)"SBBreakpointLocation_GetThreadIndex", _wrap_SBBreakpointLocation_GetThreadIndex, METH_VARARGS, (char *)"SBBreakpointLocation_GetThreadIndex(SBBreakpointLocation self) -> uint32_t"},
+	 { (char *)"SBBreakpointLocation_SetThreadName", _wrap_SBBreakpointLocation_SetThreadName, METH_VARARGS, (char *)"SBBreakpointLocation_SetThreadName(SBBreakpointLocation self, char const * thread_name)"},
+	 { (char *)"SBBreakpointLocation_GetThreadName", _wrap_SBBreakpointLocation_GetThreadName, METH_VARARGS, (char *)"SBBreakpointLocation_GetThreadName(SBBreakpointLocation self) -> char const *"},
+	 { (char *)"SBBreakpointLocation_SetQueueName", _wrap_SBBreakpointLocation_SetQueueName, METH_VARARGS, (char *)"SBBreakpointLocation_SetQueueName(SBBreakpointLocation self, char const * queue_name)"},
+	 { (char *)"SBBreakpointLocation_GetQueueName", _wrap_SBBreakpointLocation_GetQueueName, METH_VARARGS, (char *)"SBBreakpointLocation_GetQueueName(SBBreakpointLocation self) -> char const *"},
+	 { (char *)"SBBreakpointLocation_IsResolved", _wrap_SBBreakpointLocation_IsResolved, METH_VARARGS, (char *)"SBBreakpointLocation_IsResolved(SBBreakpointLocation self) -> bool"},
+	 { (char *)"SBBreakpointLocation_GetDescription", _wrap_SBBreakpointLocation_GetDescription, METH_VARARGS, (char *)"SBBreakpointLocation_GetDescription(SBBreakpointLocation self, SBStream description, lldb::DescriptionLevel level) -> bool"},
+	 { (char *)"SBBreakpointLocation_GetBreakpoint", _wrap_SBBreakpointLocation_GetBreakpoint, METH_VARARGS, (char *)"SBBreakpointLocation_GetBreakpoint(SBBreakpointLocation self) -> SBBreakpoint"},
+	 { (char *)"SBBreakpointLocation___str__", _wrap_SBBreakpointLocation___str__, METH_VARARGS, (char *)"SBBreakpointLocation___str__(SBBreakpointLocation self) -> PyObject *"},
+	 { (char *)"SBBreakpointLocation_swigregister", SBBreakpointLocation_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBBreakpointName", _wrap_new_SBBreakpointName, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBBreakpointName()\n"
 		"SBBreakpointName(SBTarget target, char const * name)\n"
 		"SBBreakpointName(SBBreakpoint bkpt, char const * name)\n"
 		"new_SBBreakpointName(SBBreakpointName rhs) -> SBBreakpointName\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBBreakpointName", _wrap_delete_SBBreakpointName, METH_VARARGS, (char *)"delete_SBBreakpointName(SBBreakpointName self)"},
 	 { "SBBreakpointName___eq__", _wrap_SBBreakpointName___eq__, METH_VARARGS, (char *)"SBBreakpointName___eq__(SBBreakpointName self, SBBreakpointName rhs) -> bool"},
 	 { "SBBreakpointName___ne__", _wrap_SBBreakpointName___ne__, METH_VARARGS, (char *)"SBBreakpointName___ne__(SBBreakpointName self, SBBreakpointName rhs) -> bool"},
@@ -79064,10 +80176,53 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBBreakpointName___str__", _wrap_SBBreakpointName___str__, METH_VARARGS, (char *)"SBBreakpointName___str__(SBBreakpointName self) -> PyObject *"},
 	 { "SBBreakpointName_swigregister", SBBreakpointName_swigregister, METH_VARARGS, NULL},
 	 { "new_SBBroadcaster", _wrap_new_SBBroadcaster, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBBreakpointName", _wrap_delete_SBBreakpointName, METH_VARARGS, (char *)"delete_SBBreakpointName(SBBreakpointName self)"},
+	 { (char *)"SBBreakpointName___eq__", _wrap_SBBreakpointName___eq__, METH_VARARGS, (char *)"SBBreakpointName___eq__(SBBreakpointName self, SBBreakpointName rhs) -> bool"},
+	 { (char *)"SBBreakpointName___ne__", _wrap_SBBreakpointName___ne__, METH_VARARGS, (char *)"SBBreakpointName___ne__(SBBreakpointName self, SBBreakpointName rhs) -> bool"},
+	 { (char *)"SBBreakpointName___nonzero__", _wrap_SBBreakpointName___nonzero__, METH_VARARGS, (char *)"SBBreakpointName___nonzero__(SBBreakpointName self) -> bool"},
+	 { (char *)"SBBreakpointName_IsValid", _wrap_SBBreakpointName_IsValid, METH_VARARGS, (char *)"SBBreakpointName_IsValid(SBBreakpointName self) -> bool"},
+	 { (char *)"SBBreakpointName_GetName", _wrap_SBBreakpointName_GetName, METH_VARARGS, (char *)"SBBreakpointName_GetName(SBBreakpointName self) -> char const *"},
+	 { (char *)"SBBreakpointName_SetEnabled", _wrap_SBBreakpointName_SetEnabled, METH_VARARGS, (char *)"SBBreakpointName_SetEnabled(SBBreakpointName self, bool enable)"},
+	 { (char *)"SBBreakpointName_IsEnabled", _wrap_SBBreakpointName_IsEnabled, METH_VARARGS, (char *)"SBBreakpointName_IsEnabled(SBBreakpointName self) -> bool"},
+	 { (char *)"SBBreakpointName_SetOneShot", _wrap_SBBreakpointName_SetOneShot, METH_VARARGS, (char *)"SBBreakpointName_SetOneShot(SBBreakpointName self, bool one_shot)"},
+	 { (char *)"SBBreakpointName_IsOneShot", _wrap_SBBreakpointName_IsOneShot, METH_VARARGS, (char *)"SBBreakpointName_IsOneShot(SBBreakpointName self) -> bool"},
+	 { (char *)"SBBreakpointName_SetIgnoreCount", _wrap_SBBreakpointName_SetIgnoreCount, METH_VARARGS, (char *)"SBBreakpointName_SetIgnoreCount(SBBreakpointName self, uint32_t count)"},
+	 { (char *)"SBBreakpointName_GetIgnoreCount", _wrap_SBBreakpointName_GetIgnoreCount, METH_VARARGS, (char *)"SBBreakpointName_GetIgnoreCount(SBBreakpointName self) -> uint32_t"},
+	 { (char *)"SBBreakpointName_SetCondition", _wrap_SBBreakpointName_SetCondition, METH_VARARGS, (char *)"SBBreakpointName_SetCondition(SBBreakpointName self, char const * condition)"},
+	 { (char *)"SBBreakpointName_GetCondition", _wrap_SBBreakpointName_GetCondition, METH_VARARGS, (char *)"SBBreakpointName_GetCondition(SBBreakpointName self) -> char const *"},
+	 { (char *)"SBBreakpointName_SetAutoContinue", _wrap_SBBreakpointName_SetAutoContinue, METH_VARARGS, (char *)"SBBreakpointName_SetAutoContinue(SBBreakpointName self, bool auto_continue)"},
+	 { (char *)"SBBreakpointName_GetAutoContinue", _wrap_SBBreakpointName_GetAutoContinue, METH_VARARGS, (char *)"SBBreakpointName_GetAutoContinue(SBBreakpointName self) -> bool"},
+	 { (char *)"SBBreakpointName_SetThreadID", _wrap_SBBreakpointName_SetThreadID, METH_VARARGS, (char *)"SBBreakpointName_SetThreadID(SBBreakpointName self, lldb::tid_t sb_thread_id)"},
+	 { (char *)"SBBreakpointName_GetThreadID", _wrap_SBBreakpointName_GetThreadID, METH_VARARGS, (char *)"SBBreakpointName_GetThreadID(SBBreakpointName self) -> lldb::tid_t"},
+	 { (char *)"SBBreakpointName_SetThreadIndex", _wrap_SBBreakpointName_SetThreadIndex, METH_VARARGS, (char *)"SBBreakpointName_SetThreadIndex(SBBreakpointName self, uint32_t index)"},
+	 { (char *)"SBBreakpointName_GetThreadIndex", _wrap_SBBreakpointName_GetThreadIndex, METH_VARARGS, (char *)"SBBreakpointName_GetThreadIndex(SBBreakpointName self) -> uint32_t"},
+	 { (char *)"SBBreakpointName_SetThreadName", _wrap_SBBreakpointName_SetThreadName, METH_VARARGS, (char *)"SBBreakpointName_SetThreadName(SBBreakpointName self, char const * thread_name)"},
+	 { (char *)"SBBreakpointName_GetThreadName", _wrap_SBBreakpointName_GetThreadName, METH_VARARGS, (char *)"SBBreakpointName_GetThreadName(SBBreakpointName self) -> char const *"},
+	 { (char *)"SBBreakpointName_SetQueueName", _wrap_SBBreakpointName_SetQueueName, METH_VARARGS, (char *)"SBBreakpointName_SetQueueName(SBBreakpointName self, char const * queue_name)"},
+	 { (char *)"SBBreakpointName_GetQueueName", _wrap_SBBreakpointName_GetQueueName, METH_VARARGS, (char *)"SBBreakpointName_GetQueueName(SBBreakpointName self) -> char const *"},
+	 { (char *)"SBBreakpointName_SetScriptCallbackFunction", _wrap_SBBreakpointName_SetScriptCallbackFunction, METH_VARARGS, (char *)"SBBreakpointName_SetScriptCallbackFunction(SBBreakpointName self, char const * callback_function_name)"},
+	 { (char *)"SBBreakpointName_SetCommandLineCommands", _wrap_SBBreakpointName_SetCommandLineCommands, METH_VARARGS, (char *)"SBBreakpointName_SetCommandLineCommands(SBBreakpointName self, SBStringList commands)"},
+	 { (char *)"SBBreakpointName_GetCommandLineCommands", _wrap_SBBreakpointName_GetCommandLineCommands, METH_VARARGS, (char *)"SBBreakpointName_GetCommandLineCommands(SBBreakpointName self, SBStringList commands) -> bool"},
+	 { (char *)"SBBreakpointName_SetScriptCallbackBody", _wrap_SBBreakpointName_SetScriptCallbackBody, METH_VARARGS, (char *)"SBBreakpointName_SetScriptCallbackBody(SBBreakpointName self, char const * script_body_text) -> SBError"},
+	 { (char *)"SBBreakpointName_GetHelpString", _wrap_SBBreakpointName_GetHelpString, METH_VARARGS, (char *)"SBBreakpointName_GetHelpString(SBBreakpointName self) -> char const *"},
+	 { (char *)"SBBreakpointName_SetHelpString", _wrap_SBBreakpointName_SetHelpString, METH_VARARGS, (char *)"SBBreakpointName_SetHelpString(SBBreakpointName self, char const * help_string)"},
+	 { (char *)"SBBreakpointName_GetAllowList", _wrap_SBBreakpointName_GetAllowList, METH_VARARGS, (char *)"SBBreakpointName_GetAllowList(SBBreakpointName self) -> bool"},
+	 { (char *)"SBBreakpointName_SetAllowList", _wrap_SBBreakpointName_SetAllowList, METH_VARARGS, (char *)"SBBreakpointName_SetAllowList(SBBreakpointName self, bool value)"},
+	 { (char *)"SBBreakpointName_GetAllowDelete", _wrap_SBBreakpointName_GetAllowDelete, METH_VARARGS, (char *)"SBBreakpointName_GetAllowDelete(SBBreakpointName self) -> bool"},
+	 { (char *)"SBBreakpointName_SetAllowDelete", _wrap_SBBreakpointName_SetAllowDelete, METH_VARARGS, (char *)"SBBreakpointName_SetAllowDelete(SBBreakpointName self, bool value)"},
+	 { (char *)"SBBreakpointName_GetAllowDisable", _wrap_SBBreakpointName_GetAllowDisable, METH_VARARGS, (char *)"SBBreakpointName_GetAllowDisable(SBBreakpointName self) -> bool"},
+	 { (char *)"SBBreakpointName_SetAllowDisable", _wrap_SBBreakpointName_SetAllowDisable, METH_VARARGS, (char *)"SBBreakpointName_SetAllowDisable(SBBreakpointName self, bool value)"},
+	 { (char *)"SBBreakpointName_GetDescription", _wrap_SBBreakpointName_GetDescription, METH_VARARGS, (char *)"SBBreakpointName_GetDescription(SBBreakpointName self, SBStream description) -> bool"},
+	 { (char *)"SBBreakpointName___str__", _wrap_SBBreakpointName___str__, METH_VARARGS, (char *)"SBBreakpointName___str__(SBBreakpointName self) -> PyObject *"},
+	 { (char *)"SBBreakpointName_swigregister", SBBreakpointName_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBBroadcaster", _wrap_new_SBBroadcaster, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBBroadcaster()\n"
 		"SBBroadcaster(char const * name)\n"
 		"new_SBBroadcaster(SBBroadcaster rhs) -> SBBroadcaster\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBBroadcaster", _wrap_delete_SBBroadcaster, METH_VARARGS, (char *)"delete_SBBroadcaster(SBBroadcaster self)"},
 	 { "SBBroadcaster_IsValid", _wrap_SBBroadcaster_IsValid, METH_VARARGS, (char *)"SBBroadcaster_IsValid(SBBroadcaster self) -> bool"},
 	 { "SBBroadcaster___nonzero__", _wrap_SBBroadcaster___nonzero__, METH_VARARGS, (char *)"SBBroadcaster___nonzero__(SBBroadcaster self) -> bool"},
@@ -79132,11 +80287,78 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBCommandInterpreter_SourceInitFileInHomeDirectory", _wrap_SBCommandInterpreter_SourceInitFileInHomeDirectory, METH_VARARGS, (char *)"SBCommandInterpreter_SourceInitFileInHomeDirectory(SBCommandInterpreter self, SBCommandReturnObject result)"},
 	 { "SBCommandInterpreter_SourceInitFileInCurrentWorkingDirectory", _wrap_SBCommandInterpreter_SourceInitFileInCurrentWorkingDirectory, METH_VARARGS, (char *)"SBCommandInterpreter_SourceInitFileInCurrentWorkingDirectory(SBCommandInterpreter self, SBCommandReturnObject result)"},
 	 { "SBCommandInterpreter_HandleCommand", _wrap_SBCommandInterpreter_HandleCommand, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBBroadcaster", _wrap_delete_SBBroadcaster, METH_VARARGS, (char *)"delete_SBBroadcaster(SBBroadcaster self)"},
+	 { (char *)"SBBroadcaster_IsValid", _wrap_SBBroadcaster_IsValid, METH_VARARGS, (char *)"SBBroadcaster_IsValid(SBBroadcaster self) -> bool"},
+	 { (char *)"SBBroadcaster___nonzero__", _wrap_SBBroadcaster___nonzero__, METH_VARARGS, (char *)"SBBroadcaster___nonzero__(SBBroadcaster self) -> bool"},
+	 { (char *)"SBBroadcaster_Clear", _wrap_SBBroadcaster_Clear, METH_VARARGS, (char *)"SBBroadcaster_Clear(SBBroadcaster self)"},
+	 { (char *)"SBBroadcaster_BroadcastEventByType", _wrap_SBBroadcaster_BroadcastEventByType, METH_VARARGS, (char *)"\n"
+		"BroadcastEventByType(uint32_t event_type, bool unique=False)\n"
+		"SBBroadcaster_BroadcastEventByType(SBBroadcaster self, uint32_t event_type)\n"
+		""},
+	 { (char *)"SBBroadcaster_BroadcastEvent", _wrap_SBBroadcaster_BroadcastEvent, METH_VARARGS, (char *)"\n"
+		"BroadcastEvent(SBEvent event, bool unique=False)\n"
+		"SBBroadcaster_BroadcastEvent(SBBroadcaster self, SBEvent event)\n"
+		""},
+	 { (char *)"SBBroadcaster_AddInitialEventsToListener", _wrap_SBBroadcaster_AddInitialEventsToListener, METH_VARARGS, (char *)"SBBroadcaster_AddInitialEventsToListener(SBBroadcaster self, SBListener listener, uint32_t requested_events)"},
+	 { (char *)"SBBroadcaster_AddListener", _wrap_SBBroadcaster_AddListener, METH_VARARGS, (char *)"SBBroadcaster_AddListener(SBBroadcaster self, SBListener listener, uint32_t event_mask) -> uint32_t"},
+	 { (char *)"SBBroadcaster_GetName", _wrap_SBBroadcaster_GetName, METH_VARARGS, (char *)"SBBroadcaster_GetName(SBBroadcaster self) -> char const *"},
+	 { (char *)"SBBroadcaster_EventTypeHasListeners", _wrap_SBBroadcaster_EventTypeHasListeners, METH_VARARGS, (char *)"SBBroadcaster_EventTypeHasListeners(SBBroadcaster self, uint32_t event_type) -> bool"},
+	 { (char *)"SBBroadcaster_RemoveListener", _wrap_SBBroadcaster_RemoveListener, METH_VARARGS, (char *)"\n"
+		"RemoveListener(SBListener listener, uint32_t event_mask=4294967295) -> bool\n"
+		"SBBroadcaster_RemoveListener(SBBroadcaster self, SBListener listener) -> bool\n"
+		""},
+	 { (char *)"SBBroadcaster___eq__", _wrap_SBBroadcaster___eq__, METH_VARARGS, (char *)"SBBroadcaster___eq__(SBBroadcaster self, SBBroadcaster rhs) -> bool"},
+	 { (char *)"SBBroadcaster___ne__", _wrap_SBBroadcaster___ne__, METH_VARARGS, (char *)"SBBroadcaster___ne__(SBBroadcaster self, SBBroadcaster rhs) -> bool"},
+	 { (char *)"SBBroadcaster_swigregister", SBBroadcaster_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBCommandInterpreterRunOptions", _wrap_new_SBCommandInterpreterRunOptions, METH_VARARGS, (char *)"new_SBCommandInterpreterRunOptions() -> SBCommandInterpreterRunOptions"},
+	 { (char *)"delete_SBCommandInterpreterRunOptions", _wrap_delete_SBCommandInterpreterRunOptions, METH_VARARGS, (char *)"delete_SBCommandInterpreterRunOptions(SBCommandInterpreterRunOptions self)"},
+	 { (char *)"SBCommandInterpreterRunOptions_GetStopOnContinue", _wrap_SBCommandInterpreterRunOptions_GetStopOnContinue, METH_VARARGS, (char *)"SBCommandInterpreterRunOptions_GetStopOnContinue(SBCommandInterpreterRunOptions self) -> bool"},
+	 { (char *)"SBCommandInterpreterRunOptions_SetStopOnContinue", _wrap_SBCommandInterpreterRunOptions_SetStopOnContinue, METH_VARARGS, (char *)"SBCommandInterpreterRunOptions_SetStopOnContinue(SBCommandInterpreterRunOptions self, bool arg3)"},
+	 { (char *)"SBCommandInterpreterRunOptions_GetStopOnError", _wrap_SBCommandInterpreterRunOptions_GetStopOnError, METH_VARARGS, (char *)"SBCommandInterpreterRunOptions_GetStopOnError(SBCommandInterpreterRunOptions self) -> bool"},
+	 { (char *)"SBCommandInterpreterRunOptions_SetStopOnError", _wrap_SBCommandInterpreterRunOptions_SetStopOnError, METH_VARARGS, (char *)"SBCommandInterpreterRunOptions_SetStopOnError(SBCommandInterpreterRunOptions self, bool arg3)"},
+	 { (char *)"SBCommandInterpreterRunOptions_GetStopOnCrash", _wrap_SBCommandInterpreterRunOptions_GetStopOnCrash, METH_VARARGS, (char *)"SBCommandInterpreterRunOptions_GetStopOnCrash(SBCommandInterpreterRunOptions self) -> bool"},
+	 { (char *)"SBCommandInterpreterRunOptions_SetStopOnCrash", _wrap_SBCommandInterpreterRunOptions_SetStopOnCrash, METH_VARARGS, (char *)"SBCommandInterpreterRunOptions_SetStopOnCrash(SBCommandInterpreterRunOptions self, bool arg3)"},
+	 { (char *)"SBCommandInterpreterRunOptions_GetEchoCommands", _wrap_SBCommandInterpreterRunOptions_GetEchoCommands, METH_VARARGS, (char *)"SBCommandInterpreterRunOptions_GetEchoCommands(SBCommandInterpreterRunOptions self) -> bool"},
+	 { (char *)"SBCommandInterpreterRunOptions_SetEchoCommands", _wrap_SBCommandInterpreterRunOptions_SetEchoCommands, METH_VARARGS, (char *)"SBCommandInterpreterRunOptions_SetEchoCommands(SBCommandInterpreterRunOptions self, bool arg3)"},
+	 { (char *)"SBCommandInterpreterRunOptions_GetPrintResults", _wrap_SBCommandInterpreterRunOptions_GetPrintResults, METH_VARARGS, (char *)"SBCommandInterpreterRunOptions_GetPrintResults(SBCommandInterpreterRunOptions self) -> bool"},
+	 { (char *)"SBCommandInterpreterRunOptions_SetPrintResults", _wrap_SBCommandInterpreterRunOptions_SetPrintResults, METH_VARARGS, (char *)"SBCommandInterpreterRunOptions_SetPrintResults(SBCommandInterpreterRunOptions self, bool arg3)"},
+	 { (char *)"SBCommandInterpreterRunOptions_GetAddToHistory", _wrap_SBCommandInterpreterRunOptions_GetAddToHistory, METH_VARARGS, (char *)"SBCommandInterpreterRunOptions_GetAddToHistory(SBCommandInterpreterRunOptions self) -> bool"},
+	 { (char *)"SBCommandInterpreterRunOptions_SetAddToHistory", _wrap_SBCommandInterpreterRunOptions_SetAddToHistory, METH_VARARGS, (char *)"SBCommandInterpreterRunOptions_SetAddToHistory(SBCommandInterpreterRunOptions self, bool arg3)"},
+	 { (char *)"SBCommandInterpreterRunOptions_swigregister", SBCommandInterpreterRunOptions_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBCommandInterpreter", _wrap_new_SBCommandInterpreter, METH_VARARGS, (char *)"new_SBCommandInterpreter(SBCommandInterpreter rhs) -> SBCommandInterpreter"},
+	 { (char *)"delete_SBCommandInterpreter", _wrap_delete_SBCommandInterpreter, METH_VARARGS, (char *)"delete_SBCommandInterpreter(SBCommandInterpreter self)"},
+	 { (char *)"SBCommandInterpreter_GetArgumentTypeAsCString", _wrap_SBCommandInterpreter_GetArgumentTypeAsCString, METH_VARARGS, (char *)"SBCommandInterpreter_GetArgumentTypeAsCString(lldb::CommandArgumentType const arg_type) -> char const *"},
+	 { (char *)"SBCommandInterpreter_GetArgumentDescriptionAsCString", _wrap_SBCommandInterpreter_GetArgumentDescriptionAsCString, METH_VARARGS, (char *)"SBCommandInterpreter_GetArgumentDescriptionAsCString(lldb::CommandArgumentType const arg_type) -> char const *"},
+	 { (char *)"SBCommandInterpreter_EventIsCommandInterpreterEvent", _wrap_SBCommandInterpreter_EventIsCommandInterpreterEvent, METH_VARARGS, (char *)"SBCommandInterpreter_EventIsCommandInterpreterEvent(SBEvent event) -> bool"},
+	 { (char *)"SBCommandInterpreter_IsValid", _wrap_SBCommandInterpreter_IsValid, METH_VARARGS, (char *)"SBCommandInterpreter_IsValid(SBCommandInterpreter self) -> bool"},
+	 { (char *)"SBCommandInterpreter___nonzero__", _wrap_SBCommandInterpreter___nonzero__, METH_VARARGS, (char *)"SBCommandInterpreter___nonzero__(SBCommandInterpreter self) -> bool"},
+	 { (char *)"SBCommandInterpreter_GetIOHandlerControlSequence", _wrap_SBCommandInterpreter_GetIOHandlerControlSequence, METH_VARARGS, (char *)"SBCommandInterpreter_GetIOHandlerControlSequence(SBCommandInterpreter self, char ch) -> char const *"},
+	 { (char *)"SBCommandInterpreter_GetPromptOnQuit", _wrap_SBCommandInterpreter_GetPromptOnQuit, METH_VARARGS, (char *)"SBCommandInterpreter_GetPromptOnQuit(SBCommandInterpreter self) -> bool"},
+	 { (char *)"SBCommandInterpreter_SetPromptOnQuit", _wrap_SBCommandInterpreter_SetPromptOnQuit, METH_VARARGS, (char *)"SBCommandInterpreter_SetPromptOnQuit(SBCommandInterpreter self, bool b)"},
+	 { (char *)"SBCommandInterpreter_AllowExitCodeOnQuit", _wrap_SBCommandInterpreter_AllowExitCodeOnQuit, METH_VARARGS, (char *)"SBCommandInterpreter_AllowExitCodeOnQuit(SBCommandInterpreter self, bool b)"},
+	 { (char *)"SBCommandInterpreter_HasCustomQuitExitCode", _wrap_SBCommandInterpreter_HasCustomQuitExitCode, METH_VARARGS, (char *)"SBCommandInterpreter_HasCustomQuitExitCode(SBCommandInterpreter self) -> bool"},
+	 { (char *)"SBCommandInterpreter_GetQuitStatus", _wrap_SBCommandInterpreter_GetQuitStatus, METH_VARARGS, (char *)"SBCommandInterpreter_GetQuitStatus(SBCommandInterpreter self) -> int"},
+	 { (char *)"SBCommandInterpreter_ResolveCommand", _wrap_SBCommandInterpreter_ResolveCommand, METH_VARARGS, (char *)"SBCommandInterpreter_ResolveCommand(SBCommandInterpreter self, char const * command_line, SBCommandReturnObject result)"},
+	 { (char *)"SBCommandInterpreter_CommandExists", _wrap_SBCommandInterpreter_CommandExists, METH_VARARGS, (char *)"SBCommandInterpreter_CommandExists(SBCommandInterpreter self, char const * cmd) -> bool"},
+	 { (char *)"SBCommandInterpreter_AliasExists", _wrap_SBCommandInterpreter_AliasExists, METH_VARARGS, (char *)"SBCommandInterpreter_AliasExists(SBCommandInterpreter self, char const * cmd) -> bool"},
+	 { (char *)"SBCommandInterpreter_GetBroadcaster", _wrap_SBCommandInterpreter_GetBroadcaster, METH_VARARGS, (char *)"SBCommandInterpreter_GetBroadcaster(SBCommandInterpreter self) -> SBBroadcaster"},
+	 { (char *)"SBCommandInterpreter_GetBroadcasterClass", _wrap_SBCommandInterpreter_GetBroadcasterClass, METH_VARARGS, (char *)"SBCommandInterpreter_GetBroadcasterClass() -> char const *"},
+	 { (char *)"SBCommandInterpreter_HasCommands", _wrap_SBCommandInterpreter_HasCommands, METH_VARARGS, (char *)"SBCommandInterpreter_HasCommands(SBCommandInterpreter self) -> bool"},
+	 { (char *)"SBCommandInterpreter_HasAliases", _wrap_SBCommandInterpreter_HasAliases, METH_VARARGS, (char *)"SBCommandInterpreter_HasAliases(SBCommandInterpreter self) -> bool"},
+	 { (char *)"SBCommandInterpreter_HasAliasOptions", _wrap_SBCommandInterpreter_HasAliasOptions, METH_VARARGS, (char *)"SBCommandInterpreter_HasAliasOptions(SBCommandInterpreter self) -> bool"},
+	 { (char *)"SBCommandInterpreter_GetProcess", _wrap_SBCommandInterpreter_GetProcess, METH_VARARGS, (char *)"SBCommandInterpreter_GetProcess(SBCommandInterpreter self) -> SBProcess"},
+	 { (char *)"SBCommandInterpreter_GetDebugger", _wrap_SBCommandInterpreter_GetDebugger, METH_VARARGS, (char *)"SBCommandInterpreter_GetDebugger(SBCommandInterpreter self) -> SBDebugger"},
+	 { (char *)"SBCommandInterpreter_SourceInitFileInHomeDirectory", _wrap_SBCommandInterpreter_SourceInitFileInHomeDirectory, METH_VARARGS, (char *)"SBCommandInterpreter_SourceInitFileInHomeDirectory(SBCommandInterpreter self, SBCommandReturnObject result)"},
+	 { (char *)"SBCommandInterpreter_SourceInitFileInCurrentWorkingDirectory", _wrap_SBCommandInterpreter_SourceInitFileInCurrentWorkingDirectory, METH_VARARGS, (char *)"SBCommandInterpreter_SourceInitFileInCurrentWorkingDirectory(SBCommandInterpreter self, SBCommandReturnObject result)"},
+	 { (char *)"SBCommandInterpreter_HandleCommand", _wrap_SBCommandInterpreter_HandleCommand, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"HandleCommand(char const * command_line, SBCommandReturnObject result, bool add_to_history=False) -> lldb::ReturnStatus\n"
 		"HandleCommand(char const * command_line, SBCommandReturnObject result) -> lldb::ReturnStatus\n"
 		"HandleCommand(char const * command_line, SBExecutionContext exe_ctx, SBCommandReturnObject result, bool add_to_history=False) -> lldb::ReturnStatus\n"
 		"SBCommandInterpreter_HandleCommand(SBCommandInterpreter self, char const * command_line, SBExecutionContext exe_ctx, SBCommandReturnObject result) -> lldb::ReturnStatus\n"
 		""},
+<<<<<<< HEAD
 	 { "SBCommandInterpreter_HandleCommandsFromFile", _wrap_SBCommandInterpreter_HandleCommandsFromFile, METH_VARARGS, (char *)"SBCommandInterpreter_HandleCommandsFromFile(SBCommandInterpreter self, SBFileSpec file, SBExecutionContext override_context, SBCommandInterpreterRunOptions options, SBCommandReturnObject result)"},
 	 { "SBCommandInterpreter_HandleCompletion", _wrap_SBCommandInterpreter_HandleCompletion, METH_VARARGS, (char *)"SBCommandInterpreter_HandleCompletion(SBCommandInterpreter self, char const * current_line, uint32_t cursor_pos, int match_start_point, int max_return_elements, SBStringList matches) -> int"},
 	 { "SBCommandInterpreter_HandleCompletionWithDescriptions", _wrap_SBCommandInterpreter_HandleCompletionWithDescriptions, METH_VARARGS, (char *)"SBCommandInterpreter_HandleCompletionWithDescriptions(SBCommandInterpreter self, char const * current_line, uint32_t cursor_pos, int match_start_point, int max_return_elements, SBStringList matches, SBStringList descriptions) -> int"},
@@ -79165,10 +80387,41 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBCommandReturnObject_Clear", _wrap_SBCommandReturnObject_Clear, METH_VARARGS, (char *)"SBCommandReturnObject_Clear(SBCommandReturnObject self)"},
 	 { "SBCommandReturnObject_SetStatus", _wrap_SBCommandReturnObject_SetStatus, METH_VARARGS, (char *)"SBCommandReturnObject_SetStatus(SBCommandReturnObject self, lldb::ReturnStatus status)"},
 	 { "SBCommandReturnObject_SetError", _wrap_SBCommandReturnObject_SetError, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBCommandInterpreter_HandleCommandsFromFile", _wrap_SBCommandInterpreter_HandleCommandsFromFile, METH_VARARGS, (char *)"SBCommandInterpreter_HandleCommandsFromFile(SBCommandInterpreter self, SBFileSpec file, SBExecutionContext override_context, SBCommandInterpreterRunOptions options, SBCommandReturnObject result)"},
+	 { (char *)"SBCommandInterpreter_HandleCompletion", _wrap_SBCommandInterpreter_HandleCompletion, METH_VARARGS, (char *)"SBCommandInterpreter_HandleCompletion(SBCommandInterpreter self, char const * current_line, uint32_t cursor_pos, int match_start_point, int max_return_elements, SBStringList matches) -> int"},
+	 { (char *)"SBCommandInterpreter_HandleCompletionWithDescriptions", _wrap_SBCommandInterpreter_HandleCompletionWithDescriptions, METH_VARARGS, (char *)"SBCommandInterpreter_HandleCompletionWithDescriptions(SBCommandInterpreter self, char const * current_line, uint32_t cursor_pos, int match_start_point, int max_return_elements, SBStringList matches, SBStringList descriptions) -> int"},
+	 { (char *)"SBCommandInterpreter_IsActive", _wrap_SBCommandInterpreter_IsActive, METH_VARARGS, (char *)"SBCommandInterpreter_IsActive(SBCommandInterpreter self) -> bool"},
+	 { (char *)"SBCommandInterpreter_WasInterrupted", _wrap_SBCommandInterpreter_WasInterrupted, METH_VARARGS, (char *)"SBCommandInterpreter_WasInterrupted(SBCommandInterpreter self) -> bool"},
+	 { (char *)"SBCommandInterpreter_swigregister", SBCommandInterpreter_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBCommandReturnObject", _wrap_new_SBCommandReturnObject, METH_VARARGS, (char *)"\n"
+		"SBCommandReturnObject()\n"
+		"new_SBCommandReturnObject(SBCommandReturnObject rhs) -> SBCommandReturnObject\n"
+		""},
+	 { (char *)"delete_SBCommandReturnObject", _wrap_delete_SBCommandReturnObject, METH_VARARGS, (char *)"delete_SBCommandReturnObject(SBCommandReturnObject self)"},
+	 { (char *)"SBCommandReturnObject_IsValid", _wrap_SBCommandReturnObject_IsValid, METH_VARARGS, (char *)"SBCommandReturnObject_IsValid(SBCommandReturnObject self) -> bool"},
+	 { (char *)"SBCommandReturnObject___nonzero__", _wrap_SBCommandReturnObject___nonzero__, METH_VARARGS, (char *)"SBCommandReturnObject___nonzero__(SBCommandReturnObject self) -> bool"},
+	 { (char *)"SBCommandReturnObject_GetOutputSize", _wrap_SBCommandReturnObject_GetOutputSize, METH_VARARGS, (char *)"SBCommandReturnObject_GetOutputSize(SBCommandReturnObject self) -> size_t"},
+	 { (char *)"SBCommandReturnObject_GetErrorSize", _wrap_SBCommandReturnObject_GetErrorSize, METH_VARARGS, (char *)"SBCommandReturnObject_GetErrorSize(SBCommandReturnObject self) -> size_t"},
+	 { (char *)"SBCommandReturnObject_GetOutput", _wrap_SBCommandReturnObject_GetOutput, METH_VARARGS, (char *)"\n"
+		"GetOutput() -> char const\n"
+		"SBCommandReturnObject_GetOutput(SBCommandReturnObject self, bool only_if_no_immediate) -> char const *\n"
+		""},
+	 { (char *)"SBCommandReturnObject_GetError", _wrap_SBCommandReturnObject_GetError, METH_VARARGS, (char *)"\n"
+		"GetError() -> char const\n"
+		"SBCommandReturnObject_GetError(SBCommandReturnObject self, bool if_no_immediate) -> char const *\n"
+		""},
+	 { (char *)"SBCommandReturnObject_PutOutput", _wrap_SBCommandReturnObject_PutOutput, METH_VARARGS, (char *)"SBCommandReturnObject_PutOutput(SBCommandReturnObject self, FILE * fh) -> size_t"},
+	 { (char *)"SBCommandReturnObject_PutError", _wrap_SBCommandReturnObject_PutError, METH_VARARGS, (char *)"SBCommandReturnObject_PutError(SBCommandReturnObject self, FILE * fh) -> size_t"},
+	 { (char *)"SBCommandReturnObject_Clear", _wrap_SBCommandReturnObject_Clear, METH_VARARGS, (char *)"SBCommandReturnObject_Clear(SBCommandReturnObject self)"},
+	 { (char *)"SBCommandReturnObject_SetStatus", _wrap_SBCommandReturnObject_SetStatus, METH_VARARGS, (char *)"SBCommandReturnObject_SetStatus(SBCommandReturnObject self, lldb::ReturnStatus status)"},
+	 { (char *)"SBCommandReturnObject_SetError", _wrap_SBCommandReturnObject_SetError, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetError(SBError error, char const * fallback_error_cstr=None)\n"
 		"SetError(SBError error)\n"
 		"SBCommandReturnObject_SetError(SBCommandReturnObject self, char const * error_cstr)\n"
 		""},
+<<<<<<< HEAD
 	 { "SBCommandReturnObject_GetStatus", _wrap_SBCommandReturnObject_GetStatus, METH_VARARGS, (char *)"SBCommandReturnObject_GetStatus(SBCommandReturnObject self) -> lldb::ReturnStatus"},
 	 { "SBCommandReturnObject_Succeeded", _wrap_SBCommandReturnObject_Succeeded, METH_VARARGS, (char *)"SBCommandReturnObject_Succeeded(SBCommandReturnObject self) -> bool"},
 	 { "SBCommandReturnObject_HasResult", _wrap_SBCommandReturnObject_HasResult, METH_VARARGS, (char *)"SBCommandReturnObject_HasResult(SBCommandReturnObject self) -> bool"},
@@ -79242,8 +80495,81 @@ static PyMethodDef SwigMethods[] = {
 		"/// @return\n"
 		"///    A list of types in this compile unit that match  type_mask\n"
 		"//------------------------------------------------------------------\n"
-		"\n"
+=======
+	 { (char *)"SBCommandReturnObject_GetStatus", _wrap_SBCommandReturnObject_GetStatus, METH_VARARGS, (char *)"SBCommandReturnObject_GetStatus(SBCommandReturnObject self) -> lldb::ReturnStatus"},
+	 { (char *)"SBCommandReturnObject_Succeeded", _wrap_SBCommandReturnObject_Succeeded, METH_VARARGS, (char *)"SBCommandReturnObject_Succeeded(SBCommandReturnObject self) -> bool"},
+	 { (char *)"SBCommandReturnObject_HasResult", _wrap_SBCommandReturnObject_HasResult, METH_VARARGS, (char *)"SBCommandReturnObject_HasResult(SBCommandReturnObject self) -> bool"},
+	 { (char *)"SBCommandReturnObject_AppendMessage", _wrap_SBCommandReturnObject_AppendMessage, METH_VARARGS, (char *)"SBCommandReturnObject_AppendMessage(SBCommandReturnObject self, char const * message)"},
+	 { (char *)"SBCommandReturnObject_AppendWarning", _wrap_SBCommandReturnObject_AppendWarning, METH_VARARGS, (char *)"SBCommandReturnObject_AppendWarning(SBCommandReturnObject self, char const * message)"},
+	 { (char *)"SBCommandReturnObject_GetDescription", _wrap_SBCommandReturnObject_GetDescription, METH_VARARGS, (char *)"SBCommandReturnObject_GetDescription(SBCommandReturnObject self, SBStream description) -> bool"},
+	 { (char *)"SBCommandReturnObject_SetImmediateOutputFile", _wrap_SBCommandReturnObject_SetImmediateOutputFile, METH_VARARGS, (char *)"SBCommandReturnObject_SetImmediateOutputFile(SBCommandReturnObject self, FILE * fh)"},
+	 { (char *)"SBCommandReturnObject_SetImmediateErrorFile", _wrap_SBCommandReturnObject_SetImmediateErrorFile, METH_VARARGS, (char *)"SBCommandReturnObject_SetImmediateErrorFile(SBCommandReturnObject self, FILE * fh)"},
+	 { (char *)"SBCommandReturnObject_PutCString", _wrap_SBCommandReturnObject_PutCString, METH_VARARGS, (char *)"SBCommandReturnObject_PutCString(SBCommandReturnObject self, char const * string)"},
+	 { (char *)"SBCommandReturnObject_Print", _wrap_SBCommandReturnObject_Print, METH_VARARGS, (char *)"SBCommandReturnObject_Print(SBCommandReturnObject self, char const * str)"},
+	 { (char *)"SBCommandReturnObject___str__", _wrap_SBCommandReturnObject___str__, METH_VARARGS, (char *)"SBCommandReturnObject___str__(SBCommandReturnObject self) -> PyObject *"},
+	 { (char *)"SBCommandReturnObject_write", _wrap_SBCommandReturnObject_write, METH_VARARGS, (char *)"SBCommandReturnObject_write(SBCommandReturnObject self, char const * str)"},
+	 { (char *)"SBCommandReturnObject_flush", _wrap_SBCommandReturnObject_flush, METH_VARARGS, (char *)"SBCommandReturnObject_flush(SBCommandReturnObject self)"},
+	 { (char *)"SBCommandReturnObject_swigregister", SBCommandReturnObject_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBCommunication", _wrap_new_SBCommunication, METH_VARARGS, (char *)"\n"
+		"SBCommunication()\n"
+		"new_SBCommunication(char const * broadcaster_name) -> SBCommunication\n"
 		""},
+	 { (char *)"delete_SBCommunication", _wrap_delete_SBCommunication, METH_VARARGS, (char *)"delete_SBCommunication(SBCommunication self)"},
+	 { (char *)"SBCommunication_IsValid", _wrap_SBCommunication_IsValid, METH_VARARGS, (char *)"SBCommunication_IsValid(SBCommunication self) -> bool"},
+	 { (char *)"SBCommunication___nonzero__", _wrap_SBCommunication___nonzero__, METH_VARARGS, (char *)"SBCommunication___nonzero__(SBCommunication self) -> bool"},
+	 { (char *)"SBCommunication_GetBroadcaster", _wrap_SBCommunication_GetBroadcaster, METH_VARARGS, (char *)"SBCommunication_GetBroadcaster(SBCommunication self) -> SBBroadcaster"},
+	 { (char *)"SBCommunication_GetBroadcasterClass", _wrap_SBCommunication_GetBroadcasterClass, METH_VARARGS, (char *)"SBCommunication_GetBroadcasterClass() -> char const *"},
+	 { (char *)"SBCommunication_AdoptFileDesriptor", _wrap_SBCommunication_AdoptFileDesriptor, METH_VARARGS, (char *)"SBCommunication_AdoptFileDesriptor(SBCommunication self, int fd, bool owns_fd) -> lldb::ConnectionStatus"},
+	 { (char *)"SBCommunication_Connect", _wrap_SBCommunication_Connect, METH_VARARGS, (char *)"SBCommunication_Connect(SBCommunication self, char const * url) -> lldb::ConnectionStatus"},
+	 { (char *)"SBCommunication_Disconnect", _wrap_SBCommunication_Disconnect, METH_VARARGS, (char *)"SBCommunication_Disconnect(SBCommunication self) -> lldb::ConnectionStatus"},
+	 { (char *)"SBCommunication_IsConnected", _wrap_SBCommunication_IsConnected, METH_VARARGS, (char *)"SBCommunication_IsConnected(SBCommunication self) -> bool"},
+	 { (char *)"SBCommunication_GetCloseOnEOF", _wrap_SBCommunication_GetCloseOnEOF, METH_VARARGS, (char *)"SBCommunication_GetCloseOnEOF(SBCommunication self) -> bool"},
+	 { (char *)"SBCommunication_SetCloseOnEOF", _wrap_SBCommunication_SetCloseOnEOF, METH_VARARGS, (char *)"SBCommunication_SetCloseOnEOF(SBCommunication self, bool b)"},
+	 { (char *)"SBCommunication_Read", _wrap_SBCommunication_Read, METH_VARARGS, (char *)"SBCommunication_Read(SBCommunication self, void * dst, size_t dst_len, uint32_t timeout_usec, lldb::ConnectionStatus & status) -> size_t"},
+	 { (char *)"SBCommunication_Write", _wrap_SBCommunication_Write, METH_VARARGS, (char *)"SBCommunication_Write(SBCommunication self, void const * src, size_t src_len, lldb::ConnectionStatus & status) -> size_t"},
+	 { (char *)"SBCommunication_ReadThreadStart", _wrap_SBCommunication_ReadThreadStart, METH_VARARGS, (char *)"SBCommunication_ReadThreadStart(SBCommunication self) -> bool"},
+	 { (char *)"SBCommunication_ReadThreadStop", _wrap_SBCommunication_ReadThreadStop, METH_VARARGS, (char *)"SBCommunication_ReadThreadStop(SBCommunication self) -> bool"},
+	 { (char *)"SBCommunication_ReadThreadIsRunning", _wrap_SBCommunication_ReadThreadIsRunning, METH_VARARGS, (char *)"SBCommunication_ReadThreadIsRunning(SBCommunication self) -> bool"},
+	 { (char *)"SBCommunication_SetReadThreadBytesReceivedCallback", _wrap_SBCommunication_SetReadThreadBytesReceivedCallback, METH_VARARGS, (char *)"SBCommunication_SetReadThreadBytesReceivedCallback(SBCommunication self, lldb::SBCommunication::ReadThreadBytesReceived callback, void * callback_baton) -> bool"},
+	 { (char *)"SBCommunication_swigregister", SBCommunication_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBCompileUnit", _wrap_new_SBCompileUnit, METH_VARARGS, (char *)"\n"
+		"SBCompileUnit()\n"
+		"new_SBCompileUnit(SBCompileUnit rhs) -> SBCompileUnit\n"
+		""},
+	 { (char *)"delete_SBCompileUnit", _wrap_delete_SBCompileUnit, METH_VARARGS, (char *)"delete_SBCompileUnit(SBCompileUnit self)"},
+	 { (char *)"SBCompileUnit_IsValid", _wrap_SBCompileUnit_IsValid, METH_VARARGS, (char *)"SBCompileUnit_IsValid(SBCompileUnit self) -> bool"},
+	 { (char *)"SBCompileUnit___nonzero__", _wrap_SBCompileUnit___nonzero__, METH_VARARGS, (char *)"SBCompileUnit___nonzero__(SBCompileUnit self) -> bool"},
+	 { (char *)"SBCompileUnit_GetFileSpec", _wrap_SBCompileUnit_GetFileSpec, METH_VARARGS, (char *)"SBCompileUnit_GetFileSpec(SBCompileUnit self) -> SBFileSpec"},
+	 { (char *)"SBCompileUnit_GetNumLineEntries", _wrap_SBCompileUnit_GetNumLineEntries, METH_VARARGS, (char *)"SBCompileUnit_GetNumLineEntries(SBCompileUnit self) -> uint32_t"},
+	 { (char *)"SBCompileUnit_GetLineEntryAtIndex", _wrap_SBCompileUnit_GetLineEntryAtIndex, METH_VARARGS, (char *)"SBCompileUnit_GetLineEntryAtIndex(SBCompileUnit self, uint32_t idx) -> SBLineEntry"},
+	 { (char *)"SBCompileUnit_FindLineEntryIndex", _wrap_SBCompileUnit_FindLineEntryIndex, METH_VARARGS, (char *)"\n"
+		"FindLineEntryIndex(uint32_t start_idx, uint32_t line, SBFileSpec inline_file_spec) -> uint32_t\n"
+		"SBCompileUnit_FindLineEntryIndex(SBCompileUnit self, uint32_t start_idx, uint32_t line, SBFileSpec inline_file_spec, bool exact) -> uint32_t\n"
+		""},
+	 { (char *)"SBCompileUnit_GetSupportFileAtIndex", _wrap_SBCompileUnit_GetSupportFileAtIndex, METH_VARARGS, (char *)"SBCompileUnit_GetSupportFileAtIndex(SBCompileUnit self, uint32_t idx) -> SBFileSpec"},
+	 { (char *)"SBCompileUnit_GetNumSupportFiles", _wrap_SBCompileUnit_GetNumSupportFiles, METH_VARARGS, (char *)"SBCompileUnit_GetNumSupportFiles(SBCompileUnit self) -> uint32_t"},
+	 { (char *)"SBCompileUnit_FindSupportFileIndex", _wrap_SBCompileUnit_FindSupportFileIndex, METH_VARARGS, (char *)"SBCompileUnit_FindSupportFileIndex(SBCompileUnit self, uint32_t start_idx, SBFileSpec sb_file, bool full) -> uint32_t"},
+	 { (char *)"SBCompileUnit_GetTypes", _wrap_SBCompileUnit_GetTypes, METH_VARARGS, (char *)"\n"
+		"GetTypes(uint32_t type_mask) -> SBTypeList\n"
+		"SBCompileUnit_GetTypes(SBCompileUnit self) -> SBTypeList\n"
+		"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"Get all types matching type_mask from debug info in this\n"
+		"compile unit.\n"
+		"\n"
+		"@param[in] type_mask\n"
+		"   A bitfield that consists of one or more bits logically OR'ed\n"
+		"   together from the lldb::TypeClass enumeration. This allows\n"
+		"   you to request only structure types, or only class, struct\n"
+		"   and union types. Passing in lldb::eTypeClassAny will return\n"
+		"   all types found in the debug information for this compile\n"
+		"   unit.\n"
+		"\n"
+		"@return\n"
+		"   A list of types in this compile unit that match type_mask\n"
+		""},
+<<<<<<< HEAD
 	 { "SBCompileUnit_GetLanguage", _wrap_SBCompileUnit_GetLanguage, METH_VARARGS, (char *)"SBCompileUnit_GetLanguage(SBCompileUnit self) -> lldb::LanguageType"},
 	 { "SBCompileUnit_GetDescription", _wrap_SBCompileUnit_GetDescription, METH_VARARGS, (char *)"SBCompileUnit_GetDescription(SBCompileUnit self, SBStream description) -> bool"},
 	 { "SBCompileUnit___eq__", _wrap_SBCompileUnit___eq__, METH_VARARGS, (char *)"SBCompileUnit___eq__(SBCompileUnit self, SBCompileUnit rhs) -> bool"},
@@ -79346,6 +80672,62 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBDebugger_InitializeWithErrorHandling", _wrap_SBDebugger_InitializeWithErrorHandling, METH_VARARGS, (char *)"SBDebugger_InitializeWithErrorHandling() -> SBError"},
 	 { "SBDebugger_Terminate", _wrap_SBDebugger_Terminate, METH_VARARGS, (char *)"SBDebugger_Terminate()"},
 	 { "SBDebugger_Create", _wrap_SBDebugger_Create, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBCompileUnit_GetLanguage", _wrap_SBCompileUnit_GetLanguage, METH_VARARGS, (char *)"SBCompileUnit_GetLanguage(SBCompileUnit self) -> lldb::LanguageType"},
+	 { (char *)"SBCompileUnit_GetDescription", _wrap_SBCompileUnit_GetDescription, METH_VARARGS, (char *)"SBCompileUnit_GetDescription(SBCompileUnit self, SBStream description) -> bool"},
+	 { (char *)"SBCompileUnit___eq__", _wrap_SBCompileUnit___eq__, METH_VARARGS, (char *)"SBCompileUnit___eq__(SBCompileUnit self, SBCompileUnit rhs) -> bool"},
+	 { (char *)"SBCompileUnit___ne__", _wrap_SBCompileUnit___ne__, METH_VARARGS, (char *)"SBCompileUnit___ne__(SBCompileUnit self, SBCompileUnit rhs) -> bool"},
+	 { (char *)"SBCompileUnit___str__", _wrap_SBCompileUnit___str__, METH_VARARGS, (char *)"SBCompileUnit___str__(SBCompileUnit self) -> PyObject *"},
+	 { (char *)"SBCompileUnit_swigregister", SBCompileUnit_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBData", _wrap_new_SBData, METH_VARARGS, (char *)"\n"
+		"SBData()\n"
+		"new_SBData(SBData rhs) -> SBData\n"
+		""},
+	 { (char *)"delete_SBData", _wrap_delete_SBData, METH_VARARGS, (char *)"delete_SBData(SBData self)"},
+	 { (char *)"SBData_GetAddressByteSize", _wrap_SBData_GetAddressByteSize, METH_VARARGS, (char *)"SBData_GetAddressByteSize(SBData self) -> uint8_t"},
+	 { (char *)"SBData_SetAddressByteSize", _wrap_SBData_SetAddressByteSize, METH_VARARGS, (char *)"SBData_SetAddressByteSize(SBData self, uint8_t addr_byte_size)"},
+	 { (char *)"SBData_Clear", _wrap_SBData_Clear, METH_VARARGS, (char *)"SBData_Clear(SBData self)"},
+	 { (char *)"SBData_IsValid", _wrap_SBData_IsValid, METH_VARARGS, (char *)"SBData_IsValid(SBData self) -> bool"},
+	 { (char *)"SBData___nonzero__", _wrap_SBData___nonzero__, METH_VARARGS, (char *)"SBData___nonzero__(SBData self) -> bool"},
+	 { (char *)"SBData_GetByteSize", _wrap_SBData_GetByteSize, METH_VARARGS, (char *)"SBData_GetByteSize(SBData self) -> size_t"},
+	 { (char *)"SBData_GetByteOrder", _wrap_SBData_GetByteOrder, METH_VARARGS, (char *)"SBData_GetByteOrder(SBData self) -> lldb::ByteOrder"},
+	 { (char *)"SBData_SetByteOrder", _wrap_SBData_SetByteOrder, METH_VARARGS, (char *)"SBData_SetByteOrder(SBData self, lldb::ByteOrder endian)"},
+	 { (char *)"SBData_GetFloat", _wrap_SBData_GetFloat, METH_VARARGS, (char *)"SBData_GetFloat(SBData self, SBError error, lldb::offset_t offset) -> float"},
+	 { (char *)"SBData_GetDouble", _wrap_SBData_GetDouble, METH_VARARGS, (char *)"SBData_GetDouble(SBData self, SBError error, lldb::offset_t offset) -> double"},
+	 { (char *)"SBData_GetLongDouble", _wrap_SBData_GetLongDouble, METH_VARARGS, (char *)"SBData_GetLongDouble(SBData self, SBError error, lldb::offset_t offset) -> long double"},
+	 { (char *)"SBData_GetAddress", _wrap_SBData_GetAddress, METH_VARARGS, (char *)"SBData_GetAddress(SBData self, SBError error, lldb::offset_t offset) -> lldb::addr_t"},
+	 { (char *)"SBData_GetUnsignedInt8", _wrap_SBData_GetUnsignedInt8, METH_VARARGS, (char *)"SBData_GetUnsignedInt8(SBData self, SBError error, lldb::offset_t offset) -> uint8_t"},
+	 { (char *)"SBData_GetUnsignedInt16", _wrap_SBData_GetUnsignedInt16, METH_VARARGS, (char *)"SBData_GetUnsignedInt16(SBData self, SBError error, lldb::offset_t offset) -> uint16_t"},
+	 { (char *)"SBData_GetUnsignedInt32", _wrap_SBData_GetUnsignedInt32, METH_VARARGS, (char *)"SBData_GetUnsignedInt32(SBData self, SBError error, lldb::offset_t offset) -> uint32_t"},
+	 { (char *)"SBData_GetUnsignedInt64", _wrap_SBData_GetUnsignedInt64, METH_VARARGS, (char *)"SBData_GetUnsignedInt64(SBData self, SBError error, lldb::offset_t offset) -> uint64_t"},
+	 { (char *)"SBData_GetSignedInt8", _wrap_SBData_GetSignedInt8, METH_VARARGS, (char *)"SBData_GetSignedInt8(SBData self, SBError error, lldb::offset_t offset) -> int8_t"},
+	 { (char *)"SBData_GetSignedInt16", _wrap_SBData_GetSignedInt16, METH_VARARGS, (char *)"SBData_GetSignedInt16(SBData self, SBError error, lldb::offset_t offset) -> int16_t"},
+	 { (char *)"SBData_GetSignedInt32", _wrap_SBData_GetSignedInt32, METH_VARARGS, (char *)"SBData_GetSignedInt32(SBData self, SBError error, lldb::offset_t offset) -> int32_t"},
+	 { (char *)"SBData_GetSignedInt64", _wrap_SBData_GetSignedInt64, METH_VARARGS, (char *)"SBData_GetSignedInt64(SBData self, SBError error, lldb::offset_t offset) -> int64_t"},
+	 { (char *)"SBData_GetString", _wrap_SBData_GetString, METH_VARARGS, (char *)"SBData_GetString(SBData self, SBError error, lldb::offset_t offset) -> char const *"},
+	 { (char *)"SBData_GetDescription", _wrap_SBData_GetDescription, METH_VARARGS, (char *)"SBData_GetDescription(SBData self, SBStream description, lldb::addr_t base_addr) -> bool"},
+	 { (char *)"SBData_ReadRawData", _wrap_SBData_ReadRawData, METH_VARARGS, (char *)"SBData_ReadRawData(SBData self, SBError error, lldb::offset_t offset, void * buf) -> size_t"},
+	 { (char *)"SBData_SetData", _wrap_SBData_SetData, METH_VARARGS, (char *)"SBData_SetData(SBData self, SBError error, void const * buf, lldb::ByteOrder endian, uint8_t addr_size)"},
+	 { (char *)"SBData_Append", _wrap_SBData_Append, METH_VARARGS, (char *)"SBData_Append(SBData self, SBData rhs) -> bool"},
+	 { (char *)"SBData_CreateDataFromCString", _wrap_SBData_CreateDataFromCString, METH_VARARGS, (char *)"SBData_CreateDataFromCString(lldb::ByteOrder endian, uint32_t addr_byte_size, char const * data) -> SBData"},
+	 { (char *)"SBData_CreateDataFromUInt64Array", _wrap_SBData_CreateDataFromUInt64Array, METH_VARARGS, (char *)"SBData_CreateDataFromUInt64Array(lldb::ByteOrder endian, uint32_t addr_byte_size, uint64_t * array) -> SBData"},
+	 { (char *)"SBData_CreateDataFromUInt32Array", _wrap_SBData_CreateDataFromUInt32Array, METH_VARARGS, (char *)"SBData_CreateDataFromUInt32Array(lldb::ByteOrder endian, uint32_t addr_byte_size, uint32_t * array) -> SBData"},
+	 { (char *)"SBData_CreateDataFromSInt64Array", _wrap_SBData_CreateDataFromSInt64Array, METH_VARARGS, (char *)"SBData_CreateDataFromSInt64Array(lldb::ByteOrder endian, uint32_t addr_byte_size, int64_t * array) -> SBData"},
+	 { (char *)"SBData_CreateDataFromSInt32Array", _wrap_SBData_CreateDataFromSInt32Array, METH_VARARGS, (char *)"SBData_CreateDataFromSInt32Array(lldb::ByteOrder endian, uint32_t addr_byte_size, int32_t * array) -> SBData"},
+	 { (char *)"SBData_CreateDataFromDoubleArray", _wrap_SBData_CreateDataFromDoubleArray, METH_VARARGS, (char *)"SBData_CreateDataFromDoubleArray(lldb::ByteOrder endian, uint32_t addr_byte_size, double * array) -> SBData"},
+	 { (char *)"SBData_SetDataFromCString", _wrap_SBData_SetDataFromCString, METH_VARARGS, (char *)"SBData_SetDataFromCString(SBData self, char const * data) -> bool"},
+	 { (char *)"SBData_SetDataFromUInt64Array", _wrap_SBData_SetDataFromUInt64Array, METH_VARARGS, (char *)"SBData_SetDataFromUInt64Array(SBData self, uint64_t * array) -> bool"},
+	 { (char *)"SBData_SetDataFromUInt32Array", _wrap_SBData_SetDataFromUInt32Array, METH_VARARGS, (char *)"SBData_SetDataFromUInt32Array(SBData self, uint32_t * array) -> bool"},
+	 { (char *)"SBData_SetDataFromSInt64Array", _wrap_SBData_SetDataFromSInt64Array, METH_VARARGS, (char *)"SBData_SetDataFromSInt64Array(SBData self, int64_t * array) -> bool"},
+	 { (char *)"SBData_SetDataFromSInt32Array", _wrap_SBData_SetDataFromSInt32Array, METH_VARARGS, (char *)"SBData_SetDataFromSInt32Array(SBData self, int32_t * array) -> bool"},
+	 { (char *)"SBData_SetDataFromDoubleArray", _wrap_SBData_SetDataFromDoubleArray, METH_VARARGS, (char *)"SBData_SetDataFromDoubleArray(SBData self, double * array) -> bool"},
+	 { (char *)"SBData___str__", _wrap_SBData___str__, METH_VARARGS, (char *)"SBData___str__(SBData self) -> PyObject *"},
+	 { (char *)"SBData_swigregister", SBData_swigregister, METH_VARARGS, NULL},
+	 { (char *)"SBDebugger_Initialize", _wrap_SBDebugger_Initialize, METH_VARARGS, (char *)"SBDebugger_Initialize()"},
+	 { (char *)"SBDebugger_InitializeWithErrorHandling", _wrap_SBDebugger_InitializeWithErrorHandling, METH_VARARGS, (char *)"SBDebugger_InitializeWithErrorHandling() -> SBError"},
+	 { (char *)"SBDebugger_Terminate", _wrap_SBDebugger_Terminate, METH_VARARGS, (char *)"SBDebugger_Terminate()"},
+	 { (char *)"SBDebugger_Create", _wrap_SBDebugger_Create, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"Create() -> SBDebugger\n"
 		"Create(bool source_init_files) -> SBDebugger\n"
 		"SBDebugger_Create(bool source_init_files, lldb::LogOutputCallback log_callback) -> SBDebugger\n"
@@ -79356,6 +80738,7 @@ static PyMethodDef SwigMethods[] = {
 		"SBDebugger()\n"
 		"new_SBDebugger(SBDebugger rhs) -> SBDebugger\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBDebugger", _wrap_delete_SBDebugger, METH_VARARGS, (char *)"delete_SBDebugger(SBDebugger self)"},
 	 { "SBDebugger_IsValid", _wrap_SBDebugger_IsValid, METH_VARARGS, (char *)"SBDebugger_IsValid(SBDebugger self) -> bool"},
 	 { "SBDebugger___nonzero__", _wrap_SBDebugger___nonzero__, METH_VARARGS, (char *)"SBDebugger___nonzero__(SBDebugger self) -> bool"},
@@ -79376,6 +80759,28 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBDebugger_CreateTargetWithFileAndTargetTriple", _wrap_SBDebugger_CreateTargetWithFileAndTargetTriple, METH_VARARGS, (char *)"SBDebugger_CreateTargetWithFileAndTargetTriple(SBDebugger self, char const * filename, char const * target_triple) -> SBTarget"},
 	 { "SBDebugger_CreateTargetWithFileAndArch", _wrap_SBDebugger_CreateTargetWithFileAndArch, METH_VARARGS, (char *)"SBDebugger_CreateTargetWithFileAndArch(SBDebugger self, char const * filename, char const * archname) -> SBTarget"},
 	 { "SBDebugger_CreateTarget", _wrap_SBDebugger_CreateTarget, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBDebugger", _wrap_delete_SBDebugger, METH_VARARGS, (char *)"delete_SBDebugger(SBDebugger self)"},
+	 { (char *)"SBDebugger_IsValid", _wrap_SBDebugger_IsValid, METH_VARARGS, (char *)"SBDebugger_IsValid(SBDebugger self) -> bool"},
+	 { (char *)"SBDebugger___nonzero__", _wrap_SBDebugger___nonzero__, METH_VARARGS, (char *)"SBDebugger___nonzero__(SBDebugger self) -> bool"},
+	 { (char *)"SBDebugger_Clear", _wrap_SBDebugger_Clear, METH_VARARGS, (char *)"SBDebugger_Clear(SBDebugger self)"},
+	 { (char *)"SBDebugger_SetAsync", _wrap_SBDebugger_SetAsync, METH_VARARGS, (char *)"SBDebugger_SetAsync(SBDebugger self, bool b)"},
+	 { (char *)"SBDebugger_GetAsync", _wrap_SBDebugger_GetAsync, METH_VARARGS, (char *)"SBDebugger_GetAsync(SBDebugger self) -> bool"},
+	 { (char *)"SBDebugger_SkipLLDBInitFiles", _wrap_SBDebugger_SkipLLDBInitFiles, METH_VARARGS, (char *)"SBDebugger_SkipLLDBInitFiles(SBDebugger self, bool b)"},
+	 { (char *)"SBDebugger_SetInputFileHandle", _wrap_SBDebugger_SetInputFileHandle, METH_VARARGS, (char *)"SBDebugger_SetInputFileHandle(SBDebugger self, FILE * f, bool transfer_ownership)"},
+	 { (char *)"SBDebugger_SetOutputFileHandle", _wrap_SBDebugger_SetOutputFileHandle, METH_VARARGS, (char *)"SBDebugger_SetOutputFileHandle(SBDebugger self, FILE * f, bool transfer_ownership)"},
+	 { (char *)"SBDebugger_SetErrorFileHandle", _wrap_SBDebugger_SetErrorFileHandle, METH_VARARGS, (char *)"SBDebugger_SetErrorFileHandle(SBDebugger self, FILE * f, bool transfer_ownership)"},
+	 { (char *)"SBDebugger_GetInputFileHandle", _wrap_SBDebugger_GetInputFileHandle, METH_VARARGS, (char *)"SBDebugger_GetInputFileHandle(SBDebugger self) -> FILE *"},
+	 { (char *)"SBDebugger_GetOutputFileHandle", _wrap_SBDebugger_GetOutputFileHandle, METH_VARARGS, (char *)"SBDebugger_GetOutputFileHandle(SBDebugger self) -> FILE *"},
+	 { (char *)"SBDebugger_GetErrorFileHandle", _wrap_SBDebugger_GetErrorFileHandle, METH_VARARGS, (char *)"SBDebugger_GetErrorFileHandle(SBDebugger self) -> FILE *"},
+	 { (char *)"SBDebugger_GetCommandInterpreter", _wrap_SBDebugger_GetCommandInterpreter, METH_VARARGS, (char *)"SBDebugger_GetCommandInterpreter(SBDebugger self) -> SBCommandInterpreter"},
+	 { (char *)"SBDebugger_HandleCommand", _wrap_SBDebugger_HandleCommand, METH_VARARGS, (char *)"SBDebugger_HandleCommand(SBDebugger self, char const * command)"},
+	 { (char *)"SBDebugger_GetListener", _wrap_SBDebugger_GetListener, METH_VARARGS, (char *)"SBDebugger_GetListener(SBDebugger self) -> SBListener"},
+	 { (char *)"SBDebugger_HandleProcessEvent", _wrap_SBDebugger_HandleProcessEvent, METH_VARARGS, (char *)"SBDebugger_HandleProcessEvent(SBDebugger self, SBProcess process, SBEvent event, FILE * out, FILE * err)"},
+	 { (char *)"SBDebugger_CreateTargetWithFileAndTargetTriple", _wrap_SBDebugger_CreateTargetWithFileAndTargetTriple, METH_VARARGS, (char *)"SBDebugger_CreateTargetWithFileAndTargetTriple(SBDebugger self, char const * filename, char const * target_triple) -> SBTarget"},
+	 { (char *)"SBDebugger_CreateTargetWithFileAndArch", _wrap_SBDebugger_CreateTargetWithFileAndArch, METH_VARARGS, (char *)"SBDebugger_CreateTargetWithFileAndArch(SBDebugger self, char const * filename, char const * archname) -> SBTarget"},
+	 { (char *)"SBDebugger_CreateTarget", _wrap_SBDebugger_CreateTarget, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"CreateTarget(char const * filename, char const * target_triple, char const * platform_name, bool add_dependent_modules, SBError sb_error) -> SBTarget\n"
 		"SBDebugger_CreateTarget(SBDebugger self, char const * filename) -> SBTarget\n"
 		""},
@@ -79389,6 +80794,7 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		"Return true if target is deleted from the target list of the debugger.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBDebugger_GetTargetAtIndex", _wrap_SBDebugger_GetTargetAtIndex, METH_VARARGS, (char *)"SBDebugger_GetTargetAtIndex(SBDebugger self, uint32_t idx) -> SBTarget"},
 	 { "SBDebugger_GetIndexOfTarget", _wrap_SBDebugger_GetIndexOfTarget, METH_VARARGS, (char *)"SBDebugger_GetIndexOfTarget(SBDebugger self, SBTarget target) -> uint32_t"},
 	 { "SBDebugger_FindTargetWithProcessID", _wrap_SBDebugger_FindTargetWithProcessID, METH_VARARGS, (char *)"SBDebugger_FindTargetWithProcessID(SBDebugger self, lldb::pid_t pid) -> SBTarget"},
@@ -79399,6 +80805,18 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBDebugger_GetSelectedPlatform", _wrap_SBDebugger_GetSelectedPlatform, METH_VARARGS, (char *)"SBDebugger_GetSelectedPlatform(SBDebugger self) -> SBPlatform"},
 	 { "SBDebugger_SetSelectedPlatform", _wrap_SBDebugger_SetSelectedPlatform, METH_VARARGS, (char *)"SBDebugger_SetSelectedPlatform(SBDebugger self, SBPlatform platform)"},
 	 { "SBDebugger_GetNumPlatforms", _wrap_SBDebugger_GetNumPlatforms, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBDebugger_GetTargetAtIndex", _wrap_SBDebugger_GetTargetAtIndex, METH_VARARGS, (char *)"SBDebugger_GetTargetAtIndex(SBDebugger self, uint32_t idx) -> SBTarget"},
+	 { (char *)"SBDebugger_GetIndexOfTarget", _wrap_SBDebugger_GetIndexOfTarget, METH_VARARGS, (char *)"SBDebugger_GetIndexOfTarget(SBDebugger self, SBTarget target) -> uint32_t"},
+	 { (char *)"SBDebugger_FindTargetWithProcessID", _wrap_SBDebugger_FindTargetWithProcessID, METH_VARARGS, (char *)"SBDebugger_FindTargetWithProcessID(SBDebugger self, lldb::pid_t pid) -> SBTarget"},
+	 { (char *)"SBDebugger_FindTargetWithFileAndArch", _wrap_SBDebugger_FindTargetWithFileAndArch, METH_VARARGS, (char *)"SBDebugger_FindTargetWithFileAndArch(SBDebugger self, char const * filename, char const * arch) -> SBTarget"},
+	 { (char *)"SBDebugger_GetNumTargets", _wrap_SBDebugger_GetNumTargets, METH_VARARGS, (char *)"SBDebugger_GetNumTargets(SBDebugger self) -> uint32_t"},
+	 { (char *)"SBDebugger_GetSelectedTarget", _wrap_SBDebugger_GetSelectedTarget, METH_VARARGS, (char *)"SBDebugger_GetSelectedTarget(SBDebugger self) -> SBTarget"},
+	 { (char *)"SBDebugger_SetSelectedTarget", _wrap_SBDebugger_SetSelectedTarget, METH_VARARGS, (char *)"SBDebugger_SetSelectedTarget(SBDebugger self, SBTarget target)"},
+	 { (char *)"SBDebugger_GetSelectedPlatform", _wrap_SBDebugger_GetSelectedPlatform, METH_VARARGS, (char *)"SBDebugger_GetSelectedPlatform(SBDebugger self) -> SBPlatform"},
+	 { (char *)"SBDebugger_SetSelectedPlatform", _wrap_SBDebugger_SetSelectedPlatform, METH_VARARGS, (char *)"SBDebugger_SetSelectedPlatform(SBDebugger self, SBPlatform platform)"},
+	 { (char *)"SBDebugger_GetNumPlatforms", _wrap_SBDebugger_GetNumPlatforms, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBDebugger_GetNumPlatforms(SBDebugger self) -> uint32_t\n"
 		"\n"
 		"Get the number of currently active platforms.\n"
@@ -79422,8 +80840,8 @@ static PyMethodDef SwigMethods[] = {
 		"@param idx Zero-based index of the platform for which info should be\n"
 		"           retrieved, must be less than the value returned by\n"
 		"           GetNumAvailablePlatforms().\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBDebugger_GetSourceManager", _wrap_SBDebugger_GetSourceManager, METH_VARARGS, (char *)"SBDebugger_GetSourceManager(SBDebugger self) -> SBSourceManager"},
 	 { "SBDebugger_SetCurrentPlatform", _wrap_SBDebugger_SetCurrentPlatform, METH_VARARGS, (char *)"SBDebugger_SetCurrentPlatform(SBDebugger self, char const * platform_name) -> SBError"},
 	 { "SBDebugger_SetCurrentPlatformSDKRoot", _wrap_SBDebugger_SetCurrentPlatformSDKRoot, METH_VARARGS, (char *)"SBDebugger_SetCurrentPlatformSDKRoot(SBDebugger self, char const * sysroot) -> bool"},
@@ -79510,21 +80928,144 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBError_SetErrorToGenericError", _wrap_SBError_SetErrorToGenericError, METH_VARARGS, (char *)"SBError_SetErrorToGenericError(SBError self)"},
 	 { "SBError_SetErrorString", _wrap_SBError_SetErrorString, METH_VARARGS, (char *)"SBError_SetErrorString(SBError self, char const * err_str)"},
 	 { "SBError_SetErrorStringWithFormat", _wrap_SBError_SetErrorStringWithFormat, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBDebugger_GetSourceManager", _wrap_SBDebugger_GetSourceManager, METH_VARARGS, (char *)"SBDebugger_GetSourceManager(SBDebugger self) -> SBSourceManager"},
+	 { (char *)"SBDebugger_SetCurrentPlatform", _wrap_SBDebugger_SetCurrentPlatform, METH_VARARGS, (char *)"SBDebugger_SetCurrentPlatform(SBDebugger self, char const * platform_name) -> SBError"},
+	 { (char *)"SBDebugger_SetCurrentPlatformSDKRoot", _wrap_SBDebugger_SetCurrentPlatformSDKRoot, METH_VARARGS, (char *)"SBDebugger_SetCurrentPlatformSDKRoot(SBDebugger self, char const * sysroot) -> bool"},
+	 { (char *)"SBDebugger_SetUseExternalEditor", _wrap_SBDebugger_SetUseExternalEditor, METH_VARARGS, (char *)"SBDebugger_SetUseExternalEditor(SBDebugger self, bool input) -> bool"},
+	 { (char *)"SBDebugger_GetUseExternalEditor", _wrap_SBDebugger_GetUseExternalEditor, METH_VARARGS, (char *)"SBDebugger_GetUseExternalEditor(SBDebugger self) -> bool"},
+	 { (char *)"SBDebugger_SetUseColor", _wrap_SBDebugger_SetUseColor, METH_VARARGS, (char *)"SBDebugger_SetUseColor(SBDebugger self, bool use_color) -> bool"},
+	 { (char *)"SBDebugger_GetUseColor", _wrap_SBDebugger_GetUseColor, METH_VARARGS, (char *)"SBDebugger_GetUseColor(SBDebugger self) -> bool"},
+	 { (char *)"SBDebugger_GetDefaultArchitecture", _wrap_SBDebugger_GetDefaultArchitecture, METH_VARARGS, (char *)"SBDebugger_GetDefaultArchitecture(char * arch_name, size_t arch_name_len) -> bool"},
+	 { (char *)"SBDebugger_SetDefaultArchitecture", _wrap_SBDebugger_SetDefaultArchitecture, METH_VARARGS, (char *)"SBDebugger_SetDefaultArchitecture(char const * arch_name) -> bool"},
+	 { (char *)"SBDebugger_GetScriptingLanguage", _wrap_SBDebugger_GetScriptingLanguage, METH_VARARGS, (char *)"SBDebugger_GetScriptingLanguage(SBDebugger self, char const * script_language_name) -> lldb::ScriptLanguage"},
+	 { (char *)"SBDebugger_GetVersionString", _wrap_SBDebugger_GetVersionString, METH_VARARGS, (char *)"SBDebugger_GetVersionString() -> char const *"},
+	 { (char *)"SBDebugger_StateAsCString", _wrap_SBDebugger_StateAsCString, METH_VARARGS, (char *)"SBDebugger_StateAsCString(lldb::StateType state) -> char const *"},
+	 { (char *)"SBDebugger_GetBuildConfiguration", _wrap_SBDebugger_GetBuildConfiguration, METH_VARARGS, (char *)"SBDebugger_GetBuildConfiguration() -> SBStructuredData"},
+	 { (char *)"SBDebugger_StateIsRunningState", _wrap_SBDebugger_StateIsRunningState, METH_VARARGS, (char *)"SBDebugger_StateIsRunningState(lldb::StateType state) -> bool"},
+	 { (char *)"SBDebugger_StateIsStoppedState", _wrap_SBDebugger_StateIsStoppedState, METH_VARARGS, (char *)"SBDebugger_StateIsStoppedState(lldb::StateType state) -> bool"},
+	 { (char *)"SBDebugger_EnableLog", _wrap_SBDebugger_EnableLog, METH_VARARGS, (char *)"SBDebugger_EnableLog(SBDebugger self, char const * channel, char const ** types) -> bool"},
+	 { (char *)"SBDebugger_SetLoggingCallback", _wrap_SBDebugger_SetLoggingCallback, METH_VARARGS, (char *)"SBDebugger_SetLoggingCallback(SBDebugger self, lldb::LogOutputCallback log_callback)"},
+	 { (char *)"SBDebugger_DispatchInput", _wrap_SBDebugger_DispatchInput, METH_VARARGS, (char *)"SBDebugger_DispatchInput(SBDebugger self, void const * data)"},
+	 { (char *)"SBDebugger_DispatchInputInterrupt", _wrap_SBDebugger_DispatchInputInterrupt, METH_VARARGS, (char *)"SBDebugger_DispatchInputInterrupt(SBDebugger self)"},
+	 { (char *)"SBDebugger_DispatchInputEndOfFile", _wrap_SBDebugger_DispatchInputEndOfFile, METH_VARARGS, (char *)"SBDebugger_DispatchInputEndOfFile(SBDebugger self)"},
+	 { (char *)"SBDebugger_GetInstanceName", _wrap_SBDebugger_GetInstanceName, METH_VARARGS, (char *)"SBDebugger_GetInstanceName(SBDebugger self) -> char const *"},
+	 { (char *)"SBDebugger_FindDebuggerWithID", _wrap_SBDebugger_FindDebuggerWithID, METH_VARARGS, (char *)"SBDebugger_FindDebuggerWithID(int id) -> SBDebugger"},
+	 { (char *)"SBDebugger_SetInternalVariable", _wrap_SBDebugger_SetInternalVariable, METH_VARARGS, (char *)"SBDebugger_SetInternalVariable(char const * var_name, char const * value, char const * debugger_instance_name) -> SBError"},
+	 { (char *)"SBDebugger_GetInternalVariableValue", _wrap_SBDebugger_GetInternalVariableValue, METH_VARARGS, (char *)"SBDebugger_GetInternalVariableValue(char const * var_name, char const * debugger_instance_name) -> SBStringList"},
+	 { (char *)"SBDebugger_GetDescription", _wrap_SBDebugger_GetDescription, METH_VARARGS, (char *)"SBDebugger_GetDescription(SBDebugger self, SBStream description) -> bool"},
+	 { (char *)"SBDebugger_GetTerminalWidth", _wrap_SBDebugger_GetTerminalWidth, METH_VARARGS, (char *)"SBDebugger_GetTerminalWidth(SBDebugger self) -> uint32_t"},
+	 { (char *)"SBDebugger_SetTerminalWidth", _wrap_SBDebugger_SetTerminalWidth, METH_VARARGS, (char *)"SBDebugger_SetTerminalWidth(SBDebugger self, uint32_t term_width)"},
+	 { (char *)"SBDebugger_GetID", _wrap_SBDebugger_GetID, METH_VARARGS, (char *)"SBDebugger_GetID(SBDebugger self) -> lldb::user_id_t"},
+	 { (char *)"SBDebugger_GetPrompt", _wrap_SBDebugger_GetPrompt, METH_VARARGS, (char *)"SBDebugger_GetPrompt(SBDebugger self) -> char const *"},
+	 { (char *)"SBDebugger_SetPrompt", _wrap_SBDebugger_SetPrompt, METH_VARARGS, (char *)"SBDebugger_SetPrompt(SBDebugger self, char const * prompt)"},
+	 { (char *)"SBDebugger_GetReproducerPath", _wrap_SBDebugger_GetReproducerPath, METH_VARARGS, (char *)"SBDebugger_GetReproducerPath(SBDebugger self) -> char const *"},
+	 { (char *)"SBDebugger_GetScriptLanguage", _wrap_SBDebugger_GetScriptLanguage, METH_VARARGS, (char *)"SBDebugger_GetScriptLanguage(SBDebugger self) -> lldb::ScriptLanguage"},
+	 { (char *)"SBDebugger_SetScriptLanguage", _wrap_SBDebugger_SetScriptLanguage, METH_VARARGS, (char *)"SBDebugger_SetScriptLanguage(SBDebugger self, lldb::ScriptLanguage script_lang)"},
+	 { (char *)"SBDebugger_GetCloseInputOnEOF", _wrap_SBDebugger_GetCloseInputOnEOF, METH_VARARGS, (char *)"SBDebugger_GetCloseInputOnEOF(SBDebugger self) -> bool"},
+	 { (char *)"SBDebugger_SetCloseInputOnEOF", _wrap_SBDebugger_SetCloseInputOnEOF, METH_VARARGS, (char *)"SBDebugger_SetCloseInputOnEOF(SBDebugger self, bool b)"},
+	 { (char *)"SBDebugger_GetCategory", _wrap_SBDebugger_GetCategory, METH_VARARGS, (char *)"\n"
+		"GetCategory(char const * category_name) -> SBTypeCategory\n"
+		"SBDebugger_GetCategory(SBDebugger self, lldb::LanguageType lang_type) -> SBTypeCategory\n"
+		""},
+	 { (char *)"SBDebugger_CreateCategory", _wrap_SBDebugger_CreateCategory, METH_VARARGS, (char *)"SBDebugger_CreateCategory(SBDebugger self, char const * category_name) -> SBTypeCategory"},
+	 { (char *)"SBDebugger_DeleteCategory", _wrap_SBDebugger_DeleteCategory, METH_VARARGS, (char *)"SBDebugger_DeleteCategory(SBDebugger self, char const * category_name) -> bool"},
+	 { (char *)"SBDebugger_GetNumCategories", _wrap_SBDebugger_GetNumCategories, METH_VARARGS, (char *)"SBDebugger_GetNumCategories(SBDebugger self) -> uint32_t"},
+	 { (char *)"SBDebugger_GetCategoryAtIndex", _wrap_SBDebugger_GetCategoryAtIndex, METH_VARARGS, (char *)"SBDebugger_GetCategoryAtIndex(SBDebugger self, uint32_t arg3) -> SBTypeCategory"},
+	 { (char *)"SBDebugger_GetDefaultCategory", _wrap_SBDebugger_GetDefaultCategory, METH_VARARGS, (char *)"SBDebugger_GetDefaultCategory(SBDebugger self) -> SBTypeCategory"},
+	 { (char *)"SBDebugger_GetFormatForType", _wrap_SBDebugger_GetFormatForType, METH_VARARGS, (char *)"SBDebugger_GetFormatForType(SBDebugger self, SBTypeNameSpecifier arg3) -> SBTypeFormat"},
+	 { (char *)"SBDebugger_GetSummaryForType", _wrap_SBDebugger_GetSummaryForType, METH_VARARGS, (char *)"SBDebugger_GetSummaryForType(SBDebugger self, SBTypeNameSpecifier arg3) -> SBTypeSummary"},
+	 { (char *)"SBDebugger_GetFilterForType", _wrap_SBDebugger_GetFilterForType, METH_VARARGS, (char *)"SBDebugger_GetFilterForType(SBDebugger self, SBTypeNameSpecifier arg3) -> SBTypeFilter"},
+	 { (char *)"SBDebugger_GetSyntheticForType", _wrap_SBDebugger_GetSyntheticForType, METH_VARARGS, (char *)"SBDebugger_GetSyntheticForType(SBDebugger self, SBTypeNameSpecifier arg3) -> SBTypeSynthetic"},
+	 { (char *)"SBDebugger_RunCommandInterpreter", _wrap_SBDebugger_RunCommandInterpreter, METH_VARARGS, (char *)"\n"
+		"SBDebugger_RunCommandInterpreter(SBDebugger self, bool auto_handle_events, bool spawn_thread, SBCommandInterpreterRunOptions options, int & num_errors, bool & quit_requested, bool & stopped_for_crash)\n"
+		"\n"
+		"Launch a command interpreter session. Commands are read from standard input or\n"
+		"from the input handle specified for the debugger object. Output/errors are\n"
+		"similarly redirected to standard output/error or the configured handles.\n"
+		"\n"
+		"@param[in] auto_handle_events If true, automatically handle resulting events.\n"
+		"@param[in] spawn_thread If true, start a new thread for IO handling.\n"
+		"@param[in] options Parameter collection of type SBCommandInterpreterRunOptions.\n"
+		"@param[in] num_errors Initial error counter.\n"
+		"@param[in] quit_requested Initial quit request flag.\n"
+		"@param[in] stopped_for_crash Initial crash flag.\n"
+		"\n"
+		"@return\n"
+		"A tuple with the number of errors encountered by the interpreter, a boolean\n"
+		"indicating whether quitting the interpreter was requested and another boolean\n"
+		"set to True in case of a crash.\n"
+		"\n"
+		"Example:\n"
+		"\n"
+		"# Start an interactive lldb session from a script (with a valid debugger object\n"
+		"# created beforehand):\n"
+		"n_errors, quit_requested, has_crashed = debugger.RunCommandInterpreter(True,\n"
+		"    False, lldb.SBCommandInterpreterRunOptions(), 0, False, False)\n"
+		""},
+	 { (char *)"SBDebugger_RunREPL", _wrap_SBDebugger_RunREPL, METH_VARARGS, (char *)"SBDebugger_RunREPL(SBDebugger self, lldb::LanguageType language, char const * repl_options) -> SBError"},
+	 { (char *)"SBDebugger___str__", _wrap_SBDebugger___str__, METH_VARARGS, (char *)"SBDebugger___str__(SBDebugger self) -> PyObject *"},
+	 { (char *)"SBDebugger_swigregister", SBDebugger_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBDeclaration", _wrap_new_SBDeclaration, METH_VARARGS, (char *)"\n"
+		"SBDeclaration()\n"
+		"new_SBDeclaration(SBDeclaration rhs) -> SBDeclaration\n"
+		""},
+	 { (char *)"delete_SBDeclaration", _wrap_delete_SBDeclaration, METH_VARARGS, (char *)"delete_SBDeclaration(SBDeclaration self)"},
+	 { (char *)"SBDeclaration_IsValid", _wrap_SBDeclaration_IsValid, METH_VARARGS, (char *)"SBDeclaration_IsValid(SBDeclaration self) -> bool"},
+	 { (char *)"SBDeclaration___nonzero__", _wrap_SBDeclaration___nonzero__, METH_VARARGS, (char *)"SBDeclaration___nonzero__(SBDeclaration self) -> bool"},
+	 { (char *)"SBDeclaration_GetFileSpec", _wrap_SBDeclaration_GetFileSpec, METH_VARARGS, (char *)"SBDeclaration_GetFileSpec(SBDeclaration self) -> SBFileSpec"},
+	 { (char *)"SBDeclaration_GetLine", _wrap_SBDeclaration_GetLine, METH_VARARGS, (char *)"SBDeclaration_GetLine(SBDeclaration self) -> uint32_t"},
+	 { (char *)"SBDeclaration_GetColumn", _wrap_SBDeclaration_GetColumn, METH_VARARGS, (char *)"SBDeclaration_GetColumn(SBDeclaration self) -> uint32_t"},
+	 { (char *)"SBDeclaration_GetDescription", _wrap_SBDeclaration_GetDescription, METH_VARARGS, (char *)"SBDeclaration_GetDescription(SBDeclaration self, SBStream description) -> bool"},
+	 { (char *)"SBDeclaration_SetFileSpec", _wrap_SBDeclaration_SetFileSpec, METH_VARARGS, (char *)"SBDeclaration_SetFileSpec(SBDeclaration self, SBFileSpec filespec)"},
+	 { (char *)"SBDeclaration_SetLine", _wrap_SBDeclaration_SetLine, METH_VARARGS, (char *)"SBDeclaration_SetLine(SBDeclaration self, uint32_t line)"},
+	 { (char *)"SBDeclaration_SetColumn", _wrap_SBDeclaration_SetColumn, METH_VARARGS, (char *)"SBDeclaration_SetColumn(SBDeclaration self, uint32_t column)"},
+	 { (char *)"SBDeclaration___eq__", _wrap_SBDeclaration___eq__, METH_VARARGS, (char *)"SBDeclaration___eq__(SBDeclaration self, SBDeclaration rhs) -> bool"},
+	 { (char *)"SBDeclaration___ne__", _wrap_SBDeclaration___ne__, METH_VARARGS, (char *)"SBDeclaration___ne__(SBDeclaration self, SBDeclaration rhs) -> bool"},
+	 { (char *)"SBDeclaration___str__", _wrap_SBDeclaration___str__, METH_VARARGS, (char *)"SBDeclaration___str__(SBDeclaration self) -> PyObject *"},
+	 { (char *)"SBDeclaration_swigregister", SBDeclaration_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBError", _wrap_new_SBError, METH_VARARGS, (char *)"\n"
+		"SBError()\n"
+		"new_SBError(SBError rhs) -> SBError\n"
+		""},
+	 { (char *)"delete_SBError", _wrap_delete_SBError, METH_VARARGS, (char *)"delete_SBError(SBError self)"},
+	 { (char *)"SBError_GetCString", _wrap_SBError_GetCString, METH_VARARGS, (char *)"SBError_GetCString(SBError self) -> char const *"},
+	 { (char *)"SBError_Clear", _wrap_SBError_Clear, METH_VARARGS, (char *)"SBError_Clear(SBError self)"},
+	 { (char *)"SBError_Fail", _wrap_SBError_Fail, METH_VARARGS, (char *)"SBError_Fail(SBError self) -> bool"},
+	 { (char *)"SBError_Success", _wrap_SBError_Success, METH_VARARGS, (char *)"SBError_Success(SBError self) -> bool"},
+	 { (char *)"SBError_GetError", _wrap_SBError_GetError, METH_VARARGS, (char *)"SBError_GetError(SBError self) -> uint32_t"},
+	 { (char *)"SBError_GetType", _wrap_SBError_GetType, METH_VARARGS, (char *)"SBError_GetType(SBError self) -> lldb::ErrorType"},
+	 { (char *)"SBError_SetError", _wrap_SBError_SetError, METH_VARARGS, (char *)"SBError_SetError(SBError self, uint32_t err, lldb::ErrorType type)"},
+	 { (char *)"SBError_SetErrorToErrno", _wrap_SBError_SetErrorToErrno, METH_VARARGS, (char *)"SBError_SetErrorToErrno(SBError self)"},
+	 { (char *)"SBError_SetErrorToGenericError", _wrap_SBError_SetErrorToGenericError, METH_VARARGS, (char *)"SBError_SetErrorToGenericError(SBError self)"},
+	 { (char *)"SBError_SetErrorString", _wrap_SBError_SetErrorString, METH_VARARGS, (char *)"SBError_SetErrorString(SBError self, char const * err_str)"},
+	 { (char *)"SBError_SetErrorStringWithFormat", _wrap_SBError_SetErrorStringWithFormat, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetErrorStringWithFormat(char const * format, char * str1=None, char * str2=None, char * str3=None) -> int\n"
 		"SetErrorStringWithFormat(char const * format, char * str1=None, char * str2=None) -> int\n"
 		"SetErrorStringWithFormat(char const * format, char * str1=None) -> int\n"
 		"SBError_SetErrorStringWithFormat(SBError self, char const * format) -> int\n"
 		""},
+<<<<<<< HEAD
 	 { "SBError_IsValid", _wrap_SBError_IsValid, METH_VARARGS, (char *)"SBError_IsValid(SBError self) -> bool"},
 	 { "SBError___nonzero__", _wrap_SBError___nonzero__, METH_VARARGS, (char *)"SBError___nonzero__(SBError self) -> bool"},
 	 { "SBError_GetDescription", _wrap_SBError_GetDescription, METH_VARARGS, (char *)"SBError_GetDescription(SBError self, SBStream description) -> bool"},
 	 { "SBError___str__", _wrap_SBError___str__, METH_VARARGS, (char *)"SBError___str__(SBError self) -> PyObject *"},
 	 { "SBError_swigregister", SBError_swigregister, METH_VARARGS, NULL},
 	 { "new_SBEvent", _wrap_new_SBEvent, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBError_IsValid", _wrap_SBError_IsValid, METH_VARARGS, (char *)"SBError_IsValid(SBError self) -> bool"},
+	 { (char *)"SBError___nonzero__", _wrap_SBError___nonzero__, METH_VARARGS, (char *)"SBError___nonzero__(SBError self) -> bool"},
+	 { (char *)"SBError_GetDescription", _wrap_SBError_GetDescription, METH_VARARGS, (char *)"SBError_GetDescription(SBError self, SBStream description) -> bool"},
+	 { (char *)"SBError___str__", _wrap_SBError___str__, METH_VARARGS, (char *)"SBError___str__(SBError self) -> PyObject *"},
+	 { (char *)"SBError_swigregister", SBError_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBEvent", _wrap_new_SBEvent, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBEvent()\n"
 		"SBEvent(SBEvent rhs)\n"
 		"__init__(self, int type, str data) -> SBEvent (make an event that contains a C string)\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBEvent", _wrap_delete_SBEvent, METH_VARARGS, (char *)"delete_SBEvent(SBEvent self)"},
 	 { "SBEvent_IsValid", _wrap_SBEvent_IsValid, METH_VARARGS, (char *)"SBEvent_IsValid(SBEvent self) -> bool"},
 	 { "SBEvent___nonzero__", _wrap_SBEvent___nonzero__, METH_VARARGS, (char *)"SBEvent___nonzero__(SBEvent self) -> bool"},
@@ -79538,6 +81079,21 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBEvent_GetDescription", _wrap_SBEvent_GetDescription, METH_VARARGS, (char *)"SBEvent_GetDescription(SBEvent self, SBStream description) -> bool"},
 	 { "SBEvent_swigregister", SBEvent_swigregister, METH_VARARGS, NULL},
 	 { "new_SBExecutionContext", _wrap_new_SBExecutionContext, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBEvent", _wrap_delete_SBEvent, METH_VARARGS, (char *)"delete_SBEvent(SBEvent self)"},
+	 { (char *)"SBEvent_IsValid", _wrap_SBEvent_IsValid, METH_VARARGS, (char *)"SBEvent_IsValid(SBEvent self) -> bool"},
+	 { (char *)"SBEvent___nonzero__", _wrap_SBEvent___nonzero__, METH_VARARGS, (char *)"SBEvent___nonzero__(SBEvent self) -> bool"},
+	 { (char *)"SBEvent_GetDataFlavor", _wrap_SBEvent_GetDataFlavor, METH_VARARGS, (char *)"SBEvent_GetDataFlavor(SBEvent self) -> char const *"},
+	 { (char *)"SBEvent_GetType", _wrap_SBEvent_GetType, METH_VARARGS, (char *)"SBEvent_GetType(SBEvent self) -> uint32_t"},
+	 { (char *)"SBEvent_GetBroadcaster", _wrap_SBEvent_GetBroadcaster, METH_VARARGS, (char *)"SBEvent_GetBroadcaster(SBEvent self) -> SBBroadcaster"},
+	 { (char *)"SBEvent_GetBroadcasterClass", _wrap_SBEvent_GetBroadcasterClass, METH_VARARGS, (char *)"SBEvent_GetBroadcasterClass(SBEvent self) -> char const *"},
+	 { (char *)"SBEvent_BroadcasterMatchesRef", _wrap_SBEvent_BroadcasterMatchesRef, METH_VARARGS, (char *)"SBEvent_BroadcasterMatchesRef(SBEvent self, SBBroadcaster broadcaster) -> bool"},
+	 { (char *)"SBEvent_Clear", _wrap_SBEvent_Clear, METH_VARARGS, (char *)"SBEvent_Clear(SBEvent self)"},
+	 { (char *)"SBEvent_GetCStringFromEvent", _wrap_SBEvent_GetCStringFromEvent, METH_VARARGS, (char *)"SBEvent_GetCStringFromEvent(SBEvent event) -> char const *"},
+	 { (char *)"SBEvent_GetDescription", _wrap_SBEvent_GetDescription, METH_VARARGS, (char *)"SBEvent_GetDescription(SBEvent self, SBStream description) -> bool"},
+	 { (char *)"SBEvent_swigregister", SBEvent_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBExecutionContext", _wrap_new_SBExecutionContext, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBExecutionContext()\n"
 		"SBExecutionContext(SBExecutionContext rhs)\n"
 		"SBExecutionContext(SBTarget target)\n"
@@ -79555,21 +81111,33 @@ static PyMethodDef SwigMethods[] = {
 		"SBExpressionOptions()\n"
 		"new_SBExpressionOptions(SBExpressionOptions rhs) -> SBExpressionOptions\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBExpressionOptions", _wrap_delete_SBExpressionOptions, METH_VARARGS, (char *)"delete_SBExpressionOptions(SBExpressionOptions self)"},
 	 { "SBExpressionOptions_GetCoerceResultToId", _wrap_SBExpressionOptions_GetCoerceResultToId, METH_VARARGS, (char *)"SBExpressionOptions_GetCoerceResultToId(SBExpressionOptions self) -> bool"},
 	 { "SBExpressionOptions_SetCoerceResultToId", _wrap_SBExpressionOptions_SetCoerceResultToId, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBExpressionOptions", _wrap_delete_SBExpressionOptions, METH_VARARGS, (char *)"delete_SBExpressionOptions(SBExpressionOptions self)"},
+	 { (char *)"SBExpressionOptions_GetCoerceResultToId", _wrap_SBExpressionOptions_GetCoerceResultToId, METH_VARARGS, (char *)"SBExpressionOptions_GetCoerceResultToId(SBExpressionOptions self) -> bool"},
+	 { (char *)"SBExpressionOptions_SetCoerceResultToId", _wrap_SBExpressionOptions_SetCoerceResultToId, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetCoerceResultToId(bool coerce=True)\n"
 		"SBExpressionOptions_SetCoerceResultToId(SBExpressionOptions self)\n"
 		"\n"
 		"Sets whether to coerce the expression result to ObjC id type after evaluation.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBExpressionOptions_GetUnwindOnError", _wrap_SBExpressionOptions_GetUnwindOnError, METH_VARARGS, (char *)"SBExpressionOptions_GetUnwindOnError(SBExpressionOptions self) -> bool"},
 	 { "SBExpressionOptions_SetUnwindOnError", _wrap_SBExpressionOptions_SetUnwindOnError, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBExpressionOptions_GetUnwindOnError", _wrap_SBExpressionOptions_GetUnwindOnError, METH_VARARGS, (char *)"SBExpressionOptions_GetUnwindOnError(SBExpressionOptions self) -> bool"},
+	 { (char *)"SBExpressionOptions_SetUnwindOnError", _wrap_SBExpressionOptions_SetUnwindOnError, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetUnwindOnError(bool unwind=True)\n"
 		"SBExpressionOptions_SetUnwindOnError(SBExpressionOptions self)\n"
 		"\n"
 		"Sets whether to unwind the expression stack on error.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBExpressionOptions_GetIgnoreBreakpoints", _wrap_SBExpressionOptions_GetIgnoreBreakpoints, METH_VARARGS, (char *)"SBExpressionOptions_GetIgnoreBreakpoints(SBExpressionOptions self) -> bool"},
 	 { "SBExpressionOptions_SetIgnoreBreakpoints", _wrap_SBExpressionOptions_SetIgnoreBreakpoints, METH_VARARGS, (char *)"\n"
 		"SetIgnoreBreakpoints(bool ignore=True)\n"
@@ -79577,18 +81145,33 @@ static PyMethodDef SwigMethods[] = {
 		""},
 	 { "SBExpressionOptions_GetFetchDynamicValue", _wrap_SBExpressionOptions_GetFetchDynamicValue, METH_VARARGS, (char *)"SBExpressionOptions_GetFetchDynamicValue(SBExpressionOptions self) -> lldb::DynamicValueType"},
 	 { "SBExpressionOptions_SetFetchDynamicValue", _wrap_SBExpressionOptions_SetFetchDynamicValue, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBExpressionOptions_GetIgnoreBreakpoints", _wrap_SBExpressionOptions_GetIgnoreBreakpoints, METH_VARARGS, (char *)"SBExpressionOptions_GetIgnoreBreakpoints(SBExpressionOptions self) -> bool"},
+	 { (char *)"SBExpressionOptions_SetIgnoreBreakpoints", _wrap_SBExpressionOptions_SetIgnoreBreakpoints, METH_VARARGS, (char *)"\n"
+		"SetIgnoreBreakpoints(bool ignore=True)\n"
+		"SBExpressionOptions_SetIgnoreBreakpoints(SBExpressionOptions self)\n"
+		""},
+	 { (char *)"SBExpressionOptions_GetFetchDynamicValue", _wrap_SBExpressionOptions_GetFetchDynamicValue, METH_VARARGS, (char *)"SBExpressionOptions_GetFetchDynamicValue(SBExpressionOptions self) -> lldb::DynamicValueType"},
+	 { (char *)"SBExpressionOptions_SetFetchDynamicValue", _wrap_SBExpressionOptions_SetFetchDynamicValue, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetFetchDynamicValue(lldb::DynamicValueType dynamic)\n"
 		"SBExpressionOptions_SetFetchDynamicValue(SBExpressionOptions self)\n"
 		"\n"
 		"Sets whether to cast the expression result to its dynamic type.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBExpressionOptions_GetTimeoutInMicroSeconds", _wrap_SBExpressionOptions_GetTimeoutInMicroSeconds, METH_VARARGS, (char *)"SBExpressionOptions_GetTimeoutInMicroSeconds(SBExpressionOptions self) -> uint32_t"},
 	 { "SBExpressionOptions_SetTimeoutInMicroSeconds", _wrap_SBExpressionOptions_SetTimeoutInMicroSeconds, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBExpressionOptions_GetTimeoutInMicroSeconds", _wrap_SBExpressionOptions_GetTimeoutInMicroSeconds, METH_VARARGS, (char *)"SBExpressionOptions_GetTimeoutInMicroSeconds(SBExpressionOptions self) -> uint32_t"},
+	 { (char *)"SBExpressionOptions_SetTimeoutInMicroSeconds", _wrap_SBExpressionOptions_SetTimeoutInMicroSeconds, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetTimeoutInMicroSeconds(uint32_t timeout=0)\n"
 		"SBExpressionOptions_SetTimeoutInMicroSeconds(SBExpressionOptions self)\n"
 		"\n"
 		"Sets the timeout in microseconds to run the expression for. If try all threads is set to true and the expression doesn't complete within the specified timeout, all threads will be resumed for the same timeout to see if the expresson will finish.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBExpressionOptions_GetOneThreadTimeoutInMicroSeconds", _wrap_SBExpressionOptions_GetOneThreadTimeoutInMicroSeconds, METH_VARARGS, (char *)"SBExpressionOptions_GetOneThreadTimeoutInMicroSeconds(SBExpressionOptions self) -> uint32_t"},
 	 { "SBExpressionOptions_SetOneThreadTimeoutInMicroSeconds", _wrap_SBExpressionOptions_SetOneThreadTimeoutInMicroSeconds, METH_VARARGS, (char *)"\n"
 		"SetOneThreadTimeoutInMicroSeconds(uint32_t timeout=0)\n"
@@ -79596,11 +81179,21 @@ static PyMethodDef SwigMethods[] = {
 		""},
 	 { "SBExpressionOptions_GetTryAllThreads", _wrap_SBExpressionOptions_GetTryAllThreads, METH_VARARGS, (char *)"SBExpressionOptions_GetTryAllThreads(SBExpressionOptions self) -> bool"},
 	 { "SBExpressionOptions_SetTryAllThreads", _wrap_SBExpressionOptions_SetTryAllThreads, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBExpressionOptions_GetOneThreadTimeoutInMicroSeconds", _wrap_SBExpressionOptions_GetOneThreadTimeoutInMicroSeconds, METH_VARARGS, (char *)"SBExpressionOptions_GetOneThreadTimeoutInMicroSeconds(SBExpressionOptions self) -> uint32_t"},
+	 { (char *)"SBExpressionOptions_SetOneThreadTimeoutInMicroSeconds", _wrap_SBExpressionOptions_SetOneThreadTimeoutInMicroSeconds, METH_VARARGS, (char *)"\n"
+		"SetOneThreadTimeoutInMicroSeconds(uint32_t timeout=0)\n"
+		"SBExpressionOptions_SetOneThreadTimeoutInMicroSeconds(SBExpressionOptions self)\n"
+		""},
+	 { (char *)"SBExpressionOptions_GetTryAllThreads", _wrap_SBExpressionOptions_GetTryAllThreads, METH_VARARGS, (char *)"SBExpressionOptions_GetTryAllThreads(SBExpressionOptions self) -> bool"},
+	 { (char *)"SBExpressionOptions_SetTryAllThreads", _wrap_SBExpressionOptions_SetTryAllThreads, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetTryAllThreads(bool run_others=True)\n"
 		"SBExpressionOptions_SetTryAllThreads(SBExpressionOptions self)\n"
 		"\n"
 		"Sets whether to run all threads if the expression does not complete on one thread.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBExpressionOptions_GetStopOthers", _wrap_SBExpressionOptions_GetStopOthers, METH_VARARGS, (char *)"SBExpressionOptions_GetStopOthers(SBExpressionOptions self) -> bool"},
 	 { "SBExpressionOptions_SetStopOthers", _wrap_SBExpressionOptions_SetStopOthers, METH_VARARGS, (char *)"\n"
 		"SetStopOthers(bool stop_others=True)\n"
@@ -79622,35 +81215,80 @@ static PyMethodDef SwigMethods[] = {
 		"SBExpressionOptions_SetREPLMode(SBExpressionOptions self)\n"
 		""},
 	 { "SBExpressionOptions_SetLanguage", _wrap_SBExpressionOptions_SetLanguage, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBExpressionOptions_GetStopOthers", _wrap_SBExpressionOptions_GetStopOthers, METH_VARARGS, (char *)"SBExpressionOptions_GetStopOthers(SBExpressionOptions self) -> bool"},
+	 { (char *)"SBExpressionOptions_SetStopOthers", _wrap_SBExpressionOptions_SetStopOthers, METH_VARARGS, (char *)"\n"
+		"SetStopOthers(bool stop_others=True)\n"
+		"SBExpressionOptions_SetStopOthers(SBExpressionOptions self)\n"
+		""},
+	 { (char *)"SBExpressionOptions_GetTrapExceptions", _wrap_SBExpressionOptions_GetTrapExceptions, METH_VARARGS, (char *)"SBExpressionOptions_GetTrapExceptions(SBExpressionOptions self) -> bool"},
+	 { (char *)"SBExpressionOptions_SetTrapExceptions", _wrap_SBExpressionOptions_SetTrapExceptions, METH_VARARGS, (char *)"\n"
+		"SetTrapExceptions(bool trap_exceptions=True)\n"
+		"SBExpressionOptions_SetTrapExceptions(SBExpressionOptions self)\n"
+		""},
+	 { (char *)"SBExpressionOptions_GetPlaygroundTransformEnabled", _wrap_SBExpressionOptions_GetPlaygroundTransformEnabled, METH_VARARGS, (char *)"SBExpressionOptions_GetPlaygroundTransformEnabled(SBExpressionOptions self) -> bool"},
+	 { (char *)"SBExpressionOptions_SetPlaygroundTransformEnabled", _wrap_SBExpressionOptions_SetPlaygroundTransformEnabled, METH_VARARGS, (char *)"\n"
+		"SetPlaygroundTransformEnabled(bool enable_playground_transform=True)\n"
+		"SBExpressionOptions_SetPlaygroundTransformEnabled(SBExpressionOptions self)\n"
+		""},
+	 { (char *)"SBExpressionOptions_GetREPLMode", _wrap_SBExpressionOptions_GetREPLMode, METH_VARARGS, (char *)"SBExpressionOptions_GetREPLMode(SBExpressionOptions self) -> bool"},
+	 { (char *)"SBExpressionOptions_SetREPLMode", _wrap_SBExpressionOptions_SetREPLMode, METH_VARARGS, (char *)"\n"
+		"SetREPLMode(bool enable_repl=True)\n"
+		"SBExpressionOptions_SetREPLMode(SBExpressionOptions self)\n"
+		""},
+	 { (char *)"SBExpressionOptions_SetLanguage", _wrap_SBExpressionOptions_SetLanguage, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBExpressionOptions_SetLanguage(SBExpressionOptions self, lldb::LanguageType language)\n"
 		"\n"
 		"Sets the language that LLDB should assume the expression is written in\n"
 		""},
+<<<<<<< HEAD
 	 { "SBExpressionOptions_GetGenerateDebugInfo", _wrap_SBExpressionOptions_GetGenerateDebugInfo, METH_VARARGS, (char *)"SBExpressionOptions_GetGenerateDebugInfo(SBExpressionOptions self) -> bool"},
 	 { "SBExpressionOptions_SetGenerateDebugInfo", _wrap_SBExpressionOptions_SetGenerateDebugInfo, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBExpressionOptions_GetGenerateDebugInfo", _wrap_SBExpressionOptions_GetGenerateDebugInfo, METH_VARARGS, (char *)"SBExpressionOptions_GetGenerateDebugInfo(SBExpressionOptions self) -> bool"},
+	 { (char *)"SBExpressionOptions_SetGenerateDebugInfo", _wrap_SBExpressionOptions_SetGenerateDebugInfo, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetGenerateDebugInfo(bool b=True)\n"
 		"SBExpressionOptions_SetGenerateDebugInfo(SBExpressionOptions self)\n"
 		"\n"
 		"Sets whether to generate debug information for the expression and also controls if a SBModule is generated.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBExpressionOptions_GetSuppressPersistentResult", _wrap_SBExpressionOptions_GetSuppressPersistentResult, METH_VARARGS, (char *)"SBExpressionOptions_GetSuppressPersistentResult(SBExpressionOptions self) -> bool"},
 	 { "SBExpressionOptions_SetSuppressPersistentResult", _wrap_SBExpressionOptions_SetSuppressPersistentResult, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBExpressionOptions_GetSuppressPersistentResult", _wrap_SBExpressionOptions_GetSuppressPersistentResult, METH_VARARGS, (char *)"SBExpressionOptions_GetSuppressPersistentResult(SBExpressionOptions self) -> bool"},
+	 { (char *)"SBExpressionOptions_SetSuppressPersistentResult", _wrap_SBExpressionOptions_SetSuppressPersistentResult, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetSuppressPersistentResult(bool b=False)\n"
 		"SBExpressionOptions_SetSuppressPersistentResult(SBExpressionOptions self)\n"
 		"\n"
 		"Sets whether to produce a persistent result that can be used in future expressions.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBExpressionOptions_GetPrefix", _wrap_SBExpressionOptions_GetPrefix, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBExpressionOptions_GetPrefix", _wrap_SBExpressionOptions_GetPrefix, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBExpressionOptions_GetPrefix(SBExpressionOptions self) -> char const *\n"
 		"\n"
 		"Gets the prefix to use for this expression.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBExpressionOptions_SetPrefix", _wrap_SBExpressionOptions_SetPrefix, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBExpressionOptions_SetPrefix", _wrap_SBExpressionOptions_SetPrefix, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBExpressionOptions_SetPrefix(SBExpressionOptions self, char const * prefix)\n"
 		"\n"
 		"Sets the prefix to use for this expression. This prefix gets inserted after the 'target.expr-prefix' prefix contents, but before the wrapped expression function body.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBExpressionOptions_SetAutoApplyFixIts", _wrap_SBExpressionOptions_SetAutoApplyFixIts, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBExpressionOptions_SetAutoApplyFixIts", _wrap_SBExpressionOptions_SetAutoApplyFixIts, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetAutoApplyFixIts(bool b=True)\n"
 		"SBExpressionOptions_SetAutoApplyFixIts(SBExpressionOptions self)\n"
 		"\n"
@@ -79661,8 +81299,13 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		"Gets whether to auto-apply fix-it hints to an expression.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBExpressionOptions_GetTopLevel", _wrap_SBExpressionOptions_GetTopLevel, METH_VARARGS, (char *)"SBExpressionOptions_GetTopLevel(SBExpressionOptions self) -> bool"},
 	 { "SBExpressionOptions_SetTopLevel", _wrap_SBExpressionOptions_SetTopLevel, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBExpressionOptions_GetTopLevel", _wrap_SBExpressionOptions_GetTopLevel, METH_VARARGS, (char *)"SBExpressionOptions_GetTopLevel(SBExpressionOptions self) -> bool"},
+	 { (char *)"SBExpressionOptions_SetTopLevel", _wrap_SBExpressionOptions_SetTopLevel, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetTopLevel(bool b=True)\n"
 		"SBExpressionOptions_SetTopLevel(SBExpressionOptions self)\n"
 		""},
@@ -79683,6 +81326,7 @@ static PyMethodDef SwigMethods[] = {
 		"SBFileSpec(char const * path)\n"
 		"new_SBFileSpec(char const * path, bool resolve) -> SBFileSpec\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBFileSpec", _wrap_delete_SBFileSpec, METH_VARARGS, (char *)"delete_SBFileSpec(SBFileSpec self)"},
 	 { "SBFileSpec_IsValid", _wrap_SBFileSpec_IsValid, METH_VARARGS, (char *)"SBFileSpec_IsValid(SBFileSpec self) -> bool"},
 	 { "SBFileSpec___nonzero__", _wrap_SBFileSpec___nonzero__, METH_VARARGS, (char *)"SBFileSpec___nonzero__(SBFileSpec self) -> bool"},
@@ -79721,6 +81365,48 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBFrame___nonzero__", _wrap_SBFrame___nonzero__, METH_VARARGS, (char *)"SBFrame___nonzero__(SBFrame self) -> bool"},
 	 { "SBFrame_GetFrameID", _wrap_SBFrame_GetFrameID, METH_VARARGS, (char *)"SBFrame_GetFrameID(SBFrame self) -> uint32_t"},
 	 { "SBFrame_GetCFA", _wrap_SBFrame_GetCFA, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBFileSpec", _wrap_delete_SBFileSpec, METH_VARARGS, (char *)"delete_SBFileSpec(SBFileSpec self)"},
+	 { (char *)"SBFileSpec___eq__", _wrap_SBFileSpec___eq__, METH_VARARGS, (char *)"SBFileSpec___eq__(SBFileSpec self, SBFileSpec rhs) -> bool"},
+	 { (char *)"SBFileSpec___ne__", _wrap_SBFileSpec___ne__, METH_VARARGS, (char *)"SBFileSpec___ne__(SBFileSpec self, SBFileSpec rhs) -> bool"},
+	 { (char *)"SBFileSpec_IsValid", _wrap_SBFileSpec_IsValid, METH_VARARGS, (char *)"SBFileSpec_IsValid(SBFileSpec self) -> bool"},
+	 { (char *)"SBFileSpec___nonzero__", _wrap_SBFileSpec___nonzero__, METH_VARARGS, (char *)"SBFileSpec___nonzero__(SBFileSpec self) -> bool"},
+	 { (char *)"SBFileSpec_Exists", _wrap_SBFileSpec_Exists, METH_VARARGS, (char *)"SBFileSpec_Exists(SBFileSpec self) -> bool"},
+	 { (char *)"SBFileSpec_ResolveExecutableLocation", _wrap_SBFileSpec_ResolveExecutableLocation, METH_VARARGS, (char *)"SBFileSpec_ResolveExecutableLocation(SBFileSpec self) -> bool"},
+	 { (char *)"SBFileSpec_GetFilename", _wrap_SBFileSpec_GetFilename, METH_VARARGS, (char *)"SBFileSpec_GetFilename(SBFileSpec self) -> char const *"},
+	 { (char *)"SBFileSpec_GetDirectory", _wrap_SBFileSpec_GetDirectory, METH_VARARGS, (char *)"SBFileSpec_GetDirectory(SBFileSpec self) -> char const *"},
+	 { (char *)"SBFileSpec_SetFilename", _wrap_SBFileSpec_SetFilename, METH_VARARGS, (char *)"SBFileSpec_SetFilename(SBFileSpec self, char const * filename)"},
+	 { (char *)"SBFileSpec_SetDirectory", _wrap_SBFileSpec_SetDirectory, METH_VARARGS, (char *)"SBFileSpec_SetDirectory(SBFileSpec self, char const * directory)"},
+	 { (char *)"SBFileSpec_GetPath", _wrap_SBFileSpec_GetPath, METH_VARARGS, (char *)"SBFileSpec_GetPath(SBFileSpec self, char * dst_path, size_t dst_len) -> uint32_t"},
+	 { (char *)"SBFileSpec_ResolvePath", _wrap_SBFileSpec_ResolvePath, METH_VARARGS, (char *)"SBFileSpec_ResolvePath(char const * src_path, char * dst_path, size_t dst_len) -> int"},
+	 { (char *)"SBFileSpec_GetDescription", _wrap_SBFileSpec_GetDescription, METH_VARARGS, (char *)"SBFileSpec_GetDescription(SBFileSpec self, SBStream description) -> bool"},
+	 { (char *)"SBFileSpec_AppendPathComponent", _wrap_SBFileSpec_AppendPathComponent, METH_VARARGS, (char *)"SBFileSpec_AppendPathComponent(SBFileSpec self, char const * file_or_directory)"},
+	 { (char *)"SBFileSpec___str__", _wrap_SBFileSpec___str__, METH_VARARGS, (char *)"SBFileSpec___str__(SBFileSpec self) -> PyObject *"},
+	 { (char *)"SBFileSpec_swigregister", SBFileSpec_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBFileSpecList", _wrap_new_SBFileSpecList, METH_VARARGS, (char *)"\n"
+		"SBFileSpecList()\n"
+		"new_SBFileSpecList(SBFileSpecList rhs) -> SBFileSpecList\n"
+		""},
+	 { (char *)"delete_SBFileSpecList", _wrap_delete_SBFileSpecList, METH_VARARGS, (char *)"delete_SBFileSpecList(SBFileSpecList self)"},
+	 { (char *)"SBFileSpecList_GetSize", _wrap_SBFileSpecList_GetSize, METH_VARARGS, (char *)"SBFileSpecList_GetSize(SBFileSpecList self) -> uint32_t"},
+	 { (char *)"SBFileSpecList_GetDescription", _wrap_SBFileSpecList_GetDescription, METH_VARARGS, (char *)"SBFileSpecList_GetDescription(SBFileSpecList self, SBStream description) -> bool"},
+	 { (char *)"SBFileSpecList_Append", _wrap_SBFileSpecList_Append, METH_VARARGS, (char *)"SBFileSpecList_Append(SBFileSpecList self, SBFileSpec sb_file)"},
+	 { (char *)"SBFileSpecList_AppendIfUnique", _wrap_SBFileSpecList_AppendIfUnique, METH_VARARGS, (char *)"SBFileSpecList_AppendIfUnique(SBFileSpecList self, SBFileSpec sb_file) -> bool"},
+	 { (char *)"SBFileSpecList_Clear", _wrap_SBFileSpecList_Clear, METH_VARARGS, (char *)"SBFileSpecList_Clear(SBFileSpecList self)"},
+	 { (char *)"SBFileSpecList_FindFileIndex", _wrap_SBFileSpecList_FindFileIndex, METH_VARARGS, (char *)"SBFileSpecList_FindFileIndex(SBFileSpecList self, uint32_t idx, SBFileSpec sb_file, bool full) -> uint32_t"},
+	 { (char *)"SBFileSpecList_GetFileSpecAtIndex", _wrap_SBFileSpecList_GetFileSpecAtIndex, METH_VARARGS, (char *)"SBFileSpecList_GetFileSpecAtIndex(SBFileSpecList self, uint32_t idx) -> SBFileSpec"},
+	 { (char *)"SBFileSpecList_swigregister", SBFileSpecList_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBFrame", _wrap_new_SBFrame, METH_VARARGS, (char *)"\n"
+		"SBFrame()\n"
+		"new_SBFrame(SBFrame rhs) -> SBFrame\n"
+		""},
+	 { (char *)"delete_SBFrame", _wrap_delete_SBFrame, METH_VARARGS, (char *)"delete_SBFrame(SBFrame self)"},
+	 { (char *)"SBFrame_IsEqual", _wrap_SBFrame_IsEqual, METH_VARARGS, (char *)"SBFrame_IsEqual(SBFrame self, SBFrame rhs) -> bool"},
+	 { (char *)"SBFrame_IsValid", _wrap_SBFrame_IsValid, METH_VARARGS, (char *)"SBFrame_IsValid(SBFrame self) -> bool"},
+	 { (char *)"SBFrame___nonzero__", _wrap_SBFrame___nonzero__, METH_VARARGS, (char *)"SBFrame___nonzero__(SBFrame self) -> bool"},
+	 { (char *)"SBFrame_GetFrameID", _wrap_SBFrame_GetFrameID, METH_VARARGS, (char *)"SBFrame_GetFrameID(SBFrame self) -> uint32_t"},
+	 { (char *)"SBFrame_GetCFA", _wrap_SBFrame_GetCFA, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBFrame_GetCFA(SBFrame self) -> lldb::addr_t\n"
 		"\n"
 		"\n"
@@ -79730,6 +81416,7 @@ static PyMethodDef SwigMethods[] = {
 		"Returns an lldb::addr_t stack address, or LLDB_INVALID_ADDRESS if\n"
 		"the CFA cannot be determined.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBFrame_GetPC", _wrap_SBFrame_GetPC, METH_VARARGS, (char *)"SBFrame_GetPC(SBFrame self) -> lldb::addr_t"},
 	 { "SBFrame_SetPC", _wrap_SBFrame_SetPC, METH_VARARGS, (char *)"SBFrame_SetPC(SBFrame self, lldb::addr_t new_pc) -> bool"},
 	 { "SBFrame_GetSP", _wrap_SBFrame_GetSP, METH_VARARGS, (char *)"SBFrame_GetSP(SBFrame self) -> lldb::addr_t"},
@@ -79747,73 +81434,120 @@ static PyMethodDef SwigMethods[] = {
 		"/// Gets the deepest block that contains the frame PC.\n"
 		"///\n"
 		"/// See also GetFrameBlock().\n"
+=======
+	 { (char *)"SBFrame_GetPC", _wrap_SBFrame_GetPC, METH_VARARGS, (char *)"SBFrame_GetPC(SBFrame self) -> lldb::addr_t"},
+	 { (char *)"SBFrame_SetPC", _wrap_SBFrame_SetPC, METH_VARARGS, (char *)"SBFrame_SetPC(SBFrame self, lldb::addr_t new_pc) -> bool"},
+	 { (char *)"SBFrame_GetSP", _wrap_SBFrame_GetSP, METH_VARARGS, (char *)"SBFrame_GetSP(SBFrame self) -> lldb::addr_t"},
+	 { (char *)"SBFrame_GetFP", _wrap_SBFrame_GetFP, METH_VARARGS, (char *)"SBFrame_GetFP(SBFrame self) -> lldb::addr_t"},
+	 { (char *)"SBFrame_GetPCAddress", _wrap_SBFrame_GetPCAddress, METH_VARARGS, (char *)"SBFrame_GetPCAddress(SBFrame self) -> SBAddress"},
+	 { (char *)"SBFrame_GetSymbolContext", _wrap_SBFrame_GetSymbolContext, METH_VARARGS, (char *)"SBFrame_GetSymbolContext(SBFrame self, uint32_t resolve_scope) -> SBSymbolContext"},
+	 { (char *)"SBFrame_GetModule", _wrap_SBFrame_GetModule, METH_VARARGS, (char *)"SBFrame_GetModule(SBFrame self) -> SBModule"},
+	 { (char *)"SBFrame_GetCompileUnit", _wrap_SBFrame_GetCompileUnit, METH_VARARGS, (char *)"SBFrame_GetCompileUnit(SBFrame self) -> SBCompileUnit"},
+	 { (char *)"SBFrame_GetFunction", _wrap_SBFrame_GetFunction, METH_VARARGS, (char *)"SBFrame_GetFunction(SBFrame self) -> SBFunction"},
+	 { (char *)"SBFrame_GetSymbol", _wrap_SBFrame_GetSymbol, METH_VARARGS, (char *)"SBFrame_GetSymbol(SBFrame self) -> SBSymbol"},
+	 { (char *)"SBFrame_GetBlock", _wrap_SBFrame_GetBlock, METH_VARARGS, (char *)"\n"
+		"SBFrame_GetBlock(SBFrame self) -> SBBlock\n"
 		"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"Gets the deepest block that contains the frame PC.\n"
+		"\n"
+		"See also GetFrameBlock().\n"
 		""},
+<<<<<<< HEAD
 	 { "SBFrame_GetDisplayFunctionName", _wrap_SBFrame_GetDisplayFunctionName, METH_VARARGS, (char *)"SBFrame_GetDisplayFunctionName(SBFrame self) -> char const *"},
 	 { "SBFrame_GetFunctionName", _wrap_SBFrame_GetFunctionName, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBFrame_GetDisplayFunctionName", _wrap_SBFrame_GetDisplayFunctionName, METH_VARARGS, (char *)"SBFrame_GetDisplayFunctionName(SBFrame self) -> char const *"},
+	 { (char *)"SBFrame_GetFunctionName", _wrap_SBFrame_GetFunctionName, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"GetFunctionName() -> char const\n"
 		"SBFrame_GetFunctionName(SBFrame self) -> char const *\n"
 		"\n"
 		"\n"
-		"/// Get the appropriate function name for this frame. Inlined functions in\n"
-		"/// LLDB are represented by Blocks that have inlined function information, so\n"
-		"/// just looking at the SBFunction or SBSymbol for a frame isn't enough.\n"
-		"/// This function will return the appropriate function, symbol or inlined\n"
-		"/// function name for the frame.\n"
-		"///\n"
-		"/// This function returns:\n"
-		"/// - the name of the inlined function (if there is one)\n"
-		"/// - the name of the concrete function (if there is one)\n"
-		"/// - the name of the symbol (if there is one)\n"
-		"/// - NULL\n"
-		"///\n"
-		"/// See also IsInlined().\n"
+		"Get the appropriate function name for this frame. Inlined functions in\n"
+		"LLDB are represented by Blocks that have inlined function information, so\n"
+		"just looking at the SBFunction or SBSymbol for a frame isn't enough.\n"
+		"This function will return the appropriate function, symbol or inlined\n"
+		"function name for the frame.\n"
 		"\n"
+		"This function returns:\n"
+		"- the name of the inlined function (if there is one)\n"
+		"- the name of the concrete function (if there is one)\n"
+		"- the name of the symbol (if there is one)\n"
+		"- NULL\n"
+		"\n"
+		"See also IsInlined().\n"
 		""},
+<<<<<<< HEAD
 	 { "SBFrame_GuessLanguage", _wrap_SBFrame_GuessLanguage, METH_VARARGS, (char *)"\n"
 		"SBFrame_GuessLanguage(SBFrame self) -> lldb::LanguageType\n"
 		"\n"
+=======
+	 { (char *)"SBFrame_GuessLanguage", _wrap_SBFrame_GuessLanguage, METH_VARARGS, (char *)"\n"
+		"SBFrame_GuessLanguage(SBFrame self) -> lldb::LanguageType\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"/// Returns the language of the frame's SBFunction, or if there.\n"
-		"/// is no SBFunction, guess the language from the mangled name.\n"
-		"/// .\n"
 		"\n"
+		"Returns the language of the frame's SBFunction, or if there.\n"
+		"is no SBFunction, guess the language from the mangled name.\n"
+		".\n"
 		""},
 	 { "SBFrame_IsSwiftThunk", _wrap_SBFrame_IsSwiftThunk, METH_VARARGS, (char *)"SBFrame_IsSwiftThunk(SBFrame self) -> bool"},
 	 { "SBFrame_IsInlined", _wrap_SBFrame_IsInlined, METH_VARARGS, (char *)"\n"
 		"IsInlined() -> bool\n"
 		"SBFrame_IsInlined(SBFrame self) -> bool\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"/// Return true if this frame represents an inlined function.\n"
 		"///\n"
 		"/// See also GetFunctionName().\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Return true if this frame represents an inlined function.\n"
+		"\n"
+		"See also GetFunctionName().\n"
 		""},
 	 { "SBFrame_IsArtificial", _wrap_SBFrame_IsArtificial, METH_VARARGS, (char *)"\n"
 		"IsArtificial() -> bool\n"
 		"SBFrame_IsArtificial(SBFrame self) -> bool\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"/// Return true if this frame is artificial (e.g a frame synthesized to\n"
 		"/// capture a tail call). Local variables may not be available in an artificial\n"
 		"/// frame.\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Return true if this frame is artificial (e.g a frame synthesized to\n"
+		"capture a tail call). Local variables may not be available in an artificial\n"
+		"frame.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBFrame_EvaluateExpression", _wrap_SBFrame_EvaluateExpression, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBFrame_EvaluateExpression", _wrap_SBFrame_EvaluateExpression, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"EvaluateExpression(char const * expr) -> SBValue\n"
 		"EvaluateExpression(char const * expr, lldb::DynamicValueType use_dynamic) -> SBValue\n"
 		"EvaluateExpression(char const * expr, lldb::DynamicValueType use_dynamic, bool unwind_on_error) -> SBValue\n"
 		"SBFrame_EvaluateExpression(SBFrame self, char const * expr, SBExpressionOptions options) -> SBValue\n"
+<<<<<<< HEAD
+		"\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"\n"
-		"/// The version that doesn't supply a 'use_dynamic' value will use the\n"
-		"/// target's default.\n"
-		"\n"
+		"The version that doesn't supply a 'use_dynamic' value will use the\n"
+		"target's default.\n"
 		""},
 	 { "SBFrame_GetFrameBlock", _wrap_SBFrame_GetFrameBlock, METH_VARARGS, (char *)"\n"
 		"SBFrame_GetFrameBlock(SBFrame self) -> SBBlock\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"/// Gets the lexical block that defines the stack frame. Another way to think\n"
 		"/// of this is it will return the block that contains all of the variables\n"
@@ -79827,72 +81561,122 @@ static PyMethodDef SwigMethods[] = {
 		"/// in one of those inlined functions, this method will return the inlined\n"
 		"/// block that defines this frame. If the PC isn't currently in an inlined\n"
 		"/// function, the lexical block that defines the function is returned.\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Gets the lexical block that defines the stack frame. Another way to think\n"
+		"of this is it will return the block that contains all of the variables\n"
+		"for a stack frame. Inlined functions are represented as SBBlock objects\n"
+		"that have inlined function information: the name of the inlined function,\n"
+		"where it was called from. The block that is returned will be the first\n"
+		"block at or above the block for the PC (SBFrame::GetBlock()) that defines\n"
+		"the scope of the frame. When a function contains no inlined functions,\n"
+		"this will be the top most lexical block that defines the function.\n"
+		"When a function has inlined functions and the PC is currently\n"
+		"in one of those inlined functions, this method will return the inlined\n"
+		"block that defines this frame. If the PC isn't currently in an inlined\n"
+		"function, the lexical block that defines the function is returned.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBFrame_GetLineEntry", _wrap_SBFrame_GetLineEntry, METH_VARARGS, (char *)"SBFrame_GetLineEntry(SBFrame self) -> SBLineEntry"},
 	 { "SBFrame_GetThread", _wrap_SBFrame_GetThread, METH_VARARGS, (char *)"SBFrame_GetThread(SBFrame self) -> SBThread"},
 	 { "SBFrame_Disassemble", _wrap_SBFrame_Disassemble, METH_VARARGS, (char *)"SBFrame_Disassemble(SBFrame self) -> char const *"},
 	 { "SBFrame_Clear", _wrap_SBFrame_Clear, METH_VARARGS, (char *)"SBFrame_Clear(SBFrame self)"},
 	 { "SBFrame_GetVariables", _wrap_SBFrame_GetVariables, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBFrame_GetLineEntry", _wrap_SBFrame_GetLineEntry, METH_VARARGS, (char *)"SBFrame_GetLineEntry(SBFrame self) -> SBLineEntry"},
+	 { (char *)"SBFrame_GetThread", _wrap_SBFrame_GetThread, METH_VARARGS, (char *)"SBFrame_GetThread(SBFrame self) -> SBThread"},
+	 { (char *)"SBFrame_Disassemble", _wrap_SBFrame_Disassemble, METH_VARARGS, (char *)"SBFrame_Disassemble(SBFrame self) -> char const *"},
+	 { (char *)"SBFrame_Clear", _wrap_SBFrame_Clear, METH_VARARGS, (char *)"SBFrame_Clear(SBFrame self)"},
+	 { (char *)"SBFrame___eq__", _wrap_SBFrame___eq__, METH_VARARGS, (char *)"SBFrame___eq__(SBFrame self, SBFrame rhs) -> bool"},
+	 { (char *)"SBFrame___ne__", _wrap_SBFrame___ne__, METH_VARARGS, (char *)"SBFrame___ne__(SBFrame self, SBFrame rhs) -> bool"},
+	 { (char *)"SBFrame_GetVariables", _wrap_SBFrame_GetVariables, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"GetVariables(bool arguments, bool locals, bool statics, bool in_scope_only) -> SBValueList\n"
 		"GetVariables(bool arguments, bool locals, bool statics, bool in_scope_only, lldb::DynamicValueType use_dynamic) -> SBValueList\n"
 		"SBFrame_GetVariables(SBFrame self, SBVariablesOptions options) -> SBValueList\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"/// The version that doesn't supply a 'use_dynamic' value will use the\n"
 		"/// target's default.\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"The version that doesn't supply a 'use_dynamic' value will use the\n"
+		"target's default.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBFrame_GetRegisters", _wrap_SBFrame_GetRegisters, METH_VARARGS, (char *)"SBFrame_GetRegisters(SBFrame self) -> SBValueList"},
 	 { "SBFrame_FindVariable", _wrap_SBFrame_FindVariable, METH_VARARGS, (char *)"\n"
 		"FindVariable(char const * var_name) -> SBValue\n"
 		"SBFrame_FindVariable(SBFrame self, char const * var_name, lldb::DynamicValueType use_dynamic) -> SBValue\n"
 		"\n"
+=======
+	 { (char *)"SBFrame_GetRegisters", _wrap_SBFrame_GetRegisters, METH_VARARGS, (char *)"SBFrame_GetRegisters(SBFrame self) -> SBValueList"},
+	 { (char *)"SBFrame_FindVariable", _wrap_SBFrame_FindVariable, METH_VARARGS, (char *)"\n"
+		"FindVariable(char const * var_name) -> SBValue\n"
+		"SBFrame_FindVariable(SBFrame self, char const * var_name, lldb::DynamicValueType use_dynamic) -> SBValue\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"/// The version that doesn't supply a 'use_dynamic' value will use the\n"
-		"/// target's default.\n"
 		"\n"
+		"The version that doesn't supply a 'use_dynamic' value will use the\n"
+		"target's default.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBFrame_FindRegister", _wrap_SBFrame_FindRegister, METH_VARARGS, (char *)"SBFrame_FindRegister(SBFrame self, char const * name) -> SBValue"},
 	 { "SBFrame_GetValueForVariablePath", _wrap_SBFrame_GetValueForVariablePath, METH_VARARGS, (char *)"\n"
 		"GetValueForVariablePath(char const * var_path) -> SBValue\n"
 		"SBFrame_GetValueForVariablePath(SBFrame self, char const * var_path, lldb::DynamicValueType use_dynamic) -> SBValue\n"
 		"\n"
+=======
+	 { (char *)"SBFrame_FindRegister", _wrap_SBFrame_FindRegister, METH_VARARGS, (char *)"SBFrame_FindRegister(SBFrame self, char const * name) -> SBValue"},
+	 { (char *)"SBFrame_GetValueForVariablePath", _wrap_SBFrame_GetValueForVariablePath, METH_VARARGS, (char *)"\n"
+		"GetValueForVariablePath(char const * var_path) -> SBValue\n"
+		"SBFrame_GetValueForVariablePath(SBFrame self, char const * var_path, lldb::DynamicValueType use_dynamic) -> SBValue\n"
 		"\n"
-		"/// Get a lldb.SBValue for a variable path. \n"
-		"///\n"
-		"/// Variable paths can include access to pointer or instance members:\n"
-		"///     rect_ptr->origin.y\n"
-		"///     pt.x\n"
-		"/// Pointer dereferences:\n"
-		"///     *this->foo_ptr\n"
-		"///     **argv\n"
-		"/// Address of:\n"
-		"///     &pt\n"
-		"///     &my_array[3].x\n"
-		"/// Array accesses and treating pointers as arrays:\n"
-		"///     int_array[1]\n"
-		"///     pt_ptr[22].x\n"
-		"///\n"
-		"/// Unlike EvaluateExpression() which returns lldb.SBValue objects\n"
-		"/// with constant copies of the values at the time of evaluation,\n"
-		"/// the result of this function is a value that will continue to\n"
-		"/// track the current value of the value as execution progresses\n"
-		"/// in the current frame.\n"
 		"\n"
+		"Get a lldb.SBValue for a variable path.\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"Variable paths can include access to pointer or instance members:\n"
+		"    rect_ptr->origin.y\n"
+		"    pt.x\n"
+		"Pointer dereferences:\n"
+		"    *this->foo_ptr\n"
+		"    **argv\n"
+		"Address of:\n"
+		"    &pt\n"
+		"    &my_array[3].x\n"
+		"Array accesses and treating pointers as arrays:\n"
+		"    int_array[1]\n"
+		"    pt_ptr[22].x\n"
+		"\n"
+		"Unlike EvaluateExpression() which returns lldb.SBValue objects\n"
+		"with constant copies of the values at the time of evaluation,\n"
+		"the result of this function is a value that will continue to\n"
+		"track the current value of the value as execution progresses\n"
+		"in the current frame.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBFrame_FindValue", _wrap_SBFrame_FindValue, METH_VARARGS, (char *)"\n"
 		"FindValue(char const * name, lldb::ValueType value_type) -> SBValue\n"
 		"SBFrame_FindValue(SBFrame self, char const * name, lldb::ValueType value_type, lldb::DynamicValueType use_dynamic) -> SBValue\n"
 		"\n"
+=======
+	 { (char *)"SBFrame_FindValue", _wrap_SBFrame_FindValue, METH_VARARGS, (char *)"\n"
+		"FindValue(char const * name, lldb::ValueType value_type) -> SBValue\n"
+		"SBFrame_FindValue(SBFrame self, char const * name, lldb::ValueType value_type, lldb::DynamicValueType use_dynamic) -> SBValue\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"/// Find variables, register sets, registers, or persistent variables using\n"
-		"/// the frame as the scope.\n"
-		"///\n"
-		"/// The version that doesn't supply a 'use_dynamic' value will use the\n"
-		"/// target's default.\n"
 		"\n"
+		"Find variables, register sets, registers, or persistent variables using\n"
+		"the frame as the scope.\n"
+		"\n"
+		"The version that doesn't supply a 'use_dynamic' value will use the\n"
+		"target's default.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBFrame_GetDescription", _wrap_SBFrame_GetDescription, METH_VARARGS, (char *)"SBFrame_GetDescription(SBFrame self, SBStream description) -> bool"},
 	 { "SBFrame___str__", _wrap_SBFrame___str__, METH_VARARGS, (char *)"SBFrame___str__(SBFrame self) -> PyObject *"},
 	 { "SBFrame_swigregister", SBFrame_swigregister, METH_VARARGS, NULL},
@@ -79918,16 +81702,44 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBFunction_GetBlock", _wrap_SBFunction_GetBlock, METH_VARARGS, (char *)"SBFunction_GetBlock(SBFunction self) -> SBBlock"},
 	 { "SBFunction_GetLanguage", _wrap_SBFunction_GetLanguage, METH_VARARGS, (char *)"SBFunction_GetLanguage(SBFunction self) -> lldb::LanguageType"},
 	 { "SBFunction_GetIsOptimized", _wrap_SBFunction_GetIsOptimized, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBFrame_GetDescription", _wrap_SBFrame_GetDescription, METH_VARARGS, (char *)"SBFrame_GetDescription(SBFrame self, SBStream description) -> bool"},
+	 { (char *)"SBFrame___str__", _wrap_SBFrame___str__, METH_VARARGS, (char *)"SBFrame___str__(SBFrame self) -> PyObject *"},
+	 { (char *)"SBFrame_swigregister", SBFrame_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBFunction", _wrap_new_SBFunction, METH_VARARGS, (char *)"\n"
+		"SBFunction()\n"
+		"new_SBFunction(SBFunction rhs) -> SBFunction\n"
+		""},
+	 { (char *)"delete_SBFunction", _wrap_delete_SBFunction, METH_VARARGS, (char *)"delete_SBFunction(SBFunction self)"},
+	 { (char *)"SBFunction_IsValid", _wrap_SBFunction_IsValid, METH_VARARGS, (char *)"SBFunction_IsValid(SBFunction self) -> bool"},
+	 { (char *)"SBFunction___nonzero__", _wrap_SBFunction___nonzero__, METH_VARARGS, (char *)"SBFunction___nonzero__(SBFunction self) -> bool"},
+	 { (char *)"SBFunction_GetName", _wrap_SBFunction_GetName, METH_VARARGS, (char *)"SBFunction_GetName(SBFunction self) -> char const *"},
+	 { (char *)"SBFunction_GetDisplayName", _wrap_SBFunction_GetDisplayName, METH_VARARGS, (char *)"SBFunction_GetDisplayName(SBFunction self) -> char const *"},
+	 { (char *)"SBFunction_GetMangledName", _wrap_SBFunction_GetMangledName, METH_VARARGS, (char *)"SBFunction_GetMangledName(SBFunction self) -> char const *"},
+	 { (char *)"SBFunction_GetInstructions", _wrap_SBFunction_GetInstructions, METH_VARARGS, (char *)"\n"
+		"GetInstructions(SBTarget target) -> SBInstructionList\n"
+		"SBFunction_GetInstructions(SBFunction self, SBTarget target, char const * flavor) -> SBInstructionList\n"
+		""},
+	 { (char *)"SBFunction_GetStartAddress", _wrap_SBFunction_GetStartAddress, METH_VARARGS, (char *)"SBFunction_GetStartAddress(SBFunction self) -> SBAddress"},
+	 { (char *)"SBFunction_GetEndAddress", _wrap_SBFunction_GetEndAddress, METH_VARARGS, (char *)"SBFunction_GetEndAddress(SBFunction self) -> SBAddress"},
+	 { (char *)"SBFunction_GetArgumentName", _wrap_SBFunction_GetArgumentName, METH_VARARGS, (char *)"SBFunction_GetArgumentName(SBFunction self, uint32_t arg_idx) -> char const *"},
+	 { (char *)"SBFunction_GetPrologueByteSize", _wrap_SBFunction_GetPrologueByteSize, METH_VARARGS, (char *)"SBFunction_GetPrologueByteSize(SBFunction self) -> uint32_t"},
+	 { (char *)"SBFunction_GetType", _wrap_SBFunction_GetType, METH_VARARGS, (char *)"SBFunction_GetType(SBFunction self) -> SBType"},
+	 { (char *)"SBFunction_GetBlock", _wrap_SBFunction_GetBlock, METH_VARARGS, (char *)"SBFunction_GetBlock(SBFunction self) -> SBBlock"},
+	 { (char *)"SBFunction_GetLanguage", _wrap_SBFunction_GetLanguage, METH_VARARGS, (char *)"SBFunction_GetLanguage(SBFunction self) -> lldb::LanguageType"},
+	 { (char *)"SBFunction_GetIsOptimized", _wrap_SBFunction_GetIsOptimized, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBFunction_GetIsOptimized(SBFunction self) -> bool\n"
 		"\n"
 		"\n"
 		"Returns true if the function was compiled with optimization.\n"
 		"Optimization, in this case, is meant to indicate that the debugger\n"
 		"experience may be confusing for the user -- variables optimized away,\n"
-		"stepping jumping between source lines -- and the driver may want to \n"
+		"stepping jumping between source lines -- and the driver may want to\n"
 		"provide some guidance to the user about this.\n"
 		"Returns false if unoptimized, or unknown.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBFunction_GetCanThrow", _wrap_SBFunction_GetCanThrow, METH_VARARGS, (char *)"SBFunction_GetCanThrow(SBFunction self) -> bool"},
 	 { "SBFunction_GetDescription", _wrap_SBFunction_GetDescription, METH_VARARGS, (char *)"SBFunction_GetDescription(SBFunction self, SBStream description) -> bool"},
 	 { "SBFunction___eq__", _wrap_SBFunction___eq__, METH_VARARGS, (char *)"SBFunction___eq__(SBFunction self, SBFunction rhs) -> bool"},
@@ -80053,10 +81865,138 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBLineEntry___str__", _wrap_SBLineEntry___str__, METH_VARARGS, (char *)"SBLineEntry___str__(SBLineEntry self) -> PyObject *"},
 	 { "SBLineEntry_swigregister", SBLineEntry_swigregister, METH_VARARGS, NULL},
 	 { "new_SBListener", _wrap_new_SBListener, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBFunction_GetCanThrow", _wrap_SBFunction_GetCanThrow, METH_VARARGS, (char *)"SBFunction_GetCanThrow(SBFunction self) -> bool"},
+	 { (char *)"SBFunction_GetDescription", _wrap_SBFunction_GetDescription, METH_VARARGS, (char *)"SBFunction_GetDescription(SBFunction self, SBStream description) -> bool"},
+	 { (char *)"SBFunction___eq__", _wrap_SBFunction___eq__, METH_VARARGS, (char *)"SBFunction___eq__(SBFunction self, SBFunction rhs) -> bool"},
+	 { (char *)"SBFunction___ne__", _wrap_SBFunction___ne__, METH_VARARGS, (char *)"SBFunction___ne__(SBFunction self, SBFunction rhs) -> bool"},
+	 { (char *)"SBFunction___str__", _wrap_SBFunction___str__, METH_VARARGS, (char *)"SBFunction___str__(SBFunction self) -> PyObject *"},
+	 { (char *)"SBFunction_swigregister", SBFunction_swigregister, METH_VARARGS, NULL},
+	 { (char *)"SBHostOS_GetProgramFileSpec", _wrap_SBHostOS_GetProgramFileSpec, METH_VARARGS, (char *)"SBHostOS_GetProgramFileSpec() -> SBFileSpec"},
+	 { (char *)"SBHostOS_GetLLDBPythonPath", _wrap_SBHostOS_GetLLDBPythonPath, METH_VARARGS, (char *)"SBHostOS_GetLLDBPythonPath() -> SBFileSpec"},
+	 { (char *)"SBHostOS_GetLLDBPath", _wrap_SBHostOS_GetLLDBPath, METH_VARARGS, (char *)"SBHostOS_GetLLDBPath(lldb::PathType path_type) -> SBFileSpec"},
+	 { (char *)"SBHostOS_GetUserHomeDirectory", _wrap_SBHostOS_GetUserHomeDirectory, METH_VARARGS, (char *)"SBHostOS_GetUserHomeDirectory() -> SBFileSpec"},
+	 { (char *)"SBHostOS_ThreadCreated", _wrap_SBHostOS_ThreadCreated, METH_VARARGS, (char *)"SBHostOS_ThreadCreated(char const * name)"},
+	 { (char *)"SBHostOS_ThreadCreate", _wrap_SBHostOS_ThreadCreate, METH_VARARGS, (char *)"SBHostOS_ThreadCreate(char const * name, lldb::thread_func_t arg3, void * thread_arg, SBError err) -> lldb::thread_t"},
+	 { (char *)"SBHostOS_ThreadCancel", _wrap_SBHostOS_ThreadCancel, METH_VARARGS, (char *)"SBHostOS_ThreadCancel(lldb::thread_t thread, SBError err) -> bool"},
+	 { (char *)"SBHostOS_ThreadDetach", _wrap_SBHostOS_ThreadDetach, METH_VARARGS, (char *)"SBHostOS_ThreadDetach(lldb::thread_t thread, SBError err) -> bool"},
+	 { (char *)"SBHostOS_ThreadJoin", _wrap_SBHostOS_ThreadJoin, METH_VARARGS, (char *)"SBHostOS_ThreadJoin(lldb::thread_t thread, lldb::thread_result_t * result, SBError err) -> bool"},
+	 { (char *)"new_SBHostOS", _wrap_new_SBHostOS, METH_VARARGS, (char *)"new_SBHostOS() -> SBHostOS"},
+	 { (char *)"delete_SBHostOS", _wrap_delete_SBHostOS, METH_VARARGS, (char *)"delete_SBHostOS(SBHostOS self)"},
+	 { (char *)"SBHostOS_swigregister", SBHostOS_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBInstruction", _wrap_new_SBInstruction, METH_VARARGS, (char *)"\n"
+		"SBInstruction()\n"
+		"new_SBInstruction(SBInstruction rhs) -> SBInstruction\n"
+		""},
+	 { (char *)"delete_SBInstruction", _wrap_delete_SBInstruction, METH_VARARGS, (char *)"delete_SBInstruction(SBInstruction self)"},
+	 { (char *)"SBInstruction_IsValid", _wrap_SBInstruction_IsValid, METH_VARARGS, (char *)"SBInstruction_IsValid(SBInstruction self) -> bool"},
+	 { (char *)"SBInstruction___nonzero__", _wrap_SBInstruction___nonzero__, METH_VARARGS, (char *)"SBInstruction___nonzero__(SBInstruction self) -> bool"},
+	 { (char *)"SBInstruction_GetAddress", _wrap_SBInstruction_GetAddress, METH_VARARGS, (char *)"SBInstruction_GetAddress(SBInstruction self) -> SBAddress"},
+	 { (char *)"SBInstruction_GetMnemonic", _wrap_SBInstruction_GetMnemonic, METH_VARARGS, (char *)"SBInstruction_GetMnemonic(SBInstruction self, SBTarget target) -> char const *"},
+	 { (char *)"SBInstruction_GetOperands", _wrap_SBInstruction_GetOperands, METH_VARARGS, (char *)"SBInstruction_GetOperands(SBInstruction self, SBTarget target) -> char const *"},
+	 { (char *)"SBInstruction_GetComment", _wrap_SBInstruction_GetComment, METH_VARARGS, (char *)"SBInstruction_GetComment(SBInstruction self, SBTarget target) -> char const *"},
+	 { (char *)"SBInstruction_GetData", _wrap_SBInstruction_GetData, METH_VARARGS, (char *)"SBInstruction_GetData(SBInstruction self, SBTarget target) -> SBData"},
+	 { (char *)"SBInstruction_GetByteSize", _wrap_SBInstruction_GetByteSize, METH_VARARGS, (char *)"SBInstruction_GetByteSize(SBInstruction self) -> size_t"},
+	 { (char *)"SBInstruction_DoesBranch", _wrap_SBInstruction_DoesBranch, METH_VARARGS, (char *)"SBInstruction_DoesBranch(SBInstruction self) -> bool"},
+	 { (char *)"SBInstruction_HasDelaySlot", _wrap_SBInstruction_HasDelaySlot, METH_VARARGS, (char *)"SBInstruction_HasDelaySlot(SBInstruction self) -> bool"},
+	 { (char *)"SBInstruction_CanSetBreakpoint", _wrap_SBInstruction_CanSetBreakpoint, METH_VARARGS, (char *)"SBInstruction_CanSetBreakpoint(SBInstruction self) -> bool"},
+	 { (char *)"SBInstruction_Print", _wrap_SBInstruction_Print, METH_VARARGS, (char *)"SBInstruction_Print(SBInstruction self, FILE * out)"},
+	 { (char *)"SBInstruction_GetDescription", _wrap_SBInstruction_GetDescription, METH_VARARGS, (char *)"SBInstruction_GetDescription(SBInstruction self, SBStream description) -> bool"},
+	 { (char *)"SBInstruction_EmulateWithFrame", _wrap_SBInstruction_EmulateWithFrame, METH_VARARGS, (char *)"SBInstruction_EmulateWithFrame(SBInstruction self, SBFrame frame, uint32_t evaluate_options) -> bool"},
+	 { (char *)"SBInstruction_DumpEmulation", _wrap_SBInstruction_DumpEmulation, METH_VARARGS, (char *)"SBInstruction_DumpEmulation(SBInstruction self, char const * triple) -> bool"},
+	 { (char *)"SBInstruction_TestEmulation", _wrap_SBInstruction_TestEmulation, METH_VARARGS, (char *)"SBInstruction_TestEmulation(SBInstruction self, SBStream output_stream, char const * test_file) -> bool"},
+	 { (char *)"SBInstruction___str__", _wrap_SBInstruction___str__, METH_VARARGS, (char *)"SBInstruction___str__(SBInstruction self) -> PyObject *"},
+	 { (char *)"SBInstruction_swigregister", SBInstruction_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBInstructionList", _wrap_new_SBInstructionList, METH_VARARGS, (char *)"\n"
+		"SBInstructionList()\n"
+		"new_SBInstructionList(SBInstructionList rhs) -> SBInstructionList\n"
+		""},
+	 { (char *)"delete_SBInstructionList", _wrap_delete_SBInstructionList, METH_VARARGS, (char *)"delete_SBInstructionList(SBInstructionList self)"},
+	 { (char *)"SBInstructionList_IsValid", _wrap_SBInstructionList_IsValid, METH_VARARGS, (char *)"SBInstructionList_IsValid(SBInstructionList self) -> bool"},
+	 { (char *)"SBInstructionList___nonzero__", _wrap_SBInstructionList___nonzero__, METH_VARARGS, (char *)"SBInstructionList___nonzero__(SBInstructionList self) -> bool"},
+	 { (char *)"SBInstructionList_GetSize", _wrap_SBInstructionList_GetSize, METH_VARARGS, (char *)"SBInstructionList_GetSize(SBInstructionList self) -> size_t"},
+	 { (char *)"SBInstructionList_GetInstructionAtIndex", _wrap_SBInstructionList_GetInstructionAtIndex, METH_VARARGS, (char *)"SBInstructionList_GetInstructionAtIndex(SBInstructionList self, uint32_t idx) -> SBInstruction"},
+	 { (char *)"SBInstructionList_GetInstructionsCount", _wrap_SBInstructionList_GetInstructionsCount, METH_VARARGS, (char *)"SBInstructionList_GetInstructionsCount(SBInstructionList self, SBAddress start, SBAddress end, bool canSetBreakpoint) -> size_t"},
+	 { (char *)"SBInstructionList_Clear", _wrap_SBInstructionList_Clear, METH_VARARGS, (char *)"SBInstructionList_Clear(SBInstructionList self)"},
+	 { (char *)"SBInstructionList_AppendInstruction", _wrap_SBInstructionList_AppendInstruction, METH_VARARGS, (char *)"SBInstructionList_AppendInstruction(SBInstructionList self, SBInstruction inst)"},
+	 { (char *)"SBInstructionList_Print", _wrap_SBInstructionList_Print, METH_VARARGS, (char *)"SBInstructionList_Print(SBInstructionList self, FILE * out)"},
+	 { (char *)"SBInstructionList_GetDescription", _wrap_SBInstructionList_GetDescription, METH_VARARGS, (char *)"SBInstructionList_GetDescription(SBInstructionList self, SBStream description) -> bool"},
+	 { (char *)"SBInstructionList_DumpEmulationForAllInstructions", _wrap_SBInstructionList_DumpEmulationForAllInstructions, METH_VARARGS, (char *)"SBInstructionList_DumpEmulationForAllInstructions(SBInstructionList self, char const * triple) -> bool"},
+	 { (char *)"SBInstructionList___str__", _wrap_SBInstructionList___str__, METH_VARARGS, (char *)"SBInstructionList___str__(SBInstructionList self) -> PyObject *"},
+	 { (char *)"SBInstructionList_swigregister", SBInstructionList_swigregister, METH_VARARGS, NULL},
+	 { (char *)"SBLanguageRuntime_GetLanguageTypeFromString", _wrap_SBLanguageRuntime_GetLanguageTypeFromString, METH_VARARGS, (char *)"SBLanguageRuntime_GetLanguageTypeFromString(char const * string) -> lldb::LanguageType"},
+	 { (char *)"SBLanguageRuntime_GetNameForLanguageType", _wrap_SBLanguageRuntime_GetNameForLanguageType, METH_VARARGS, (char *)"SBLanguageRuntime_GetNameForLanguageType(lldb::LanguageType language) -> char const *"},
+	 { (char *)"new_SBLanguageRuntime", _wrap_new_SBLanguageRuntime, METH_VARARGS, (char *)"new_SBLanguageRuntime() -> SBLanguageRuntime"},
+	 { (char *)"delete_SBLanguageRuntime", _wrap_delete_SBLanguageRuntime, METH_VARARGS, (char *)"delete_SBLanguageRuntime(SBLanguageRuntime self)"},
+	 { (char *)"SBLanguageRuntime_swigregister", SBLanguageRuntime_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBLaunchInfo", _wrap_new_SBLaunchInfo, METH_VARARGS, (char *)"new_SBLaunchInfo(char const ** argv) -> SBLaunchInfo"},
+	 { (char *)"SBLaunchInfo_GetProcessID", _wrap_SBLaunchInfo_GetProcessID, METH_VARARGS, (char *)"SBLaunchInfo_GetProcessID(SBLaunchInfo self) -> lldb::pid_t"},
+	 { (char *)"SBLaunchInfo_GetUserID", _wrap_SBLaunchInfo_GetUserID, METH_VARARGS, (char *)"SBLaunchInfo_GetUserID(SBLaunchInfo self) -> uint32_t"},
+	 { (char *)"SBLaunchInfo_GetGroupID", _wrap_SBLaunchInfo_GetGroupID, METH_VARARGS, (char *)"SBLaunchInfo_GetGroupID(SBLaunchInfo self) -> uint32_t"},
+	 { (char *)"SBLaunchInfo_UserIDIsValid", _wrap_SBLaunchInfo_UserIDIsValid, METH_VARARGS, (char *)"SBLaunchInfo_UserIDIsValid(SBLaunchInfo self) -> bool"},
+	 { (char *)"SBLaunchInfo_GroupIDIsValid", _wrap_SBLaunchInfo_GroupIDIsValid, METH_VARARGS, (char *)"SBLaunchInfo_GroupIDIsValid(SBLaunchInfo self) -> bool"},
+	 { (char *)"SBLaunchInfo_SetUserID", _wrap_SBLaunchInfo_SetUserID, METH_VARARGS, (char *)"SBLaunchInfo_SetUserID(SBLaunchInfo self, uint32_t uid)"},
+	 { (char *)"SBLaunchInfo_SetGroupID", _wrap_SBLaunchInfo_SetGroupID, METH_VARARGS, (char *)"SBLaunchInfo_SetGroupID(SBLaunchInfo self, uint32_t gid)"},
+	 { (char *)"SBLaunchInfo_GetExecutableFile", _wrap_SBLaunchInfo_GetExecutableFile, METH_VARARGS, (char *)"SBLaunchInfo_GetExecutableFile(SBLaunchInfo self) -> SBFileSpec"},
+	 { (char *)"SBLaunchInfo_SetExecutableFile", _wrap_SBLaunchInfo_SetExecutableFile, METH_VARARGS, (char *)"SBLaunchInfo_SetExecutableFile(SBLaunchInfo self, SBFileSpec exe_file, bool add_as_first_arg)"},
+	 { (char *)"SBLaunchInfo_GetListener", _wrap_SBLaunchInfo_GetListener, METH_VARARGS, (char *)"SBLaunchInfo_GetListener(SBLaunchInfo self) -> SBListener"},
+	 { (char *)"SBLaunchInfo_SetListener", _wrap_SBLaunchInfo_SetListener, METH_VARARGS, (char *)"SBLaunchInfo_SetListener(SBLaunchInfo self, SBListener listener)"},
+	 { (char *)"SBLaunchInfo_GetNumArguments", _wrap_SBLaunchInfo_GetNumArguments, METH_VARARGS, (char *)"SBLaunchInfo_GetNumArguments(SBLaunchInfo self) -> uint32_t"},
+	 { (char *)"SBLaunchInfo_GetArgumentAtIndex", _wrap_SBLaunchInfo_GetArgumentAtIndex, METH_VARARGS, (char *)"SBLaunchInfo_GetArgumentAtIndex(SBLaunchInfo self, uint32_t idx) -> char const *"},
+	 { (char *)"SBLaunchInfo_SetArguments", _wrap_SBLaunchInfo_SetArguments, METH_VARARGS, (char *)"SBLaunchInfo_SetArguments(SBLaunchInfo self, char const ** argv, bool append)"},
+	 { (char *)"SBLaunchInfo_GetNumEnvironmentEntries", _wrap_SBLaunchInfo_GetNumEnvironmentEntries, METH_VARARGS, (char *)"SBLaunchInfo_GetNumEnvironmentEntries(SBLaunchInfo self) -> uint32_t"},
+	 { (char *)"SBLaunchInfo_GetEnvironmentEntryAtIndex", _wrap_SBLaunchInfo_GetEnvironmentEntryAtIndex, METH_VARARGS, (char *)"SBLaunchInfo_GetEnvironmentEntryAtIndex(SBLaunchInfo self, uint32_t idx) -> char const *"},
+	 { (char *)"SBLaunchInfo_SetEnvironmentEntries", _wrap_SBLaunchInfo_SetEnvironmentEntries, METH_VARARGS, (char *)"SBLaunchInfo_SetEnvironmentEntries(SBLaunchInfo self, char const ** envp, bool append)"},
+	 { (char *)"SBLaunchInfo_Clear", _wrap_SBLaunchInfo_Clear, METH_VARARGS, (char *)"SBLaunchInfo_Clear(SBLaunchInfo self)"},
+	 { (char *)"SBLaunchInfo_GetWorkingDirectory", _wrap_SBLaunchInfo_GetWorkingDirectory, METH_VARARGS, (char *)"SBLaunchInfo_GetWorkingDirectory(SBLaunchInfo self) -> char const *"},
+	 { (char *)"SBLaunchInfo_SetWorkingDirectory", _wrap_SBLaunchInfo_SetWorkingDirectory, METH_VARARGS, (char *)"SBLaunchInfo_SetWorkingDirectory(SBLaunchInfo self, char const * working_dir)"},
+	 { (char *)"SBLaunchInfo_GetLaunchFlags", _wrap_SBLaunchInfo_GetLaunchFlags, METH_VARARGS, (char *)"SBLaunchInfo_GetLaunchFlags(SBLaunchInfo self) -> uint32_t"},
+	 { (char *)"SBLaunchInfo_SetLaunchFlags", _wrap_SBLaunchInfo_SetLaunchFlags, METH_VARARGS, (char *)"SBLaunchInfo_SetLaunchFlags(SBLaunchInfo self, uint32_t flags)"},
+	 { (char *)"SBLaunchInfo_GetProcessPluginName", _wrap_SBLaunchInfo_GetProcessPluginName, METH_VARARGS, (char *)"SBLaunchInfo_GetProcessPluginName(SBLaunchInfo self) -> char const *"},
+	 { (char *)"SBLaunchInfo_SetProcessPluginName", _wrap_SBLaunchInfo_SetProcessPluginName, METH_VARARGS, (char *)"SBLaunchInfo_SetProcessPluginName(SBLaunchInfo self, char const * plugin_name)"},
+	 { (char *)"SBLaunchInfo_GetShell", _wrap_SBLaunchInfo_GetShell, METH_VARARGS, (char *)"SBLaunchInfo_GetShell(SBLaunchInfo self) -> char const *"},
+	 { (char *)"SBLaunchInfo_SetShell", _wrap_SBLaunchInfo_SetShell, METH_VARARGS, (char *)"SBLaunchInfo_SetShell(SBLaunchInfo self, char const * path)"},
+	 { (char *)"SBLaunchInfo_GetShellExpandArguments", _wrap_SBLaunchInfo_GetShellExpandArguments, METH_VARARGS, (char *)"SBLaunchInfo_GetShellExpandArguments(SBLaunchInfo self) -> bool"},
+	 { (char *)"SBLaunchInfo_SetShellExpandArguments", _wrap_SBLaunchInfo_SetShellExpandArguments, METH_VARARGS, (char *)"SBLaunchInfo_SetShellExpandArguments(SBLaunchInfo self, bool expand)"},
+	 { (char *)"SBLaunchInfo_GetResumeCount", _wrap_SBLaunchInfo_GetResumeCount, METH_VARARGS, (char *)"SBLaunchInfo_GetResumeCount(SBLaunchInfo self) -> uint32_t"},
+	 { (char *)"SBLaunchInfo_SetResumeCount", _wrap_SBLaunchInfo_SetResumeCount, METH_VARARGS, (char *)"SBLaunchInfo_SetResumeCount(SBLaunchInfo self, uint32_t c)"},
+	 { (char *)"SBLaunchInfo_AddCloseFileAction", _wrap_SBLaunchInfo_AddCloseFileAction, METH_VARARGS, (char *)"SBLaunchInfo_AddCloseFileAction(SBLaunchInfo self, int fd) -> bool"},
+	 { (char *)"SBLaunchInfo_AddDuplicateFileAction", _wrap_SBLaunchInfo_AddDuplicateFileAction, METH_VARARGS, (char *)"SBLaunchInfo_AddDuplicateFileAction(SBLaunchInfo self, int fd, int dup_fd) -> bool"},
+	 { (char *)"SBLaunchInfo_AddOpenFileAction", _wrap_SBLaunchInfo_AddOpenFileAction, METH_VARARGS, (char *)"SBLaunchInfo_AddOpenFileAction(SBLaunchInfo self, int fd, char const * path, bool read, bool write) -> bool"},
+	 { (char *)"SBLaunchInfo_AddSuppressFileAction", _wrap_SBLaunchInfo_AddSuppressFileAction, METH_VARARGS, (char *)"SBLaunchInfo_AddSuppressFileAction(SBLaunchInfo self, int fd, bool read, bool write) -> bool"},
+	 { (char *)"SBLaunchInfo_SetLaunchEventData", _wrap_SBLaunchInfo_SetLaunchEventData, METH_VARARGS, (char *)"SBLaunchInfo_SetLaunchEventData(SBLaunchInfo self, char const * data)"},
+	 { (char *)"SBLaunchInfo_GetLaunchEventData", _wrap_SBLaunchInfo_GetLaunchEventData, METH_VARARGS, (char *)"SBLaunchInfo_GetLaunchEventData(SBLaunchInfo self) -> char const *"},
+	 { (char *)"SBLaunchInfo_GetDetachOnError", _wrap_SBLaunchInfo_GetDetachOnError, METH_VARARGS, (char *)"SBLaunchInfo_GetDetachOnError(SBLaunchInfo self) -> bool"},
+	 { (char *)"SBLaunchInfo_SetDetachOnError", _wrap_SBLaunchInfo_SetDetachOnError, METH_VARARGS, (char *)"SBLaunchInfo_SetDetachOnError(SBLaunchInfo self, bool enable)"},
+	 { (char *)"delete_SBLaunchInfo", _wrap_delete_SBLaunchInfo, METH_VARARGS, (char *)"delete_SBLaunchInfo(SBLaunchInfo self)"},
+	 { (char *)"SBLaunchInfo_swigregister", SBLaunchInfo_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBLineEntry", _wrap_new_SBLineEntry, METH_VARARGS, (char *)"\n"
+		"SBLineEntry()\n"
+		"new_SBLineEntry(SBLineEntry rhs) -> SBLineEntry\n"
+		""},
+	 { (char *)"delete_SBLineEntry", _wrap_delete_SBLineEntry, METH_VARARGS, (char *)"delete_SBLineEntry(SBLineEntry self)"},
+	 { (char *)"SBLineEntry_GetStartAddress", _wrap_SBLineEntry_GetStartAddress, METH_VARARGS, (char *)"SBLineEntry_GetStartAddress(SBLineEntry self) -> SBAddress"},
+	 { (char *)"SBLineEntry_GetEndAddress", _wrap_SBLineEntry_GetEndAddress, METH_VARARGS, (char *)"SBLineEntry_GetEndAddress(SBLineEntry self) -> SBAddress"},
+	 { (char *)"SBLineEntry_IsValid", _wrap_SBLineEntry_IsValid, METH_VARARGS, (char *)"SBLineEntry_IsValid(SBLineEntry self) -> bool"},
+	 { (char *)"SBLineEntry___nonzero__", _wrap_SBLineEntry___nonzero__, METH_VARARGS, (char *)"SBLineEntry___nonzero__(SBLineEntry self) -> bool"},
+	 { (char *)"SBLineEntry_GetFileSpec", _wrap_SBLineEntry_GetFileSpec, METH_VARARGS, (char *)"SBLineEntry_GetFileSpec(SBLineEntry self) -> SBFileSpec"},
+	 { (char *)"SBLineEntry_GetLine", _wrap_SBLineEntry_GetLine, METH_VARARGS, (char *)"SBLineEntry_GetLine(SBLineEntry self) -> uint32_t"},
+	 { (char *)"SBLineEntry_GetColumn", _wrap_SBLineEntry_GetColumn, METH_VARARGS, (char *)"SBLineEntry_GetColumn(SBLineEntry self) -> uint32_t"},
+	 { (char *)"SBLineEntry_GetDescription", _wrap_SBLineEntry_GetDescription, METH_VARARGS, (char *)"SBLineEntry_GetDescription(SBLineEntry self, SBStream description) -> bool"},
+	 { (char *)"SBLineEntry_SetFileSpec", _wrap_SBLineEntry_SetFileSpec, METH_VARARGS, (char *)"SBLineEntry_SetFileSpec(SBLineEntry self, SBFileSpec filespec)"},
+	 { (char *)"SBLineEntry_SetLine", _wrap_SBLineEntry_SetLine, METH_VARARGS, (char *)"SBLineEntry_SetLine(SBLineEntry self, uint32_t line)"},
+	 { (char *)"SBLineEntry_SetColumn", _wrap_SBLineEntry_SetColumn, METH_VARARGS, (char *)"SBLineEntry_SetColumn(SBLineEntry self, uint32_t column)"},
+	 { (char *)"SBLineEntry___eq__", _wrap_SBLineEntry___eq__, METH_VARARGS, (char *)"SBLineEntry___eq__(SBLineEntry self, SBLineEntry rhs) -> bool"},
+	 { (char *)"SBLineEntry___ne__", _wrap_SBLineEntry___ne__, METH_VARARGS, (char *)"SBLineEntry___ne__(SBLineEntry self, SBLineEntry rhs) -> bool"},
+	 { (char *)"SBLineEntry___str__", _wrap_SBLineEntry___str__, METH_VARARGS, (char *)"SBLineEntry___str__(SBLineEntry self) -> PyObject *"},
+	 { (char *)"SBLineEntry_swigregister", SBLineEntry_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBListener", _wrap_new_SBListener, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBListener()\n"
 		"SBListener(char const * name)\n"
 		"new_SBListener(SBListener rhs) -> SBListener\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBListener", _wrap_delete_SBListener, METH_VARARGS, (char *)"delete_SBListener(SBListener self)"},
 	 { "SBListener_AddEvent", _wrap_SBListener_AddEvent, METH_VARARGS, (char *)"SBListener_AddEvent(SBListener self, SBEvent event)"},
 	 { "SBListener_Clear", _wrap_SBListener_Clear, METH_VARARGS, (char *)"SBListener_Clear(SBListener self)"},
@@ -80096,6 +82036,47 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBMemoryRegionInfo___str__", _wrap_SBMemoryRegionInfo___str__, METH_VARARGS, (char *)"SBMemoryRegionInfo___str__(SBMemoryRegionInfo self) -> PyObject *"},
 	 { "SBMemoryRegionInfo_swigregister", SBMemoryRegionInfo_swigregister, METH_VARARGS, NULL},
 	 { "new_SBMemoryRegionInfoList", _wrap_new_SBMemoryRegionInfoList, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBListener", _wrap_delete_SBListener, METH_VARARGS, (char *)"delete_SBListener(SBListener self)"},
+	 { (char *)"SBListener_AddEvent", _wrap_SBListener_AddEvent, METH_VARARGS, (char *)"SBListener_AddEvent(SBListener self, SBEvent event)"},
+	 { (char *)"SBListener_Clear", _wrap_SBListener_Clear, METH_VARARGS, (char *)"SBListener_Clear(SBListener self)"},
+	 { (char *)"SBListener_IsValid", _wrap_SBListener_IsValid, METH_VARARGS, (char *)"SBListener_IsValid(SBListener self) -> bool"},
+	 { (char *)"SBListener___nonzero__", _wrap_SBListener___nonzero__, METH_VARARGS, (char *)"SBListener___nonzero__(SBListener self) -> bool"},
+	 { (char *)"SBListener_StartListeningForEventClass", _wrap_SBListener_StartListeningForEventClass, METH_VARARGS, (char *)"SBListener_StartListeningForEventClass(SBListener self, SBDebugger debugger, char const * broadcaster_class, uint32_t event_mask) -> uint32_t"},
+	 { (char *)"SBListener_StopListeningForEventClass", _wrap_SBListener_StopListeningForEventClass, METH_VARARGS, (char *)"SBListener_StopListeningForEventClass(SBListener self, SBDebugger debugger, char const * broadcaster_class, uint32_t event_mask) -> uint32_t"},
+	 { (char *)"SBListener_StartListeningForEvents", _wrap_SBListener_StartListeningForEvents, METH_VARARGS, (char *)"SBListener_StartListeningForEvents(SBListener self, SBBroadcaster broadcaster, uint32_t event_mask) -> uint32_t"},
+	 { (char *)"SBListener_StopListeningForEvents", _wrap_SBListener_StopListeningForEvents, METH_VARARGS, (char *)"SBListener_StopListeningForEvents(SBListener self, SBBroadcaster broadcaster, uint32_t event_mask) -> bool"},
+	 { (char *)"SBListener_WaitForEvent", _wrap_SBListener_WaitForEvent, METH_VARARGS, (char *)"SBListener_WaitForEvent(SBListener self, uint32_t num_seconds, SBEvent event) -> bool"},
+	 { (char *)"SBListener_WaitForEventForBroadcaster", _wrap_SBListener_WaitForEventForBroadcaster, METH_VARARGS, (char *)"SBListener_WaitForEventForBroadcaster(SBListener self, uint32_t num_seconds, SBBroadcaster broadcaster, SBEvent sb_event) -> bool"},
+	 { (char *)"SBListener_WaitForEventForBroadcasterWithType", _wrap_SBListener_WaitForEventForBroadcasterWithType, METH_VARARGS, (char *)"SBListener_WaitForEventForBroadcasterWithType(SBListener self, uint32_t num_seconds, SBBroadcaster broadcaster, uint32_t event_type_mask, SBEvent sb_event) -> bool"},
+	 { (char *)"SBListener_PeekAtNextEvent", _wrap_SBListener_PeekAtNextEvent, METH_VARARGS, (char *)"SBListener_PeekAtNextEvent(SBListener self, SBEvent sb_event) -> bool"},
+	 { (char *)"SBListener_PeekAtNextEventForBroadcaster", _wrap_SBListener_PeekAtNextEventForBroadcaster, METH_VARARGS, (char *)"SBListener_PeekAtNextEventForBroadcaster(SBListener self, SBBroadcaster broadcaster, SBEvent sb_event) -> bool"},
+	 { (char *)"SBListener_PeekAtNextEventForBroadcasterWithType", _wrap_SBListener_PeekAtNextEventForBroadcasterWithType, METH_VARARGS, (char *)"SBListener_PeekAtNextEventForBroadcasterWithType(SBListener self, SBBroadcaster broadcaster, uint32_t event_type_mask, SBEvent sb_event) -> bool"},
+	 { (char *)"SBListener_GetNextEvent", _wrap_SBListener_GetNextEvent, METH_VARARGS, (char *)"SBListener_GetNextEvent(SBListener self, SBEvent sb_event) -> bool"},
+	 { (char *)"SBListener_GetNextEventForBroadcaster", _wrap_SBListener_GetNextEventForBroadcaster, METH_VARARGS, (char *)"SBListener_GetNextEventForBroadcaster(SBListener self, SBBroadcaster broadcaster, SBEvent sb_event) -> bool"},
+	 { (char *)"SBListener_GetNextEventForBroadcasterWithType", _wrap_SBListener_GetNextEventForBroadcasterWithType, METH_VARARGS, (char *)"SBListener_GetNextEventForBroadcasterWithType(SBListener self, SBBroadcaster broadcaster, uint32_t event_type_mask, SBEvent sb_event) -> bool"},
+	 { (char *)"SBListener_HandleBroadcastEvent", _wrap_SBListener_HandleBroadcastEvent, METH_VARARGS, (char *)"SBListener_HandleBroadcastEvent(SBListener self, SBEvent event) -> bool"},
+	 { (char *)"SBListener_swigregister", SBListener_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBMemoryRegionInfo", _wrap_new_SBMemoryRegionInfo, METH_VARARGS, (char *)"\n"
+		"SBMemoryRegionInfo()\n"
+		"new_SBMemoryRegionInfo(SBMemoryRegionInfo rhs) -> SBMemoryRegionInfo\n"
+		""},
+	 { (char *)"delete_SBMemoryRegionInfo", _wrap_delete_SBMemoryRegionInfo, METH_VARARGS, (char *)"delete_SBMemoryRegionInfo(SBMemoryRegionInfo self)"},
+	 { (char *)"SBMemoryRegionInfo_Clear", _wrap_SBMemoryRegionInfo_Clear, METH_VARARGS, (char *)"SBMemoryRegionInfo_Clear(SBMemoryRegionInfo self)"},
+	 { (char *)"SBMemoryRegionInfo_GetRegionBase", _wrap_SBMemoryRegionInfo_GetRegionBase, METH_VARARGS, (char *)"SBMemoryRegionInfo_GetRegionBase(SBMemoryRegionInfo self) -> lldb::addr_t"},
+	 { (char *)"SBMemoryRegionInfo_GetRegionEnd", _wrap_SBMemoryRegionInfo_GetRegionEnd, METH_VARARGS, (char *)"SBMemoryRegionInfo_GetRegionEnd(SBMemoryRegionInfo self) -> lldb::addr_t"},
+	 { (char *)"SBMemoryRegionInfo_IsReadable", _wrap_SBMemoryRegionInfo_IsReadable, METH_VARARGS, (char *)"SBMemoryRegionInfo_IsReadable(SBMemoryRegionInfo self) -> bool"},
+	 { (char *)"SBMemoryRegionInfo_IsWritable", _wrap_SBMemoryRegionInfo_IsWritable, METH_VARARGS, (char *)"SBMemoryRegionInfo_IsWritable(SBMemoryRegionInfo self) -> bool"},
+	 { (char *)"SBMemoryRegionInfo_IsExecutable", _wrap_SBMemoryRegionInfo_IsExecutable, METH_VARARGS, (char *)"SBMemoryRegionInfo_IsExecutable(SBMemoryRegionInfo self) -> bool"},
+	 { (char *)"SBMemoryRegionInfo_IsMapped", _wrap_SBMemoryRegionInfo_IsMapped, METH_VARARGS, (char *)"SBMemoryRegionInfo_IsMapped(SBMemoryRegionInfo self) -> bool"},
+	 { (char *)"SBMemoryRegionInfo_GetName", _wrap_SBMemoryRegionInfo_GetName, METH_VARARGS, (char *)"SBMemoryRegionInfo_GetName(SBMemoryRegionInfo self) -> char const *"},
+	 { (char *)"SBMemoryRegionInfo___eq__", _wrap_SBMemoryRegionInfo___eq__, METH_VARARGS, (char *)"SBMemoryRegionInfo___eq__(SBMemoryRegionInfo self, SBMemoryRegionInfo rhs) -> bool"},
+	 { (char *)"SBMemoryRegionInfo___ne__", _wrap_SBMemoryRegionInfo___ne__, METH_VARARGS, (char *)"SBMemoryRegionInfo___ne__(SBMemoryRegionInfo self, SBMemoryRegionInfo rhs) -> bool"},
+	 { (char *)"SBMemoryRegionInfo_GetDescription", _wrap_SBMemoryRegionInfo_GetDescription, METH_VARARGS, (char *)"SBMemoryRegionInfo_GetDescription(SBMemoryRegionInfo self, SBStream description) -> bool"},
+	 { (char *)"SBMemoryRegionInfo___str__", _wrap_SBMemoryRegionInfo___str__, METH_VARARGS, (char *)"SBMemoryRegionInfo___str__(SBMemoryRegionInfo self) -> PyObject *"},
+	 { (char *)"SBMemoryRegionInfo_swigregister", SBMemoryRegionInfo_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBMemoryRegionInfoList", _wrap_new_SBMemoryRegionInfoList, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBMemoryRegionInfoList()\n"
 		"new_SBMemoryRegionInfoList(SBMemoryRegionInfoList rhs) -> SBMemoryRegionInfoList\n"
 		""},
@@ -80114,6 +82095,7 @@ static PyMethodDef SwigMethods[] = {
 		"SBModule(SBModuleSpec module_spec)\n"
 		"new_SBModule(SBProcess process, lldb::addr_t header_addr) -> SBModule\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBModule", _wrap_delete_SBModule, METH_VARARGS, (char *)"delete_SBModule(SBModule self)"},
 	 { "SBModule_IsValid", _wrap_SBModule_IsValid, METH_VARARGS, (char *)"SBModule_IsValid(SBModule self) -> bool"},
 	 { "SBModule___nonzero__", _wrap_SBModule___nonzero__, METH_VARARGS, (char *)"SBModule___nonzero__(SBModule self) -> bool"},
@@ -80132,11 +82114,29 @@ static PyMethodDef SwigMethods[] = {
 		"/// @return\n"
 		"///     A const reference to the file specification object.\n"
 		"//------------------------------------------------------------------\n"
+=======
+	 { (char *)"delete_SBModule", _wrap_delete_SBModule, METH_VARARGS, (char *)"delete_SBModule(SBModule self)"},
+	 { (char *)"SBModule_IsValid", _wrap_SBModule_IsValid, METH_VARARGS, (char *)"SBModule_IsValid(SBModule self) -> bool"},
+	 { (char *)"SBModule___nonzero__", _wrap_SBModule___nonzero__, METH_VARARGS, (char *)"SBModule___nonzero__(SBModule self) -> bool"},
+	 { (char *)"SBModule_Clear", _wrap_SBModule_Clear, METH_VARARGS, (char *)"SBModule_Clear(SBModule self)"},
+	 { (char *)"SBModule_GetFileSpec", _wrap_SBModule_GetFileSpec, METH_VARARGS, (char *)"\n"
+		"SBModule_GetFileSpec(SBModule self) -> SBFileSpec\n"
 		"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"Get const accessor for the module file specification.\n"
+		"\n"
+		"This function returns the file for the module on the host system\n"
+		"that is running LLDB. This can differ from the path on the\n"
+		"platform since we might be doing remote debugging.\n"
+		"\n"
+		"@return\n"
+		"    A const reference to the file specification object.\n"
 		""},
 	 { "SBModule_GetPlatformFileSpec", _wrap_SBModule_GetPlatformFileSpec, METH_VARARGS, (char *)"\n"
 		"SBModule_GetPlatformFileSpec(SBModule self) -> SBFileSpec\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"//------------------------------------------------------------------\n"
 		"/// Get accessor for the module platform file specification.\n"
@@ -80153,16 +82153,39 @@ static PyMethodDef SwigMethods[] = {
 		"/// @return\n"
 		"///     A const reference to the file specification object.\n"
 		"//------------------------------------------------------------------\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Get accessor for the module platform file specification.\n"
+		"\n"
+		"Platform file refers to the path of the module as it is known on\n"
+		"the remote system on which it is being debugged. For local\n"
+		"debugging this is always the same as Module::GetFileSpec(). But\n"
+		"remote debugging might mention a file '/usr/lib/liba.dylib'\n"
+		"which might be locally downloaded and cached. In this case the\n"
+		"platform file could be something like:\n"
+		"'/tmp/lldb/platform-cache/remote.host.computer/usr/lib/liba.dylib'\n"
+		"The file could also be cached in a local developer kit directory.\n"
+		"\n"
+		"@return\n"
+		"    A const reference to the file specification object.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBModule_SetPlatformFileSpec", _wrap_SBModule_SetPlatformFileSpec, METH_VARARGS, (char *)"SBModule_SetPlatformFileSpec(SBModule self, SBFileSpec platform_file) -> bool"},
 	 { "SBModule_GetRemoteInstallFileSpec", _wrap_SBModule_GetRemoteInstallFileSpec, METH_VARARGS, (char *)"SBModule_GetRemoteInstallFileSpec(SBModule self) -> SBFileSpec"},
 	 { "SBModule_SetRemoteInstallFileSpec", _wrap_SBModule_SetRemoteInstallFileSpec, METH_VARARGS, (char *)"SBModule_SetRemoteInstallFileSpec(SBModule self, SBFileSpec file) -> bool"},
 	 { "SBModule_GetUUIDString", _wrap_SBModule_GetUUIDString, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBModule_SetPlatformFileSpec", _wrap_SBModule_SetPlatformFileSpec, METH_VARARGS, (char *)"SBModule_SetPlatformFileSpec(SBModule self, SBFileSpec platform_file) -> bool"},
+	 { (char *)"SBModule_GetRemoteInstallFileSpec", _wrap_SBModule_GetRemoteInstallFileSpec, METH_VARARGS, (char *)"SBModule_GetRemoteInstallFileSpec(SBModule self) -> SBFileSpec"},
+	 { (char *)"SBModule_SetRemoteInstallFileSpec", _wrap_SBModule_SetRemoteInstallFileSpec, METH_VARARGS, (char *)"SBModule_SetRemoteInstallFileSpec(SBModule self, SBFileSpec file) -> bool"},
+	 { (char *)"SBModule_GetUUIDString", _wrap_SBModule_GetUUIDString, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBModule_GetUUIDString(SBModule self) -> char const *\n"
 		"\n"
 		"Returns the UUID of the module as a Python string.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBModule_FindSection", _wrap_SBModule_FindSection, METH_VARARGS, (char *)"SBModule_FindSection(SBModule self, char const * sect_name) -> SBSection"},
 	 { "SBModule_ResolveFileAddress", _wrap_SBModule_ResolveFileAddress, METH_VARARGS, (char *)"SBModule_ResolveFileAddress(SBModule self, lldb::addr_t vm_addr) -> SBAddress"},
 	 { "SBModule_ResolveSymbolContextForAddress", _wrap_SBModule_ResolveSymbolContextForAddress, METH_VARARGS, (char *)"SBModule_ResolveSymbolContextForAddress(SBModule self, SBAddress addr, uint32_t resolve_scope) -> SBSymbolContext"},
@@ -80185,8 +82208,32 @@ static PyMethodDef SwigMethods[] = {
 		"///     A lldb::SBSymbolContextList that gets filled in with all of\n"
 		"///     the symbol contexts for all the matches.\n"
 		"//------------------------------------------------------------------\n"
+=======
+	 { (char *)"SBModule___eq__", _wrap_SBModule___eq__, METH_VARARGS, (char *)"SBModule___eq__(SBModule self, SBModule rhs) -> bool"},
+	 { (char *)"SBModule___ne__", _wrap_SBModule___ne__, METH_VARARGS, (char *)"SBModule___ne__(SBModule self, SBModule rhs) -> bool"},
+	 { (char *)"SBModule_FindSection", _wrap_SBModule_FindSection, METH_VARARGS, (char *)"SBModule_FindSection(SBModule self, char const * sect_name) -> SBSection"},
+	 { (char *)"SBModule_ResolveFileAddress", _wrap_SBModule_ResolveFileAddress, METH_VARARGS, (char *)"SBModule_ResolveFileAddress(SBModule self, lldb::addr_t vm_addr) -> SBAddress"},
+	 { (char *)"SBModule_ResolveSymbolContextForAddress", _wrap_SBModule_ResolveSymbolContextForAddress, METH_VARARGS, (char *)"SBModule_ResolveSymbolContextForAddress(SBModule self, SBAddress addr, uint32_t resolve_scope) -> SBSymbolContext"},
+	 { (char *)"SBModule_GetDescription", _wrap_SBModule_GetDescription, METH_VARARGS, (char *)"SBModule_GetDescription(SBModule self, SBStream description) -> bool"},
+	 { (char *)"SBModule_GetNumCompileUnits", _wrap_SBModule_GetNumCompileUnits, METH_VARARGS, (char *)"SBModule_GetNumCompileUnits(SBModule self) -> uint32_t"},
+	 { (char *)"SBModule_GetCompileUnitAtIndex", _wrap_SBModule_GetCompileUnitAtIndex, METH_VARARGS, (char *)"SBModule_GetCompileUnitAtIndex(SBModule self, uint32_t arg3) -> SBCompileUnit"},
+	 { (char *)"SBModule_FindCompileUnits", _wrap_SBModule_FindCompileUnits, METH_VARARGS, (char *)"\n"
+		"SBModule_FindCompileUnits(SBModule self, SBFileSpec sb_file_spec) -> SBSymbolContextList\n"
 		"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"Find compile units related to *this module and passed source\n"
+		"file.\n"
+		"\n"
+		"@param[in] sb_file_spec\n"
+		"    A lldb::SBFileSpec object that contains source file\n"
+		"    specification.\n"
+		"\n"
+		"@return\n"
+		"    A lldb::SBSymbolContextList that gets filled in with all of\n"
+		"    the symbol contexts for all the matches.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBModule_GetNumSymbols", _wrap_SBModule_GetNumSymbols, METH_VARARGS, (char *)"SBModule_GetNumSymbols(SBModule self) -> size_t"},
 	 { "SBModule_GetSymbolAtIndex", _wrap_SBModule_GetSymbolAtIndex, METH_VARARGS, (char *)"SBModule_GetSymbolAtIndex(SBModule self, size_t idx) -> SBSymbol"},
 	 { "SBModule_FindSymbol", _wrap_SBModule_FindSymbol, METH_VARARGS, (char *)"\n"
@@ -80200,29 +82247,42 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBModule_GetNumSections", _wrap_SBModule_GetNumSections, METH_VARARGS, (char *)"SBModule_GetNumSections(SBModule self) -> size_t"},
 	 { "SBModule_GetSectionAtIndex", _wrap_SBModule_GetSectionAtIndex, METH_VARARGS, (char *)"SBModule_GetSectionAtIndex(SBModule self, size_t idx) -> SBSection"},
 	 { "SBModule_FindFunctions", _wrap_SBModule_FindFunctions, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBModule_GetNumSymbols", _wrap_SBModule_GetNumSymbols, METH_VARARGS, (char *)"SBModule_GetNumSymbols(SBModule self) -> size_t"},
+	 { (char *)"SBModule_GetSymbolAtIndex", _wrap_SBModule_GetSymbolAtIndex, METH_VARARGS, (char *)"SBModule_GetSymbolAtIndex(SBModule self, size_t idx) -> SBSymbol"},
+	 { (char *)"SBModule_FindSymbol", _wrap_SBModule_FindSymbol, METH_VARARGS, (char *)"\n"
+		"FindSymbol(char const * name, lldb::SymbolType type) -> SBSymbol\n"
+		"SBModule_FindSymbol(SBModule self, char const * name) -> SBSymbol\n"
+		""},
+	 { (char *)"SBModule_FindSymbols", _wrap_SBModule_FindSymbols, METH_VARARGS, (char *)"\n"
+		"FindSymbols(char const * name, lldb::SymbolType type) -> SBSymbolContextList\n"
+		"SBModule_FindSymbols(SBModule self, char const * name) -> SBSymbolContextList\n"
+		""},
+	 { (char *)"SBModule_GetNumSections", _wrap_SBModule_GetNumSections, METH_VARARGS, (char *)"SBModule_GetNumSections(SBModule self) -> size_t"},
+	 { (char *)"SBModule_GetSectionAtIndex", _wrap_SBModule_GetSectionAtIndex, METH_VARARGS, (char *)"SBModule_GetSectionAtIndex(SBModule self, size_t idx) -> SBSection"},
+	 { (char *)"SBModule_FindFunctions", _wrap_SBModule_FindFunctions, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"FindFunctions(char const * name, uint32_t name_type_mask) -> SBSymbolContextList\n"
 		"SBModule_FindFunctions(SBModule self, char const * name) -> SBSymbolContextList\n"
 		"\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Find functions by name.\n"
-		"///\n"
-		"/// @param[in] name\n"
-		"///     The name of the function we are looking for.\n"
-		"///\n"
-		"/// @param[in] name_type_mask\n"
-		"///     A logical OR of one or more FunctionNameType enum bits that\n"
-		"///     indicate what kind of names should be used when doing the\n"
-		"///     lookup. Bits include fully qualified names, base names,\n"
-		"///     C++ methods, or ObjC selectors. \n"
-		"///     See FunctionNameType for more details.\n"
-		"///\n"
-		"/// @return\n"
-		"///     A symbol context list that gets filled in with all of the\n"
-		"///     matches.\n"
-		"//------------------------------------------------------------------\n"
+		"Find functions by name.\n"
 		"\n"
+		"@param[in] name\n"
+		"    The name of the function we are looking for.\n"
+		"\n"
+		"@param[in] name_type_mask\n"
+		"    A logical OR of one or more FunctionNameType enum bits that\n"
+		"    indicate what kind of names should be used when doing the\n"
+		"    lookup. Bits include fully qualified names, base names,\n"
+		"    C++ methods, or ObjC selectors.\n"
+		"    See FunctionNameType for more details.\n"
+		"\n"
+		"@return\n"
+		"    A symbol context list that gets filled in with all of the\n"
+		"    matches.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBModule_FindFirstType", _wrap_SBModule_FindFirstType, METH_VARARGS, (char *)"SBModule_FindFirstType(SBModule self, char const * name) -> SBType"},
 	 { "SBModule_FindTypes", _wrap_SBModule_FindTypes, METH_VARARGS, (char *)"SBModule_FindTypes(SBModule self, char const * type) -> SBTypeList"},
 	 { "SBModule_GetTypeByID", _wrap_SBModule_GetTypeByID, METH_VARARGS, (char *)"SBModule_GetTypeByID(SBModule self, lldb::user_id_t uid) -> SBType"},
@@ -80246,49 +82306,78 @@ static PyMethodDef SwigMethods[] = {
 		"/// @return\n"
 		"///     A list of types in this module that match  type_mask\n"
 		"//------------------------------------------------------------------\n"
+=======
+	 { (char *)"SBModule_FindFirstType", _wrap_SBModule_FindFirstType, METH_VARARGS, (char *)"SBModule_FindFirstType(SBModule self, char const * name) -> SBType"},
+	 { (char *)"SBModule_FindTypes", _wrap_SBModule_FindTypes, METH_VARARGS, (char *)"SBModule_FindTypes(SBModule self, char const * type) -> SBTypeList"},
+	 { (char *)"SBModule_GetTypeByID", _wrap_SBModule_GetTypeByID, METH_VARARGS, (char *)"SBModule_GetTypeByID(SBModule self, lldb::user_id_t uid) -> SBType"},
+	 { (char *)"SBModule_GetBasicType", _wrap_SBModule_GetBasicType, METH_VARARGS, (char *)"SBModule_GetBasicType(SBModule self, lldb::BasicType type) -> SBType"},
+	 { (char *)"SBModule_GetTypes", _wrap_SBModule_GetTypes, METH_VARARGS, (char *)"\n"
+		"GetTypes(uint32_t type_mask) -> SBTypeList\n"
+		"SBModule_GetTypes(SBModule self) -> SBTypeList\n"
 		"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"Get all types matching type_mask from debug info in this\n"
+		"module.\n"
+		"\n"
+		"@param[in] type_mask\n"
+		"    A bitfield that consists of one or more bits logically OR'ed\n"
+		"    together from the lldb::TypeClass enumeration. This allows\n"
+		"    you to request only structure types, or only class, struct\n"
+		"    and union types. Passing in lldb::eTypeClassAny will return\n"
+		"    all types found in the debug information for this module.\n"
+		"\n"
+		"@return\n"
+		"    A list of types in this module that match type_mask\n"
 		""},
+<<<<<<< HEAD
 	 { "SBModule_FindGlobalVariables", _wrap_SBModule_FindGlobalVariables, METH_VARARGS, (char *)"\n"
 		"SBModule_FindGlobalVariables(SBModule self, SBTarget target, char const * name, uint32_t max_matches) -> SBValueList\n"
 		"\n"
+=======
+	 { (char *)"SBModule_FindGlobalVariables", _wrap_SBModule_FindGlobalVariables, METH_VARARGS, (char *)"\n"
+		"SBModule_FindGlobalVariables(SBModule self, SBTarget target, char const * name, uint32_t max_matches) -> SBValueList\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Find global and static variables by name.\n"
-		"///\n"
-		"/// @param[in] target\n"
-		"///     A valid SBTarget instance representing the debuggee.\n"
-		"///\n"
-		"/// @param[in] name\n"
-		"///     The name of the global or static variable we are looking\n"
-		"///     for.\n"
-		"///\n"
-		"/// @param[in] max_matches\n"
-		"///     Allow the number of matches to be limited to  max_matches.\n"
-		"///\n"
-		"/// @return\n"
-		"///     A list of matched variables in an SBValueList.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Find global and static variables by name.\n"
+		"\n"
+		"@param[in] target\n"
+		"    A valid SBTarget instance representing the debuggee.\n"
+		"\n"
+		"@param[in] name\n"
+		"    The name of the global or static variable we are looking\n"
+		"    for.\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"@param[in] max_matches\n"
+		"    Allow the number of matches to be limited to max_matches.\n"
+		"\n"
+		"@return\n"
+		"    A list of matched variables in an SBValueList.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBModule_FindFirstGlobalVariable", _wrap_SBModule_FindFirstGlobalVariable, METH_VARARGS, (char *)"\n"
 		"SBModule_FindFirstGlobalVariable(SBModule self, SBTarget target, char const * name) -> SBValue\n"
 		"\n"
+=======
+	 { (char *)"SBModule_FindFirstGlobalVariable", _wrap_SBModule_FindFirstGlobalVariable, METH_VARARGS, (char *)"\n"
+		"SBModule_FindFirstGlobalVariable(SBModule self, SBTarget target, char const * name) -> SBValue\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Find the first global (or static) variable by name.\n"
-		"///\n"
-		"/// @param[in] target\n"
-		"///     A valid SBTarget instance representing the debuggee.\n"
-		"///\n"
-		"/// @param[in] name\n"
-		"///     The name of the global or static variable we are looking\n"
-		"///     for.\n"
-		"///\n"
-		"/// @return\n"
-		"///     An SBValue that gets filled in with the found variable (if any).\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Find the first global (or static) variable by name.\n"
+		"\n"
+		"@param[in] target\n"
+		"    A valid SBTarget instance representing the debuggee.\n"
+		"\n"
+		"@param[in] name\n"
+		"    The name of the global or static variable we are looking\n"
+		"    for.\n"
+		"\n"
+		"@return\n"
+		"    An SBValue that gets filled in with the found variable (if any).\n"
 		""},
+<<<<<<< HEAD
 	 { "SBModule_GetByteOrder", _wrap_SBModule_GetByteOrder, METH_VARARGS, (char *)"SBModule_GetByteOrder(SBModule self) -> lldb::ByteOrder"},
 	 { "SBModule_GetAddressByteSize", _wrap_SBModule_GetAddressByteSize, METH_VARARGS, (char *)"SBModule_GetAddressByteSize(SBModule self) -> uint32_t"},
 	 { "SBModule_GetTriple", _wrap_SBModule_GetTriple, METH_VARARGS, (char *)"SBModule_GetTriple(SBModule self) -> char const *"},
@@ -80420,73 +82509,273 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBProcess_GetTarget", _wrap_SBProcess_GetTarget, METH_VARARGS, (char *)"SBProcess_GetTarget(SBProcess self) -> SBTarget"},
 	 { "SBProcess_GetByteOrder", _wrap_SBProcess_GetByteOrder, METH_VARARGS, (char *)"SBProcess_GetByteOrder(SBProcess self) -> lldb::ByteOrder"},
 	 { "SBProcess_PutSTDIN", _wrap_SBProcess_PutSTDIN, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBModule_GetByteOrder", _wrap_SBModule_GetByteOrder, METH_VARARGS, (char *)"SBModule_GetByteOrder(SBModule self) -> lldb::ByteOrder"},
+	 { (char *)"SBModule_GetAddressByteSize", _wrap_SBModule_GetAddressByteSize, METH_VARARGS, (char *)"SBModule_GetAddressByteSize(SBModule self) -> uint32_t"},
+	 { (char *)"SBModule_GetTriple", _wrap_SBModule_GetTriple, METH_VARARGS, (char *)"SBModule_GetTriple(SBModule self) -> char const *"},
+	 { (char *)"SBModule_GetVersion", _wrap_SBModule_GetVersion, METH_VARARGS, (char *)"SBModule_GetVersion(SBModule self) -> uint32_t"},
+	 { (char *)"SBModule_GetSymbolFileSpec", _wrap_SBModule_GetSymbolFileSpec, METH_VARARGS, (char *)"SBModule_GetSymbolFileSpec(SBModule self) -> SBFileSpec"},
+	 { (char *)"SBModule_GetObjectFileHeaderAddress", _wrap_SBModule_GetObjectFileHeaderAddress, METH_VARARGS, (char *)"SBModule_GetObjectFileHeaderAddress(SBModule self) -> SBAddress"},
+	 { (char *)"SBModule_IsTypeSystemCompatible", _wrap_SBModule_IsTypeSystemCompatible, METH_VARARGS, (char *)"SBModule_IsTypeSystemCompatible(SBModule self, lldb::LanguageType language) -> SBError"},
+	 { (char *)"SBModule_GetObjectFileEntryPointAddress", _wrap_SBModule_GetObjectFileEntryPointAddress, METH_VARARGS, (char *)"SBModule_GetObjectFileEntryPointAddress(SBModule self) -> SBAddress"},
+	 { (char *)"SBModule___str__", _wrap_SBModule___str__, METH_VARARGS, (char *)"SBModule___str__(SBModule self) -> PyObject *"},
+	 { (char *)"SBModule_swigregister", SBModule_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBModuleSpec", _wrap_new_SBModuleSpec, METH_VARARGS, (char *)"\n"
+		"SBModuleSpec()\n"
+		"new_SBModuleSpec(SBModuleSpec rhs) -> SBModuleSpec\n"
+		""},
+	 { (char *)"delete_SBModuleSpec", _wrap_delete_SBModuleSpec, METH_VARARGS, (char *)"delete_SBModuleSpec(SBModuleSpec self)"},
+	 { (char *)"SBModuleSpec_IsValid", _wrap_SBModuleSpec_IsValid, METH_VARARGS, (char *)"SBModuleSpec_IsValid(SBModuleSpec self) -> bool"},
+	 { (char *)"SBModuleSpec___nonzero__", _wrap_SBModuleSpec___nonzero__, METH_VARARGS, (char *)"SBModuleSpec___nonzero__(SBModuleSpec self) -> bool"},
+	 { (char *)"SBModuleSpec_Clear", _wrap_SBModuleSpec_Clear, METH_VARARGS, (char *)"SBModuleSpec_Clear(SBModuleSpec self)"},
+	 { (char *)"SBModuleSpec_GetFileSpec", _wrap_SBModuleSpec_GetFileSpec, METH_VARARGS, (char *)"\n"
+		"SBModuleSpec_GetFileSpec(SBModuleSpec self) -> SBFileSpec\n"
+		"\n"
+		"\n"
+		"Get const accessor for the module file.\n"
+		"\n"
+		"This function returns the file for the module on the host system\n"
+		"that is running LLDB. This can differ from the path on the\n"
+		"platform since we might be doing remote debugging.\n"
+		"\n"
+		"@return\n"
+		"    A const reference to the file specification object.\n"
+		""},
+	 { (char *)"SBModuleSpec_SetFileSpec", _wrap_SBModuleSpec_SetFileSpec, METH_VARARGS, (char *)"SBModuleSpec_SetFileSpec(SBModuleSpec self, SBFileSpec fspec)"},
+	 { (char *)"SBModuleSpec_GetPlatformFileSpec", _wrap_SBModuleSpec_GetPlatformFileSpec, METH_VARARGS, (char *)"\n"
+		"SBModuleSpec_GetPlatformFileSpec(SBModuleSpec self) -> SBFileSpec\n"
+		"\n"
+		"\n"
+		"Get accessor for the module platform file.\n"
+		"\n"
+		"Platform file refers to the path of the module as it is known on\n"
+		"the remote system on which it is being debugged. For local\n"
+		"debugging this is always the same as Module::GetFileSpec(). But\n"
+		"remote debugging might mention a file '/usr/lib/liba.dylib'\n"
+		"which might be locally downloaded and cached. In this case the\n"
+		"platform file could be something like:\n"
+		"'/tmp/lldb/platform-cache/remote.host.computer/usr/lib/liba.dylib'\n"
+		"The file could also be cached in a local developer kit directory.\n"
+		"\n"
+		"@return\n"
+		"    A const reference to the file specification object.\n"
+		""},
+	 { (char *)"SBModuleSpec_SetPlatformFileSpec", _wrap_SBModuleSpec_SetPlatformFileSpec, METH_VARARGS, (char *)"SBModuleSpec_SetPlatformFileSpec(SBModuleSpec self, SBFileSpec fspec)"},
+	 { (char *)"SBModuleSpec_GetSymbolFileSpec", _wrap_SBModuleSpec_GetSymbolFileSpec, METH_VARARGS, (char *)"SBModuleSpec_GetSymbolFileSpec(SBModuleSpec self) -> SBFileSpec"},
+	 { (char *)"SBModuleSpec_SetSymbolFileSpec", _wrap_SBModuleSpec_SetSymbolFileSpec, METH_VARARGS, (char *)"SBModuleSpec_SetSymbolFileSpec(SBModuleSpec self, SBFileSpec fspec)"},
+	 { (char *)"SBModuleSpec_GetObjectName", _wrap_SBModuleSpec_GetObjectName, METH_VARARGS, (char *)"SBModuleSpec_GetObjectName(SBModuleSpec self) -> char const *"},
+	 { (char *)"SBModuleSpec_SetObjectName", _wrap_SBModuleSpec_SetObjectName, METH_VARARGS, (char *)"SBModuleSpec_SetObjectName(SBModuleSpec self, char const * name)"},
+	 { (char *)"SBModuleSpec_GetTriple", _wrap_SBModuleSpec_GetTriple, METH_VARARGS, (char *)"SBModuleSpec_GetTriple(SBModuleSpec self) -> char const *"},
+	 { (char *)"SBModuleSpec_SetTriple", _wrap_SBModuleSpec_SetTriple, METH_VARARGS, (char *)"SBModuleSpec_SetTriple(SBModuleSpec self, char const * triple)"},
+	 { (char *)"SBModuleSpec_GetUUIDBytes", _wrap_SBModuleSpec_GetUUIDBytes, METH_VARARGS, (char *)"SBModuleSpec_GetUUIDBytes(SBModuleSpec self) -> uint8_t const *"},
+	 { (char *)"SBModuleSpec_GetUUIDLength", _wrap_SBModuleSpec_GetUUIDLength, METH_VARARGS, (char *)"SBModuleSpec_GetUUIDLength(SBModuleSpec self) -> size_t"},
+	 { (char *)"SBModuleSpec_SetUUIDBytes", _wrap_SBModuleSpec_SetUUIDBytes, METH_VARARGS, (char *)"SBModuleSpec_SetUUIDBytes(SBModuleSpec self, uint8_t const * uuid, size_t uuid_len) -> bool"},
+	 { (char *)"SBModuleSpec_GetDescription", _wrap_SBModuleSpec_GetDescription, METH_VARARGS, (char *)"SBModuleSpec_GetDescription(SBModuleSpec self, SBStream description) -> bool"},
+	 { (char *)"SBModuleSpec___str__", _wrap_SBModuleSpec___str__, METH_VARARGS, (char *)"SBModuleSpec___str__(SBModuleSpec self) -> PyObject *"},
+	 { (char *)"SBModuleSpec_swigregister", SBModuleSpec_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBModuleSpecList", _wrap_new_SBModuleSpecList, METH_VARARGS, (char *)"\n"
+		"SBModuleSpecList()\n"
+		"new_SBModuleSpecList(SBModuleSpecList rhs) -> SBModuleSpecList\n"
+		""},
+	 { (char *)"delete_SBModuleSpecList", _wrap_delete_SBModuleSpecList, METH_VARARGS, (char *)"delete_SBModuleSpecList(SBModuleSpecList self)"},
+	 { (char *)"SBModuleSpecList_GetModuleSpecifications", _wrap_SBModuleSpecList_GetModuleSpecifications, METH_VARARGS, (char *)"SBModuleSpecList_GetModuleSpecifications(char const * path) -> SBModuleSpecList"},
+	 { (char *)"SBModuleSpecList_Append", _wrap_SBModuleSpecList_Append, METH_VARARGS, (char *)"\n"
+		"Append(SBModuleSpec spec)\n"
+		"SBModuleSpecList_Append(SBModuleSpecList self, SBModuleSpecList spec_list)\n"
+		""},
+	 { (char *)"SBModuleSpecList_FindFirstMatchingSpec", _wrap_SBModuleSpecList_FindFirstMatchingSpec, METH_VARARGS, (char *)"SBModuleSpecList_FindFirstMatchingSpec(SBModuleSpecList self, SBModuleSpec match_spec) -> SBModuleSpec"},
+	 { (char *)"SBModuleSpecList_FindMatchingSpecs", _wrap_SBModuleSpecList_FindMatchingSpecs, METH_VARARGS, (char *)"SBModuleSpecList_FindMatchingSpecs(SBModuleSpecList self, SBModuleSpec match_spec) -> SBModuleSpecList"},
+	 { (char *)"SBModuleSpecList_GetSize", _wrap_SBModuleSpecList_GetSize, METH_VARARGS, (char *)"SBModuleSpecList_GetSize(SBModuleSpecList self) -> size_t"},
+	 { (char *)"SBModuleSpecList_GetSpecAtIndex", _wrap_SBModuleSpecList_GetSpecAtIndex, METH_VARARGS, (char *)"SBModuleSpecList_GetSpecAtIndex(SBModuleSpecList self, size_t i) -> SBModuleSpec"},
+	 { (char *)"SBModuleSpecList_GetDescription", _wrap_SBModuleSpecList_GetDescription, METH_VARARGS, (char *)"SBModuleSpecList_GetDescription(SBModuleSpecList self, SBStream description) -> bool"},
+	 { (char *)"SBModuleSpecList___str__", _wrap_SBModuleSpecList___str__, METH_VARARGS, (char *)"SBModuleSpecList___str__(SBModuleSpecList self) -> PyObject *"},
+	 { (char *)"SBModuleSpecList_swigregister", SBModuleSpecList_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBPlatformConnectOptions", _wrap_new_SBPlatformConnectOptions, METH_VARARGS, (char *)"\n"
+		"SBPlatformConnectOptions(char const * url)\n"
+		"new_SBPlatformConnectOptions(SBPlatformConnectOptions rhs) -> SBPlatformConnectOptions\n"
+		""},
+	 { (char *)"delete_SBPlatformConnectOptions", _wrap_delete_SBPlatformConnectOptions, METH_VARARGS, (char *)"delete_SBPlatformConnectOptions(SBPlatformConnectOptions self)"},
+	 { (char *)"SBPlatformConnectOptions_GetURL", _wrap_SBPlatformConnectOptions_GetURL, METH_VARARGS, (char *)"SBPlatformConnectOptions_GetURL(SBPlatformConnectOptions self) -> char const *"},
+	 { (char *)"SBPlatformConnectOptions_SetURL", _wrap_SBPlatformConnectOptions_SetURL, METH_VARARGS, (char *)"SBPlatformConnectOptions_SetURL(SBPlatformConnectOptions self, char const * url)"},
+	 { (char *)"SBPlatformConnectOptions_GetRsyncEnabled", _wrap_SBPlatformConnectOptions_GetRsyncEnabled, METH_VARARGS, (char *)"SBPlatformConnectOptions_GetRsyncEnabled(SBPlatformConnectOptions self) -> bool"},
+	 { (char *)"SBPlatformConnectOptions_EnableRsync", _wrap_SBPlatformConnectOptions_EnableRsync, METH_VARARGS, (char *)"SBPlatformConnectOptions_EnableRsync(SBPlatformConnectOptions self, char const * options, char const * remote_path_prefix, bool omit_remote_hostname)"},
+	 { (char *)"SBPlatformConnectOptions_DisableRsync", _wrap_SBPlatformConnectOptions_DisableRsync, METH_VARARGS, (char *)"SBPlatformConnectOptions_DisableRsync(SBPlatformConnectOptions self)"},
+	 { (char *)"SBPlatformConnectOptions_GetLocalCacheDirectory", _wrap_SBPlatformConnectOptions_GetLocalCacheDirectory, METH_VARARGS, (char *)"SBPlatformConnectOptions_GetLocalCacheDirectory(SBPlatformConnectOptions self) -> char const *"},
+	 { (char *)"SBPlatformConnectOptions_SetLocalCacheDirectory", _wrap_SBPlatformConnectOptions_SetLocalCacheDirectory, METH_VARARGS, (char *)"SBPlatformConnectOptions_SetLocalCacheDirectory(SBPlatformConnectOptions self, char const * path)"},
+	 { (char *)"SBPlatformConnectOptions_swigregister", SBPlatformConnectOptions_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBPlatformShellCommand", _wrap_new_SBPlatformShellCommand, METH_VARARGS, (char *)"\n"
+		"SBPlatformShellCommand(char const * shell_command)\n"
+		"new_SBPlatformShellCommand(SBPlatformShellCommand rhs) -> SBPlatformShellCommand\n"
+		""},
+	 { (char *)"delete_SBPlatformShellCommand", _wrap_delete_SBPlatformShellCommand, METH_VARARGS, (char *)"delete_SBPlatformShellCommand(SBPlatformShellCommand self)"},
+	 { (char *)"SBPlatformShellCommand_Clear", _wrap_SBPlatformShellCommand_Clear, METH_VARARGS, (char *)"SBPlatformShellCommand_Clear(SBPlatformShellCommand self)"},
+	 { (char *)"SBPlatformShellCommand_GetCommand", _wrap_SBPlatformShellCommand_GetCommand, METH_VARARGS, (char *)"SBPlatformShellCommand_GetCommand(SBPlatformShellCommand self) -> char const *"},
+	 { (char *)"SBPlatformShellCommand_SetCommand", _wrap_SBPlatformShellCommand_SetCommand, METH_VARARGS, (char *)"SBPlatformShellCommand_SetCommand(SBPlatformShellCommand self, char const * shell_command)"},
+	 { (char *)"SBPlatformShellCommand_GetWorkingDirectory", _wrap_SBPlatformShellCommand_GetWorkingDirectory, METH_VARARGS, (char *)"SBPlatformShellCommand_GetWorkingDirectory(SBPlatformShellCommand self) -> char const *"},
+	 { (char *)"SBPlatformShellCommand_SetWorkingDirectory", _wrap_SBPlatformShellCommand_SetWorkingDirectory, METH_VARARGS, (char *)"SBPlatformShellCommand_SetWorkingDirectory(SBPlatformShellCommand self, char const * path)"},
+	 { (char *)"SBPlatformShellCommand_GetTimeoutSeconds", _wrap_SBPlatformShellCommand_GetTimeoutSeconds, METH_VARARGS, (char *)"SBPlatformShellCommand_GetTimeoutSeconds(SBPlatformShellCommand self) -> uint32_t"},
+	 { (char *)"SBPlatformShellCommand_SetTimeoutSeconds", _wrap_SBPlatformShellCommand_SetTimeoutSeconds, METH_VARARGS, (char *)"SBPlatformShellCommand_SetTimeoutSeconds(SBPlatformShellCommand self, uint32_t sec)"},
+	 { (char *)"SBPlatformShellCommand_GetSignal", _wrap_SBPlatformShellCommand_GetSignal, METH_VARARGS, (char *)"SBPlatformShellCommand_GetSignal(SBPlatformShellCommand self) -> int"},
+	 { (char *)"SBPlatformShellCommand_GetStatus", _wrap_SBPlatformShellCommand_GetStatus, METH_VARARGS, (char *)"SBPlatformShellCommand_GetStatus(SBPlatformShellCommand self) -> int"},
+	 { (char *)"SBPlatformShellCommand_GetOutput", _wrap_SBPlatformShellCommand_GetOutput, METH_VARARGS, (char *)"SBPlatformShellCommand_GetOutput(SBPlatformShellCommand self) -> char const *"},
+	 { (char *)"SBPlatformShellCommand_swigregister", SBPlatformShellCommand_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBPlatform", _wrap_new_SBPlatform, METH_VARARGS, (char *)"\n"
+		"SBPlatform()\n"
+		"new_SBPlatform(char const * arg2) -> SBPlatform\n"
+		""},
+	 { (char *)"delete_SBPlatform", _wrap_delete_SBPlatform, METH_VARARGS, (char *)"delete_SBPlatform(SBPlatform self)"},
+	 { (char *)"SBPlatform_IsValid", _wrap_SBPlatform_IsValid, METH_VARARGS, (char *)"SBPlatform_IsValid(SBPlatform self) -> bool"},
+	 { (char *)"SBPlatform___nonzero__", _wrap_SBPlatform___nonzero__, METH_VARARGS, (char *)"SBPlatform___nonzero__(SBPlatform self) -> bool"},
+	 { (char *)"SBPlatform_Clear", _wrap_SBPlatform_Clear, METH_VARARGS, (char *)"SBPlatform_Clear(SBPlatform self)"},
+	 { (char *)"SBPlatform_GetWorkingDirectory", _wrap_SBPlatform_GetWorkingDirectory, METH_VARARGS, (char *)"SBPlatform_GetWorkingDirectory(SBPlatform self) -> char const *"},
+	 { (char *)"SBPlatform_SetWorkingDirectory", _wrap_SBPlatform_SetWorkingDirectory, METH_VARARGS, (char *)"SBPlatform_SetWorkingDirectory(SBPlatform self, char const * arg3) -> bool"},
+	 { (char *)"SBPlatform_GetName", _wrap_SBPlatform_GetName, METH_VARARGS, (char *)"SBPlatform_GetName(SBPlatform self) -> char const *"},
+	 { (char *)"SBPlatform_ConnectRemote", _wrap_SBPlatform_ConnectRemote, METH_VARARGS, (char *)"SBPlatform_ConnectRemote(SBPlatform self, SBPlatformConnectOptions connect_options) -> SBError"},
+	 { (char *)"SBPlatform_DisconnectRemote", _wrap_SBPlatform_DisconnectRemote, METH_VARARGS, (char *)"SBPlatform_DisconnectRemote(SBPlatform self)"},
+	 { (char *)"SBPlatform_IsConnected", _wrap_SBPlatform_IsConnected, METH_VARARGS, (char *)"SBPlatform_IsConnected(SBPlatform self) -> bool"},
+	 { (char *)"SBPlatform_GetTriple", _wrap_SBPlatform_GetTriple, METH_VARARGS, (char *)"SBPlatform_GetTriple(SBPlatform self) -> char const *"},
+	 { (char *)"SBPlatform_GetHostname", _wrap_SBPlatform_GetHostname, METH_VARARGS, (char *)"SBPlatform_GetHostname(SBPlatform self) -> char const *"},
+	 { (char *)"SBPlatform_GetOSBuild", _wrap_SBPlatform_GetOSBuild, METH_VARARGS, (char *)"SBPlatform_GetOSBuild(SBPlatform self) -> char const *"},
+	 { (char *)"SBPlatform_GetOSDescription", _wrap_SBPlatform_GetOSDescription, METH_VARARGS, (char *)"SBPlatform_GetOSDescription(SBPlatform self) -> char const *"},
+	 { (char *)"SBPlatform_GetOSMajorVersion", _wrap_SBPlatform_GetOSMajorVersion, METH_VARARGS, (char *)"SBPlatform_GetOSMajorVersion(SBPlatform self) -> uint32_t"},
+	 { (char *)"SBPlatform_GetOSMinorVersion", _wrap_SBPlatform_GetOSMinorVersion, METH_VARARGS, (char *)"SBPlatform_GetOSMinorVersion(SBPlatform self) -> uint32_t"},
+	 { (char *)"SBPlatform_GetOSUpdateVersion", _wrap_SBPlatform_GetOSUpdateVersion, METH_VARARGS, (char *)"SBPlatform_GetOSUpdateVersion(SBPlatform self) -> uint32_t"},
+	 { (char *)"SBPlatform_Get", _wrap_SBPlatform_Get, METH_VARARGS, (char *)"SBPlatform_Get(SBPlatform self, SBFileSpec src, SBFileSpec dst) -> SBError"},
+	 { (char *)"SBPlatform_Put", _wrap_SBPlatform_Put, METH_VARARGS, (char *)"SBPlatform_Put(SBPlatform self, SBFileSpec src, SBFileSpec dst) -> SBError"},
+	 { (char *)"SBPlatform_Install", _wrap_SBPlatform_Install, METH_VARARGS, (char *)"SBPlatform_Install(SBPlatform self, SBFileSpec src, SBFileSpec dst) -> SBError"},
+	 { (char *)"SBPlatform_Run", _wrap_SBPlatform_Run, METH_VARARGS, (char *)"SBPlatform_Run(SBPlatform self, SBPlatformShellCommand shell_command) -> SBError"},
+	 { (char *)"SBPlatform_Launch", _wrap_SBPlatform_Launch, METH_VARARGS, (char *)"SBPlatform_Launch(SBPlatform self, SBLaunchInfo launch_info) -> SBError"},
+	 { (char *)"SBPlatform_Kill", _wrap_SBPlatform_Kill, METH_VARARGS, (char *)"SBPlatform_Kill(SBPlatform self, lldb::pid_t const pid) -> SBError"},
+	 { (char *)"SBPlatform_MakeDirectory", _wrap_SBPlatform_MakeDirectory, METH_VARARGS, (char *)"\n"
+		"MakeDirectory(char const * path, uint32_t file_permissions) -> SBError\n"
+		"SBPlatform_MakeDirectory(SBPlatform self, char const * path) -> SBError\n"
+		""},
+	 { (char *)"SBPlatform_GetFilePermissions", _wrap_SBPlatform_GetFilePermissions, METH_VARARGS, (char *)"SBPlatform_GetFilePermissions(SBPlatform self, char const * path) -> uint32_t"},
+	 { (char *)"SBPlatform_SetFilePermissions", _wrap_SBPlatform_SetFilePermissions, METH_VARARGS, (char *)"SBPlatform_SetFilePermissions(SBPlatform self, char const * path, uint32_t file_permissions) -> SBError"},
+	 { (char *)"SBPlatform_GetUnixSignals", _wrap_SBPlatform_GetUnixSignals, METH_VARARGS, (char *)"SBPlatform_GetUnixSignals(SBPlatform self) -> SBUnixSignals"},
+	 { (char *)"SBPlatform_swigregister", SBPlatform_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBProcess", _wrap_new_SBProcess, METH_VARARGS, (char *)"\n"
+		"SBProcess()\n"
+		"new_SBProcess(SBProcess rhs) -> SBProcess\n"
+		""},
+	 { (char *)"delete_SBProcess", _wrap_delete_SBProcess, METH_VARARGS, (char *)"delete_SBProcess(SBProcess self)"},
+	 { (char *)"SBProcess_GetBroadcasterClassName", _wrap_SBProcess_GetBroadcasterClassName, METH_VARARGS, (char *)"SBProcess_GetBroadcasterClassName() -> char const *"},
+	 { (char *)"SBProcess_GetPluginName", _wrap_SBProcess_GetPluginName, METH_VARARGS, (char *)"SBProcess_GetPluginName(SBProcess self) -> char const *"},
+	 { (char *)"SBProcess_GetShortPluginName", _wrap_SBProcess_GetShortPluginName, METH_VARARGS, (char *)"SBProcess_GetShortPluginName(SBProcess self) -> char const *"},
+	 { (char *)"SBProcess_Clear", _wrap_SBProcess_Clear, METH_VARARGS, (char *)"SBProcess_Clear(SBProcess self)"},
+	 { (char *)"SBProcess_IsValid", _wrap_SBProcess_IsValid, METH_VARARGS, (char *)"SBProcess_IsValid(SBProcess self) -> bool"},
+	 { (char *)"SBProcess___nonzero__", _wrap_SBProcess___nonzero__, METH_VARARGS, (char *)"SBProcess___nonzero__(SBProcess self) -> bool"},
+	 { (char *)"SBProcess_GetTarget", _wrap_SBProcess_GetTarget, METH_VARARGS, (char *)"SBProcess_GetTarget(SBProcess self) -> SBTarget"},
+	 { (char *)"SBProcess_GetByteOrder", _wrap_SBProcess_GetByteOrder, METH_VARARGS, (char *)"SBProcess_GetByteOrder(SBProcess self) -> lldb::ByteOrder"},
+	 { (char *)"SBProcess_PutSTDIN", _wrap_SBProcess_PutSTDIN, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Writes data into the current process's stdin. API client specifies a Python\n"
 		"string as the only argument.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_GetSTDOUT", _wrap_SBProcess_GetSTDOUT, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess_GetSTDOUT", _wrap_SBProcess_GetSTDOUT, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Reads data from the current process's stdout stream. API client specifies\n"
 		"the size of the buffer to read data into. It returns the byte buffer in a\n"
 		"Python string.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_GetSTDERR", _wrap_SBProcess_GetSTDERR, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess_GetSTDERR", _wrap_SBProcess_GetSTDERR, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Reads data from the current process's stderr stream. API client specifies\n"
 		"the size of the buffer to read data into. It returns the byte buffer in a\n"
 		"Python string.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_GetAsyncProfileData", _wrap_SBProcess_GetAsyncProfileData, METH_VARARGS, (char *)"SBProcess_GetAsyncProfileData(SBProcess self, char * dst) -> size_t"},
 	 { "SBProcess_ReportEventState", _wrap_SBProcess_ReportEventState, METH_VARARGS, (char *)"SBProcess_ReportEventState(SBProcess self, SBEvent event, FILE * out)"},
 	 { "SBProcess_AppendEventStateReport", _wrap_SBProcess_AppendEventStateReport, METH_VARARGS, (char *)"SBProcess_AppendEventStateReport(SBProcess self, SBEvent event, SBCommandReturnObject result)"},
 	 { "SBProcess_RemoteAttachToProcessWithID", _wrap_SBProcess_RemoteAttachToProcessWithID, METH_VARARGS, (char *)"\n"
 		"SBProcess_RemoteAttachToProcessWithID(SBProcess self, lldb::pid_t pid, SBError error) -> bool\n"
 		"\n"
+=======
+	 { (char *)"SBProcess_GetAsyncProfileData", _wrap_SBProcess_GetAsyncProfileData, METH_VARARGS, (char *)"SBProcess_GetAsyncProfileData(SBProcess self, char * dst) -> size_t"},
+	 { (char *)"SBProcess_ReportEventState", _wrap_SBProcess_ReportEventState, METH_VARARGS, (char *)"SBProcess_ReportEventState(SBProcess self, SBEvent event, FILE * out)"},
+	 { (char *)"SBProcess_AppendEventStateReport", _wrap_SBProcess_AppendEventStateReport, METH_VARARGS, (char *)"SBProcess_AppendEventStateReport(SBProcess self, SBEvent event, SBCommandReturnObject result)"},
+	 { (char *)"SBProcess_RemoteAttachToProcessWithID", _wrap_SBProcess_RemoteAttachToProcessWithID, METH_VARARGS, (char *)"\n"
+		"SBProcess_RemoteAttachToProcessWithID(SBProcess self, lldb::pid_t pid, SBError error) -> bool\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Remote connection related functions. These will fail if the\n"
-		"/// process is not in eStateConnected. They are intended for use\n"
-		"/// when connecting to an externally managed debugserver instance.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Remote connection related functions. These will fail if the\n"
+		"process is not in eStateConnected. They are intended for use\n"
+		"when connecting to an externally managed debugserver instance.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_RemoteLaunch", _wrap_SBProcess_RemoteLaunch, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess_RemoteLaunch", _wrap_SBProcess_RemoteLaunch, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBProcess_RemoteLaunch(SBProcess self, char const ** argv, char const ** envp, char const * stdin_path, char const * stdout_path, char const * stderr_path, char const * working_directory, uint32_t launch_flags, bool stop_at_entry, SBError error) -> bool\n"
 		"\n"
 		"See SBTarget.Launch for argument description and usage.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_GetNumThreads", _wrap_SBProcess_GetNumThreads, METH_VARARGS, (char *)"SBProcess_GetNumThreads(SBProcess self) -> uint32_t"},
 	 { "SBProcess_GetThreadAtIndex", _wrap_SBProcess_GetThreadAtIndex, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess_GetNumThreads", _wrap_SBProcess_GetNumThreads, METH_VARARGS, (char *)"SBProcess_GetNumThreads(SBProcess self) -> uint32_t"},
+	 { (char *)"SBProcess_GetThreadAtIndex", _wrap_SBProcess_GetThreadAtIndex, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Returns the INDEX'th thread from the list of current threads.  The index\n"
 		"of a thread is only valid for the current stop.  For a persistent thread\n"
 		"identifier use either the thread ID or the IndexID.  See help on SBThread\n"
 		"for more details.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_GetThreadByID", _wrap_SBProcess_GetThreadByID, METH_VARARGS, (char *)"\n"
 		"\n"
 		"Returns the thread with the given thread ID.\n"
+=======
+	 { (char *)"SBProcess_GetThreadByID", _wrap_SBProcess_GetThreadByID, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Returns the thread with the given thread ID.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_GetThreadByIndexID", _wrap_SBProcess_GetThreadByIndexID, METH_VARARGS, (char *)"\n"
 		"\n"
 		"Returns the thread with the given thread IndexID.\n"
+=======
+	 { (char *)"SBProcess_GetThreadByIndexID", _wrap_SBProcess_GetThreadByIndexID, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Returns the thread with the given thread IndexID.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_GetSelectedThread", _wrap_SBProcess_GetSelectedThread, METH_VARARGS, (char *)"\n"
 		"\n"
 		"Returns the currently selected thread.\n"
+=======
+	 { (char *)"SBProcess_GetSelectedThread", _wrap_SBProcess_GetSelectedThread, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Returns the currently selected thread.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_CreateOSPluginThread", _wrap_SBProcess_CreateOSPluginThread, METH_VARARGS, (char *)"\n"
 		"\n"
 		"Lazily create a thread on demand through the current OperatingSystem plug-in, if the current OperatingSystem plug-in supports it.\n"
+=======
+	 { (char *)"SBProcess_CreateOSPluginThread", _wrap_SBProcess_CreateOSPluginThread, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Lazily create a thread on demand through the current OperatingSystem plug-in, if the current OperatingSystem plug-in supports it.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_SetSelectedThread", _wrap_SBProcess_SetSelectedThread, METH_VARARGS, (char *)"SBProcess_SetSelectedThread(SBProcess self, SBThread thread) -> bool"},
 	 { "SBProcess_SetSelectedThreadByID", _wrap_SBProcess_SetSelectedThreadByID, METH_VARARGS, (char *)"SBProcess_SetSelectedThreadByID(SBProcess self, lldb::tid_t tid) -> bool"},
 	 { "SBProcess_SetSelectedThreadByIndexID", _wrap_SBProcess_SetSelectedThreadByIndexID, METH_VARARGS, (char *)"SBProcess_SetSelectedThreadByIndexID(SBProcess self, uint32_t index_id) -> bool"},
@@ -80498,12 +82787,29 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBProcess_GetProcessID", _wrap_SBProcess_GetProcessID, METH_VARARGS, (char *)"\n"
 		"\n"
 		"Returns the process ID of the process.\n"
+=======
+	 { (char *)"SBProcess_SetSelectedThread", _wrap_SBProcess_SetSelectedThread, METH_VARARGS, (char *)"SBProcess_SetSelectedThread(SBProcess self, SBThread thread) -> bool"},
+	 { (char *)"SBProcess_SetSelectedThreadByID", _wrap_SBProcess_SetSelectedThreadByID, METH_VARARGS, (char *)"SBProcess_SetSelectedThreadByID(SBProcess self, lldb::tid_t tid) -> bool"},
+	 { (char *)"SBProcess_SetSelectedThreadByIndexID", _wrap_SBProcess_SetSelectedThreadByIndexID, METH_VARARGS, (char *)"SBProcess_SetSelectedThreadByIndexID(SBProcess self, uint32_t index_id) -> bool"},
+	 { (char *)"SBProcess_GetNumQueues", _wrap_SBProcess_GetNumQueues, METH_VARARGS, (char *)"SBProcess_GetNumQueues(SBProcess self) -> uint32_t"},
+	 { (char *)"SBProcess_GetQueueAtIndex", _wrap_SBProcess_GetQueueAtIndex, METH_VARARGS, (char *)"SBProcess_GetQueueAtIndex(SBProcess self, uint32_t index) -> SBQueue"},
+	 { (char *)"SBProcess_GetState", _wrap_SBProcess_GetState, METH_VARARGS, (char *)"SBProcess_GetState(SBProcess self) -> lldb::StateType"},
+	 { (char *)"SBProcess_GetExitStatus", _wrap_SBProcess_GetExitStatus, METH_VARARGS, (char *)"SBProcess_GetExitStatus(SBProcess self) -> int"},
+	 { (char *)"SBProcess_GetExitDescription", _wrap_SBProcess_GetExitDescription, METH_VARARGS, (char *)"SBProcess_GetExitDescription(SBProcess self) -> char const *"},
+	 { (char *)"SBProcess_GetProcessID", _wrap_SBProcess_GetProcessID, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Returns the process ID of the process.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_GetUniqueID", _wrap_SBProcess_GetUniqueID, METH_VARARGS, (char *)"\n"
 		"\n"
 		"Returns an integer ID that is guaranteed to be unique across all process instances. This is not the process ID, just a unique integer for comparison and caching purposes.\n"
+=======
+	 { (char *)"SBProcess_GetUniqueID", _wrap_SBProcess_GetUniqueID, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Returns an integer ID that is guaranteed to be unique across all process instances. This is not the process ID, just a unique integer for comparison and caching purposes.\n"
 		""},
 	 { "SBProcess_GetAddressByteSize", _wrap_SBProcess_GetAddressByteSize, METH_VARARGS, (char *)"SBProcess_GetAddressByteSize(SBProcess self) -> uint32_t"},
 	 { "SBProcess_Destroy", _wrap_SBProcess_Destroy, METH_VARARGS, (char *)"\n"
@@ -80512,7 +82818,6 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		"Kills the process and shuts down all threads that were spawned to\n"
 		"track and monitor process.\n"
-		"\n"
 		""},
 	 { "SBProcess_Continue", _wrap_SBProcess_Continue, METH_VARARGS, (char *)"SBProcess_Continue(SBProcess self) -> SBError"},
 	 { "SBProcess_Stop", _wrap_SBProcess_Stop, METH_VARARGS, (char *)"SBProcess_Stop(SBProcess self) -> SBError"},
@@ -80523,8 +82828,13 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		"Sends the process a unix signal.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_GetUnixSignals", _wrap_SBProcess_GetUnixSignals, METH_VARARGS, (char *)"SBProcess_GetUnixSignals(SBProcess self) -> SBUnixSignals"},
 	 { "SBProcess_GetStopID", _wrap_SBProcess_GetStopID, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess_GetUnixSignals", _wrap_SBProcess_GetUnixSignals, METH_VARARGS, (char *)"SBProcess_GetUnixSignals(SBProcess self) -> SBUnixSignals"},
+	 { (char *)"SBProcess_GetStopID", _wrap_SBProcess_GetStopID, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"GetStopID(bool include_expression_stops=False) -> uint32_t\n"
 		"SBProcess_GetStopID(SBProcess self) -> uint32_t\n"
 		"\n"
@@ -80534,10 +82844,14 @@ static PyMethodDef SwigMethods[] = {
 		"will cause the returned value to increase, otherwise the counter returned will\n"
 		"only increase when execution is continued explicitly by the user.  Note, the value\n"
 		"will always increase, but may increase by more than one per stop.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_SendAsyncInterrupt", _wrap_SBProcess_SendAsyncInterrupt, METH_VARARGS, (char *)"SBProcess_SendAsyncInterrupt(SBProcess self)"},
 	 { "SBProcess_ReadMemory", _wrap_SBProcess_ReadMemory, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess_SendAsyncInterrupt", _wrap_SBProcess_SendAsyncInterrupt, METH_VARARGS, (char *)"SBProcess_SendAsyncInterrupt(SBProcess self)"},
+	 { (char *)"SBProcess_ReadMemory", _wrap_SBProcess_ReadMemory, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Reads memory from the current process's address space and removes any\n"
 		"traps that may have been inserted into the memory. It returns the byte\n"
@@ -80546,9 +82860,12 @@ static PyMethodDef SwigMethods[] = {
 		"# Read 4 bytes from address 'addr' and assume error.Success() is True.\n"
 		"content = process.ReadMemory(addr, 4, error)\n"
 		"new_bytes = bytearray(content)\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_WriteMemory", _wrap_SBProcess_WriteMemory, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess_WriteMemory", _wrap_SBProcess_WriteMemory, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Writes memory to the current process's address space and maintains any\n"
 		"traps that might be present due to software breakpoints. Example:\n"
@@ -80558,26 +82875,34 @@ static PyMethodDef SwigMethods[] = {
 		"result = process.WriteMemory(addr, new_value, error)\n"
 		"if not error.Success() or result != len(bytes):\n"
 		"    print('SBProcess.WriteMemory() failed!')\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_ReadCStringFromMemory", _wrap_SBProcess_ReadCStringFromMemory, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess_ReadCStringFromMemory", _wrap_SBProcess_ReadCStringFromMemory, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Reads a NULL terminated C string from the current process's address space.\n"
 		"It returns a python string of the exact length, or truncates the string if\n"
 		"the maximum character limit is reached. Example:\n"
 		"\n"
-		"# Read a C string of at most 256 bytes from address '0x1000' \n"
+		"# Read a C string of at most 256 bytes from address '0x1000'\n"
 		"error = lldb.SBError()\n"
 		"cstring = process.ReadCStringFromMemory(0x1000, 256, error)\n"
 		"if error.Success():\n"
 		"    print('cstring: ', cstring)\n"
 		"else\n"
 		"    print('error: ', error)\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_ReadUnsignedFromMemory", _wrap_SBProcess_ReadUnsignedFromMemory, METH_VARARGS, (char *)"\n"
 		"\n"
 		"Reads an unsigned integer from memory given a byte size and an address. \n"
+=======
+	 { (char *)"SBProcess_ReadUnsignedFromMemory", _wrap_SBProcess_ReadUnsignedFromMemory, METH_VARARGS, (char *)"\n"
+		"\n"
+		"Reads an unsigned integer from memory given a byte size and an address.\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"Returns the unsigned integer that was read. Example:\n"
 		"\n"
 		"# Read a 4 byte unsigned integer from address 0x1000\n"
@@ -80587,10 +82912,12 @@ static PyMethodDef SwigMethods[] = {
 		"    print('integer: %u' % uint)\n"
 		"else\n"
 		"    print('error: ', error)\n"
-		"\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_ReadPointerFromMemory", _wrap_SBProcess_ReadPointerFromMemory, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess_ReadPointerFromMemory", _wrap_SBProcess_ReadPointerFromMemory, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Reads a pointer from memory from an address and returns the value. Example:\n"
 		"\n"
@@ -80601,9 +82928,8 @@ static PyMethodDef SwigMethods[] = {
 		"    print('pointer: 0x%x' % ptr)\n"
 		"else\n"
 		"    print('error: ', error)\n"
-		"\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_GetStateFromEvent", _wrap_SBProcess_GetStateFromEvent, METH_VARARGS, (char *)"SBProcess_GetStateFromEvent(SBEvent event) -> lldb::StateType"},
 	 { "SBProcess_GetRestartedFromEvent", _wrap_SBProcess_GetRestartedFromEvent, METH_VARARGS, (char *)"SBProcess_GetRestartedFromEvent(SBEvent event) -> bool"},
 	 { "SBProcess_GetNumRestartedReasonsFromEvent", _wrap_SBProcess_GetNumRestartedReasonsFromEvent, METH_VARARGS, (char *)"SBProcess_GetNumRestartedReasonsFromEvent(SBEvent event) -> size_t"},
@@ -80618,32 +82944,59 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBProcess_GetNumSupportedHardwareWatchpoints", _wrap_SBProcess_GetNumSupportedHardwareWatchpoints, METH_VARARGS, (char *)"SBProcess_GetNumSupportedHardwareWatchpoints(SBProcess self, SBError error) -> uint32_t"},
 	 { "SBProcess_LoadImage", _wrap_SBProcess_LoadImage, METH_VARARGS, (char *)"SBProcess_LoadImage(SBProcess self, SBFileSpec image_spec, SBError error) -> uint32_t"},
 	 { "SBProcess_LoadImageUsingPaths", _wrap_SBProcess_LoadImageUsingPaths, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess_GetStateFromEvent", _wrap_SBProcess_GetStateFromEvent, METH_VARARGS, (char *)"SBProcess_GetStateFromEvent(SBEvent event) -> lldb::StateType"},
+	 { (char *)"SBProcess_GetRestartedFromEvent", _wrap_SBProcess_GetRestartedFromEvent, METH_VARARGS, (char *)"SBProcess_GetRestartedFromEvent(SBEvent event) -> bool"},
+	 { (char *)"SBProcess_GetNumRestartedReasonsFromEvent", _wrap_SBProcess_GetNumRestartedReasonsFromEvent, METH_VARARGS, (char *)"SBProcess_GetNumRestartedReasonsFromEvent(SBEvent event) -> size_t"},
+	 { (char *)"SBProcess_GetRestartedReasonAtIndexFromEvent", _wrap_SBProcess_GetRestartedReasonAtIndexFromEvent, METH_VARARGS, (char *)"SBProcess_GetRestartedReasonAtIndexFromEvent(SBEvent event, size_t idx) -> char const *"},
+	 { (char *)"SBProcess_GetProcessFromEvent", _wrap_SBProcess_GetProcessFromEvent, METH_VARARGS, (char *)"SBProcess_GetProcessFromEvent(SBEvent event) -> SBProcess"},
+	 { (char *)"SBProcess_GetInterruptedFromEvent", _wrap_SBProcess_GetInterruptedFromEvent, METH_VARARGS, (char *)"SBProcess_GetInterruptedFromEvent(SBEvent event) -> bool"},
+	 { (char *)"SBProcess_GetStructuredDataFromEvent", _wrap_SBProcess_GetStructuredDataFromEvent, METH_VARARGS, (char *)"SBProcess_GetStructuredDataFromEvent(SBEvent event) -> SBStructuredData"},
+	 { (char *)"SBProcess_EventIsProcessEvent", _wrap_SBProcess_EventIsProcessEvent, METH_VARARGS, (char *)"SBProcess_EventIsProcessEvent(SBEvent event) -> bool"},
+	 { (char *)"SBProcess_EventIsStructuredDataEvent", _wrap_SBProcess_EventIsStructuredDataEvent, METH_VARARGS, (char *)"SBProcess_EventIsStructuredDataEvent(SBEvent event) -> bool"},
+	 { (char *)"SBProcess_GetBroadcaster", _wrap_SBProcess_GetBroadcaster, METH_VARARGS, (char *)"SBProcess_GetBroadcaster(SBProcess self) -> SBBroadcaster"},
+	 { (char *)"SBProcess_GetDescription", _wrap_SBProcess_GetDescription, METH_VARARGS, (char *)"SBProcess_GetDescription(SBProcess self, SBStream description) -> bool"},
+	 { (char *)"SBProcess_GetNumSupportedHardwareWatchpoints", _wrap_SBProcess_GetNumSupportedHardwareWatchpoints, METH_VARARGS, (char *)"SBProcess_GetNumSupportedHardwareWatchpoints(SBProcess self, SBError error) -> uint32_t"},
+	 { (char *)"SBProcess_LoadImage", _wrap_SBProcess_LoadImage, METH_VARARGS, (char *)"SBProcess_LoadImage(SBProcess self, SBFileSpec image_spec, SBError error) -> uint32_t"},
+	 { (char *)"SBProcess_LoadImageUsingPaths", _wrap_SBProcess_LoadImageUsingPaths, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Load the library whose filename is given by image_spec looking in all the\n"
 		"paths supplied in the paths argument.  If successful, return a token that\n"
 		"can be passed to UnloadImage and fill loaded_path with the path that was\n"
-		"successfully loaded.  On failure, return \n"
+		"successfully loaded.  On failure, return\n"
 		"lldb.LLDB_INVALID_IMAGE_TOKEN.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_UnloadImage", _wrap_SBProcess_UnloadImage, METH_VARARGS, (char *)"SBProcess_UnloadImage(SBProcess self, uint32_t image_token) -> SBError"},
 	 { "SBProcess_SendEventData", _wrap_SBProcess_SendEventData, METH_VARARGS, (char *)"SBProcess_SendEventData(SBProcess self, char const * event_data) -> SBError"},
 	 { "SBProcess_GetNumExtendedBacktraceTypes", _wrap_SBProcess_GetNumExtendedBacktraceTypes, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess_UnloadImage", _wrap_SBProcess_UnloadImage, METH_VARARGS, (char *)"SBProcess_UnloadImage(SBProcess self, uint32_t image_token) -> SBError"},
+	 { (char *)"SBProcess_SendEventData", _wrap_SBProcess_SendEventData, METH_VARARGS, (char *)"SBProcess_SendEventData(SBProcess self, char const * event_data) -> SBError"},
+	 { (char *)"SBProcess_GetNumExtendedBacktraceTypes", _wrap_SBProcess_GetNumExtendedBacktraceTypes, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Return the number of different thread-origin extended backtraces\n"
 		"this process can support as a uint32_t.\n"
 		"When the process is stopped and you have an SBThread, lldb may be\n"
 		"able to show a backtrace of when that thread was originally created,\n"
-		"or the work item was enqueued to it (in the case of a libdispatch \n"
+		"or the work item was enqueued to it (in the case of a libdispatch\n"
 		"queue).\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_GetExtendedBacktraceTypeAtIndex", _wrap_SBProcess_GetExtendedBacktraceTypeAtIndex, METH_VARARGS, (char *)"\n"
 		"\n"
 		"Takes an index argument, returns the name of one of the thread-origin \n"
 		"extended backtrace methods as a str.\n"
+=======
+	 { (char *)"SBProcess_GetExtendedBacktraceTypeAtIndex", _wrap_SBProcess_GetExtendedBacktraceTypeAtIndex, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Takes an index argument, returns the name of one of the thread-origin\n"
+		"extended backtrace methods as a str.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess_GetHistoryThreads", _wrap_SBProcess_GetHistoryThreads, METH_VARARGS, (char *)"SBProcess_GetHistoryThreads(SBProcess self, lldb::addr_t addr) -> SBThreadCollection"},
 	 { "SBProcess_IsInstrumentationRuntimePresent", _wrap_SBProcess_IsInstrumentationRuntimePresent, METH_VARARGS, (char *)"SBProcess_IsInstrumentationRuntimePresent(SBProcess self, lldb::InstrumentationRuntimeType type) -> bool"},
 	 { "SBProcess_SaveCore", _wrap_SBProcess_SaveCore, METH_VARARGS, (char *)"SBProcess_SaveCore(SBProcess self, char const * file_name) -> SBError"},
@@ -80651,6 +83004,15 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBProcess_GetMemoryRegionInfo", _wrap_SBProcess_GetMemoryRegionInfo, METH_VARARGS, (char *)"SBProcess_GetMemoryRegionInfo(SBProcess self, lldb::addr_t load_addr, SBMemoryRegionInfo region_info) -> SBError"},
 	 { "SBProcess_GetMemoryRegions", _wrap_SBProcess_GetMemoryRegions, METH_VARARGS, (char *)"SBProcess_GetMemoryRegions(SBProcess self) -> SBMemoryRegionInfoList"},
 	 { "SBProcess_GetProcessInfo", _wrap_SBProcess_GetProcessInfo, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess_GetHistoryThreads", _wrap_SBProcess_GetHistoryThreads, METH_VARARGS, (char *)"SBProcess_GetHistoryThreads(SBProcess self, lldb::addr_t addr) -> SBThreadCollection"},
+	 { (char *)"SBProcess_IsInstrumentationRuntimePresent", _wrap_SBProcess_IsInstrumentationRuntimePresent, METH_VARARGS, (char *)"SBProcess_IsInstrumentationRuntimePresent(SBProcess self, lldb::InstrumentationRuntimeType type) -> bool"},
+	 { (char *)"SBProcess_SaveCore", _wrap_SBProcess_SaveCore, METH_VARARGS, (char *)"SBProcess_SaveCore(SBProcess self, char const * file_name) -> SBError"},
+	 { (char *)"SBProcess_StartTrace", _wrap_SBProcess_StartTrace, METH_VARARGS, (char *)"SBProcess_StartTrace(SBProcess self, SBTraceOptions options, SBError error) -> SBTrace"},
+	 { (char *)"SBProcess_GetMemoryRegionInfo", _wrap_SBProcess_GetMemoryRegionInfo, METH_VARARGS, (char *)"SBProcess_GetMemoryRegionInfo(SBProcess self, lldb::addr_t load_addr, SBMemoryRegionInfo region_info) -> SBError"},
+	 { (char *)"SBProcess_GetMemoryRegions", _wrap_SBProcess_GetMemoryRegions, METH_VARARGS, (char *)"SBProcess_GetMemoryRegions(SBProcess self) -> SBMemoryRegionInfoList"},
+	 { (char *)"SBProcess_GetProcessInfo", _wrap_SBProcess_GetProcessInfo, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Get information about the process.\n"
 		"Valid process info will only be returned when the process is alive,\n"
@@ -80659,8 +83021,8 @@ static PyMethodDef SwigMethods[] = {
 		"process_info = process.GetProcessInfo()\n"
 		"if process_info.IsValid():\n"
 		"    process_info.GetProcessID()\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBProcess___str__", _wrap_SBProcess___str__, METH_VARARGS, (char *)"SBProcess___str__(SBProcess self) -> PyObject *"},
 	 { "SBProcess_swigregister", SBProcess_swigregister, METH_VARARGS, NULL},
 	 { "new_SBProcessInfo", _wrap_new_SBProcessInfo, METH_VARARGS, (char *)"\n"
@@ -80693,21 +83055,61 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBQueue_Clear", _wrap_SBQueue_Clear, METH_VARARGS, (char *)"SBQueue_Clear(SBQueue self)"},
 	 { "SBQueue_GetProcess", _wrap_SBQueue_GetProcess, METH_VARARGS, (char *)"SBQueue_GetProcess(SBQueue self) -> SBProcess"},
 	 { "SBQueue_GetQueueID", _wrap_SBQueue_GetQueueID, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBProcess___str__", _wrap_SBProcess___str__, METH_VARARGS, (char *)"SBProcess___str__(SBProcess self) -> PyObject *"},
+	 { (char *)"SBProcess_swigregister", SBProcess_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBProcessInfo", _wrap_new_SBProcessInfo, METH_VARARGS, (char *)"\n"
+		"SBProcessInfo()\n"
+		"new_SBProcessInfo(SBProcessInfo rhs) -> SBProcessInfo\n"
+		""},
+	 { (char *)"delete_SBProcessInfo", _wrap_delete_SBProcessInfo, METH_VARARGS, (char *)"delete_SBProcessInfo(SBProcessInfo self)"},
+	 { (char *)"SBProcessInfo_IsValid", _wrap_SBProcessInfo_IsValid, METH_VARARGS, (char *)"SBProcessInfo_IsValid(SBProcessInfo self) -> bool"},
+	 { (char *)"SBProcessInfo___nonzero__", _wrap_SBProcessInfo___nonzero__, METH_VARARGS, (char *)"SBProcessInfo___nonzero__(SBProcessInfo self) -> bool"},
+	 { (char *)"SBProcessInfo_GetName", _wrap_SBProcessInfo_GetName, METH_VARARGS, (char *)"SBProcessInfo_GetName(SBProcessInfo self) -> char const *"},
+	 { (char *)"SBProcessInfo_GetExecutableFile", _wrap_SBProcessInfo_GetExecutableFile, METH_VARARGS, (char *)"SBProcessInfo_GetExecutableFile(SBProcessInfo self) -> SBFileSpec"},
+	 { (char *)"SBProcessInfo_GetProcessID", _wrap_SBProcessInfo_GetProcessID, METH_VARARGS, (char *)"SBProcessInfo_GetProcessID(SBProcessInfo self) -> lldb::pid_t"},
+	 { (char *)"SBProcessInfo_GetUserID", _wrap_SBProcessInfo_GetUserID, METH_VARARGS, (char *)"SBProcessInfo_GetUserID(SBProcessInfo self) -> uint32_t"},
+	 { (char *)"SBProcessInfo_GetGroupID", _wrap_SBProcessInfo_GetGroupID, METH_VARARGS, (char *)"SBProcessInfo_GetGroupID(SBProcessInfo self) -> uint32_t"},
+	 { (char *)"SBProcessInfo_UserIDIsValid", _wrap_SBProcessInfo_UserIDIsValid, METH_VARARGS, (char *)"SBProcessInfo_UserIDIsValid(SBProcessInfo self) -> bool"},
+	 { (char *)"SBProcessInfo_GroupIDIsValid", _wrap_SBProcessInfo_GroupIDIsValid, METH_VARARGS, (char *)"SBProcessInfo_GroupIDIsValid(SBProcessInfo self) -> bool"},
+	 { (char *)"SBProcessInfo_GetEffectiveUserID", _wrap_SBProcessInfo_GetEffectiveUserID, METH_VARARGS, (char *)"SBProcessInfo_GetEffectiveUserID(SBProcessInfo self) -> uint32_t"},
+	 { (char *)"SBProcessInfo_GetEffectiveGroupID", _wrap_SBProcessInfo_GetEffectiveGroupID, METH_VARARGS, (char *)"SBProcessInfo_GetEffectiveGroupID(SBProcessInfo self) -> uint32_t"},
+	 { (char *)"SBProcessInfo_EffectiveUserIDIsValid", _wrap_SBProcessInfo_EffectiveUserIDIsValid, METH_VARARGS, (char *)"SBProcessInfo_EffectiveUserIDIsValid(SBProcessInfo self) -> bool"},
+	 { (char *)"SBProcessInfo_EffectiveGroupIDIsValid", _wrap_SBProcessInfo_EffectiveGroupIDIsValid, METH_VARARGS, (char *)"SBProcessInfo_EffectiveGroupIDIsValid(SBProcessInfo self) -> bool"},
+	 { (char *)"SBProcessInfo_GetParentProcessID", _wrap_SBProcessInfo_GetParentProcessID, METH_VARARGS, (char *)"SBProcessInfo_GetParentProcessID(SBProcessInfo self) -> lldb::pid_t"},
+	 { (char *)"SBProcessInfo_swigregister", SBProcessInfo_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBQueue", _wrap_new_SBQueue, METH_VARARGS, (char *)"\n"
+		"SBQueue()\n"
+		"new_SBQueue(lldb::QueueSP const & queue_sp) -> SBQueue\n"
+		""},
+	 { (char *)"delete_SBQueue", _wrap_delete_SBQueue, METH_VARARGS, (char *)"delete_SBQueue(SBQueue self)"},
+	 { (char *)"SBQueue_IsValid", _wrap_SBQueue_IsValid, METH_VARARGS, (char *)"SBQueue_IsValid(SBQueue self) -> bool"},
+	 { (char *)"SBQueue___nonzero__", _wrap_SBQueue___nonzero__, METH_VARARGS, (char *)"SBQueue___nonzero__(SBQueue self) -> bool"},
+	 { (char *)"SBQueue_Clear", _wrap_SBQueue_Clear, METH_VARARGS, (char *)"SBQueue_Clear(SBQueue self)"},
+	 { (char *)"SBQueue_GetProcess", _wrap_SBQueue_GetProcess, METH_VARARGS, (char *)"SBQueue_GetProcess(SBQueue self) -> SBProcess"},
+	 { (char *)"SBQueue_GetQueueID", _wrap_SBQueue_GetQueueID, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Returns an lldb::queue_id_t type unique identifier number for this\n"
 		"queue that will not be used by any other queue during this process'\n"
 		"execution.  These ID numbers often start at 1 with the first\n"
 		"system-created queues and increment from there.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBQueue_GetName", _wrap_SBQueue_GetName, METH_VARARGS, (char *)"SBQueue_GetName(SBQueue self) -> char const *"},
 	 { "SBQueue_GetKind", _wrap_SBQueue_GetKind, METH_VARARGS, (char *)"\n"
 		"\n"
 		"Returns an lldb::QueueKind enumerated value (e.g. eQueueKindUnknown, \n"
+=======
+	 { (char *)"SBQueue_GetName", _wrap_SBQueue_GetName, METH_VARARGS, (char *)"SBQueue_GetName(SBQueue self) -> char const *"},
+	 { (char *)"SBQueue_GetKind", _wrap_SBQueue_GetKind, METH_VARARGS, (char *)"\n"
+		"\n"
+		"Returns an lldb::QueueKind enumerated value (e.g. eQueueKindUnknown,\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"eQueueKindSerial, eQueueKindConcurrent) describing the type of this\n"
 		"queue.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBQueue_GetIndexID", _wrap_SBQueue_GetIndexID, METH_VARARGS, (char *)"SBQueue_GetIndexID(SBQueue self) -> uint32_t"},
 	 { "SBQueue_GetNumThreads", _wrap_SBQueue_GetNumThreads, METH_VARARGS, (char *)"SBQueue_GetNumThreads(SBQueue self) -> uint32_t"},
 	 { "SBQueue_GetThreadAtIndex", _wrap_SBQueue_GetThreadAtIndex, METH_VARARGS, (char *)"SBQueue_GetThreadAtIndex(SBQueue self, uint32_t arg3) -> SBThread"},
@@ -80766,8 +83168,66 @@ static PyMethodDef SwigMethods[] = {
 		"/// @return\n"
 		"///     The number of host (8-bit) bytes needed to hold a target byte\n"
 		"//------------------------------------------------------------------\n"
-		"\n"
+=======
+	 { (char *)"SBQueue_GetIndexID", _wrap_SBQueue_GetIndexID, METH_VARARGS, (char *)"SBQueue_GetIndexID(SBQueue self) -> uint32_t"},
+	 { (char *)"SBQueue_GetNumThreads", _wrap_SBQueue_GetNumThreads, METH_VARARGS, (char *)"SBQueue_GetNumThreads(SBQueue self) -> uint32_t"},
+	 { (char *)"SBQueue_GetThreadAtIndex", _wrap_SBQueue_GetThreadAtIndex, METH_VARARGS, (char *)"SBQueue_GetThreadAtIndex(SBQueue self, uint32_t arg3) -> SBThread"},
+	 { (char *)"SBQueue_GetNumPendingItems", _wrap_SBQueue_GetNumPendingItems, METH_VARARGS, (char *)"SBQueue_GetNumPendingItems(SBQueue self) -> uint32_t"},
+	 { (char *)"SBQueue_GetPendingItemAtIndex", _wrap_SBQueue_GetPendingItemAtIndex, METH_VARARGS, (char *)"SBQueue_GetPendingItemAtIndex(SBQueue self, uint32_t arg3) -> SBQueueItem"},
+	 { (char *)"SBQueue_GetNumRunningItems", _wrap_SBQueue_GetNumRunningItems, METH_VARARGS, (char *)"SBQueue_GetNumRunningItems(SBQueue self) -> uint32_t"},
+	 { (char *)"SBQueue_swigregister", SBQueue_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBQueueItem", _wrap_new_SBQueueItem, METH_VARARGS, (char *)"\n"
+		"SBQueueItem()\n"
+		"new_SBQueueItem(lldb::QueueItemSP const & queue_item_sp) -> SBQueueItem\n"
 		""},
+	 { (char *)"delete_SBQueueItem", _wrap_delete_SBQueueItem, METH_VARARGS, (char *)"delete_SBQueueItem(SBQueueItem self)"},
+	 { (char *)"SBQueueItem_IsValid", _wrap_SBQueueItem_IsValid, METH_VARARGS, (char *)"SBQueueItem_IsValid(SBQueueItem self) -> bool"},
+	 { (char *)"SBQueueItem___nonzero__", _wrap_SBQueueItem___nonzero__, METH_VARARGS, (char *)"SBQueueItem___nonzero__(SBQueueItem self) -> bool"},
+	 { (char *)"SBQueueItem_Clear", _wrap_SBQueueItem_Clear, METH_VARARGS, (char *)"SBQueueItem_Clear(SBQueueItem self)"},
+	 { (char *)"SBQueueItem_GetKind", _wrap_SBQueueItem_GetKind, METH_VARARGS, (char *)"SBQueueItem_GetKind(SBQueueItem self) -> lldb::QueueItemKind"},
+	 { (char *)"SBQueueItem_SetKind", _wrap_SBQueueItem_SetKind, METH_VARARGS, (char *)"SBQueueItem_SetKind(SBQueueItem self, lldb::QueueItemKind kind)"},
+	 { (char *)"SBQueueItem_GetAddress", _wrap_SBQueueItem_GetAddress, METH_VARARGS, (char *)"SBQueueItem_GetAddress(SBQueueItem self) -> SBAddress"},
+	 { (char *)"SBQueueItem_SetAddress", _wrap_SBQueueItem_SetAddress, METH_VARARGS, (char *)"SBQueueItem_SetAddress(SBQueueItem self, SBAddress addr)"},
+	 { (char *)"SBQueueItem_SetQueueItem", _wrap_SBQueueItem_SetQueueItem, METH_VARARGS, (char *)"SBQueueItem_SetQueueItem(SBQueueItem self, lldb::QueueItemSP const & queue_item_sp)"},
+	 { (char *)"SBQueueItem_GetExtendedBacktraceThread", _wrap_SBQueueItem_GetExtendedBacktraceThread, METH_VARARGS, (char *)"SBQueueItem_GetExtendedBacktraceThread(SBQueueItem self, char const * type) -> SBThread"},
+	 { (char *)"SBQueueItem_swigregister", SBQueueItem_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBSection", _wrap_new_SBSection, METH_VARARGS, (char *)"\n"
+		"SBSection()\n"
+		"new_SBSection(SBSection rhs) -> SBSection\n"
+		""},
+	 { (char *)"delete_SBSection", _wrap_delete_SBSection, METH_VARARGS, (char *)"delete_SBSection(SBSection self)"},
+	 { (char *)"SBSection_IsValid", _wrap_SBSection_IsValid, METH_VARARGS, (char *)"SBSection_IsValid(SBSection self) -> bool"},
+	 { (char *)"SBSection___nonzero__", _wrap_SBSection___nonzero__, METH_VARARGS, (char *)"SBSection___nonzero__(SBSection self) -> bool"},
+	 { (char *)"SBSection_GetName", _wrap_SBSection_GetName, METH_VARARGS, (char *)"SBSection_GetName(SBSection self) -> char const *"},
+	 { (char *)"SBSection_GetParent", _wrap_SBSection_GetParent, METH_VARARGS, (char *)"SBSection_GetParent(SBSection self) -> SBSection"},
+	 { (char *)"SBSection_FindSubSection", _wrap_SBSection_FindSubSection, METH_VARARGS, (char *)"SBSection_FindSubSection(SBSection self, char const * sect_name) -> SBSection"},
+	 { (char *)"SBSection_GetNumSubSections", _wrap_SBSection_GetNumSubSections, METH_VARARGS, (char *)"SBSection_GetNumSubSections(SBSection self) -> size_t"},
+	 { (char *)"SBSection_GetSubSectionAtIndex", _wrap_SBSection_GetSubSectionAtIndex, METH_VARARGS, (char *)"SBSection_GetSubSectionAtIndex(SBSection self, size_t idx) -> SBSection"},
+	 { (char *)"SBSection_GetFileAddress", _wrap_SBSection_GetFileAddress, METH_VARARGS, (char *)"SBSection_GetFileAddress(SBSection self) -> lldb::addr_t"},
+	 { (char *)"SBSection_GetLoadAddress", _wrap_SBSection_GetLoadAddress, METH_VARARGS, (char *)"SBSection_GetLoadAddress(SBSection self, SBTarget target) -> lldb::addr_t"},
+	 { (char *)"SBSection_GetByteSize", _wrap_SBSection_GetByteSize, METH_VARARGS, (char *)"SBSection_GetByteSize(SBSection self) -> lldb::addr_t"},
+	 { (char *)"SBSection_GetFileOffset", _wrap_SBSection_GetFileOffset, METH_VARARGS, (char *)"SBSection_GetFileOffset(SBSection self) -> uint64_t"},
+	 { (char *)"SBSection_GetFileByteSize", _wrap_SBSection_GetFileByteSize, METH_VARARGS, (char *)"SBSection_GetFileByteSize(SBSection self) -> uint64_t"},
+	 { (char *)"SBSection_GetSectionData", _wrap_SBSection_GetSectionData, METH_VARARGS, (char *)"\n"
+		"GetSectionData() -> SBData\n"
+		"SBSection_GetSectionData(SBSection self, uint64_t offset, uint64_t size) -> SBData\n"
+		""},
+	 { (char *)"SBSection_GetSectionType", _wrap_SBSection_GetSectionType, METH_VARARGS, (char *)"SBSection_GetSectionType(SBSection self) -> lldb::SectionType"},
+	 { (char *)"SBSection_GetPermissions", _wrap_SBSection_GetPermissions, METH_VARARGS, (char *)"SBSection_GetPermissions(SBSection self) -> uint32_t"},
+	 { (char *)"SBSection_GetTargetByteSize", _wrap_SBSection_GetTargetByteSize, METH_VARARGS, (char *)"\n"
+		"SBSection_GetTargetByteSize(SBSection self) -> uint32_t\n"
+		"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"Return the size of a target's byte represented by this section\n"
+		"in numbers of host bytes. Note that certain architectures have\n"
+		"varying minimum addressable unit (i.e. byte) size for their\n"
+		"CODE or DATA buses.\n"
+		"\n"
+		"@return\n"
+		"    The number of host (8-bit) bytes needed to hold a target byte\n"
+		""},
+<<<<<<< HEAD
 	 { "SBSection_GetDescription", _wrap_SBSection_GetDescription, METH_VARARGS, (char *)"SBSection_GetDescription(SBSection self, SBStream description) -> bool"},
 	 { "SBSection___eq__", _wrap_SBSection___eq__, METH_VARARGS, (char *)"SBSection___eq__(SBSection self, SBSection rhs) -> bool"},
 	 { "SBSection___ne__", _wrap_SBSection___ne__, METH_VARARGS, (char *)"SBSection___ne__(SBSection self, SBSection rhs) -> bool"},
@@ -80785,24 +83245,47 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBStream_GetData", _wrap_SBStream_GetData, METH_VARARGS, (char *)"\n"
 		"SBStream_GetData(SBStream self) -> char const *\n"
 		"\n"
+=======
+	 { (char *)"SBSection_GetDescription", _wrap_SBSection_GetDescription, METH_VARARGS, (char *)"SBSection_GetDescription(SBSection self, SBStream description) -> bool"},
+	 { (char *)"SBSection___eq__", _wrap_SBSection___eq__, METH_VARARGS, (char *)"SBSection___eq__(SBSection self, SBSection rhs) -> bool"},
+	 { (char *)"SBSection___ne__", _wrap_SBSection___ne__, METH_VARARGS, (char *)"SBSection___ne__(SBSection self, SBSection rhs) -> bool"},
+	 { (char *)"SBSection___str__", _wrap_SBSection___str__, METH_VARARGS, (char *)"SBSection___str__(SBSection self) -> PyObject *"},
+	 { (char *)"SBSection_swigregister", SBSection_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBSourceManager", _wrap_new_SBSourceManager, METH_VARARGS, (char *)"new_SBSourceManager(SBSourceManager rhs) -> SBSourceManager"},
+	 { (char *)"delete_SBSourceManager", _wrap_delete_SBSourceManager, METH_VARARGS, (char *)"delete_SBSourceManager(SBSourceManager self)"},
+	 { (char *)"SBSourceManager_DisplaySourceLinesWithLineNumbers", _wrap_SBSourceManager_DisplaySourceLinesWithLineNumbers, METH_VARARGS, (char *)"SBSourceManager_DisplaySourceLinesWithLineNumbers(SBSourceManager self, SBFileSpec file, uint32_t line, uint32_t context_before, uint32_t context_after, char const * current_line_cstr, SBStream s) -> size_t"},
+	 { (char *)"SBSourceManager_DisplaySourceLinesWithLineNumbersAndColumn", _wrap_SBSourceManager_DisplaySourceLinesWithLineNumbersAndColumn, METH_VARARGS, (char *)"SBSourceManager_DisplaySourceLinesWithLineNumbersAndColumn(SBSourceManager self, SBFileSpec file, uint32_t line, uint32_t column, uint32_t context_before, uint32_t context_after, char const * current_line_cstr, SBStream s) -> size_t"},
+	 { (char *)"SBSourceManager_swigregister", SBSourceManager_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBStream", _wrap_new_SBStream, METH_VARARGS, (char *)"new_SBStream() -> SBStream"},
+	 { (char *)"delete_SBStream", _wrap_delete_SBStream, METH_VARARGS, (char *)"delete_SBStream(SBStream self)"},
+	 { (char *)"SBStream_IsValid", _wrap_SBStream_IsValid, METH_VARARGS, (char *)"SBStream_IsValid(SBStream self) -> bool"},
+	 { (char *)"SBStream___nonzero__", _wrap_SBStream___nonzero__, METH_VARARGS, (char *)"SBStream___nonzero__(SBStream self) -> bool"},
+	 { (char *)"SBStream_GetData", _wrap_SBStream_GetData, METH_VARARGS, (char *)"\n"
+		"SBStream_GetData(SBStream self) -> char const *\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"//--------------------------------------------------------------------------\n"
-		"/// If this stream is not redirected to a file, it will maintain a local\n"
-		"/// cache for the stream data which can be accessed using this accessor.\n"
-		"//--------------------------------------------------------------------------\n"
 		"\n"
+		"If this stream is not redirected to a file, it will maintain a local\n"
+		"cache for the stream data which can be accessed using this accessor.\n"
 		""},
 	 { "SBStream_GetSize", _wrap_SBStream_GetSize, METH_VARARGS, (char *)"\n"
 		"SBStream_GetSize(SBStream self) -> size_t\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"//--------------------------------------------------------------------------\n"
 		"/// If this stream is not redirected to a file, it will maintain a local\n"
 		"/// cache for the stream output whose length can be accessed using this \n"
 		"/// accessor.\n"
 		"//--------------------------------------------------------------------------\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"If this stream is not redirected to a file, it will maintain a local\n"
+		"cache for the stream output whose length can be accessed using this\n"
+		"accessor.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBStream_Print", _wrap_SBStream_Print, METH_VARARGS, (char *)"SBStream_Print(SBStream self, char const * str)"},
 	 { "SBStream_RedirectToFile", _wrap_SBStream_RedirectToFile, METH_VARARGS, (char *)"SBStream_RedirectToFile(SBStream self, char const * path, bool append)"},
 	 { "SBStream_RedirectToFileHandle", _wrap_SBStream_RedirectToFileHandle, METH_VARARGS, (char *)"SBStream_RedirectToFileHandle(SBStream self, FILE * fh, bool transfer_fh_ownership)"},
@@ -80816,8 +83299,21 @@ static PyMethodDef SwigMethods[] = {
 		"/// ownership of the file was transferred to this object, close the file.\n"
 		"/// If the stream is backed by a local cache, clear this cache.\n"
 		"//--------------------------------------------------------------------------\n"
+=======
+	 { (char *)"SBStream_Print", _wrap_SBStream_Print, METH_VARARGS, (char *)"SBStream_Print(SBStream self, char const * str)"},
+	 { (char *)"SBStream_RedirectToFile", _wrap_SBStream_RedirectToFile, METH_VARARGS, (char *)"SBStream_RedirectToFile(SBStream self, char const * path, bool append)"},
+	 { (char *)"SBStream_RedirectToFileHandle", _wrap_SBStream_RedirectToFileHandle, METH_VARARGS, (char *)"SBStream_RedirectToFileHandle(SBStream self, FILE * fh, bool transfer_fh_ownership)"},
+	 { (char *)"SBStream_RedirectToFileDescriptor", _wrap_SBStream_RedirectToFileDescriptor, METH_VARARGS, (char *)"SBStream_RedirectToFileDescriptor(SBStream self, int fd, bool transfer_fh_ownership)"},
+	 { (char *)"SBStream_Clear", _wrap_SBStream_Clear, METH_VARARGS, (char *)"\n"
+		"SBStream_Clear(SBStream self)\n"
 		"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"If the stream is redirected to a file, forget about the file and if\n"
+		"ownership of the file was transferred to this object, close the file.\n"
+		"If the stream is backed by a local cache, clear this cache.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBStream_write", _wrap_SBStream_write, METH_VARARGS, (char *)"SBStream_write(SBStream self, char const * str)"},
 	 { "SBStream_flush", _wrap_SBStream_flush, METH_VARARGS, (char *)"SBStream_flush(SBStream self)"},
 	 { "SBStream_swigregister", SBStream_swigregister, METH_VARARGS, NULL},
@@ -80838,10 +83334,33 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBStringList_Clear", _wrap_SBStringList_Clear, METH_VARARGS, (char *)"SBStringList_Clear(SBStringList self)"},
 	 { "SBStringList_swigregister", SBStringList_swigregister, METH_VARARGS, NULL},
 	 { "new_SBStructuredData", _wrap_new_SBStructuredData, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBStream_write", _wrap_SBStream_write, METH_VARARGS, (char *)"SBStream_write(SBStream self, char const * str)"},
+	 { (char *)"SBStream_flush", _wrap_SBStream_flush, METH_VARARGS, (char *)"SBStream_flush(SBStream self)"},
+	 { (char *)"SBStream_swigregister", SBStream_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBStringList", _wrap_new_SBStringList, METH_VARARGS, (char *)"\n"
+		"SBStringList()\n"
+		"new_SBStringList(SBStringList rhs) -> SBStringList\n"
+		""},
+	 { (char *)"delete_SBStringList", _wrap_delete_SBStringList, METH_VARARGS, (char *)"delete_SBStringList(SBStringList self)"},
+	 { (char *)"SBStringList_IsValid", _wrap_SBStringList_IsValid, METH_VARARGS, (char *)"SBStringList_IsValid(SBStringList self) -> bool"},
+	 { (char *)"SBStringList___nonzero__", _wrap_SBStringList___nonzero__, METH_VARARGS, (char *)"SBStringList___nonzero__(SBStringList self) -> bool"},
+	 { (char *)"SBStringList_AppendString", _wrap_SBStringList_AppendString, METH_VARARGS, (char *)"SBStringList_AppendString(SBStringList self, char const * str)"},
+	 { (char *)"SBStringList_AppendList", _wrap_SBStringList_AppendList, METH_VARARGS, (char *)"\n"
+		"AppendList(char const ** strv, int strc)\n"
+		"SBStringList_AppendList(SBStringList self, SBStringList strings)\n"
+		""},
+	 { (char *)"SBStringList_GetSize", _wrap_SBStringList_GetSize, METH_VARARGS, (char *)"SBStringList_GetSize(SBStringList self) -> uint32_t"},
+	 { (char *)"SBStringList_GetStringAtIndex", _wrap_SBStringList_GetStringAtIndex, METH_VARARGS, (char *)"SBStringList_GetStringAtIndex(SBStringList self, size_t idx) -> char const *"},
+	 { (char *)"SBStringList_Clear", _wrap_SBStringList_Clear, METH_VARARGS, (char *)"SBStringList_Clear(SBStringList self)"},
+	 { (char *)"SBStringList_swigregister", SBStringList_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBStructuredData", _wrap_new_SBStructuredData, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBStructuredData()\n"
 		"SBStructuredData(SBStructuredData rhs)\n"
 		"new_SBStructuredData(lldb::EventSP const & event_sp) -> SBStructuredData\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBStructuredData", _wrap_delete_SBStructuredData, METH_VARARGS, (char *)"delete_SBStructuredData(SBStructuredData self)"},
 	 { "SBStructuredData_IsValid", _wrap_SBStructuredData_IsValid, METH_VARARGS, (char *)"SBStructuredData_IsValid(SBStructuredData self) -> bool"},
 	 { "SBStructuredData___nonzero__", _wrap_SBStructuredData___nonzero__, METH_VARARGS, (char *)"SBStructuredData___nonzero__(SBStructuredData self) -> bool"},
@@ -80959,11 +83478,128 @@ static PyMethodDef SwigMethods[] = {
 		"/// @return\n"
 		"///     A platform object.\n"
 		"//------------------------------------------------------------------\n"
+=======
+	 { (char *)"delete_SBStructuredData", _wrap_delete_SBStructuredData, METH_VARARGS, (char *)"delete_SBStructuredData(SBStructuredData self)"},
+	 { (char *)"SBStructuredData_IsValid", _wrap_SBStructuredData_IsValid, METH_VARARGS, (char *)"SBStructuredData_IsValid(SBStructuredData self) -> bool"},
+	 { (char *)"SBStructuredData___nonzero__", _wrap_SBStructuredData___nonzero__, METH_VARARGS, (char *)"SBStructuredData___nonzero__(SBStructuredData self) -> bool"},
+	 { (char *)"SBStructuredData_Clear", _wrap_SBStructuredData_Clear, METH_VARARGS, (char *)"SBStructuredData_Clear(SBStructuredData self)"},
+	 { (char *)"SBStructuredData_GetType", _wrap_SBStructuredData_GetType, METH_VARARGS, (char *)"SBStructuredData_GetType(SBStructuredData self) -> lldb::StructuredDataType"},
+	 { (char *)"SBStructuredData_GetSize", _wrap_SBStructuredData_GetSize, METH_VARARGS, (char *)"SBStructuredData_GetSize(SBStructuredData self) -> size_t"},
+	 { (char *)"SBStructuredData_GetKeys", _wrap_SBStructuredData_GetKeys, METH_VARARGS, (char *)"SBStructuredData_GetKeys(SBStructuredData self, SBStringList keys) -> bool"},
+	 { (char *)"SBStructuredData_GetValueForKey", _wrap_SBStructuredData_GetValueForKey, METH_VARARGS, (char *)"SBStructuredData_GetValueForKey(SBStructuredData self, char const * key) -> SBStructuredData"},
+	 { (char *)"SBStructuredData_GetItemAtIndex", _wrap_SBStructuredData_GetItemAtIndex, METH_VARARGS, (char *)"SBStructuredData_GetItemAtIndex(SBStructuredData self, size_t idx) -> SBStructuredData"},
+	 { (char *)"SBStructuredData_GetIntegerValue", _wrap_SBStructuredData_GetIntegerValue, METH_VARARGS, (char *)"\n"
+		"GetIntegerValue(uint64_t fail_value=0) -> uint64_t\n"
+		"SBStructuredData_GetIntegerValue(SBStructuredData self) -> uint64_t\n"
+		""},
+	 { (char *)"SBStructuredData_GetFloatValue", _wrap_SBStructuredData_GetFloatValue, METH_VARARGS, (char *)"\n"
+		"GetFloatValue(double fail_value=0.0) -> double\n"
+		"SBStructuredData_GetFloatValue(SBStructuredData self) -> double\n"
+		""},
+	 { (char *)"SBStructuredData_GetBooleanValue", _wrap_SBStructuredData_GetBooleanValue, METH_VARARGS, (char *)"\n"
+		"GetBooleanValue(bool fail_value=False) -> bool\n"
+		"SBStructuredData_GetBooleanValue(SBStructuredData self) -> bool\n"
+		""},
+	 { (char *)"SBStructuredData_GetStringValue", _wrap_SBStructuredData_GetStringValue, METH_VARARGS, (char *)"SBStructuredData_GetStringValue(SBStructuredData self, char * dst) -> size_t"},
+	 { (char *)"SBStructuredData_GetAsJSON", _wrap_SBStructuredData_GetAsJSON, METH_VARARGS, (char *)"SBStructuredData_GetAsJSON(SBStructuredData self, SBStream stream) -> SBError"},
+	 { (char *)"SBStructuredData_GetDescription", _wrap_SBStructuredData_GetDescription, METH_VARARGS, (char *)"SBStructuredData_GetDescription(SBStructuredData self, SBStream stream) -> SBError"},
+	 { (char *)"SBStructuredData_SetFromJSON", _wrap_SBStructuredData_SetFromJSON, METH_VARARGS, (char *)"SBStructuredData_SetFromJSON(SBStructuredData self, SBStream stream) -> SBError"},
+	 { (char *)"SBStructuredData_swigregister", SBStructuredData_swigregister, METH_VARARGS, NULL},
+	 { (char *)"delete_SBSymbol", _wrap_delete_SBSymbol, METH_VARARGS, (char *)"delete_SBSymbol(SBSymbol self)"},
+	 { (char *)"new_SBSymbol", _wrap_new_SBSymbol, METH_VARARGS, (char *)"\n"
+		"SBSymbol()\n"
+		"new_SBSymbol(SBSymbol rhs) -> SBSymbol\n"
+		""},
+	 { (char *)"SBSymbol_IsValid", _wrap_SBSymbol_IsValid, METH_VARARGS, (char *)"SBSymbol_IsValid(SBSymbol self) -> bool"},
+	 { (char *)"SBSymbol___nonzero__", _wrap_SBSymbol___nonzero__, METH_VARARGS, (char *)"SBSymbol___nonzero__(SBSymbol self) -> bool"},
+	 { (char *)"SBSymbol_GetName", _wrap_SBSymbol_GetName, METH_VARARGS, (char *)"SBSymbol_GetName(SBSymbol self) -> char const *"},
+	 { (char *)"SBSymbol_GetDisplayName", _wrap_SBSymbol_GetDisplayName, METH_VARARGS, (char *)"SBSymbol_GetDisplayName(SBSymbol self) -> char const *"},
+	 { (char *)"SBSymbol_GetMangledName", _wrap_SBSymbol_GetMangledName, METH_VARARGS, (char *)"SBSymbol_GetMangledName(SBSymbol self) -> char const *"},
+	 { (char *)"SBSymbol_GetInstructions", _wrap_SBSymbol_GetInstructions, METH_VARARGS, (char *)"\n"
+		"GetInstructions(SBTarget target) -> SBInstructionList\n"
+		"SBSymbol_GetInstructions(SBSymbol self, SBTarget target, char const * flavor_string) -> SBInstructionList\n"
+		""},
+	 { (char *)"SBSymbol_GetStartAddress", _wrap_SBSymbol_GetStartAddress, METH_VARARGS, (char *)"SBSymbol_GetStartAddress(SBSymbol self) -> SBAddress"},
+	 { (char *)"SBSymbol_GetEndAddress", _wrap_SBSymbol_GetEndAddress, METH_VARARGS, (char *)"SBSymbol_GetEndAddress(SBSymbol self) -> SBAddress"},
+	 { (char *)"SBSymbol_GetPrologueByteSize", _wrap_SBSymbol_GetPrologueByteSize, METH_VARARGS, (char *)"SBSymbol_GetPrologueByteSize(SBSymbol self) -> uint32_t"},
+	 { (char *)"SBSymbol_GetType", _wrap_SBSymbol_GetType, METH_VARARGS, (char *)"SBSymbol_GetType(SBSymbol self) -> lldb::SymbolType"},
+	 { (char *)"SBSymbol_GetDescription", _wrap_SBSymbol_GetDescription, METH_VARARGS, (char *)"SBSymbol_GetDescription(SBSymbol self, SBStream description) -> bool"},
+	 { (char *)"SBSymbol_IsExternal", _wrap_SBSymbol_IsExternal, METH_VARARGS, (char *)"SBSymbol_IsExternal(SBSymbol self) -> bool"},
+	 { (char *)"SBSymbol_IsSynthetic", _wrap_SBSymbol_IsSynthetic, METH_VARARGS, (char *)"SBSymbol_IsSynthetic(SBSymbol self) -> bool"},
+	 { (char *)"SBSymbol___eq__", _wrap_SBSymbol___eq__, METH_VARARGS, (char *)"SBSymbol___eq__(SBSymbol self, SBSymbol rhs) -> bool"},
+	 { (char *)"SBSymbol___ne__", _wrap_SBSymbol___ne__, METH_VARARGS, (char *)"SBSymbol___ne__(SBSymbol self, SBSymbol rhs) -> bool"},
+	 { (char *)"SBSymbol___str__", _wrap_SBSymbol___str__, METH_VARARGS, (char *)"SBSymbol___str__(SBSymbol self) -> PyObject *"},
+	 { (char *)"SBSymbol_swigregister", SBSymbol_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBSymbolContext", _wrap_new_SBSymbolContext, METH_VARARGS, (char *)"\n"
+		"SBSymbolContext()\n"
+		"new_SBSymbolContext(SBSymbolContext rhs) -> SBSymbolContext\n"
+		""},
+	 { (char *)"delete_SBSymbolContext", _wrap_delete_SBSymbolContext, METH_VARARGS, (char *)"delete_SBSymbolContext(SBSymbolContext self)"},
+	 { (char *)"SBSymbolContext_IsValid", _wrap_SBSymbolContext_IsValid, METH_VARARGS, (char *)"SBSymbolContext_IsValid(SBSymbolContext self) -> bool"},
+	 { (char *)"SBSymbolContext___nonzero__", _wrap_SBSymbolContext___nonzero__, METH_VARARGS, (char *)"SBSymbolContext___nonzero__(SBSymbolContext self) -> bool"},
+	 { (char *)"SBSymbolContext_GetModule", _wrap_SBSymbolContext_GetModule, METH_VARARGS, (char *)"SBSymbolContext_GetModule(SBSymbolContext self) -> SBModule"},
+	 { (char *)"SBSymbolContext_GetCompileUnit", _wrap_SBSymbolContext_GetCompileUnit, METH_VARARGS, (char *)"SBSymbolContext_GetCompileUnit(SBSymbolContext self) -> SBCompileUnit"},
+	 { (char *)"SBSymbolContext_GetFunction", _wrap_SBSymbolContext_GetFunction, METH_VARARGS, (char *)"SBSymbolContext_GetFunction(SBSymbolContext self) -> SBFunction"},
+	 { (char *)"SBSymbolContext_GetBlock", _wrap_SBSymbolContext_GetBlock, METH_VARARGS, (char *)"SBSymbolContext_GetBlock(SBSymbolContext self) -> SBBlock"},
+	 { (char *)"SBSymbolContext_GetLineEntry", _wrap_SBSymbolContext_GetLineEntry, METH_VARARGS, (char *)"SBSymbolContext_GetLineEntry(SBSymbolContext self) -> SBLineEntry"},
+	 { (char *)"SBSymbolContext_GetSymbol", _wrap_SBSymbolContext_GetSymbol, METH_VARARGS, (char *)"SBSymbolContext_GetSymbol(SBSymbolContext self) -> SBSymbol"},
+	 { (char *)"SBSymbolContext_SetModule", _wrap_SBSymbolContext_SetModule, METH_VARARGS, (char *)"SBSymbolContext_SetModule(SBSymbolContext self, SBModule module)"},
+	 { (char *)"SBSymbolContext_SetCompileUnit", _wrap_SBSymbolContext_SetCompileUnit, METH_VARARGS, (char *)"SBSymbolContext_SetCompileUnit(SBSymbolContext self, SBCompileUnit compile_unit)"},
+	 { (char *)"SBSymbolContext_SetFunction", _wrap_SBSymbolContext_SetFunction, METH_VARARGS, (char *)"SBSymbolContext_SetFunction(SBSymbolContext self, SBFunction function)"},
+	 { (char *)"SBSymbolContext_SetBlock", _wrap_SBSymbolContext_SetBlock, METH_VARARGS, (char *)"SBSymbolContext_SetBlock(SBSymbolContext self, SBBlock block)"},
+	 { (char *)"SBSymbolContext_SetLineEntry", _wrap_SBSymbolContext_SetLineEntry, METH_VARARGS, (char *)"SBSymbolContext_SetLineEntry(SBSymbolContext self, SBLineEntry line_entry)"},
+	 { (char *)"SBSymbolContext_SetSymbol", _wrap_SBSymbolContext_SetSymbol, METH_VARARGS, (char *)"SBSymbolContext_SetSymbol(SBSymbolContext self, SBSymbol symbol)"},
+	 { (char *)"SBSymbolContext_GetParentOfInlinedScope", _wrap_SBSymbolContext_GetParentOfInlinedScope, METH_VARARGS, (char *)"SBSymbolContext_GetParentOfInlinedScope(SBSymbolContext self, SBAddress curr_frame_pc, SBAddress parent_frame_addr) -> SBSymbolContext"},
+	 { (char *)"SBSymbolContext_GetDescription", _wrap_SBSymbolContext_GetDescription, METH_VARARGS, (char *)"SBSymbolContext_GetDescription(SBSymbolContext self, SBStream description) -> bool"},
+	 { (char *)"SBSymbolContext___str__", _wrap_SBSymbolContext___str__, METH_VARARGS, (char *)"SBSymbolContext___str__(SBSymbolContext self) -> PyObject *"},
+	 { (char *)"SBSymbolContext_swigregister", SBSymbolContext_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBSymbolContextList", _wrap_new_SBSymbolContextList, METH_VARARGS, (char *)"\n"
+		"SBSymbolContextList()\n"
+		"new_SBSymbolContextList(SBSymbolContextList rhs) -> SBSymbolContextList\n"
+		""},
+	 { (char *)"delete_SBSymbolContextList", _wrap_delete_SBSymbolContextList, METH_VARARGS, (char *)"delete_SBSymbolContextList(SBSymbolContextList self)"},
+	 { (char *)"SBSymbolContextList_IsValid", _wrap_SBSymbolContextList_IsValid, METH_VARARGS, (char *)"SBSymbolContextList_IsValid(SBSymbolContextList self) -> bool"},
+	 { (char *)"SBSymbolContextList___nonzero__", _wrap_SBSymbolContextList___nonzero__, METH_VARARGS, (char *)"SBSymbolContextList___nonzero__(SBSymbolContextList self) -> bool"},
+	 { (char *)"SBSymbolContextList_GetSize", _wrap_SBSymbolContextList_GetSize, METH_VARARGS, (char *)"SBSymbolContextList_GetSize(SBSymbolContextList self) -> uint32_t"},
+	 { (char *)"SBSymbolContextList_GetContextAtIndex", _wrap_SBSymbolContextList_GetContextAtIndex, METH_VARARGS, (char *)"SBSymbolContextList_GetContextAtIndex(SBSymbolContextList self, uint32_t idx) -> SBSymbolContext"},
+	 { (char *)"SBSymbolContextList_Append", _wrap_SBSymbolContextList_Append, METH_VARARGS, (char *)"\n"
+		"Append(SBSymbolContext sc)\n"
+		"SBSymbolContextList_Append(SBSymbolContextList self, SBSymbolContextList sc_list)\n"
+		""},
+	 { (char *)"SBSymbolContextList_GetDescription", _wrap_SBSymbolContextList_GetDescription, METH_VARARGS, (char *)"SBSymbolContextList_GetDescription(SBSymbolContextList self, SBStream description) -> bool"},
+	 { (char *)"SBSymbolContextList_Clear", _wrap_SBSymbolContextList_Clear, METH_VARARGS, (char *)"SBSymbolContextList_Clear(SBSymbolContextList self)"},
+	 { (char *)"SBSymbolContextList___str__", _wrap_SBSymbolContextList___str__, METH_VARARGS, (char *)"SBSymbolContextList___str__(SBSymbolContextList self) -> PyObject *"},
+	 { (char *)"SBSymbolContextList_swigregister", SBSymbolContextList_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTarget", _wrap_new_SBTarget, METH_VARARGS, (char *)"\n"
+		"SBTarget()\n"
+		"new_SBTarget(SBTarget rhs) -> SBTarget\n"
+		""},
+	 { (char *)"delete_SBTarget", _wrap_delete_SBTarget, METH_VARARGS, (char *)"delete_SBTarget(SBTarget self)"},
+	 { (char *)"SBTarget_GetBroadcasterClassName", _wrap_SBTarget_GetBroadcasterClassName, METH_VARARGS, (char *)"SBTarget_GetBroadcasterClassName() -> char const *"},
+	 { (char *)"SBTarget_IsValid", _wrap_SBTarget_IsValid, METH_VARARGS, (char *)"SBTarget_IsValid(SBTarget self) -> bool"},
+	 { (char *)"SBTarget___nonzero__", _wrap_SBTarget___nonzero__, METH_VARARGS, (char *)"SBTarget___nonzero__(SBTarget self) -> bool"},
+	 { (char *)"SBTarget_EventIsTargetEvent", _wrap_SBTarget_EventIsTargetEvent, METH_VARARGS, (char *)"SBTarget_EventIsTargetEvent(SBEvent event) -> bool"},
+	 { (char *)"SBTarget_GetTargetFromEvent", _wrap_SBTarget_GetTargetFromEvent, METH_VARARGS, (char *)"SBTarget_GetTargetFromEvent(SBEvent event) -> SBTarget"},
+	 { (char *)"SBTarget_GetNumModulesFromEvent", _wrap_SBTarget_GetNumModulesFromEvent, METH_VARARGS, (char *)"SBTarget_GetNumModulesFromEvent(SBEvent event) -> uint32_t"},
+	 { (char *)"SBTarget_GetModuleAtIndexFromEvent", _wrap_SBTarget_GetModuleAtIndexFromEvent, METH_VARARGS, (char *)"SBTarget_GetModuleAtIndexFromEvent(uint32_t const idx, SBEvent event) -> SBModule"},
+	 { (char *)"SBTarget_GetProcess", _wrap_SBTarget_GetProcess, METH_VARARGS, (char *)"SBTarget_GetProcess(SBTarget self) -> SBProcess"},
+	 { (char *)"SBTarget_GetPlatform", _wrap_SBTarget_GetPlatform, METH_VARARGS, (char *)"\n"
+		"SBTarget_GetPlatform(SBTarget self) -> SBPlatform\n"
 		"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"Return the platform object associated with the target.\n"
+		"\n"
+		"After return, the platform object should be checked for\n"
+		"validity.\n"
+		"\n"
+		"@return\n"
+		"    A platform object.\n"
 		""},
 	 { "SBTarget_Install", _wrap_SBTarget_Install, METH_VARARGS, (char *)"\n"
 		"SBTarget_Install(SBTarget self) -> SBError\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"//------------------------------------------------------------------\n"
 		"/// Install any binaries that need to be installed.\n"
@@ -80979,38 +83615,56 @@ static PyMethodDef SwigMethods[] = {
 		"///     An error describing anything that went wrong during\n"
 		"///     installation.\n"
 		"//------------------------------------------------------------------\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Install any binaries that need to be installed.\n"
+		"\n"
+		"This function does nothing when debugging on the host system.\n"
+		"When connected to remote platforms, the target's main executable\n"
+		"and any modules that have their install path set will be\n"
+		"installed on the remote platform. If the main executable doesn't\n"
+		"have an install location set, it will be installed in the remote\n"
+		"platform's working directory.\n"
+		"\n"
+		"@return\n"
+		"    An error describing anything that went wrong during\n"
+		"    installation.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_LaunchSimple", _wrap_SBTarget_LaunchSimple, METH_VARARGS, (char *)"\n"
 		"SBTarget_LaunchSimple(SBTarget self, char const ** argv, char const ** envp, char const * working_directory) -> SBProcess\n"
 		"\n"
+=======
+	 { (char *)"SBTarget_LaunchSimple", _wrap_SBTarget_LaunchSimple, METH_VARARGS, (char *)"\n"
+		"SBTarget_LaunchSimple(SBTarget self, char const ** argv, char const ** envp, char const * working_directory) -> SBProcess\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Launch a new process with sensible defaults.\n"
-		"///\n"
-		"/// @param[in] argv\n"
-		"///     The argument array.\n"
-		"///\n"
-		"/// @param[in] envp\n"
-		"///     The environment array.\n"
-		"///\n"
-		"/// @param[in] working_directory\n"
-		"///     The working directory to have the child process run in\n"
-		"///\n"
-		"/// Default: listener\n"
-		"///     Set to the target's debugger (SBTarget::GetDebugger())\n"
-		"///\n"
-		"/// Default: launch_flags\n"
-		"///     Empty launch flags\n"
-		"///\n"
-		"/// Default: stdin_path\n"
-		"/// Default: stdout_path\n"
-		"/// Default: stderr_path\n"
-		"///     A pseudo terminal will be used.\n"
-		"///\n"
-		"/// @return\n"
-		"///      A process object for the newly created process.\n"
-		"//------------------------------------------------------------------\n"
+		"\n"
+		"Launch a new process with sensible defaults.\n"
+		"\n"
+		"@param[in] argv\n"
+		"    The argument array.\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"@param[in] envp\n"
+		"    The environment array.\n"
+		"\n"
+		"@param[in] working_directory\n"
+		"    The working directory to have the child process run in\n"
+		"\n"
+		"Default: listener\n"
+		"    Set to the target's debugger (SBTarget::GetDebugger())\n"
+		"\n"
+		"Default: launch_flags\n"
+		"    Empty launch flags\n"
+		"\n"
+		"Default: stdin_path\n"
+		"Default: stdout_path\n"
+		"Default: stderr_path\n"
+		"    A pseudo terminal will be used.\n"
+		"\n"
+		"@return\n"
+		"     A process object for the newly created process.\n"
 		"\n"
 		"For example,\n"
 		"\n"
@@ -81018,13 +83672,17 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		"launches a new process by passing 'X', 'Y', 'Z' as the args to the\n"
 		"executable.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_Launch", _wrap_SBTarget_Launch, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_Launch", _wrap_SBTarget_Launch, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"Launch(SBListener listener, char const ** argv, char const ** envp, char const * stdin_path, char const * stdout_path, char const * stderr_path, char const * working_directory, uint32_t launch_flags, bool stop_at_entry, SBError error) -> SBProcess\n"
 		"SBTarget_Launch(SBTarget self, SBLaunchInfo launch_info, SBError error) -> SBProcess\n"
 		"\n"
 		"\n"
+<<<<<<< HEAD
 		"//------------------------------------------------------------------\n"
 		"/// Launch a new process.\n"
 		"///\n"
@@ -81081,6 +83739,62 @@ static PyMethodDef SwigMethods[] = {
 		"/// @return\n"
 		"///      A process object for the newly created process.\n"
 		"//------------------------------------------------------------------\n"
+=======
+		"Launch a new process.\n"
+		"\n"
+		"Launch a new process by spawning a new process using the\n"
+		"target object's executable module's file as the file to launch.\n"
+		"Arguments are given in argv, and the environment variables\n"
+		"are in envp. Standard input and output files can be\n"
+		"optionally re-directed to stdin_path, stdout_path, and\n"
+		"stderr_path.\n"
+		"\n"
+		"@param[in] listener\n"
+		"    An optional listener that will receive all process events.\n"
+		"    If listener is valid then listener will listen to all\n"
+		"    process events. If not valid, then this target's debugger\n"
+		"    (SBTarget::GetDebugger()) will listen to all process events.\n"
+		"\n"
+		"@param[in] argv\n"
+		"    The argument array.\n"
+		"\n"
+		"@param[in] envp\n"
+		"    The environment array.\n"
+		"\n"
+		"@param[in] launch_flags\n"
+		"    Flags to modify the launch (@see lldb::LaunchFlags)\n"
+		"\n"
+		"@param[in] stdin_path\n"
+		"    The path to use when re-directing the STDIN of the new\n"
+		"    process. If all stdXX_path arguments are NULL, a pseudo\n"
+		"    terminal will be used.\n"
+		"\n"
+		"@param[in] stdout_path\n"
+		"    The path to use when re-directing the STDOUT of the new\n"
+		"    process. If all stdXX_path arguments are NULL, a pseudo\n"
+		"    terminal will be used.\n"
+		"\n"
+		"@param[in] stderr_path\n"
+		"    The path to use when re-directing the STDERR of the new\n"
+		"    process. If all stdXX_path arguments are NULL, a pseudo\n"
+		"    terminal will be used.\n"
+		"\n"
+		"@param[in] working_directory\n"
+		"    The working directory to have the child process run in\n"
+		"\n"
+		"@param[in] launch_flags\n"
+		"    Some launch options specified by logical OR'ing\n"
+		"    lldb::LaunchFlags enumeration values together.\n"
+		"\n"
+		"@param[in] stop_at_entry\n"
+		"    If false do not stop the inferior at the entry point.\n"
+		"\n"
+		"@param[out]\n"
+		"    An error object. Contains the reason if there is some failure.\n"
+		"\n"
+		"@return\n"
+		"     A process object for the newly created process.\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"For example,\n"
 		"\n"
@@ -81095,120 +83809,139 @@ static PyMethodDef SwigMethods[] = {
 		"inferior. Also, we ask the debugger not to stop the inferior at the\n"
 		"entry point. If no breakpoint is specified for the inferior, it should\n"
 		"run to completion if no user interaction is required.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_LoadCore", _wrap_SBTarget_LoadCore, METH_VARARGS, (char *)"\n"
 		"LoadCore(char const * core_file) -> SBProcess\n"
 		"SBTarget_LoadCore(SBTarget self, char const * core_file, SBError error) -> SBProcess\n"
 		"\n"
+=======
+	 { (char *)"SBTarget_LoadCore", _wrap_SBTarget_LoadCore, METH_VARARGS, (char *)"\n"
+		"LoadCore(char const * core_file) -> SBProcess\n"
+		"SBTarget_LoadCore(SBTarget self, char const * core_file, SBError error) -> SBProcess\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Load a core file\n"
-		"///\n"
-		"/// @param[in] core_file\n"
-		"///     File path of the core dump.\n"
-		"///\n"
-		"/// @param[out] error\n"
-		"///     An error explaining what went wrong if the operation fails.\n"
-		"///     (Optional)\n"
-		"///\n"
-		"/// @return\n"
-		"///      A process object for the newly created core file.\n"
-		"//------------------------------------------------------------------\n"
+		"\n"
+		"Load a core file\n"
+		"\n"
+		"@param[in] core_file\n"
+		"    File path of the core dump.\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"@param[out] error\n"
+		"    An error explaining what went wrong if the operation fails.\n"
+		"    (Optional)\n"
+		"\n"
+		"@return\n"
+		"     A process object for the newly created core file.\n"
 		"\n"
 		"For example,\n"
 		"\n"
 		"    process = target.LoadCore('./a.out.core')\n"
 		"\n"
 		"loads a new core file and returns the process object.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_Attach", _wrap_SBTarget_Attach, METH_VARARGS, (char *)"SBTarget_Attach(SBTarget self, SBAttachInfo attach_info, SBError error) -> SBProcess"},
 	 { "SBTarget_AttachToProcessWithID", _wrap_SBTarget_AttachToProcessWithID, METH_VARARGS, (char *)"\n"
 		"SBTarget_AttachToProcessWithID(SBTarget self, SBListener listener, lldb::pid_t pid, SBError error) -> SBProcess\n"
 		"\n"
+=======
+	 { (char *)"SBTarget_Attach", _wrap_SBTarget_Attach, METH_VARARGS, (char *)"SBTarget_Attach(SBTarget self, SBAttachInfo attach_info, SBError error) -> SBProcess"},
+	 { (char *)"SBTarget_AttachToProcessWithID", _wrap_SBTarget_AttachToProcessWithID, METH_VARARGS, (char *)"\n"
+		"SBTarget_AttachToProcessWithID(SBTarget self, SBListener listener, lldb::pid_t pid, SBError error) -> SBProcess\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Attach to process with pid.\n"
-		"///\n"
-		"/// @param[in] listener\n"
-		"///     An optional listener that will receive all process events.\n"
-		"///     If  listener is valid then  listener will listen to all\n"
-		"///     process events. If not valid, then this target's debugger\n"
-		"///     (SBTarget::GetDebugger()) will listen to all process events.\n"
-		"///\n"
-		"/// @param[in] pid\n"
-		"///     The process ID to attach to.\n"
-		"///\n"
-		"/// @param[out]\n"
-		"///     An error explaining what went wrong if attach fails.\n"
-		"///\n"
-		"/// @return\n"
-		"///      A process object for the attached process.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Attach to process with pid.\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"@param[in] listener\n"
+		"    An optional listener that will receive all process events.\n"
+		"    If listener is valid then listener will listen to all\n"
+		"    process events. If not valid, then this target's debugger\n"
+		"    (SBTarget::GetDebugger()) will listen to all process events.\n"
+		"\n"
+		"@param[in] pid\n"
+		"    The process ID to attach to.\n"
+		"\n"
+		"@param[out]\n"
+		"    An error explaining what went wrong if attach fails.\n"
+		"\n"
+		"@return\n"
+		"     A process object for the attached process.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_AttachToProcessWithName", _wrap_SBTarget_AttachToProcessWithName, METH_VARARGS, (char *)"\n"
 		"SBTarget_AttachToProcessWithName(SBTarget self, SBListener listener, char const * name, bool wait_for, SBError error) -> SBProcess\n"
 		"\n"
+=======
+	 { (char *)"SBTarget_AttachToProcessWithName", _wrap_SBTarget_AttachToProcessWithName, METH_VARARGS, (char *)"\n"
+		"SBTarget_AttachToProcessWithName(SBTarget self, SBListener listener, char const * name, bool wait_for, SBError error) -> SBProcess\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Attach to process with name.\n"
-		"///\n"
-		"/// @param[in] listener\n"
-		"///     An optional listener that will receive all process events.\n"
-		"///     If  listener is valid then  listener will listen to all\n"
-		"///     process events. If not valid, then this target's debugger\n"
-		"///     (SBTarget::GetDebugger()) will listen to all process events.\n"
-		"///\n"
-		"/// @param[in] name\n"
-		"///     Basename of process to attach to.\n"
-		"///\n"
-		"/// @param[in] wait_for\n"
-		"///     If true wait for a new instance of 'name' to be launched.\n"
-		"///\n"
-		"/// @param[out]\n"
-		"///     An error explaining what went wrong if attach fails.\n"
-		"///\n"
-		"/// @return\n"
-		"///      A process object for the attached process.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Attach to process with name.\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"@param[in] listener\n"
+		"    An optional listener that will receive all process events.\n"
+		"    If listener is valid then listener will listen to all\n"
+		"    process events. If not valid, then this target's debugger\n"
+		"    (SBTarget::GetDebugger()) will listen to all process events.\n"
+		"\n"
+		"@param[in] name\n"
+		"    Basename of process to attach to.\n"
+		"\n"
+		"@param[in] wait_for\n"
+		"    If true wait for a new instance of 'name' to be launched.\n"
+		"\n"
+		"@param[out]\n"
+		"    An error explaining what went wrong if attach fails.\n"
+		"\n"
+		"@return\n"
+		"     A process object for the attached process.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_ConnectRemote", _wrap_SBTarget_ConnectRemote, METH_VARARGS, (char *)"\n"
 		"SBTarget_ConnectRemote(SBTarget self, SBListener listener, char const * url, char const * plugin_name, SBError error) -> SBProcess\n"
 		"\n"
+=======
+	 { (char *)"SBTarget_ConnectRemote", _wrap_SBTarget_ConnectRemote, METH_VARARGS, (char *)"\n"
+		"SBTarget_ConnectRemote(SBTarget self, SBListener listener, char const * url, char const * plugin_name, SBError error) -> SBProcess\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Connect to a remote debug server with url.\n"
-		"///\n"
-		"/// @param[in] listener\n"
-		"///     An optional listener that will receive all process events.\n"
-		"///     If  listener is valid then  listener will listen to all\n"
-		"///     process events. If not valid, then this target's debugger\n"
-		"///     (SBTarget::GetDebugger()) will listen to all process events.\n"
-		"///\n"
-		"/// @param[in] url\n"
-		"///     The url to connect to, e.g., 'connect://localhost:12345'.\n"
-		"///\n"
-		"/// @param[in] plugin_name\n"
-		"///     The plugin name to be used; can be NULL.\n"
-		"///\n"
-		"/// @param[out]\n"
-		"///     An error explaining what went wrong if the connect fails.\n"
-		"///\n"
-		"/// @return\n"
-		"///      A process object for the connected process.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Connect to a remote debug server with url.\n"
+		"\n"
+		"@param[in] listener\n"
+		"    An optional listener that will receive all process events.\n"
+		"    If listener is valid then listener will listen to all\n"
+		"    process events. If not valid, then this target's debugger\n"
+		"    (SBTarget::GetDebugger()) will listen to all process events.\n"
+		"\n"
+		"@param[in] url\n"
+		"    The url to connect to, e.g., 'connect://localhost:12345'.\n"
+		"\n"
+		"@param[in] plugin_name\n"
+		"    The plugin name to be used; can be NULL.\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"@param[out]\n"
+		"    An error explaining what went wrong if the connect fails.\n"
+		"\n"
+		"@return\n"
+		"     A process object for the connected process.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_GetExecutable", _wrap_SBTarget_GetExecutable, METH_VARARGS, (char *)"SBTarget_GetExecutable(SBTarget self) -> SBFileSpec"},
 	 { "SBTarget_AppendImageSearchPath", _wrap_SBTarget_AppendImageSearchPath, METH_VARARGS, (char *)"\n"
 		"SBTarget_AppendImageSearchPath(SBTarget self, char const * arg3, char const * to, SBError error)\n"
 		"\n"
+=======
+	 { (char *)"SBTarget_GetExecutable", _wrap_SBTarget_GetExecutable, METH_VARARGS, (char *)"SBTarget_GetExecutable(SBTarget self) -> SBFileSpec"},
+	 { (char *)"SBTarget_AppendImageSearchPath", _wrap_SBTarget_AppendImageSearchPath, METH_VARARGS, (char *)"\n"
+		"SBTarget_AppendImageSearchPath(SBTarget self, char const * arg3, char const * to, SBError error)\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"/// Append the path mapping (from -> to) to the target's paths mapping list.\n"
 		"\n"
+		"Append the path mapping (from -> to) to the target's paths mapping list.\n"
 		""},
 	 { "SBTarget_AddModule", _wrap_SBTarget_AddModule, METH_VARARGS, (char *)"\n"
 		"AddModule(SBModule module) -> bool\n"
@@ -81224,6 +83957,7 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBTarget_FindCompileUnits", _wrap_SBTarget_FindCompileUnits, METH_VARARGS, (char *)"\n"
 		"SBTarget_FindCompileUnits(SBTarget self, SBFileSpec sb_file_spec) -> SBSymbolContextList\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"//------------------------------------------------------------------\n"
 		"/// Find compile units related to *this target and passed source\n"
@@ -81237,8 +83971,21 @@ static PyMethodDef SwigMethods[] = {
 		"///     A lldb::SBSymbolContextList that gets filled in with all of\n"
 		"///     the symbol contexts for all the matches.\n"
 		"//------------------------------------------------------------------\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Find compile units related to *this target and passed source\n"
+		"file.\n"
+		"\n"
+		"@param[in] sb_file_spec\n"
+		"    A lldb::SBFileSpec object that contains source file\n"
+		"    specification.\n"
+		"\n"
+		"@return\n"
+		"    A lldb::SBSymbolContextList that gets filled in with all of\n"
+		"    the symbol contexts for all the matches.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_GetByteOrder", _wrap_SBTarget_GetByteOrder, METH_VARARGS, (char *)"SBTarget_GetByteOrder(SBTarget self) -> lldb::ByteOrder"},
 	 { "SBTarget_GetAddressByteSize", _wrap_SBTarget_GetAddressByteSize, METH_VARARGS, (char *)"SBTarget_GetAddressByteSize(SBTarget self) -> uint32_t"},
 	 { "SBTarget_GetTriple", _wrap_SBTarget_GetTriple, METH_VARARGS, (char *)"SBTarget_GetTriple(SBTarget self) -> char const *"},
@@ -81253,11 +84000,25 @@ static PyMethodDef SwigMethods[] = {
 		"/// The size in 8-bit (host) bytes of a minimum addressable\n"
 		"/// unit from the Architecture's data bus\n"
 		"//------------------------------------------------------------------\n"
+=======
+	 { (char *)"SBTarget_GetByteOrder", _wrap_SBTarget_GetByteOrder, METH_VARARGS, (char *)"SBTarget_GetByteOrder(SBTarget self) -> lldb::ByteOrder"},
+	 { (char *)"SBTarget_GetAddressByteSize", _wrap_SBTarget_GetAddressByteSize, METH_VARARGS, (char *)"SBTarget_GetAddressByteSize(SBTarget self) -> uint32_t"},
+	 { (char *)"SBTarget_GetTriple", _wrap_SBTarget_GetTriple, METH_VARARGS, (char *)"SBTarget_GetTriple(SBTarget self) -> char const *"},
+	 { (char *)"SBTarget_GetDataByteSize", _wrap_SBTarget_GetDataByteSize, METH_VARARGS, (char *)"\n"
+		"SBTarget_GetDataByteSize(SBTarget self) -> uint32_t\n"
 		"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"Architecture data byte width accessor\n"
+		"\n"
+		"@return\n"
+		"The size in 8-bit (host) bytes of a minimum addressable\n"
+		"unit from the Architecture's data bus\n"
 		""},
 	 { "SBTarget_GetCodeByteSize", _wrap_SBTarget_GetCodeByteSize, METH_VARARGS, (char *)"\n"
 		"SBTarget_GetCodeByteSize(SBTarget self) -> uint32_t\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"//------------------------------------------------------------------\n"
 		"/// Architecture code byte width accessor\n"
@@ -81266,36 +84027,49 @@ static PyMethodDef SwigMethods[] = {
 		"/// The size in 8-bit (host) bytes of a minimum addressable\n"
 		"/// unit from the Architecture's code bus\n"
 		"//------------------------------------------------------------------\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Architecture code byte width accessor\n"
+		"\n"
+		"@return\n"
+		"The size in 8-bit (host) bytes of a minimum addressable\n"
+		"unit from the Architecture's code bus\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_SetSectionLoadAddress", _wrap_SBTarget_SetSectionLoadAddress, METH_VARARGS, (char *)"SBTarget_SetSectionLoadAddress(SBTarget self, SBSection section, lldb::addr_t section_base_addr) -> SBError"},
 	 { "SBTarget_ClearSectionLoadAddress", _wrap_SBTarget_ClearSectionLoadAddress, METH_VARARGS, (char *)"SBTarget_ClearSectionLoadAddress(SBTarget self, SBSection section) -> SBError"},
 	 { "SBTarget_SetModuleLoadAddress", _wrap_SBTarget_SetModuleLoadAddress, METH_VARARGS, (char *)"SBTarget_SetModuleLoadAddress(SBTarget self, SBModule module, int64_t sections_offset) -> SBError"},
 	 { "SBTarget_ClearModuleLoadAddress", _wrap_SBTarget_ClearModuleLoadAddress, METH_VARARGS, (char *)"SBTarget_ClearModuleLoadAddress(SBTarget self, SBModule module) -> SBError"},
 	 { "SBTarget_FindFunctions", _wrap_SBTarget_FindFunctions, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_SetSectionLoadAddress", _wrap_SBTarget_SetSectionLoadAddress, METH_VARARGS, (char *)"SBTarget_SetSectionLoadAddress(SBTarget self, SBSection section, lldb::addr_t section_base_addr) -> SBError"},
+	 { (char *)"SBTarget_ClearSectionLoadAddress", _wrap_SBTarget_ClearSectionLoadAddress, METH_VARARGS, (char *)"SBTarget_ClearSectionLoadAddress(SBTarget self, SBSection section) -> SBError"},
+	 { (char *)"SBTarget_SetModuleLoadAddress", _wrap_SBTarget_SetModuleLoadAddress, METH_VARARGS, (char *)"SBTarget_SetModuleLoadAddress(SBTarget self, SBModule module, int64_t sections_offset) -> SBError"},
+	 { (char *)"SBTarget_ClearModuleLoadAddress", _wrap_SBTarget_ClearModuleLoadAddress, METH_VARARGS, (char *)"SBTarget_ClearModuleLoadAddress(SBTarget self, SBModule module) -> SBError"},
+	 { (char *)"SBTarget_FindFunctions", _wrap_SBTarget_FindFunctions, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"FindFunctions(char const * name, uint32_t name_type_mask) -> SBSymbolContextList\n"
 		"SBTarget_FindFunctions(SBTarget self, char const * name) -> SBSymbolContextList\n"
 		"\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Find functions by name.\n"
-		"///\n"
-		"/// @param[in] name\n"
-		"///     The name of the function we are looking for.\n"
-		"///\n"
-		"/// @param[in] name_type_mask\n"
-		"///     A logical OR of one or more FunctionNameType enum bits that\n"
-		"///     indicate what kind of names should be used when doing the\n"
-		"///     lookup. Bits include fully qualified names, base names,\n"
-		"///     C++ methods, or ObjC selectors.\n"
-		"///     See FunctionNameType for more details.\n"
-		"///\n"
-		"/// @return\n"
-		"///     A lldb::SBSymbolContextList that gets filled in with all of\n"
-		"///     the symbol contexts for all the matches.\n"
-		"//------------------------------------------------------------------\n"
+		"Find functions by name.\n"
 		"\n"
+		"@param[in] name\n"
+		"    The name of the function we are looking for.\n"
+		"\n"
+		"@param[in] name_type_mask\n"
+		"    A logical OR of one or more FunctionNameType enum bits that\n"
+		"    indicate what kind of names should be used when doing the\n"
+		"    lookup. Bits include fully qualified names, base names,\n"
+		"    C++ methods, or ObjC selectors.\n"
+		"    See FunctionNameType for more details.\n"
+		"\n"
+		"@return\n"
+		"    A lldb::SBSymbolContextList that gets filled in with all of\n"
+		"    the symbol contexts for all the matches.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_FindFirstType", _wrap_SBTarget_FindFirstType, METH_VARARGS, (char *)"SBTarget_FindFirstType(SBTarget self, char const * type) -> SBType"},
 	 { "SBTarget_FindTypes", _wrap_SBTarget_FindTypes, METH_VARARGS, (char *)"SBTarget_FindTypes(SBTarget self, char const * type) -> SBTypeList"},
 	 { "SBTarget_GetBasicType", _wrap_SBTarget_GetBasicType, METH_VARARGS, (char *)"SBTarget_GetBasicType(SBTarget self, lldb::BasicType type) -> SBType"},
@@ -81303,115 +84077,155 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBTarget_FindFirstGlobalVariable", _wrap_SBTarget_FindFirstGlobalVariable, METH_VARARGS, (char *)"\n"
 		"SBTarget_FindFirstGlobalVariable(SBTarget self, char const * name) -> SBValue\n"
 		"\n"
+=======
+	 { (char *)"SBTarget_FindFirstType", _wrap_SBTarget_FindFirstType, METH_VARARGS, (char *)"SBTarget_FindFirstType(SBTarget self, char const * type) -> SBType"},
+	 { (char *)"SBTarget_FindTypes", _wrap_SBTarget_FindTypes, METH_VARARGS, (char *)"SBTarget_FindTypes(SBTarget self, char const * type) -> SBTypeList"},
+	 { (char *)"SBTarget_GetBasicType", _wrap_SBTarget_GetBasicType, METH_VARARGS, (char *)"SBTarget_GetBasicType(SBTarget self, lldb::BasicType type) -> SBType"},
+	 { (char *)"SBTarget_GetSourceManager", _wrap_SBTarget_GetSourceManager, METH_VARARGS, (char *)"SBTarget_GetSourceManager(SBTarget self) -> SBSourceManager"},
+	 { (char *)"SBTarget_FindFirstGlobalVariable", _wrap_SBTarget_FindFirstGlobalVariable, METH_VARARGS, (char *)"\n"
+		"SBTarget_FindFirstGlobalVariable(SBTarget self, char const * name) -> SBValue\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Find the first global (or static) variable by name.\n"
-		"///\n"
-		"/// @param[in] name\n"
-		"///     The name of the global or static variable we are looking\n"
-		"///     for.\n"
-		"///\n"
-		"/// @return\n"
-		"///     An SBValue that gets filled in with the found variable (if any).\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Find the first global (or static) variable by name.\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"@param[in] name\n"
+		"    The name of the global or static variable we are looking\n"
+		"    for.\n"
+		"\n"
+		"@return\n"
+		"    An SBValue that gets filled in with the found variable (if any).\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_FindGlobalVariables", _wrap_SBTarget_FindGlobalVariables, METH_VARARGS, (char *)"\n"
 		"FindGlobalVariables(char const * name, uint32_t max_matches) -> SBValueList\n"
 		"SBTarget_FindGlobalVariables(SBTarget self, char const * name, uint32_t max_matches, lldb::MatchType matchtype) -> SBValueList\n"
 		"\n"
+=======
+	 { (char *)"SBTarget_FindGlobalVariables", _wrap_SBTarget_FindGlobalVariables, METH_VARARGS, (char *)"\n"
+		"FindGlobalVariables(char const * name, uint32_t max_matches) -> SBValueList\n"
+		"SBTarget_FindGlobalVariables(SBTarget self, char const * name, uint32_t max_matches, lldb::MatchType matchtype) -> SBValueList\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Find global and static variables by name.\n"
-		"///\n"
-		"/// @param[in] name\n"
-		"///     The name of the global or static variable we are looking\n"
-		"///     for.\n"
-		"///\n"
-		"/// @param[in] max_matches\n"
-		"///     Allow the number of matches to be limited to  max_matches.\n"
-		"///\n"
-		"/// @return\n"
-		"///     A list of matched variables in an SBValueList.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Find global and static variables by name.\n"
+		"\n"
+		"@param[in] name\n"
+		"    The name of the global or static variable we are looking\n"
+		"    for.\n"
+		"\n"
+		"@param[in] max_matches\n"
+		"    Allow the number of matches to be limited to max_matches.\n"
+		"\n"
+		"@return\n"
+		"    A list of matched variables in an SBValueList.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_FindGlobalFunctions", _wrap_SBTarget_FindGlobalFunctions, METH_VARARGS, (char *)"SBTarget_FindGlobalFunctions(SBTarget self, char const * name, uint32_t max_matches, lldb::MatchType matchtype) -> SBSymbolContextList"},
 	 { "SBTarget_Clear", _wrap_SBTarget_Clear, METH_VARARGS, (char *)"SBTarget_Clear(SBTarget self)"},
 	 { "SBTarget_ResolveFileAddress", _wrap_SBTarget_ResolveFileAddress, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_FindGlobalFunctions", _wrap_SBTarget_FindGlobalFunctions, METH_VARARGS, (char *)"SBTarget_FindGlobalFunctions(SBTarget self, char const * name, uint32_t max_matches, lldb::MatchType matchtype) -> SBSymbolContextList"},
+	 { (char *)"SBTarget_Clear", _wrap_SBTarget_Clear, METH_VARARGS, (char *)"SBTarget_Clear(SBTarget self)"},
+	 { (char *)"SBTarget_ResolveFileAddress", _wrap_SBTarget_ResolveFileAddress, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBTarget_ResolveFileAddress(SBTarget self, lldb::addr_t file_addr) -> SBAddress\n"
 		"\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Resolve a current file address into a section offset address.\n"
-		"///\n"
-		"/// @param[in] file_addr\n"
-		"///\n"
-		"/// @return\n"
-		"///     An SBAddress which will be valid if...\n"
-		"//------------------------------------------------------------------\n"
+		"Resolve a current file address into a section offset address.\n"
 		"\n"
+		"@param[in] file_addr\n"
+		"\n"
+		"@return\n"
+		"    An SBAddress which will be valid if...\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_ResolveLoadAddress", _wrap_SBTarget_ResolveLoadAddress, METH_VARARGS, (char *)"SBTarget_ResolveLoadAddress(SBTarget self, lldb::addr_t vm_addr) -> SBAddress"},
 	 { "SBTarget_ResolvePastLoadAddress", _wrap_SBTarget_ResolvePastLoadAddress, METH_VARARGS, (char *)"SBTarget_ResolvePastLoadAddress(SBTarget self, uint32_t stop_id, lldb::addr_t vm_addr) -> SBAddress"},
 	 { "SBTarget_ResolveSymbolContextForAddress", _wrap_SBTarget_ResolveSymbolContextForAddress, METH_VARARGS, (char *)"SBTarget_ResolveSymbolContextForAddress(SBTarget self, SBAddress addr, uint32_t resolve_scope) -> SBSymbolContext"},
 	 { "SBTarget_ReadMemory", _wrap_SBTarget_ReadMemory, METH_VARARGS, (char *)"\n"
 		"SBTarget_ReadMemory(SBTarget self, SBAddress addr, void * buf, SBError error) -> size_t\n"
 		"\n"
+=======
+	 { (char *)"SBTarget_ResolveLoadAddress", _wrap_SBTarget_ResolveLoadAddress, METH_VARARGS, (char *)"SBTarget_ResolveLoadAddress(SBTarget self, lldb::addr_t vm_addr) -> SBAddress"},
+	 { (char *)"SBTarget_ResolvePastLoadAddress", _wrap_SBTarget_ResolvePastLoadAddress, METH_VARARGS, (char *)"SBTarget_ResolvePastLoadAddress(SBTarget self, uint32_t stop_id, lldb::addr_t vm_addr) -> SBAddress"},
+	 { (char *)"SBTarget_ResolveSymbolContextForAddress", _wrap_SBTarget_ResolveSymbolContextForAddress, METH_VARARGS, (char *)"SBTarget_ResolveSymbolContextForAddress(SBTarget self, SBAddress addr, uint32_t resolve_scope) -> SBSymbolContext"},
+	 { (char *)"SBTarget_ReadMemory", _wrap_SBTarget_ReadMemory, METH_VARARGS, (char *)"\n"
+		"SBTarget_ReadMemory(SBTarget self, SBAddress addr, void * buf, SBError error) -> size_t\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Read target memory. If a target process is running then memory\n"
-		"/// is read from here. Otherwise the memory is read from the object\n"
-		"/// files. For a target whose bytes are sized as a multiple of host\n"
-		"/// bytes, the data read back will preserve the target's byte order.\n"
-		"///\n"
-		"/// @param[in] addr\n"
-		"///     A target address to read from.\n"
-		"///\n"
-		"/// @param[out] buf\n"
-		"///     The buffer to read memory into.\n"
-		"///\n"
-		"/// @param[in] size\n"
-		"///     The maximum number of host bytes to read in the buffer passed\n"
-		"///     into this call\n"
-		"///\n"
-		"/// @param[out] error\n"
-		"///     Error information is written here if the memory read fails.\n"
-		"///\n"
-		"/// @return\n"
-		"///     The amount of data read in host bytes.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Read target memory. If a target process is running then memory\n"
+		"is read from here. Otherwise the memory is read from the object\n"
+		"files. For a target whose bytes are sized as a multiple of host\n"
+		"bytes, the data read back will preserve the target's byte order.\n"
+		"\n"
+		"@param[in] addr\n"
+		"    A target address to read from.\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"@param[out] buf\n"
+		"    The buffer to read memory into.\n"
+		"\n"
+		"@param[in] size\n"
+		"    The maximum number of host bytes to read in the buffer passed\n"
+		"    into this call\n"
+		"\n"
+		"@param[out] error\n"
+		"    Error information is written here if the memory read fails.\n"
+		"\n"
+		"@return\n"
+		"    The amount of data read in host bytes.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_BreakpointCreateByLocation", _wrap_SBTarget_BreakpointCreateByLocation, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_BreakpointCreateByLocation", _wrap_SBTarget_BreakpointCreateByLocation, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"BreakpointCreateByLocation(char const * file, uint32_t line) -> SBBreakpoint\n"
 		"BreakpointCreateByLocation(SBFileSpec file_spec, uint32_t line) -> SBBreakpoint\n"
 		"BreakpointCreateByLocation(SBFileSpec file_spec, uint32_t line, lldb::addr_t offset) -> SBBreakpoint\n"
 		"BreakpointCreateByLocation(SBFileSpec file_spec, uint32_t line, lldb::addr_t offset, SBFileSpecList module_list) -> SBBreakpoint\n"
 		"SBTarget_BreakpointCreateByLocation(SBTarget self, SBFileSpec file_spec, uint32_t line, uint32_t column, lldb::addr_t offset, SBFileSpecList module_list) -> SBBreakpoint\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_BreakpointCreateByName", _wrap_SBTarget_BreakpointCreateByName, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_BreakpointCreateByName", _wrap_SBTarget_BreakpointCreateByName, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"BreakpointCreateByName(char const * symbol_name, char const * module_name=None) -> SBBreakpoint\n"
 		"BreakpointCreateByName(char const * symbol_name) -> SBBreakpoint\n"
 		"BreakpointCreateByName(char const * symbol_name, uint32_t func_name_type, SBFileSpecList module_list, SBFileSpecList comp_unit_list) -> SBBreakpoint\n"
 		"SBTarget_BreakpointCreateByName(SBTarget self, char const * symbol_name, uint32_t func_name_type, lldb::LanguageType symbol_language, SBFileSpecList module_list, SBFileSpecList comp_unit_list) -> SBBreakpoint\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_BreakpointCreateByNames", _wrap_SBTarget_BreakpointCreateByNames, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_BreakpointCreateByNames", _wrap_SBTarget_BreakpointCreateByNames, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"BreakpointCreateByNames(char const ** symbol_name, uint32_t name_type_mask, SBFileSpecList module_list, SBFileSpecList comp_unit_list) -> SBBreakpoint\n"
 		"BreakpointCreateByNames(char const ** symbol_name, uint32_t name_type_mask, lldb::LanguageType symbol_language, SBFileSpecList module_list, SBFileSpecList comp_unit_list) -> SBBreakpoint\n"
 		"SBTarget_BreakpointCreateByNames(SBTarget self, char const ** symbol_name, uint32_t name_type_mask, lldb::LanguageType symbol_language, lldb::addr_t offset, SBFileSpecList module_list, SBFileSpecList comp_unit_list) -> SBBreakpoint\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_BreakpointCreateByRegex", _wrap_SBTarget_BreakpointCreateByRegex, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_BreakpointCreateByRegex", _wrap_SBTarget_BreakpointCreateByRegex, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"BreakpointCreateByRegex(char const * symbol_name_regex, char const * module_name=None) -> SBBreakpoint\n"
 		"BreakpointCreateByRegex(char const * symbol_name_regex) -> SBBreakpoint\n"
 		"SBTarget_BreakpointCreateByRegex(SBTarget self, char const * symbol_name_regex, lldb::LanguageType symbol_language, SBFileSpecList module_list, SBFileSpecList comp_unit_list) -> SBBreakpoint\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_BreakpointCreateBySourceRegex", _wrap_SBTarget_BreakpointCreateBySourceRegex, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_BreakpointCreateBySourceRegex", _wrap_SBTarget_BreakpointCreateBySourceRegex, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"BreakpointCreateBySourceRegex(char const * source_regex, SBFileSpec source_file, char const * module_name=None) -> SBBreakpoint\n"
 		"BreakpointCreateBySourceRegex(char const * source_regex, SBFileSpec source_file) -> SBBreakpoint\n"
 		"BreakpointCreateBySourceRegex(char const * source_regex, SBFileSpecList module_list, SBFileSpecList file_list) -> SBBreakpoint\n"
 		"SBTarget_BreakpointCreateBySourceRegex(SBTarget self, char const * source_regex, SBFileSpecList module_list, SBFileSpecList source_file, SBStringList func_names) -> SBBreakpoint\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_BreakpointCreateForException", _wrap_SBTarget_BreakpointCreateForException, METH_VARARGS, (char *)"\n"
 		"BreakpointCreateForException(lldb::LanguageType language, bool catch_bp, bool throw_bp) -> SBBreakpoint\n"
 		"SBTarget_BreakpointCreateForException(SBTarget self, lldb::LanguageType language, bool catch_bp, bool throw_bp, SBStringList extra_args) -> SBBreakpoint\n"
@@ -81495,30 +84309,110 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBTarget_DisableAllBreakpoints", _wrap_SBTarget_DisableAllBreakpoints, METH_VARARGS, (char *)"SBTarget_DisableAllBreakpoints(SBTarget self) -> bool"},
 	 { "SBTarget_DeleteAllBreakpoints", _wrap_SBTarget_DeleteAllBreakpoints, METH_VARARGS, (char *)"SBTarget_DeleteAllBreakpoints(SBTarget self) -> bool"},
 	 { "SBTarget_BreakpointsCreateFromFile", _wrap_SBTarget_BreakpointsCreateFromFile, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_BreakpointCreateForException", _wrap_SBTarget_BreakpointCreateForException, METH_VARARGS, (char *)"\n"
+		"BreakpointCreateForException(lldb::LanguageType language, bool catch_bp, bool throw_bp) -> SBBreakpoint\n"
+		"SBTarget_BreakpointCreateForException(SBTarget self, lldb::LanguageType language, bool catch_bp, bool throw_bp, SBStringList extra_args) -> SBBreakpoint\n"
+		""},
+	 { (char *)"SBTarget_BreakpointCreateByAddress", _wrap_SBTarget_BreakpointCreateByAddress, METH_VARARGS, (char *)"SBTarget_BreakpointCreateByAddress(SBTarget self, lldb::addr_t address) -> SBBreakpoint"},
+	 { (char *)"SBTarget_BreakpointCreateBySBAddress", _wrap_SBTarget_BreakpointCreateBySBAddress, METH_VARARGS, (char *)"SBTarget_BreakpointCreateBySBAddress(SBTarget self, SBAddress sb_address) -> SBBreakpoint"},
+	 { (char *)"SBTarget_BreakpointCreateFromScript", _wrap_SBTarget_BreakpointCreateFromScript, METH_VARARGS, (char *)"\n"
+		"BreakpointCreateFromScript(char const * class_name, SBStructuredData extra_args, SBFileSpecList module_list, SBFileSpecList file_list, bool request_hardware=False) -> SBBreakpoint\n"
+		"SBTarget_BreakpointCreateFromScript(SBTarget self, char const * class_name, SBStructuredData extra_args, SBFileSpecList module_list, SBFileSpecList file_list) -> SBBreakpoint\n"
+		"\n"
+		"\n"
+		"Create a breakpoint using a scripted resolver.\n"
+		"\n"
+		"@param[in] class_name\n"
+		"   This is the name of the class that implements a scripted resolver.\n"
+		"   The class should have the following signature:\n"
+		"   class Resolver:\n"
+		"       def __init__(self, bkpt, extra_args):\n"
+		"           # bkpt - the breakpoint for which this is the resolver.  When\n"
+		"           # the resolver finds an interesting address, call AddLocation\n"
+		"           # on this breakpoint to add it.\n"
+		"           #\n"
+		"           # extra_args - an SBStructuredData that can be used to\n"
+		"           # parametrize this instance.  Same as the extra_args passed\n"
+		"           # to BreakpointCreateFromScript.\n"
+		"\n"
+		"       def __get_depth__ (self):\n"
+		"           # This is optional, but if defined, you should return the\n"
+		"           # depth at which you want the callback to be called.  The\n"
+		"           # available options are:\n"
+		"           #    lldb.eSearchDepthModule\n"
+		"           #    lldb.eSearchDepthCompUnit\n"
+		"           # The default if you don't implement this method is\n"
+		"           # eSearchDepthModule.\n"
+		"\n"
+		"       def __callback__(self, sym_ctx):\n"
+		"           # sym_ctx - an SBSymbolContext that is the cursor in the\n"
+		"           # search through the program to resolve breakpoints.\n"
+		"           # The sym_ctx will be filled out to the depth requested in\n"
+		"           # __get_depth__.\n"
+		"           # Look in this sym_ctx for new breakpoint locations,\n"
+		"           # and if found use bkpt.AddLocation to add them.\n"
+		"           # Note, you will only get called for modules/compile_units that\n"
+		"           # pass the SearchFilter provided by the module_list & file_list\n"
+		"           # passed into BreakpointCreateFromScript.\n"
+		"\n"
+		"       def get_short_help(self):\n"
+		"           # Optional, but if implemented return a short string that will\n"
+		"           # be printed at the beginning of the break list output for the\n"
+		"           # breakpoint.\n"
+		"\n"
+		"@param[in] extra_args\n"
+		"   This is an SBStructuredData object that will get passed to the\n"
+		"   constructor of the class in class_name.  You can use this to\n"
+		"   reuse the same class, parametrizing it with entries from this\n"
+		"   dictionary.\n"
+		"\n"
+		"@param module_list\n"
+		"   If this is non-empty, this will be used as the module filter in the\n"
+		"   SearchFilter created for this breakpoint.\n"
+		"\n"
+		"@param file_list\n"
+		"   If this is non-empty, this will be used as the comp unit filter in the\n"
+		"   SearchFilter created for this breakpoint.\n"
+		"\n"
+		"@return\n"
+		"    An SBBreakpoint that will set locations based on the logic in the\n"
+		"    resolver's search callback.\n"
+		""},
+	 { (char *)"SBTarget_GetNumBreakpoints", _wrap_SBTarget_GetNumBreakpoints, METH_VARARGS, (char *)"SBTarget_GetNumBreakpoints(SBTarget self) -> uint32_t"},
+	 { (char *)"SBTarget_GetBreakpointAtIndex", _wrap_SBTarget_GetBreakpointAtIndex, METH_VARARGS, (char *)"SBTarget_GetBreakpointAtIndex(SBTarget self, uint32_t idx) -> SBBreakpoint"},
+	 { (char *)"SBTarget_BreakpointDelete", _wrap_SBTarget_BreakpointDelete, METH_VARARGS, (char *)"SBTarget_BreakpointDelete(SBTarget self, lldb::break_id_t break_id) -> bool"},
+	 { (char *)"SBTarget_FindBreakpointByID", _wrap_SBTarget_FindBreakpointByID, METH_VARARGS, (char *)"SBTarget_FindBreakpointByID(SBTarget self, lldb::break_id_t break_id) -> SBBreakpoint"},
+	 { (char *)"SBTarget_FindBreakpointsByName", _wrap_SBTarget_FindBreakpointsByName, METH_VARARGS, (char *)"SBTarget_FindBreakpointsByName(SBTarget self, char const * name, SBBreakpointList bkpt_list) -> bool"},
+	 { (char *)"SBTarget_DeleteBreakpointName", _wrap_SBTarget_DeleteBreakpointName, METH_VARARGS, (char *)"SBTarget_DeleteBreakpointName(SBTarget self, char const * name)"},
+	 { (char *)"SBTarget_GetBreakpointNames", _wrap_SBTarget_GetBreakpointNames, METH_VARARGS, (char *)"SBTarget_GetBreakpointNames(SBTarget self, SBStringList names)"},
+	 { (char *)"SBTarget_EnableAllBreakpoints", _wrap_SBTarget_EnableAllBreakpoints, METH_VARARGS, (char *)"SBTarget_EnableAllBreakpoints(SBTarget self) -> bool"},
+	 { (char *)"SBTarget_DisableAllBreakpoints", _wrap_SBTarget_DisableAllBreakpoints, METH_VARARGS, (char *)"SBTarget_DisableAllBreakpoints(SBTarget self) -> bool"},
+	 { (char *)"SBTarget_DeleteAllBreakpoints", _wrap_SBTarget_DeleteAllBreakpoints, METH_VARARGS, (char *)"SBTarget_DeleteAllBreakpoints(SBTarget self) -> bool"},
+	 { (char *)"SBTarget_BreakpointsCreateFromFile", _wrap_SBTarget_BreakpointsCreateFromFile, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"BreakpointsCreateFromFile(SBFileSpec source_file, SBBreakpointList bkpt_list) -> SBError\n"
 		"SBTarget_BreakpointsCreateFromFile(SBTarget self, SBFileSpec source_file, SBStringList matching_names, SBBreakpointList new_bps) -> SBError\n"
 		"\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Read breakpoints from source_file and return the newly created\n"
-		"/// breakpoints in bkpt_list.\n"
-		"///\n"
-		"/// @param[in] source_file\n"
-		"///    The file from which to read the breakpoints\n"
-		"///\n"
-		"/// @param[out] bkpt_list\n"
-		"///    A list of the newly created breakpoints.\n"
-		"///\n"
-		"/// @return\n"
-		"///     An SBError detailing any errors in reading in the breakpoints.\n"
-		"//------------------------------------------------------------------\n"
+		"Read breakpoints from source_file and return the newly created\n"
+		"breakpoints in bkpt_list.\n"
 		"\n"
+		"@param[in] source_file\n"
+		"   The file from which to read the breakpoints\n"
+		"\n"
+		"@param[out] bkpt_list\n"
+		"   A list of the newly created breakpoints.\n"
+		"\n"
+		"@return\n"
+		"    An SBError detailing any errors in reading in the breakpoints.\n"
 		""},
 	 { "SBTarget_BreakpointsWriteToFile", _wrap_SBTarget_BreakpointsWriteToFile, METH_VARARGS, (char *)"\n"
 		"BreakpointsWriteToFile(SBFileSpec dest_file) -> SBError\n"
 		"BreakpointsWriteToFile(SBFileSpec dest_file, SBBreakpointList bkpt_list, bool append=False) -> SBError\n"
 		"SBTarget_BreakpointsWriteToFile(SBTarget self, SBFileSpec dest_file, SBBreakpointList bkpt_list) -> SBError\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_GetNumWatchpoints", _wrap_SBTarget_GetNumWatchpoints, METH_VARARGS, (char *)"SBTarget_GetNumWatchpoints(SBTarget self) -> uint32_t"},
 	 { "SBTarget_GetWatchpointAtIndex", _wrap_SBTarget_GetWatchpointAtIndex, METH_VARARGS, (char *)"SBTarget_GetWatchpointAtIndex(SBTarget self, uint32_t idx) -> SBWatchpoint"},
 	 { "SBTarget_DeleteWatchpoint", _wrap_SBTarget_DeleteWatchpoint, METH_VARARGS, (char *)"SBTarget_DeleteWatchpoint(SBTarget self, lldb::watch_id_t watch_id) -> bool"},
@@ -81529,30 +84423,45 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBTarget_WatchAddress", _wrap_SBTarget_WatchAddress, METH_VARARGS, (char *)"SBTarget_WatchAddress(SBTarget self, lldb::addr_t addr, size_t size, bool read, bool write, SBError error) -> SBWatchpoint"},
 	 { "SBTarget_GetBroadcaster", _wrap_SBTarget_GetBroadcaster, METH_VARARGS, (char *)"SBTarget_GetBroadcaster(SBTarget self) -> SBBroadcaster"},
 	 { "SBTarget_CreateValueFromAddress", _wrap_SBTarget_CreateValueFromAddress, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_GetNumWatchpoints", _wrap_SBTarget_GetNumWatchpoints, METH_VARARGS, (char *)"SBTarget_GetNumWatchpoints(SBTarget self) -> uint32_t"},
+	 { (char *)"SBTarget_GetWatchpointAtIndex", _wrap_SBTarget_GetWatchpointAtIndex, METH_VARARGS, (char *)"SBTarget_GetWatchpointAtIndex(SBTarget self, uint32_t idx) -> SBWatchpoint"},
+	 { (char *)"SBTarget_DeleteWatchpoint", _wrap_SBTarget_DeleteWatchpoint, METH_VARARGS, (char *)"SBTarget_DeleteWatchpoint(SBTarget self, lldb::watch_id_t watch_id) -> bool"},
+	 { (char *)"SBTarget_FindWatchpointByID", _wrap_SBTarget_FindWatchpointByID, METH_VARARGS, (char *)"SBTarget_FindWatchpointByID(SBTarget self, lldb::watch_id_t watch_id) -> SBWatchpoint"},
+	 { (char *)"SBTarget_EnableAllWatchpoints", _wrap_SBTarget_EnableAllWatchpoints, METH_VARARGS, (char *)"SBTarget_EnableAllWatchpoints(SBTarget self) -> bool"},
+	 { (char *)"SBTarget_DisableAllWatchpoints", _wrap_SBTarget_DisableAllWatchpoints, METH_VARARGS, (char *)"SBTarget_DisableAllWatchpoints(SBTarget self) -> bool"},
+	 { (char *)"SBTarget_DeleteAllWatchpoints", _wrap_SBTarget_DeleteAllWatchpoints, METH_VARARGS, (char *)"SBTarget_DeleteAllWatchpoints(SBTarget self) -> bool"},
+	 { (char *)"SBTarget_WatchAddress", _wrap_SBTarget_WatchAddress, METH_VARARGS, (char *)"SBTarget_WatchAddress(SBTarget self, lldb::addr_t addr, size_t size, bool read, bool write, SBError error) -> SBWatchpoint"},
+	 { (char *)"SBTarget_GetBroadcaster", _wrap_SBTarget_GetBroadcaster, METH_VARARGS, (char *)"SBTarget_GetBroadcaster(SBTarget self) -> SBBroadcaster"},
+	 { (char *)"SBTarget_CreateValueFromAddress", _wrap_SBTarget_CreateValueFromAddress, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBTarget_CreateValueFromAddress(SBTarget self, char const * name, SBAddress addr, SBType type) -> SBValue\n"
 		"\n"
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Create an SBValue with the given name by treating the memory starting at addr as an entity of type.\n"
-		"///\n"
-		"/// @param[in] name\n"
-		"///     The name of the resultant SBValue\n"
-		"///\n"
-		"/// @param[in] addr\n"
-		"///     The address of the start of the memory region to be used.\n"
-		"///\n"
-		"/// @param[in] type\n"
-		"///     The type to use to interpret the memory starting at addr.\n"
-		"///\n"
-		"/// @return\n"
-		"///     An SBValue of the given type, may be invalid if there was an error reading\n"
-		"///     the underlying memory.\n"
-		"//------------------------------------------------------------------\n"
+		"Create an SBValue with the given name by treating the memory starting at addr as an entity of type.\n"
 		"\n"
+		"@param[in] name\n"
+		"    The name of the resultant SBValue\n"
+		"\n"
+		"@param[in] addr\n"
+		"    The address of the start of the memory region to be used.\n"
+		"\n"
+		"@param[in] type\n"
+		"    The type to use to interpret the memory starting at addr.\n"
+		"\n"
+		"@return\n"
+		"    An SBValue of the given type, may be invalid if there was an error reading\n"
+		"    the underlying memory.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_CreateValueFromData", _wrap_SBTarget_CreateValueFromData, METH_VARARGS, (char *)"SBTarget_CreateValueFromData(SBTarget self, char const * name, SBData data, SBType type) -> SBValue"},
 	 { "SBTarget_CreateValueFromExpression", _wrap_SBTarget_CreateValueFromExpression, METH_VARARGS, (char *)"SBTarget_CreateValueFromExpression(SBTarget self, char const * name, char const * expr) -> SBValue"},
 	 { "SBTarget_ReadInstructions", _wrap_SBTarget_ReadInstructions, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_CreateValueFromData", _wrap_SBTarget_CreateValueFromData, METH_VARARGS, (char *)"SBTarget_CreateValueFromData(SBTarget self, char const * name, SBData data, SBType type) -> SBValue"},
+	 { (char *)"SBTarget_CreateValueFromExpression", _wrap_SBTarget_CreateValueFromExpression, METH_VARARGS, (char *)"SBTarget_CreateValueFromExpression(SBTarget self, char const * name, char const * expr) -> SBValue"},
+	 { (char *)"SBTarget_ReadInstructions", _wrap_SBTarget_ReadInstructions, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"ReadInstructions(SBAddress base_addr, uint32_t count) -> SBInstructionList\n"
 		"SBTarget_ReadInstructions(SBTarget self, SBAddress base_addr, uint32_t count, char const * flavor_string) -> SBInstructionList\n"
 		"\n"
@@ -81564,7 +84473,11 @@ static PyMethodDef SwigMethods[] = {
 		"   flavor_string   -- may be 'intel' or 'att' on x86 targets to specify that style of disassembly\n"
 		"Returns an SBInstructionList.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_GetInstructions", _wrap_SBTarget_GetInstructions, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_GetInstructions", _wrap_SBTarget_GetInstructions, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBTarget_GetInstructions(SBTarget self, SBAddress base_addr, void const * buf) -> SBInstructionList\n"
 		"\n"
 		"\n"
@@ -81575,7 +84488,11 @@ static PyMethodDef SwigMethods[] = {
 		"   size      -- (C++) size of the buffer\n"
 		"Returns an SBInstructionList.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_GetInstructionsWithFlavor", _wrap_SBTarget_GetInstructionsWithFlavor, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBTarget_GetInstructionsWithFlavor", _wrap_SBTarget_GetInstructionsWithFlavor, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBTarget_GetInstructionsWithFlavor(SBTarget self, SBAddress base_addr, char const * flavor_string, void const * buf) -> SBInstructionList\n"
 		"\n"
 		"\n"
@@ -81587,6 +84504,7 @@ static PyMethodDef SwigMethods[] = {
 		"   size      -- (C++) size of the buffer\n"
 		"Returns an SBInstructionList.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBTarget_FindSymbols", _wrap_SBTarget_FindSymbols, METH_VARARGS, (char *)"\n"
 		"FindSymbols(char const * name, lldb::SymbolType type) -> SBSymbolContextList\n"
 		"SBTarget_FindSymbols(SBTarget self, char const * name) -> SBSymbolContextList\n"
@@ -81638,11 +84556,51 @@ static PyMethodDef SwigMethods[] = {
 		"\n"
 		"/// Get the number of words associated with the stop reason.\n"
 		"/// See also GetStopReasonDataAtIndex().\n"
+=======
+	 { (char *)"SBTarget_FindSymbols", _wrap_SBTarget_FindSymbols, METH_VARARGS, (char *)"\n"
+		"FindSymbols(char const * name, lldb::SymbolType type) -> SBSymbolContextList\n"
+		"SBTarget_FindSymbols(SBTarget self, char const * name) -> SBSymbolContextList\n"
+		""},
+	 { (char *)"SBTarget_GetDescription", _wrap_SBTarget_GetDescription, METH_VARARGS, (char *)"SBTarget_GetDescription(SBTarget self, SBStream description, lldb::DescriptionLevel description_level) -> bool"},
+	 { (char *)"SBTarget_GetStackRedZoneSize", _wrap_SBTarget_GetStackRedZoneSize, METH_VARARGS, (char *)"SBTarget_GetStackRedZoneSize(SBTarget self) -> lldb::addr_t"},
+	 { (char *)"SBTarget_GetLaunchInfo", _wrap_SBTarget_GetLaunchInfo, METH_VARARGS, (char *)"SBTarget_GetLaunchInfo(SBTarget self) -> SBLaunchInfo"},
+	 { (char *)"SBTarget_SetLaunchInfo", _wrap_SBTarget_SetLaunchInfo, METH_VARARGS, (char *)"SBTarget_SetLaunchInfo(SBTarget self, SBLaunchInfo launch_info)"},
+	 { (char *)"SBTarget_SetCollectingStats", _wrap_SBTarget_SetCollectingStats, METH_VARARGS, (char *)"SBTarget_SetCollectingStats(SBTarget self, bool v)"},
+	 { (char *)"SBTarget_GetCollectingStats", _wrap_SBTarget_GetCollectingStats, METH_VARARGS, (char *)"SBTarget_GetCollectingStats(SBTarget self) -> bool"},
+	 { (char *)"SBTarget_GetStatistics", _wrap_SBTarget_GetStatistics, METH_VARARGS, (char *)"SBTarget_GetStatistics(SBTarget self) -> SBStructuredData"},
+	 { (char *)"SBTarget___eq__", _wrap_SBTarget___eq__, METH_VARARGS, (char *)"SBTarget___eq__(SBTarget self, SBTarget rhs) -> bool"},
+	 { (char *)"SBTarget___ne__", _wrap_SBTarget___ne__, METH_VARARGS, (char *)"SBTarget___ne__(SBTarget self, SBTarget rhs) -> bool"},
+	 { (char *)"SBTarget_EvaluateExpression", _wrap_SBTarget_EvaluateExpression, METH_VARARGS, (char *)"\n"
+		"EvaluateExpression(char const * expr) -> SBValue\n"
+		"SBTarget_EvaluateExpression(SBTarget self, char const * expr, SBExpressionOptions options) -> SBValue\n"
+		""},
+	 { (char *)"SBTarget___str__", _wrap_SBTarget___str__, METH_VARARGS, (char *)"SBTarget___str__(SBTarget self) -> PyObject *"},
+	 { (char *)"SBTarget_swigregister", SBTarget_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBThread", _wrap_new_SBThread, METH_VARARGS, (char *)"\n"
+		"SBThread()\n"
+		"new_SBThread(SBThread thread) -> SBThread\n"
+		""},
+	 { (char *)"delete_SBThread", _wrap_delete_SBThread, METH_VARARGS, (char *)"delete_SBThread(SBThread self)"},
+	 { (char *)"SBThread_GetBroadcasterClassName", _wrap_SBThread_GetBroadcasterClassName, METH_VARARGS, (char *)"SBThread_GetBroadcasterClassName() -> char const *"},
+	 { (char *)"SBThread_EventIsThreadEvent", _wrap_SBThread_EventIsThreadEvent, METH_VARARGS, (char *)"SBThread_EventIsThreadEvent(SBEvent event) -> bool"},
+	 { (char *)"SBThread_GetStackFrameFromEvent", _wrap_SBThread_GetStackFrameFromEvent, METH_VARARGS, (char *)"SBThread_GetStackFrameFromEvent(SBEvent event) -> SBFrame"},
+	 { (char *)"SBThread_GetThreadFromEvent", _wrap_SBThread_GetThreadFromEvent, METH_VARARGS, (char *)"SBThread_GetThreadFromEvent(SBEvent event) -> SBThread"},
+	 { (char *)"SBThread_IsValid", _wrap_SBThread_IsValid, METH_VARARGS, (char *)"SBThread_IsValid(SBThread self) -> bool"},
+	 { (char *)"SBThread___nonzero__", _wrap_SBThread___nonzero__, METH_VARARGS, (char *)"SBThread___nonzero__(SBThread self) -> bool"},
+	 { (char *)"SBThread_Clear", _wrap_SBThread_Clear, METH_VARARGS, (char *)"SBThread_Clear(SBThread self)"},
+	 { (char *)"SBThread_GetStopReason", _wrap_SBThread_GetStopReason, METH_VARARGS, (char *)"SBThread_GetStopReason(SBThread self) -> lldb::StopReason"},
+	 { (char *)"SBThread_GetStopReasonDataCount", _wrap_SBThread_GetStopReasonDataCount, METH_VARARGS, (char *)"\n"
+		"SBThread_GetStopReasonDataCount(SBThread self) -> size_t\n"
 		"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"Get the number of words associated with the stop reason.\n"
+		"See also GetStopReasonDataAtIndex().\n"
 		""},
 	 { "SBThread_GetStopReasonDataAtIndex", _wrap_SBThread_GetStopReasonDataAtIndex, METH_VARARGS, (char *)"\n"
 		"SBThread_GetStopReasonDataAtIndex(SBThread self, uint32_t idx) -> uint64_t\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"//--------------------------------------------------------------------------\n"
 		"/// Get information associated with a stop reason.\n"
@@ -81662,43 +84620,82 @@ static PyMethodDef SwigMethods[] = {
 		"/// eStopReasonExec          0\n"
 		"/// eStopReasonPlanComplete  0\n"
 		"//--------------------------------------------------------------------------\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Get information associated with a stop reason.\n"
+		"\n"
+		"Breakpoint stop reasons will have data that consists of pairs of\n"
+		"breakpoint IDs followed by the breakpoint location IDs (they always come\n"
+		"in pairs).\n"
+		"\n"
+		"Stop Reason              Count Data Type\n"
+		"======================== ===== =========================================\n"
+		"eStopReasonNone          0\n"
+		"eStopReasonTrace         0\n"
+		"eStopReasonBreakpoint    N     duple: {breakpoint id, location id}\n"
+		"eStopReasonWatchpoint    1     watchpoint id\n"
+		"eStopReasonSignal        1     unix signal number\n"
+		"eStopReasonException     N     exception data\n"
+		"eStopReasonExec          0\n"
+		"eStopReasonPlanComplete  0\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetStopReasonExtendedInfoAsJSON", _wrap_SBThread_GetStopReasonExtendedInfoAsJSON, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetStopReasonExtendedInfoAsJSON", _wrap_SBThread_GetStopReasonExtendedInfoAsJSON, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Collects a thread's stop reason extended information dictionary and prints it\n"
 		"into the SBStream in a JSON format. The format of this JSON dictionary depends\n"
 		"on the stop reason and is currently used only for instrumentation plugins.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetStopReasonExtendedBacktraces", _wrap_SBThread_GetStopReasonExtendedBacktraces, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetStopReasonExtendedBacktraces", _wrap_SBThread_GetStopReasonExtendedBacktraces, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Returns a collection of historical stack traces that are significant to the\n"
 		"current stop reason. Used by ThreadSanitizer, where we provide various stack\n"
 		"traces that were involved in a data race or other type of detected issue.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetStopDescription", _wrap_SBThread_GetStopDescription, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetStopDescription", _wrap_SBThread_GetStopDescription, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Pass only an (int)length and expect to get a Python string describing the\n"
 		"stop reason.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetStopReturnValue", _wrap_SBThread_GetStopReturnValue, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetStopReturnValue", _wrap_SBThread_GetStopReturnValue, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"If the last stop on this thread was a thread plan that gathered a return value from the stop,\n"
 		"this function will fetch that stop result.  At present only the \"step-out\" thread plan gathers\n"
 		"stop return values.\n"
 		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetStopErrorValue", _wrap_SBThread_GetStopErrorValue, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetStopErrorValue", _wrap_SBThread_GetStopErrorValue, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"If the last stop on this thread was a thread plan that gathered an error value from the stop,\n"
 		"this function will fetch that stop result.  At present only the \"step-out\" thread plan gathers\n"
 		"stop error values, and that only for stepping out of Swift functions.\n"
 		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetThreadID", _wrap_SBThread_GetThreadID, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetThreadID", _wrap_SBThread_GetThreadID, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Returns a unique thread identifier (type lldb::tid_t, typically a 64-bit type)\n"
 		"for the current SBThread that will remain constant throughout the thread's\n"
@@ -81706,9 +84703,12 @@ static PyMethodDef SwigMethods[] = {
 		"process lifetime.  On Mac OS X systems, this is a system-wide unique thread\n"
 		"identifier; this identifier is also used by other tools like sample which helps\n"
 		"to associate data from those tools with lldb.  See related GetIndexID.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetIndexID", _wrap_SBThread_GetIndexID, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetIndexID", _wrap_SBThread_GetIndexID, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Return the index number for this SBThread.  The index number is the same thing\n"
 		"that a user gives as an argument to 'thread select' in the command line lldb.\n"
@@ -81717,35 +84717,48 @@ static PyMethodDef SwigMethods[] = {
 		"reused for a different thread later in a process - thread 1 will always be\n"
 		"associated with the same thread.  See related GetThreadID.\n"
 		"This method returns a uint32_t index number, takes no arguments.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetName", _wrap_SBThread_GetName, METH_VARARGS, (char *)"SBThread_GetName(SBThread self) -> char const *"},
 	 { "SBThread_GetQueueName", _wrap_SBThread_GetQueueName, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetName", _wrap_SBThread_GetName, METH_VARARGS, (char *)"SBThread_GetName(SBThread self) -> char const *"},
+	 { (char *)"SBThread_GetQueueName", _wrap_SBThread_GetQueueName, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Return the queue name associated with this thread, if any, as a str.\n"
 		"For example, with a libdispatch (aka Grand Central Dispatch) queue.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetQueueID", _wrap_SBThread_GetQueueID, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetQueueID", _wrap_SBThread_GetQueueID, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Return the dispatch_queue_id for this thread, if any, as a lldb::queue_id_t.\n"
 		"For example, with a libdispatch (aka Grand Central Dispatch) queue.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetInfoItemByPathAsString", _wrap_SBThread_GetInfoItemByPathAsString, METH_VARARGS, (char *)"\n"
 		"SBThread_GetInfoItemByPathAsString(SBThread self, char const * path, SBStream strm) -> bool\n"
 		"\n"
+=======
+	 { (char *)"SBThread_GetInfoItemByPathAsString", _wrap_SBThread_GetInfoItemByPathAsString, METH_VARARGS, (char *)"\n"
+		"SBThread_GetInfoItemByPathAsString(SBThread self, char const * path, SBStream strm) -> bool\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"//--------------------------------------------------------------------------\n"
-		"/// Takes a path string and a SBStream reference as parameters, returns a bool.  \n"
-		"/// Collects the thread's 'info' dictionary from the remote system, uses the path\n"
-		"/// argument to descend into the dictionary to an item of interest, and prints\n"
-		"/// it into the SBStream in a natural format.  Return bool is to indicate if\n"
-		"/// anything was printed into the stream (true) or not (false).\n"
-		"//--------------------------------------------------------------------------\n"
 		"\n"
+		"Takes a path string and a SBStream reference as parameters, returns a bool.\n"
+		"Collects the thread's 'info' dictionary from the remote system, uses the path\n"
+		"argument to descend into the dictionary to an item of interest, and prints\n"
+		"it into the SBStream in a natural format.  Return bool is to indicate if\n"
+		"anything was printed into the stream (true) or not (false).\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetQueue", _wrap_SBThread_GetQueue, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetQueue", _wrap_SBThread_GetQueue, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Return the SBQueue for this thread.  If this thread is not currently associated\n"
 		"with a libdispatch queue, the SBQueue object's IsValid() method will return false.\n"
@@ -81754,14 +84767,21 @@ static PyMethodDef SwigMethods[] = {
 		"been saved for the HistoryThread without enough information to reconstitute the\n"
 		"entire SBQueue at that time.\n"
 		"This method takes no arguments, returns an SBQueue.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_StepOver", _wrap_SBThread_StepOver, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_StepOver", _wrap_SBThread_StepOver, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"StepOver(lldb::RunMode stop_other_threads)\n"
 		"StepOver()\n"
 		"Do a source level single step over in the currently selected thread.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_StepInto", _wrap_SBThread_StepInto, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_StepInto", _wrap_SBThread_StepInto, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"StepInto(lldb::RunMode stop_other_threads)\n"
 		"StepInto()\n"
 		"StepInto(char const * target_name, lldb::RunMode stop_other_threads)\n"
@@ -81770,12 +84790,18 @@ static PyMethodDef SwigMethods[] = {
 		"    Step the current thread from the current source line to the line given by end_line, stopping if\n"
 		"    the thread steps into the function given by target_name.  If target_name is None, then stepping will stop\n"
 		"    in any of the places we would normally stop.\n"
+<<<<<<< HEAD
 		"\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"    Step the current thread from the current source line to the line given by end_line, stopping if\n"
 		"    the thread steps into the function given by target_name.  If target_name is None, then stepping will stop\n"
 		"    in any of the places we would normally stop.\n"
+<<<<<<< HEAD
 		"\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		""},
 	 { "SBThread_StepOut", _wrap_SBThread_StepOut, METH_VARARGS, (char *)"\n"
 		"StepOut()\n"
@@ -81788,6 +84814,7 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBThread_StepInstruction", _wrap_SBThread_StepInstruction, METH_VARARGS, (char *)"\n"
 		"StepInstruction(bool step_over)\n"
 		"Do an instruction level single step in the currently selected thread.\n"
+<<<<<<< HEAD
 		"\n"
 		""},
 	 { "SBThread_StepOverUntil", _wrap_SBThread_StepOverUntil, METH_VARARGS, (char *)"SBThread_StepOverUntil(SBThread self, SBFrame frame, SBFileSpec file_spec, uint32_t line) -> SBError"},
@@ -81801,23 +84828,40 @@ static PyMethodDef SwigMethods[] = {
 		"SBThread_RunToAddress(SBThread self, lldb::addr_t addr, SBError error)\n"
 		""},
 	 { "SBThread_ReturnFromFrame", _wrap_SBThread_ReturnFromFrame, METH_VARARGS, (char *)"\n"
+=======
+		""},
+	 { (char *)"SBThread_StepOverUntil", _wrap_SBThread_StepOverUntil, METH_VARARGS, (char *)"SBThread_StepOverUntil(SBThread self, SBFrame frame, SBFileSpec file_spec, uint32_t line) -> SBError"},
+	 { (char *)"SBThread_StepUsingScriptedThreadPlan", _wrap_SBThread_StepUsingScriptedThreadPlan, METH_VARARGS, (char *)"\n"
+		"StepUsingScriptedThreadPlan(char const * script_class_name) -> SBError\n"
+		"SBThread_StepUsingScriptedThreadPlan(SBThread self, char const * script_class_name, bool resume_immediately) -> SBError\n"
+		""},
+	 { (char *)"SBThread_JumpToLine", _wrap_SBThread_JumpToLine, METH_VARARGS, (char *)"SBThread_JumpToLine(SBThread self, SBFileSpec file_spec, uint32_t line) -> SBError"},
+	 { (char *)"SBThread_RunToAddress", _wrap_SBThread_RunToAddress, METH_VARARGS, (char *)"\n"
+		"RunToAddress(lldb::addr_t addr)\n"
+		"SBThread_RunToAddress(SBThread self, lldb::addr_t addr, SBError error)\n"
+		""},
+	 { (char *)"SBThread_ReturnFromFrame", _wrap_SBThread_ReturnFromFrame, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Force a return from the frame passed in (and any frames younger than it)\n"
 		"without executing any more code in those frames.  If return_value contains\n"
 		"a valid SBValue, that will be set as the return value from frame.  Note, at\n"
 		"present only scalar return values are supported.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_UnwindInnermostExpression", _wrap_SBThread_UnwindInnermostExpression, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_UnwindInnermostExpression", _wrap_SBThread_UnwindInnermostExpression, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Unwind the stack frames from the innermost expression evaluation.\n"
 		"This API is equivalent to 'thread return -x'.\n"
-		"\n"
 		""},
 	 { "SBThread_Suspend", _wrap_SBThread_Suspend, METH_VARARGS, (char *)"\n"
 		"Suspend() -> bool\n"
 		"SBThread_Suspend(SBThread self, SBError error) -> bool\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"//--------------------------------------------------------------------------\n"
 		"/// LLDB currently supports process centric debugging which means when any\n"
@@ -81840,7 +84884,28 @@ static PyMethodDef SwigMethods[] = {
 		"/// anyone has the need for them to be reference counted, please let us\n"
 		"/// know.\n"
 		"//--------------------------------------------------------------------------\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"LLDB currently supports process centric debugging which means when any\n"
+		"thread in a process stops, all other threads are stopped. The Suspend()\n"
+		"call here tells our process to suspend a thread and not let it run when\n"
+		"the other threads in a process are allowed to run. So when\n"
+		"SBProcess::Continue() is called, any threads that aren't suspended will\n"
+		"be allowed to run. If any of the SBThread functions for stepping are\n"
+		"called (StepOver, StepInto, StepOut, StepInstruction, RunToAddres), the\n"
+		"thread will now be allowed to run and these functions will simply return.\n"
+		"\n"
+		"Eventually we plan to add support for thread centric debugging where\n"
+		"each thread is controlled individually and each thread would broadcast\n"
+		"its state, but we haven't implemented this yet.\n"
+		"\n"
+		"Likewise the SBThread::Resume() call will again allow the thread to run\n"
+		"when the process is continued.\n"
+		"\n"
+		"Suspend() and Resume() functions are not currently reference counted, if\n"
+		"anyone has the need for them to be reference counted, please let us\n"
+		"know.\n"
 		""},
 	 { "SBThread_Resume", _wrap_SBThread_Resume, METH_VARARGS, (char *)"\n"
 		"Resume() -> bool\n"
@@ -81857,57 +84922,76 @@ static PyMethodDef SwigMethods[] = {
 		"GetDescription(SBStream description) -> bool\n"
 		"SBThread_GetDescription(SBThread self, SBStream description, bool stop_format) -> bool\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetStatus", _wrap_SBThread_GetStatus, METH_VARARGS, (char *)"SBThread_GetStatus(SBThread self, SBStream status) -> bool"},
 	 { "SBThread___eq__", _wrap_SBThread___eq__, METH_VARARGS, (char *)"SBThread___eq__(SBThread self, SBThread rhs) -> bool"},
 	 { "SBThread___ne__", _wrap_SBThread___ne__, METH_VARARGS, (char *)"SBThread___ne__(SBThread self, SBThread rhs) -> bool"},
 	 { "SBThread_GetExtendedBacktraceThread", _wrap_SBThread_GetExtendedBacktraceThread, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetStatus", _wrap_SBThread_GetStatus, METH_VARARGS, (char *)"SBThread_GetStatus(SBThread self, SBStream status) -> bool"},
+	 { (char *)"SBThread___eq__", _wrap_SBThread___eq__, METH_VARARGS, (char *)"SBThread___eq__(SBThread self, SBThread rhs) -> bool"},
+	 { (char *)"SBThread___ne__", _wrap_SBThread___ne__, METH_VARARGS, (char *)"SBThread___ne__(SBThread self, SBThread rhs) -> bool"},
+	 { (char *)"SBThread_GetExtendedBacktraceThread", _wrap_SBThread_GetExtendedBacktraceThread, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Given an argument of str to specify the type of thread-origin extended\n"
-		"backtrace to retrieve, query whether the origin of this thread is \n"
+		"backtrace to retrieve, query whether the origin of this thread is\n"
 		"available.  An SBThread is retured; SBThread.IsValid will return true\n"
 		"if an extended backtrace was available.  The returned SBThread is not\n"
 		"a part of the SBProcess' thread list and it cannot be manipulated like\n"
 		"normal threads -- you cannot step or resume it, for instance -- it is\n"
 		"intended to used primarily for generating a backtrace.  You may request\n"
 		"the returned thread's own thread origin in turn.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetExtendedBacktraceOriginatingIndexID", _wrap_SBThread_GetExtendedBacktraceOriginatingIndexID, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetExtendedBacktraceOriginatingIndexID", _wrap_SBThread_GetExtendedBacktraceOriginatingIndexID, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Takes no arguments, returns a uint32_t.\n"
 		"If this SBThread is an ExtendedBacktrace thread, get the IndexID of the\n"
-		"original thread that this ExtendedBacktrace thread represents, if \n"
+		"original thread that this ExtendedBacktrace thread represents, if\n"
 		"available.  The thread that was running this backtrace in the past may\n"
 		"not have been registered with lldb's thread index (if it was created,\n"
 		"did its work, and was destroyed without lldb ever stopping execution).\n"
 		"In that case, this ExtendedBacktrace thread's IndexID will be returned.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetCurrentException", _wrap_SBThread_GetCurrentException, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetCurrentException", _wrap_SBThread_GetCurrentException, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Returns an SBValue object represeting the current exception for the thread,\n"
 		"if there is any. Currently, this works for Obj-C code and returns an SBValue\n"
 		"representing the NSException object at the throw site or that's currently\n"
 		"being processes.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_GetCurrentExceptionBacktrace", _wrap_SBThread_GetCurrentExceptionBacktrace, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_GetCurrentExceptionBacktrace", _wrap_SBThread_GetCurrentExceptionBacktrace, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Returns a historical (fake) SBThread representing the stack trace of an\n"
 		"exception, if there is one for the thread. Currently, this works for Obj-C\n"
 		"code, and can retrieve the throw-site backtrace of an NSException object\n"
 		"even when the program is no longer at the throw site.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread_SafeToCallFunctions", _wrap_SBThread_SafeToCallFunctions, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread_SafeToCallFunctions", _wrap_SBThread_SafeToCallFunctions, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
 		"Takes no arguments, returns a bool.\n"
 		"lldb may be able to detect that function calls should not be executed\n"
 		"on a given thread at a particular point in time.  It is recommended that\n"
 		"this is checked before performing an inferior function call on a given\n"
 		"thread.\n"
-		"\n"
 		""},
+<<<<<<< HEAD
 	 { "SBThread___str__", _wrap_SBThread___str__, METH_VARARGS, (char *)"SBThread___str__(SBThread self) -> PyObject *"},
 	 { "SBThread_swigregister", SBThread_swigregister, METH_VARARGS, NULL},
 	 { "new_SBThreadCollection", _wrap_new_SBThreadCollection, METH_VARARGS, (char *)"\n"
@@ -81921,11 +85005,27 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBThreadCollection_GetThreadAtIndex", _wrap_SBThreadCollection_GetThreadAtIndex, METH_VARARGS, (char *)"SBThreadCollection_GetThreadAtIndex(SBThreadCollection self, size_t idx) -> SBThread"},
 	 { "SBThreadCollection_swigregister", SBThreadCollection_swigregister, METH_VARARGS, NULL},
 	 { "new_SBThreadPlan", _wrap_new_SBThreadPlan, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBThread___str__", _wrap_SBThread___str__, METH_VARARGS, (char *)"SBThread___str__(SBThread self) -> PyObject *"},
+	 { (char *)"SBThread_swigregister", SBThread_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBThreadCollection", _wrap_new_SBThreadCollection, METH_VARARGS, (char *)"\n"
+		"SBThreadCollection()\n"
+		"new_SBThreadCollection(SBThreadCollection rhs) -> SBThreadCollection\n"
+		""},
+	 { (char *)"delete_SBThreadCollection", _wrap_delete_SBThreadCollection, METH_VARARGS, (char *)"delete_SBThreadCollection(SBThreadCollection self)"},
+	 { (char *)"SBThreadCollection_IsValid", _wrap_SBThreadCollection_IsValid, METH_VARARGS, (char *)"SBThreadCollection_IsValid(SBThreadCollection self) -> bool"},
+	 { (char *)"SBThreadCollection___nonzero__", _wrap_SBThreadCollection___nonzero__, METH_VARARGS, (char *)"SBThreadCollection___nonzero__(SBThreadCollection self) -> bool"},
+	 { (char *)"SBThreadCollection_GetSize", _wrap_SBThreadCollection_GetSize, METH_VARARGS, (char *)"SBThreadCollection_GetSize(SBThreadCollection self) -> size_t"},
+	 { (char *)"SBThreadCollection_GetThreadAtIndex", _wrap_SBThreadCollection_GetThreadAtIndex, METH_VARARGS, (char *)"SBThreadCollection_GetThreadAtIndex(SBThreadCollection self, size_t idx) -> SBThread"},
+	 { (char *)"SBThreadCollection_swigregister", SBThreadCollection_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBThreadPlan", _wrap_new_SBThreadPlan, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBThreadPlan()\n"
 		"SBThreadPlan(SBThreadPlan threadPlan)\n"
 		"SBThreadPlan(lldb::ThreadPlanSP const & lldb_object_sp)\n"
 		"new_SBThreadPlan(SBThread thread, char const * class_name) -> SBThreadPlan\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBThreadPlan", _wrap_delete_SBThreadPlan, METH_VARARGS, (char *)"delete_SBThreadPlan(SBThreadPlan self)"},
 	 { "SBThreadPlan___nonzero__", _wrap_SBThreadPlan___nonzero__, METH_VARARGS, (char *)"SBThreadPlan___nonzero__(SBThreadPlan self) -> bool"},
 	 { "SBThreadPlan_Clear", _wrap_SBThreadPlan_Clear, METH_VARARGS, (char *)"SBThreadPlan_Clear(SBThreadPlan self)"},
@@ -82133,10 +85233,248 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBTypeEnumMemberList_GetSize", _wrap_SBTypeEnumMemberList_GetSize, METH_VARARGS, (char *)"SBTypeEnumMemberList_GetSize(SBTypeEnumMemberList self) -> uint32_t"},
 	 { "SBTypeEnumMemberList_swigregister", SBTypeEnumMemberList_swigregister, METH_VARARGS, NULL},
 	 { "new_SBTypeFilter", _wrap_new_SBTypeFilter, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBThreadPlan", _wrap_delete_SBThreadPlan, METH_VARARGS, (char *)"delete_SBThreadPlan(SBThreadPlan self)"},
+	 { (char *)"SBThreadPlan___nonzero__", _wrap_SBThreadPlan___nonzero__, METH_VARARGS, (char *)"SBThreadPlan___nonzero__(SBThreadPlan self) -> bool"},
+	 { (char *)"SBThreadPlan_Clear", _wrap_SBThreadPlan_Clear, METH_VARARGS, (char *)"SBThreadPlan_Clear(SBThreadPlan self)"},
+	 { (char *)"SBThreadPlan_GetStopReason", _wrap_SBThreadPlan_GetStopReason, METH_VARARGS, (char *)"SBThreadPlan_GetStopReason(SBThreadPlan self) -> lldb::StopReason"},
+	 { (char *)"SBThreadPlan_GetStopReasonDataCount", _wrap_SBThreadPlan_GetStopReasonDataCount, METH_VARARGS, (char *)"\n"
+		"SBThreadPlan_GetStopReasonDataCount(SBThreadPlan self) -> size_t\n"
+		"\n"
+		"\n"
+		"Get the number of words associated with the stop reason.\n"
+		"See also GetStopReasonDataAtIndex().\n"
+		""},
+	 { (char *)"SBThreadPlan_GetStopReasonDataAtIndex", _wrap_SBThreadPlan_GetStopReasonDataAtIndex, METH_VARARGS, (char *)"\n"
+		"SBThreadPlan_GetStopReasonDataAtIndex(SBThreadPlan self, uint32_t idx) -> uint64_t\n"
+		"\n"
+		"\n"
+		"Get information associated with a stop reason.\n"
+		"\n"
+		"Breakpoint stop reasons will have data that consists of pairs of\n"
+		"breakpoint IDs followed by the breakpoint location IDs (they always come\n"
+		"in pairs).\n"
+		"\n"
+		"Stop Reason              Count Data Type\n"
+		"======================== ===== =========================================\n"
+		"eStopReasonNone          0\n"
+		"eStopReasonTrace         0\n"
+		"eStopReasonBreakpoint    N     duple: {breakpoint id, location id}\n"
+		"eStopReasonWatchpoint    1     watchpoint id\n"
+		"eStopReasonSignal        1     unix signal number\n"
+		"eStopReasonException     N     exception data\n"
+		"eStopReasonExec          0\n"
+		"eStopReasonPlanComplete  0\n"
+		""},
+	 { (char *)"SBThreadPlan_GetThread", _wrap_SBThreadPlan_GetThread, METH_VARARGS, (char *)"SBThreadPlan_GetThread(SBThreadPlan self) -> SBThread"},
+	 { (char *)"SBThreadPlan_GetDescription", _wrap_SBThreadPlan_GetDescription, METH_VARARGS, (char *)"SBThreadPlan_GetDescription(SBThreadPlan self, SBStream description) -> bool"},
+	 { (char *)"SBThreadPlan_SetPlanComplete", _wrap_SBThreadPlan_SetPlanComplete, METH_VARARGS, (char *)"SBThreadPlan_SetPlanComplete(SBThreadPlan self, bool success)"},
+	 { (char *)"SBThreadPlan_IsPlanComplete", _wrap_SBThreadPlan_IsPlanComplete, METH_VARARGS, (char *)"SBThreadPlan_IsPlanComplete(SBThreadPlan self) -> bool"},
+	 { (char *)"SBThreadPlan_IsPlanStale", _wrap_SBThreadPlan_IsPlanStale, METH_VARARGS, (char *)"SBThreadPlan_IsPlanStale(SBThreadPlan self) -> bool"},
+	 { (char *)"SBThreadPlan_IsValid", _wrap_SBThreadPlan_IsValid, METH_VARARGS, (char *)"\n"
+		"IsValid() -> bool\n"
+		"SBThreadPlan_IsValid(SBThreadPlan self) -> bool\n"
+		""},
+	 { (char *)"SBThreadPlan_QueueThreadPlanForStepOverRange", _wrap_SBThreadPlan_QueueThreadPlanForStepOverRange, METH_VARARGS, (char *)"SBThreadPlan_QueueThreadPlanForStepOverRange(SBThreadPlan self, SBAddress start_address, lldb::addr_t range_size) -> SBThreadPlan"},
+	 { (char *)"SBThreadPlan_QueueThreadPlanForStepInRange", _wrap_SBThreadPlan_QueueThreadPlanForStepInRange, METH_VARARGS, (char *)"SBThreadPlan_QueueThreadPlanForStepInRange(SBThreadPlan self, SBAddress start_address, lldb::addr_t range_size) -> SBThreadPlan"},
+	 { (char *)"SBThreadPlan_QueueThreadPlanForStepOut", _wrap_SBThreadPlan_QueueThreadPlanForStepOut, METH_VARARGS, (char *)"\n"
+		"QueueThreadPlanForStepOut(uint32_t frame_idx_to_step_to, bool first_insn=False) -> SBThreadPlan\n"
+		"SBThreadPlan_QueueThreadPlanForStepOut(SBThreadPlan self, uint32_t frame_idx_to_step_to) -> SBThreadPlan\n"
+		""},
+	 { (char *)"SBThreadPlan_QueueThreadPlanForRunToAddress", _wrap_SBThreadPlan_QueueThreadPlanForRunToAddress, METH_VARARGS, (char *)"SBThreadPlan_QueueThreadPlanForRunToAddress(SBThreadPlan self, SBAddress address) -> SBThreadPlan"},
+	 { (char *)"SBThreadPlan_QueueThreadPlanForStepScripted", _wrap_SBThreadPlan_QueueThreadPlanForStepScripted, METH_VARARGS, (char *)"SBThreadPlan_QueueThreadPlanForStepScripted(SBThreadPlan self, char const * script_class_name) -> SBThreadPlan"},
+	 { (char *)"SBThreadPlan_swigregister", SBThreadPlan_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTrace", _wrap_new_SBTrace, METH_VARARGS, (char *)"new_SBTrace() -> SBTrace"},
+	 { (char *)"SBTrace_GetTraceData", _wrap_SBTrace_GetTraceData, METH_VARARGS, (char *)"SBTrace_GetTraceData(SBTrace self, SBError error, void * buf, size_t offset, lldb::tid_t thread_id) -> size_t"},
+	 { (char *)"SBTrace_GetMetaData", _wrap_SBTrace_GetMetaData, METH_VARARGS, (char *)"SBTrace_GetMetaData(SBTrace self, SBError error, void * buf, size_t offset, lldb::tid_t thread_id) -> size_t"},
+	 { (char *)"SBTrace_StopTrace", _wrap_SBTrace_StopTrace, METH_VARARGS, (char *)"SBTrace_StopTrace(SBTrace self, SBError error, lldb::tid_t thread_id)"},
+	 { (char *)"SBTrace_GetTraceConfig", _wrap_SBTrace_GetTraceConfig, METH_VARARGS, (char *)"SBTrace_GetTraceConfig(SBTrace self, SBTraceOptions options, SBError error)"},
+	 { (char *)"SBTrace_GetTraceUID", _wrap_SBTrace_GetTraceUID, METH_VARARGS, (char *)"SBTrace_GetTraceUID(SBTrace self) -> lldb::user_id_t"},
+	 { (char *)"SBTrace___nonzero__", _wrap_SBTrace___nonzero__, METH_VARARGS, (char *)"SBTrace___nonzero__(SBTrace self) -> bool"},
+	 { (char *)"SBTrace_IsValid", _wrap_SBTrace_IsValid, METH_VARARGS, (char *)"SBTrace_IsValid(SBTrace self) -> bool"},
+	 { (char *)"delete_SBTrace", _wrap_delete_SBTrace, METH_VARARGS, (char *)"delete_SBTrace(SBTrace self)"},
+	 { (char *)"SBTrace_swigregister", SBTrace_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTraceOptions", _wrap_new_SBTraceOptions, METH_VARARGS, (char *)"new_SBTraceOptions() -> SBTraceOptions"},
+	 { (char *)"SBTraceOptions_getType", _wrap_SBTraceOptions_getType, METH_VARARGS, (char *)"SBTraceOptions_getType(SBTraceOptions self) -> lldb::TraceType"},
+	 { (char *)"SBTraceOptions_getTraceBufferSize", _wrap_SBTraceOptions_getTraceBufferSize, METH_VARARGS, (char *)"SBTraceOptions_getTraceBufferSize(SBTraceOptions self) -> uint64_t"},
+	 { (char *)"SBTraceOptions_getTraceParams", _wrap_SBTraceOptions_getTraceParams, METH_VARARGS, (char *)"SBTraceOptions_getTraceParams(SBTraceOptions self, SBError error) -> SBStructuredData"},
+	 { (char *)"SBTraceOptions_getMetaDataBufferSize", _wrap_SBTraceOptions_getMetaDataBufferSize, METH_VARARGS, (char *)"SBTraceOptions_getMetaDataBufferSize(SBTraceOptions self) -> uint64_t"},
+	 { (char *)"SBTraceOptions_setTraceParams", _wrap_SBTraceOptions_setTraceParams, METH_VARARGS, (char *)"SBTraceOptions_setTraceParams(SBTraceOptions self, SBStructuredData params)"},
+	 { (char *)"SBTraceOptions_setType", _wrap_SBTraceOptions_setType, METH_VARARGS, (char *)"SBTraceOptions_setType(SBTraceOptions self, lldb::TraceType type)"},
+	 { (char *)"SBTraceOptions_setTraceBufferSize", _wrap_SBTraceOptions_setTraceBufferSize, METH_VARARGS, (char *)"SBTraceOptions_setTraceBufferSize(SBTraceOptions self, uint64_t size)"},
+	 { (char *)"SBTraceOptions_setMetaDataBufferSize", _wrap_SBTraceOptions_setMetaDataBufferSize, METH_VARARGS, (char *)"SBTraceOptions_setMetaDataBufferSize(SBTraceOptions self, uint64_t size)"},
+	 { (char *)"SBTraceOptions_setThreadID", _wrap_SBTraceOptions_setThreadID, METH_VARARGS, (char *)"SBTraceOptions_setThreadID(SBTraceOptions self, lldb::tid_t thread_id)"},
+	 { (char *)"SBTraceOptions_getThreadID", _wrap_SBTraceOptions_getThreadID, METH_VARARGS, (char *)"SBTraceOptions_getThreadID(SBTraceOptions self) -> lldb::tid_t"},
+	 { (char *)"SBTraceOptions___nonzero__", _wrap_SBTraceOptions___nonzero__, METH_VARARGS, (char *)"SBTraceOptions___nonzero__(SBTraceOptions self) -> bool"},
+	 { (char *)"SBTraceOptions_IsValid", _wrap_SBTraceOptions_IsValid, METH_VARARGS, (char *)"SBTraceOptions_IsValid(SBTraceOptions self) -> bool"},
+	 { (char *)"delete_SBTraceOptions", _wrap_delete_SBTraceOptions, METH_VARARGS, (char *)"delete_SBTraceOptions(SBTraceOptions self)"},
+	 { (char *)"SBTraceOptions_swigregister", SBTraceOptions_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTypeMember", _wrap_new_SBTypeMember, METH_VARARGS, (char *)"\n"
+		"SBTypeMember()\n"
+		"new_SBTypeMember(SBTypeMember rhs) -> SBTypeMember\n"
+		""},
+	 { (char *)"delete_SBTypeMember", _wrap_delete_SBTypeMember, METH_VARARGS, (char *)"delete_SBTypeMember(SBTypeMember self)"},
+	 { (char *)"SBTypeMember_IsValid", _wrap_SBTypeMember_IsValid, METH_VARARGS, (char *)"SBTypeMember_IsValid(SBTypeMember self) -> bool"},
+	 { (char *)"SBTypeMember___nonzero__", _wrap_SBTypeMember___nonzero__, METH_VARARGS, (char *)"SBTypeMember___nonzero__(SBTypeMember self) -> bool"},
+	 { (char *)"SBTypeMember_GetName", _wrap_SBTypeMember_GetName, METH_VARARGS, (char *)"SBTypeMember_GetName(SBTypeMember self) -> char const *"},
+	 { (char *)"SBTypeMember_GetType", _wrap_SBTypeMember_GetType, METH_VARARGS, (char *)"SBTypeMember_GetType(SBTypeMember self) -> SBType"},
+	 { (char *)"SBTypeMember_GetOffsetInBytes", _wrap_SBTypeMember_GetOffsetInBytes, METH_VARARGS, (char *)"SBTypeMember_GetOffsetInBytes(SBTypeMember self) -> uint64_t"},
+	 { (char *)"SBTypeMember_GetOffsetInBits", _wrap_SBTypeMember_GetOffsetInBits, METH_VARARGS, (char *)"SBTypeMember_GetOffsetInBits(SBTypeMember self) -> uint64_t"},
+	 { (char *)"SBTypeMember_IsBitfield", _wrap_SBTypeMember_IsBitfield, METH_VARARGS, (char *)"SBTypeMember_IsBitfield(SBTypeMember self) -> bool"},
+	 { (char *)"SBTypeMember_GetBitfieldSizeInBits", _wrap_SBTypeMember_GetBitfieldSizeInBits, METH_VARARGS, (char *)"SBTypeMember_GetBitfieldSizeInBits(SBTypeMember self) -> uint32_t"},
+	 { (char *)"SBTypeMember___str__", _wrap_SBTypeMember___str__, METH_VARARGS, (char *)"SBTypeMember___str__(SBTypeMember self) -> PyObject *"},
+	 { (char *)"SBTypeMember_swigregister", SBTypeMember_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTypeMemberFunction", _wrap_new_SBTypeMemberFunction, METH_VARARGS, (char *)"\n"
+		"SBTypeMemberFunction()\n"
+		"new_SBTypeMemberFunction(SBTypeMemberFunction rhs) -> SBTypeMemberFunction\n"
+		""},
+	 { (char *)"delete_SBTypeMemberFunction", _wrap_delete_SBTypeMemberFunction, METH_VARARGS, (char *)"delete_SBTypeMemberFunction(SBTypeMemberFunction self)"},
+	 { (char *)"SBTypeMemberFunction_IsValid", _wrap_SBTypeMemberFunction_IsValid, METH_VARARGS, (char *)"SBTypeMemberFunction_IsValid(SBTypeMemberFunction self) -> bool"},
+	 { (char *)"SBTypeMemberFunction___nonzero__", _wrap_SBTypeMemberFunction___nonzero__, METH_VARARGS, (char *)"SBTypeMemberFunction___nonzero__(SBTypeMemberFunction self) -> bool"},
+	 { (char *)"SBTypeMemberFunction_GetName", _wrap_SBTypeMemberFunction_GetName, METH_VARARGS, (char *)"SBTypeMemberFunction_GetName(SBTypeMemberFunction self) -> char const *"},
+	 { (char *)"SBTypeMemberFunction_GetDemangledName", _wrap_SBTypeMemberFunction_GetDemangledName, METH_VARARGS, (char *)"SBTypeMemberFunction_GetDemangledName(SBTypeMemberFunction self) -> char const *"},
+	 { (char *)"SBTypeMemberFunction_GetMangledName", _wrap_SBTypeMemberFunction_GetMangledName, METH_VARARGS, (char *)"SBTypeMemberFunction_GetMangledName(SBTypeMemberFunction self) -> char const *"},
+	 { (char *)"SBTypeMemberFunction_GetType", _wrap_SBTypeMemberFunction_GetType, METH_VARARGS, (char *)"SBTypeMemberFunction_GetType(SBTypeMemberFunction self) -> SBType"},
+	 { (char *)"SBTypeMemberFunction_GetReturnType", _wrap_SBTypeMemberFunction_GetReturnType, METH_VARARGS, (char *)"SBTypeMemberFunction_GetReturnType(SBTypeMemberFunction self) -> SBType"},
+	 { (char *)"SBTypeMemberFunction_GetNumberOfArguments", _wrap_SBTypeMemberFunction_GetNumberOfArguments, METH_VARARGS, (char *)"SBTypeMemberFunction_GetNumberOfArguments(SBTypeMemberFunction self) -> uint32_t"},
+	 { (char *)"SBTypeMemberFunction_GetArgumentTypeAtIndex", _wrap_SBTypeMemberFunction_GetArgumentTypeAtIndex, METH_VARARGS, (char *)"SBTypeMemberFunction_GetArgumentTypeAtIndex(SBTypeMemberFunction self, uint32_t arg3) -> SBType"},
+	 { (char *)"SBTypeMemberFunction_GetKind", _wrap_SBTypeMemberFunction_GetKind, METH_VARARGS, (char *)"SBTypeMemberFunction_GetKind(SBTypeMemberFunction self) -> lldb::MemberFunctionKind"},
+	 { (char *)"SBTypeMemberFunction_GetDescription", _wrap_SBTypeMemberFunction_GetDescription, METH_VARARGS, (char *)"SBTypeMemberFunction_GetDescription(SBTypeMemberFunction self, SBStream description, lldb::DescriptionLevel description_level) -> bool"},
+	 { (char *)"SBTypeMemberFunction___str__", _wrap_SBTypeMemberFunction___str__, METH_VARARGS, (char *)"SBTypeMemberFunction___str__(SBTypeMemberFunction self) -> PyObject *"},
+	 { (char *)"SBTypeMemberFunction_swigregister", SBTypeMemberFunction_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBType", _wrap_new_SBType, METH_VARARGS, (char *)"\n"
+		"SBType()\n"
+		"new_SBType(SBType rhs) -> SBType\n"
+		""},
+	 { (char *)"delete_SBType", _wrap_delete_SBType, METH_VARARGS, (char *)"delete_SBType(SBType self)"},
+	 { (char *)"SBType_IsValid", _wrap_SBType_IsValid, METH_VARARGS, (char *)"SBType_IsValid(SBType self) -> bool"},
+	 { (char *)"SBType___nonzero__", _wrap_SBType___nonzero__, METH_VARARGS, (char *)"SBType___nonzero__(SBType self) -> bool"},
+	 { (char *)"SBType_GetByteSize", _wrap_SBType_GetByteSize, METH_VARARGS, (char *)"SBType_GetByteSize(SBType self) -> uint64_t"},
+	 { (char *)"SBType_IsPointerType", _wrap_SBType_IsPointerType, METH_VARARGS, (char *)"SBType_IsPointerType(SBType self) -> bool"},
+	 { (char *)"SBType_IsReferenceType", _wrap_SBType_IsReferenceType, METH_VARARGS, (char *)"SBType_IsReferenceType(SBType self) -> bool"},
+	 { (char *)"SBType_IsFunctionType", _wrap_SBType_IsFunctionType, METH_VARARGS, (char *)"SBType_IsFunctionType(SBType self) -> bool"},
+	 { (char *)"SBType_IsPolymorphicClass", _wrap_SBType_IsPolymorphicClass, METH_VARARGS, (char *)"SBType_IsPolymorphicClass(SBType self) -> bool"},
+	 { (char *)"SBType_IsArrayType", _wrap_SBType_IsArrayType, METH_VARARGS, (char *)"SBType_IsArrayType(SBType self) -> bool"},
+	 { (char *)"SBType_IsVectorType", _wrap_SBType_IsVectorType, METH_VARARGS, (char *)"SBType_IsVectorType(SBType self) -> bool"},
+	 { (char *)"SBType_IsTypedefType", _wrap_SBType_IsTypedefType, METH_VARARGS, (char *)"SBType_IsTypedefType(SBType self) -> bool"},
+	 { (char *)"SBType_IsAnonymousType", _wrap_SBType_IsAnonymousType, METH_VARARGS, (char *)"SBType_IsAnonymousType(SBType self) -> bool"},
+	 { (char *)"SBType_GetPointerType", _wrap_SBType_GetPointerType, METH_VARARGS, (char *)"SBType_GetPointerType(SBType self) -> SBType"},
+	 { (char *)"SBType_GetPointeeType", _wrap_SBType_GetPointeeType, METH_VARARGS, (char *)"SBType_GetPointeeType(SBType self) -> SBType"},
+	 { (char *)"SBType_GetReferenceType", _wrap_SBType_GetReferenceType, METH_VARARGS, (char *)"SBType_GetReferenceType(SBType self) -> SBType"},
+	 { (char *)"SBType_GetTypedefedType", _wrap_SBType_GetTypedefedType, METH_VARARGS, (char *)"SBType_GetTypedefedType(SBType self) -> SBType"},
+	 { (char *)"SBType_GetDereferencedType", _wrap_SBType_GetDereferencedType, METH_VARARGS, (char *)"SBType_GetDereferencedType(SBType self) -> SBType"},
+	 { (char *)"SBType_GetUnqualifiedType", _wrap_SBType_GetUnqualifiedType, METH_VARARGS, (char *)"SBType_GetUnqualifiedType(SBType self) -> SBType"},
+	 { (char *)"SBType_GetCanonicalType", _wrap_SBType_GetCanonicalType, METH_VARARGS, (char *)"SBType_GetCanonicalType(SBType self) -> SBType"},
+	 { (char *)"SBType_GetArrayElementType", _wrap_SBType_GetArrayElementType, METH_VARARGS, (char *)"SBType_GetArrayElementType(SBType self) -> SBType"},
+	 { (char *)"SBType_GetArrayType", _wrap_SBType_GetArrayType, METH_VARARGS, (char *)"SBType_GetArrayType(SBType self, uint64_t size) -> SBType"},
+	 { (char *)"SBType_GetVectorElementType", _wrap_SBType_GetVectorElementType, METH_VARARGS, (char *)"SBType_GetVectorElementType(SBType self) -> SBType"},
+	 { (char *)"SBType_GetBasicType", _wrap_SBType_GetBasicType, METH_VARARGS, (char *)"\n"
+		"GetBasicType() -> lldb::BasicType\n"
+		"SBType_GetBasicType(SBType self, lldb::BasicType type) -> SBType\n"
+		""},
+	 { (char *)"SBType_GetNumberOfFields", _wrap_SBType_GetNumberOfFields, METH_VARARGS, (char *)"SBType_GetNumberOfFields(SBType self) -> uint32_t"},
+	 { (char *)"SBType_GetNumberOfDirectBaseClasses", _wrap_SBType_GetNumberOfDirectBaseClasses, METH_VARARGS, (char *)"SBType_GetNumberOfDirectBaseClasses(SBType self) -> uint32_t"},
+	 { (char *)"SBType_GetNumberOfVirtualBaseClasses", _wrap_SBType_GetNumberOfVirtualBaseClasses, METH_VARARGS, (char *)"SBType_GetNumberOfVirtualBaseClasses(SBType self) -> uint32_t"},
+	 { (char *)"SBType_GetFieldAtIndex", _wrap_SBType_GetFieldAtIndex, METH_VARARGS, (char *)"SBType_GetFieldAtIndex(SBType self, uint32_t idx) -> SBTypeMember"},
+	 { (char *)"SBType_GetDirectBaseClassAtIndex", _wrap_SBType_GetDirectBaseClassAtIndex, METH_VARARGS, (char *)"SBType_GetDirectBaseClassAtIndex(SBType self, uint32_t idx) -> SBTypeMember"},
+	 { (char *)"SBType_GetVirtualBaseClassAtIndex", _wrap_SBType_GetVirtualBaseClassAtIndex, METH_VARARGS, (char *)"SBType_GetVirtualBaseClassAtIndex(SBType self, uint32_t idx) -> SBTypeMember"},
+	 { (char *)"SBType_GetEnumMembers", _wrap_SBType_GetEnumMembers, METH_VARARGS, (char *)"SBType_GetEnumMembers(SBType self) -> SBTypeEnumMemberList"},
+	 { (char *)"SBType_GetName", _wrap_SBType_GetName, METH_VARARGS, (char *)"SBType_GetName(SBType self) -> char const *"},
+	 { (char *)"SBType_GetDisplayTypeName", _wrap_SBType_GetDisplayTypeName, METH_VARARGS, (char *)"SBType_GetDisplayTypeName(SBType self) -> char const *"},
+	 { (char *)"SBType_GetTypeClass", _wrap_SBType_GetTypeClass, METH_VARARGS, (char *)"SBType_GetTypeClass(SBType self) -> lldb::TypeClass"},
+	 { (char *)"SBType_GetNumberOfTemplateArguments", _wrap_SBType_GetNumberOfTemplateArguments, METH_VARARGS, (char *)"SBType_GetNumberOfTemplateArguments(SBType self) -> uint32_t"},
+	 { (char *)"SBType_GetTemplateArgumentType", _wrap_SBType_GetTemplateArgumentType, METH_VARARGS, (char *)"SBType_GetTemplateArgumentType(SBType self, uint32_t idx) -> SBType"},
+	 { (char *)"SBType_GetTemplateArgumentKind", _wrap_SBType_GetTemplateArgumentKind, METH_VARARGS, (char *)"SBType_GetTemplateArgumentKind(SBType self, uint32_t idx) -> lldb::TemplateArgumentKind"},
+	 { (char *)"SBType_GetFunctionReturnType", _wrap_SBType_GetFunctionReturnType, METH_VARARGS, (char *)"SBType_GetFunctionReturnType(SBType self) -> SBType"},
+	 { (char *)"SBType_GetFunctionArgumentTypes", _wrap_SBType_GetFunctionArgumentTypes, METH_VARARGS, (char *)"SBType_GetFunctionArgumentTypes(SBType self) -> SBTypeList"},
+	 { (char *)"SBType_GetNumberOfMemberFunctions", _wrap_SBType_GetNumberOfMemberFunctions, METH_VARARGS, (char *)"SBType_GetNumberOfMemberFunctions(SBType self) -> uint32_t"},
+	 { (char *)"SBType_GetMemberFunctionAtIndex", _wrap_SBType_GetMemberFunctionAtIndex, METH_VARARGS, (char *)"SBType_GetMemberFunctionAtIndex(SBType self, uint32_t idx) -> SBTypeMemberFunction"},
+	 { (char *)"SBType_IsTypeComplete", _wrap_SBType_IsTypeComplete, METH_VARARGS, (char *)"SBType_IsTypeComplete(SBType self) -> bool"},
+	 { (char *)"SBType_GetTypeFlags", _wrap_SBType_GetTypeFlags, METH_VARARGS, (char *)"SBType_GetTypeFlags(SBType self) -> uint32_t"},
+	 { (char *)"SBType___eq__", _wrap_SBType___eq__, METH_VARARGS, (char *)"SBType___eq__(SBType self, SBType rhs) -> bool"},
+	 { (char *)"SBType___ne__", _wrap_SBType___ne__, METH_VARARGS, (char *)"SBType___ne__(SBType self, SBType rhs) -> bool"},
+	 { (char *)"SBType___str__", _wrap_SBType___str__, METH_VARARGS, (char *)"SBType___str__(SBType self) -> PyObject *"},
+	 { (char *)"SBType_swigregister", SBType_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTypeList", _wrap_new_SBTypeList, METH_VARARGS, (char *)"new_SBTypeList() -> SBTypeList"},
+	 { (char *)"SBTypeList_IsValid", _wrap_SBTypeList_IsValid, METH_VARARGS, (char *)"SBTypeList_IsValid(SBTypeList self) -> bool"},
+	 { (char *)"SBTypeList___nonzero__", _wrap_SBTypeList___nonzero__, METH_VARARGS, (char *)"SBTypeList___nonzero__(SBTypeList self) -> bool"},
+	 { (char *)"SBTypeList_Append", _wrap_SBTypeList_Append, METH_VARARGS, (char *)"SBTypeList_Append(SBTypeList self, SBType type)"},
+	 { (char *)"SBTypeList_GetTypeAtIndex", _wrap_SBTypeList_GetTypeAtIndex, METH_VARARGS, (char *)"SBTypeList_GetTypeAtIndex(SBTypeList self, uint32_t index) -> SBType"},
+	 { (char *)"SBTypeList_GetSize", _wrap_SBTypeList_GetSize, METH_VARARGS, (char *)"SBTypeList_GetSize(SBTypeList self) -> uint32_t"},
+	 { (char *)"delete_SBTypeList", _wrap_delete_SBTypeList, METH_VARARGS, (char *)"delete_SBTypeList(SBTypeList self)"},
+	 { (char *)"SBTypeList_swigregister", SBTypeList_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTypeCategory", _wrap_new_SBTypeCategory, METH_VARARGS, (char *)"\n"
+		"SBTypeCategory()\n"
+		"new_SBTypeCategory(SBTypeCategory rhs) -> SBTypeCategory\n"
+		""},
+	 { (char *)"delete_SBTypeCategory", _wrap_delete_SBTypeCategory, METH_VARARGS, (char *)"delete_SBTypeCategory(SBTypeCategory self)"},
+	 { (char *)"SBTypeCategory_IsValid", _wrap_SBTypeCategory_IsValid, METH_VARARGS, (char *)"SBTypeCategory_IsValid(SBTypeCategory self) -> bool"},
+	 { (char *)"SBTypeCategory___nonzero__", _wrap_SBTypeCategory___nonzero__, METH_VARARGS, (char *)"SBTypeCategory___nonzero__(SBTypeCategory self) -> bool"},
+	 { (char *)"SBTypeCategory_GetEnabled", _wrap_SBTypeCategory_GetEnabled, METH_VARARGS, (char *)"SBTypeCategory_GetEnabled(SBTypeCategory self) -> bool"},
+	 { (char *)"SBTypeCategory_SetEnabled", _wrap_SBTypeCategory_SetEnabled, METH_VARARGS, (char *)"SBTypeCategory_SetEnabled(SBTypeCategory self, bool arg3)"},
+	 { (char *)"SBTypeCategory_GetName", _wrap_SBTypeCategory_GetName, METH_VARARGS, (char *)"SBTypeCategory_GetName(SBTypeCategory self) -> char const *"},
+	 { (char *)"SBTypeCategory_GetLanguageAtIndex", _wrap_SBTypeCategory_GetLanguageAtIndex, METH_VARARGS, (char *)"SBTypeCategory_GetLanguageAtIndex(SBTypeCategory self, uint32_t idx) -> lldb::LanguageType"},
+	 { (char *)"SBTypeCategory_GetNumLanguages", _wrap_SBTypeCategory_GetNumLanguages, METH_VARARGS, (char *)"SBTypeCategory_GetNumLanguages(SBTypeCategory self) -> uint32_t"},
+	 { (char *)"SBTypeCategory_AddLanguage", _wrap_SBTypeCategory_AddLanguage, METH_VARARGS, (char *)"SBTypeCategory_AddLanguage(SBTypeCategory self, lldb::LanguageType language)"},
+	 { (char *)"SBTypeCategory_GetDescription", _wrap_SBTypeCategory_GetDescription, METH_VARARGS, (char *)"SBTypeCategory_GetDescription(SBTypeCategory self, SBStream description, lldb::DescriptionLevel description_level) -> bool"},
+	 { (char *)"SBTypeCategory_GetNumFormats", _wrap_SBTypeCategory_GetNumFormats, METH_VARARGS, (char *)"SBTypeCategory_GetNumFormats(SBTypeCategory self) -> uint32_t"},
+	 { (char *)"SBTypeCategory_GetNumSummaries", _wrap_SBTypeCategory_GetNumSummaries, METH_VARARGS, (char *)"SBTypeCategory_GetNumSummaries(SBTypeCategory self) -> uint32_t"},
+	 { (char *)"SBTypeCategory_GetNumFilters", _wrap_SBTypeCategory_GetNumFilters, METH_VARARGS, (char *)"SBTypeCategory_GetNumFilters(SBTypeCategory self) -> uint32_t"},
+	 { (char *)"SBTypeCategory_GetNumSynthetics", _wrap_SBTypeCategory_GetNumSynthetics, METH_VARARGS, (char *)"SBTypeCategory_GetNumSynthetics(SBTypeCategory self) -> uint32_t"},
+	 { (char *)"SBTypeCategory_GetTypeNameSpecifierForFilterAtIndex", _wrap_SBTypeCategory_GetTypeNameSpecifierForFilterAtIndex, METH_VARARGS, (char *)"SBTypeCategory_GetTypeNameSpecifierForFilterAtIndex(SBTypeCategory self, uint32_t arg3) -> SBTypeNameSpecifier"},
+	 { (char *)"SBTypeCategory_GetTypeNameSpecifierForFormatAtIndex", _wrap_SBTypeCategory_GetTypeNameSpecifierForFormatAtIndex, METH_VARARGS, (char *)"SBTypeCategory_GetTypeNameSpecifierForFormatAtIndex(SBTypeCategory self, uint32_t arg3) -> SBTypeNameSpecifier"},
+	 { (char *)"SBTypeCategory_GetTypeNameSpecifierForSummaryAtIndex", _wrap_SBTypeCategory_GetTypeNameSpecifierForSummaryAtIndex, METH_VARARGS, (char *)"SBTypeCategory_GetTypeNameSpecifierForSummaryAtIndex(SBTypeCategory self, uint32_t arg3) -> SBTypeNameSpecifier"},
+	 { (char *)"SBTypeCategory_GetTypeNameSpecifierForSyntheticAtIndex", _wrap_SBTypeCategory_GetTypeNameSpecifierForSyntheticAtIndex, METH_VARARGS, (char *)"SBTypeCategory_GetTypeNameSpecifierForSyntheticAtIndex(SBTypeCategory self, uint32_t arg3) -> SBTypeNameSpecifier"},
+	 { (char *)"SBTypeCategory_GetFilterForType", _wrap_SBTypeCategory_GetFilterForType, METH_VARARGS, (char *)"SBTypeCategory_GetFilterForType(SBTypeCategory self, SBTypeNameSpecifier arg3) -> SBTypeFilter"},
+	 { (char *)"SBTypeCategory_GetFormatForType", _wrap_SBTypeCategory_GetFormatForType, METH_VARARGS, (char *)"SBTypeCategory_GetFormatForType(SBTypeCategory self, SBTypeNameSpecifier arg3) -> SBTypeFormat"},
+	 { (char *)"SBTypeCategory_GetSummaryForType", _wrap_SBTypeCategory_GetSummaryForType, METH_VARARGS, (char *)"SBTypeCategory_GetSummaryForType(SBTypeCategory self, SBTypeNameSpecifier arg3) -> SBTypeSummary"},
+	 { (char *)"SBTypeCategory_GetSyntheticForType", _wrap_SBTypeCategory_GetSyntheticForType, METH_VARARGS, (char *)"SBTypeCategory_GetSyntheticForType(SBTypeCategory self, SBTypeNameSpecifier arg3) -> SBTypeSynthetic"},
+	 { (char *)"SBTypeCategory_GetFilterAtIndex", _wrap_SBTypeCategory_GetFilterAtIndex, METH_VARARGS, (char *)"SBTypeCategory_GetFilterAtIndex(SBTypeCategory self, uint32_t arg3) -> SBTypeFilter"},
+	 { (char *)"SBTypeCategory_GetFormatAtIndex", _wrap_SBTypeCategory_GetFormatAtIndex, METH_VARARGS, (char *)"SBTypeCategory_GetFormatAtIndex(SBTypeCategory self, uint32_t arg3) -> SBTypeFormat"},
+	 { (char *)"SBTypeCategory_GetSummaryAtIndex", _wrap_SBTypeCategory_GetSummaryAtIndex, METH_VARARGS, (char *)"SBTypeCategory_GetSummaryAtIndex(SBTypeCategory self, uint32_t arg3) -> SBTypeSummary"},
+	 { (char *)"SBTypeCategory_GetSyntheticAtIndex", _wrap_SBTypeCategory_GetSyntheticAtIndex, METH_VARARGS, (char *)"SBTypeCategory_GetSyntheticAtIndex(SBTypeCategory self, uint32_t arg3) -> SBTypeSynthetic"},
+	 { (char *)"SBTypeCategory_AddTypeFormat", _wrap_SBTypeCategory_AddTypeFormat, METH_VARARGS, (char *)"SBTypeCategory_AddTypeFormat(SBTypeCategory self, SBTypeNameSpecifier arg3, SBTypeFormat arg4) -> bool"},
+	 { (char *)"SBTypeCategory_DeleteTypeFormat", _wrap_SBTypeCategory_DeleteTypeFormat, METH_VARARGS, (char *)"SBTypeCategory_DeleteTypeFormat(SBTypeCategory self, SBTypeNameSpecifier arg3) -> bool"},
+	 { (char *)"SBTypeCategory_AddTypeSummary", _wrap_SBTypeCategory_AddTypeSummary, METH_VARARGS, (char *)"SBTypeCategory_AddTypeSummary(SBTypeCategory self, SBTypeNameSpecifier arg3, SBTypeSummary arg4) -> bool"},
+	 { (char *)"SBTypeCategory_DeleteTypeSummary", _wrap_SBTypeCategory_DeleteTypeSummary, METH_VARARGS, (char *)"SBTypeCategory_DeleteTypeSummary(SBTypeCategory self, SBTypeNameSpecifier arg3) -> bool"},
+	 { (char *)"SBTypeCategory_AddTypeFilter", _wrap_SBTypeCategory_AddTypeFilter, METH_VARARGS, (char *)"SBTypeCategory_AddTypeFilter(SBTypeCategory self, SBTypeNameSpecifier arg3, SBTypeFilter arg4) -> bool"},
+	 { (char *)"SBTypeCategory_DeleteTypeFilter", _wrap_SBTypeCategory_DeleteTypeFilter, METH_VARARGS, (char *)"SBTypeCategory_DeleteTypeFilter(SBTypeCategory self, SBTypeNameSpecifier arg3) -> bool"},
+	 { (char *)"SBTypeCategory_AddTypeSynthetic", _wrap_SBTypeCategory_AddTypeSynthetic, METH_VARARGS, (char *)"SBTypeCategory_AddTypeSynthetic(SBTypeCategory self, SBTypeNameSpecifier arg3, SBTypeSynthetic arg4) -> bool"},
+	 { (char *)"SBTypeCategory_DeleteTypeSynthetic", _wrap_SBTypeCategory_DeleteTypeSynthetic, METH_VARARGS, (char *)"SBTypeCategory_DeleteTypeSynthetic(SBTypeCategory self, SBTypeNameSpecifier arg3) -> bool"},
+	 { (char *)"SBTypeCategory___str__", _wrap_SBTypeCategory___str__, METH_VARARGS, (char *)"SBTypeCategory___str__(SBTypeCategory self) -> PyObject *"},
+	 { (char *)"SBTypeCategory_swigregister", SBTypeCategory_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTypeEnumMember", _wrap_new_SBTypeEnumMember, METH_VARARGS, (char *)"\n"
+		"SBTypeEnumMember()\n"
+		"new_SBTypeEnumMember(SBTypeEnumMember rhs) -> SBTypeEnumMember\n"
+		""},
+	 { (char *)"delete_SBTypeEnumMember", _wrap_delete_SBTypeEnumMember, METH_VARARGS, (char *)"delete_SBTypeEnumMember(SBTypeEnumMember self)"},
+	 { (char *)"SBTypeEnumMember_IsValid", _wrap_SBTypeEnumMember_IsValid, METH_VARARGS, (char *)"SBTypeEnumMember_IsValid(SBTypeEnumMember self) -> bool"},
+	 { (char *)"SBTypeEnumMember___nonzero__", _wrap_SBTypeEnumMember___nonzero__, METH_VARARGS, (char *)"SBTypeEnumMember___nonzero__(SBTypeEnumMember self) -> bool"},
+	 { (char *)"SBTypeEnumMember_GetValueAsSigned", _wrap_SBTypeEnumMember_GetValueAsSigned, METH_VARARGS, (char *)"SBTypeEnumMember_GetValueAsSigned(SBTypeEnumMember self) -> int64_t"},
+	 { (char *)"SBTypeEnumMember_GetValueAsUnsigned", _wrap_SBTypeEnumMember_GetValueAsUnsigned, METH_VARARGS, (char *)"SBTypeEnumMember_GetValueAsUnsigned(SBTypeEnumMember self) -> uint64_t"},
+	 { (char *)"SBTypeEnumMember_GetName", _wrap_SBTypeEnumMember_GetName, METH_VARARGS, (char *)"SBTypeEnumMember_GetName(SBTypeEnumMember self) -> char const *"},
+	 { (char *)"SBTypeEnumMember_GetType", _wrap_SBTypeEnumMember_GetType, METH_VARARGS, (char *)"SBTypeEnumMember_GetType(SBTypeEnumMember self) -> SBType"},
+	 { (char *)"SBTypeEnumMember_GetDescription", _wrap_SBTypeEnumMember_GetDescription, METH_VARARGS, (char *)"SBTypeEnumMember_GetDescription(SBTypeEnumMember self, SBStream description, lldb::DescriptionLevel description_level) -> bool"},
+	 { (char *)"SBTypeEnumMember___str__", _wrap_SBTypeEnumMember___str__, METH_VARARGS, (char *)"SBTypeEnumMember___str__(SBTypeEnumMember self) -> PyObject *"},
+	 { (char *)"SBTypeEnumMember_swigregister", SBTypeEnumMember_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTypeEnumMemberList", _wrap_new_SBTypeEnumMemberList, METH_VARARGS, (char *)"\n"
+		"SBTypeEnumMemberList()\n"
+		"new_SBTypeEnumMemberList(SBTypeEnumMemberList rhs) -> SBTypeEnumMemberList\n"
+		""},
+	 { (char *)"delete_SBTypeEnumMemberList", _wrap_delete_SBTypeEnumMemberList, METH_VARARGS, (char *)"delete_SBTypeEnumMemberList(SBTypeEnumMemberList self)"},
+	 { (char *)"SBTypeEnumMemberList_IsValid", _wrap_SBTypeEnumMemberList_IsValid, METH_VARARGS, (char *)"SBTypeEnumMemberList_IsValid(SBTypeEnumMemberList self) -> bool"},
+	 { (char *)"SBTypeEnumMemberList___nonzero__", _wrap_SBTypeEnumMemberList___nonzero__, METH_VARARGS, (char *)"SBTypeEnumMemberList___nonzero__(SBTypeEnumMemberList self) -> bool"},
+	 { (char *)"SBTypeEnumMemberList_Append", _wrap_SBTypeEnumMemberList_Append, METH_VARARGS, (char *)"SBTypeEnumMemberList_Append(SBTypeEnumMemberList self, SBTypeEnumMember entry)"},
+	 { (char *)"SBTypeEnumMemberList_GetTypeEnumMemberAtIndex", _wrap_SBTypeEnumMemberList_GetTypeEnumMemberAtIndex, METH_VARARGS, (char *)"SBTypeEnumMemberList_GetTypeEnumMemberAtIndex(SBTypeEnumMemberList self, uint32_t index) -> SBTypeEnumMember"},
+	 { (char *)"SBTypeEnumMemberList_GetSize", _wrap_SBTypeEnumMemberList_GetSize, METH_VARARGS, (char *)"SBTypeEnumMemberList_GetSize(SBTypeEnumMemberList self) -> uint32_t"},
+	 { (char *)"SBTypeEnumMemberList_swigregister", SBTypeEnumMemberList_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTypeFilter", _wrap_new_SBTypeFilter, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBTypeFilter()\n"
 		"SBTypeFilter(uint32_t options)\n"
 		"new_SBTypeFilter(SBTypeFilter rhs) -> SBTypeFilter\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBTypeFilter", _wrap_delete_SBTypeFilter, METH_VARARGS, (char *)"delete_SBTypeFilter(SBTypeFilter self)"},
 	 { "SBTypeFilter_IsValid", _wrap_SBTypeFilter_IsValid, METH_VARARGS, (char *)"SBTypeFilter_IsValid(SBTypeFilter self) -> bool"},
 	 { "SBTypeFilter___nonzero__", _wrap_SBTypeFilter___nonzero__, METH_VARARGS, (char *)"SBTypeFilter___nonzero__(SBTypeFilter self) -> bool"},
@@ -82154,6 +85492,25 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBTypeFilter___str__", _wrap_SBTypeFilter___str__, METH_VARARGS, (char *)"SBTypeFilter___str__(SBTypeFilter self) -> PyObject *"},
 	 { "SBTypeFilter_swigregister", SBTypeFilter_swigregister, METH_VARARGS, NULL},
 	 { "new_SBTypeFormat", _wrap_new_SBTypeFormat, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBTypeFilter", _wrap_delete_SBTypeFilter, METH_VARARGS, (char *)"delete_SBTypeFilter(SBTypeFilter self)"},
+	 { (char *)"SBTypeFilter_IsValid", _wrap_SBTypeFilter_IsValid, METH_VARARGS, (char *)"SBTypeFilter_IsValid(SBTypeFilter self) -> bool"},
+	 { (char *)"SBTypeFilter___nonzero__", _wrap_SBTypeFilter___nonzero__, METH_VARARGS, (char *)"SBTypeFilter___nonzero__(SBTypeFilter self) -> bool"},
+	 { (char *)"SBTypeFilter_IsEqualTo", _wrap_SBTypeFilter_IsEqualTo, METH_VARARGS, (char *)"SBTypeFilter_IsEqualTo(SBTypeFilter self, SBTypeFilter rhs) -> bool"},
+	 { (char *)"SBTypeFilter_GetNumberOfExpressionPaths", _wrap_SBTypeFilter_GetNumberOfExpressionPaths, METH_VARARGS, (char *)"SBTypeFilter_GetNumberOfExpressionPaths(SBTypeFilter self) -> uint32_t"},
+	 { (char *)"SBTypeFilter_GetExpressionPathAtIndex", _wrap_SBTypeFilter_GetExpressionPathAtIndex, METH_VARARGS, (char *)"SBTypeFilter_GetExpressionPathAtIndex(SBTypeFilter self, uint32_t i) -> char const *"},
+	 { (char *)"SBTypeFilter_ReplaceExpressionPathAtIndex", _wrap_SBTypeFilter_ReplaceExpressionPathAtIndex, METH_VARARGS, (char *)"SBTypeFilter_ReplaceExpressionPathAtIndex(SBTypeFilter self, uint32_t i, char const * item) -> bool"},
+	 { (char *)"SBTypeFilter_AppendExpressionPath", _wrap_SBTypeFilter_AppendExpressionPath, METH_VARARGS, (char *)"SBTypeFilter_AppendExpressionPath(SBTypeFilter self, char const * item)"},
+	 { (char *)"SBTypeFilter_Clear", _wrap_SBTypeFilter_Clear, METH_VARARGS, (char *)"SBTypeFilter_Clear(SBTypeFilter self)"},
+	 { (char *)"SBTypeFilter_GetOptions", _wrap_SBTypeFilter_GetOptions, METH_VARARGS, (char *)"SBTypeFilter_GetOptions(SBTypeFilter self) -> uint32_t"},
+	 { (char *)"SBTypeFilter_SetOptions", _wrap_SBTypeFilter_SetOptions, METH_VARARGS, (char *)"SBTypeFilter_SetOptions(SBTypeFilter self, uint32_t arg3)"},
+	 { (char *)"SBTypeFilter_GetDescription", _wrap_SBTypeFilter_GetDescription, METH_VARARGS, (char *)"SBTypeFilter_GetDescription(SBTypeFilter self, SBStream description, lldb::DescriptionLevel description_level) -> bool"},
+	 { (char *)"SBTypeFilter___eq__", _wrap_SBTypeFilter___eq__, METH_VARARGS, (char *)"SBTypeFilter___eq__(SBTypeFilter self, SBTypeFilter rhs) -> bool"},
+	 { (char *)"SBTypeFilter___ne__", _wrap_SBTypeFilter___ne__, METH_VARARGS, (char *)"SBTypeFilter___ne__(SBTypeFilter self, SBTypeFilter rhs) -> bool"},
+	 { (char *)"SBTypeFilter___str__", _wrap_SBTypeFilter___str__, METH_VARARGS, (char *)"SBTypeFilter___str__(SBTypeFilter self) -> PyObject *"},
+	 { (char *)"SBTypeFilter_swigregister", SBTypeFilter_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTypeFormat", _wrap_new_SBTypeFormat, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBTypeFormat()\n"
 		"SBTypeFormat(lldb::Format format, uint32_t options=0)\n"
 		"SBTypeFormat(lldb::Format format)\n"
@@ -82161,6 +85518,7 @@ static PyMethodDef SwigMethods[] = {
 		"SBTypeFormat(char const * type)\n"
 		"new_SBTypeFormat(SBTypeFormat rhs) -> SBTypeFormat\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBTypeFormat", _wrap_delete_SBTypeFormat, METH_VARARGS, (char *)"delete_SBTypeFormat(SBTypeFormat self)"},
 	 { "SBTypeFormat_IsValid", _wrap_SBTypeFormat_IsValid, METH_VARARGS, (char *)"SBTypeFormat_IsValid(SBTypeFormat self) -> bool"},
 	 { "SBTypeFormat___nonzero__", _wrap_SBTypeFormat___nonzero__, METH_VARARGS, (char *)"SBTypeFormat___nonzero__(SBTypeFormat self) -> bool"},
@@ -82177,12 +85535,31 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBTypeFormat___str__", _wrap_SBTypeFormat___str__, METH_VARARGS, (char *)"SBTypeFormat___str__(SBTypeFormat self) -> PyObject *"},
 	 { "SBTypeFormat_swigregister", SBTypeFormat_swigregister, METH_VARARGS, NULL},
 	 { "new_SBTypeNameSpecifier", _wrap_new_SBTypeNameSpecifier, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBTypeFormat", _wrap_delete_SBTypeFormat, METH_VARARGS, (char *)"delete_SBTypeFormat(SBTypeFormat self)"},
+	 { (char *)"SBTypeFormat_IsValid", _wrap_SBTypeFormat_IsValid, METH_VARARGS, (char *)"SBTypeFormat_IsValid(SBTypeFormat self) -> bool"},
+	 { (char *)"SBTypeFormat___nonzero__", _wrap_SBTypeFormat___nonzero__, METH_VARARGS, (char *)"SBTypeFormat___nonzero__(SBTypeFormat self) -> bool"},
+	 { (char *)"SBTypeFormat_IsEqualTo", _wrap_SBTypeFormat_IsEqualTo, METH_VARARGS, (char *)"SBTypeFormat_IsEqualTo(SBTypeFormat self, SBTypeFormat rhs) -> bool"},
+	 { (char *)"SBTypeFormat_GetFormat", _wrap_SBTypeFormat_GetFormat, METH_VARARGS, (char *)"SBTypeFormat_GetFormat(SBTypeFormat self) -> lldb::Format"},
+	 { (char *)"SBTypeFormat_GetTypeName", _wrap_SBTypeFormat_GetTypeName, METH_VARARGS, (char *)"SBTypeFormat_GetTypeName(SBTypeFormat self) -> char const *"},
+	 { (char *)"SBTypeFormat_GetOptions", _wrap_SBTypeFormat_GetOptions, METH_VARARGS, (char *)"SBTypeFormat_GetOptions(SBTypeFormat self) -> uint32_t"},
+	 { (char *)"SBTypeFormat_SetFormat", _wrap_SBTypeFormat_SetFormat, METH_VARARGS, (char *)"SBTypeFormat_SetFormat(SBTypeFormat self, lldb::Format arg3)"},
+	 { (char *)"SBTypeFormat_SetTypeName", _wrap_SBTypeFormat_SetTypeName, METH_VARARGS, (char *)"SBTypeFormat_SetTypeName(SBTypeFormat self, char const * arg3)"},
+	 { (char *)"SBTypeFormat_SetOptions", _wrap_SBTypeFormat_SetOptions, METH_VARARGS, (char *)"SBTypeFormat_SetOptions(SBTypeFormat self, uint32_t arg3)"},
+	 { (char *)"SBTypeFormat_GetDescription", _wrap_SBTypeFormat_GetDescription, METH_VARARGS, (char *)"SBTypeFormat_GetDescription(SBTypeFormat self, SBStream description, lldb::DescriptionLevel description_level) -> bool"},
+	 { (char *)"SBTypeFormat___eq__", _wrap_SBTypeFormat___eq__, METH_VARARGS, (char *)"SBTypeFormat___eq__(SBTypeFormat self, SBTypeFormat rhs) -> bool"},
+	 { (char *)"SBTypeFormat___ne__", _wrap_SBTypeFormat___ne__, METH_VARARGS, (char *)"SBTypeFormat___ne__(SBTypeFormat self, SBTypeFormat rhs) -> bool"},
+	 { (char *)"SBTypeFormat___str__", _wrap_SBTypeFormat___str__, METH_VARARGS, (char *)"SBTypeFormat___str__(SBTypeFormat self) -> PyObject *"},
+	 { (char *)"SBTypeFormat_swigregister", SBTypeFormat_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTypeNameSpecifier", _wrap_new_SBTypeNameSpecifier, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBTypeNameSpecifier()\n"
 		"SBTypeNameSpecifier(char const * name, bool is_regex=False)\n"
 		"SBTypeNameSpecifier(char const * name)\n"
 		"SBTypeNameSpecifier(SBType type)\n"
 		"new_SBTypeNameSpecifier(SBTypeNameSpecifier rhs) -> SBTypeNameSpecifier\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBTypeNameSpecifier", _wrap_delete_SBTypeNameSpecifier, METH_VARARGS, (char *)"delete_SBTypeNameSpecifier(SBTypeNameSpecifier self)"},
 	 { "SBTypeNameSpecifier_IsValid", _wrap_SBTypeNameSpecifier_IsValid, METH_VARARGS, (char *)"SBTypeNameSpecifier_IsValid(SBTypeNameSpecifier self) -> bool"},
 	 { "SBTypeNameSpecifier___nonzero__", _wrap_SBTypeNameSpecifier___nonzero__, METH_VARARGS, (char *)"SBTypeNameSpecifier___nonzero__(SBTypeNameSpecifier self) -> bool"},
@@ -82216,6 +85593,41 @@ static PyMethodDef SwigMethods[] = {
 		"SBTypeSummary_CreateWithFunctionName(char const * data) -> SBTypeSummary\n"
 		""},
 	 { "SBTypeSummary_CreateWithScriptCode", _wrap_SBTypeSummary_CreateWithScriptCode, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBTypeNameSpecifier", _wrap_delete_SBTypeNameSpecifier, METH_VARARGS, (char *)"delete_SBTypeNameSpecifier(SBTypeNameSpecifier self)"},
+	 { (char *)"SBTypeNameSpecifier_IsValid", _wrap_SBTypeNameSpecifier_IsValid, METH_VARARGS, (char *)"SBTypeNameSpecifier_IsValid(SBTypeNameSpecifier self) -> bool"},
+	 { (char *)"SBTypeNameSpecifier___nonzero__", _wrap_SBTypeNameSpecifier___nonzero__, METH_VARARGS, (char *)"SBTypeNameSpecifier___nonzero__(SBTypeNameSpecifier self) -> bool"},
+	 { (char *)"SBTypeNameSpecifier_IsEqualTo", _wrap_SBTypeNameSpecifier_IsEqualTo, METH_VARARGS, (char *)"SBTypeNameSpecifier_IsEqualTo(SBTypeNameSpecifier self, SBTypeNameSpecifier rhs) -> bool"},
+	 { (char *)"SBTypeNameSpecifier_GetName", _wrap_SBTypeNameSpecifier_GetName, METH_VARARGS, (char *)"SBTypeNameSpecifier_GetName(SBTypeNameSpecifier self) -> char const *"},
+	 { (char *)"SBTypeNameSpecifier_GetType", _wrap_SBTypeNameSpecifier_GetType, METH_VARARGS, (char *)"SBTypeNameSpecifier_GetType(SBTypeNameSpecifier self) -> SBType"},
+	 { (char *)"SBTypeNameSpecifier_IsRegex", _wrap_SBTypeNameSpecifier_IsRegex, METH_VARARGS, (char *)"SBTypeNameSpecifier_IsRegex(SBTypeNameSpecifier self) -> bool"},
+	 { (char *)"SBTypeNameSpecifier_GetDescription", _wrap_SBTypeNameSpecifier_GetDescription, METH_VARARGS, (char *)"SBTypeNameSpecifier_GetDescription(SBTypeNameSpecifier self, SBStream description, lldb::DescriptionLevel description_level) -> bool"},
+	 { (char *)"SBTypeNameSpecifier___eq__", _wrap_SBTypeNameSpecifier___eq__, METH_VARARGS, (char *)"SBTypeNameSpecifier___eq__(SBTypeNameSpecifier self, SBTypeNameSpecifier rhs) -> bool"},
+	 { (char *)"SBTypeNameSpecifier___ne__", _wrap_SBTypeNameSpecifier___ne__, METH_VARARGS, (char *)"SBTypeNameSpecifier___ne__(SBTypeNameSpecifier self, SBTypeNameSpecifier rhs) -> bool"},
+	 { (char *)"SBTypeNameSpecifier___str__", _wrap_SBTypeNameSpecifier___str__, METH_VARARGS, (char *)"SBTypeNameSpecifier___str__(SBTypeNameSpecifier self) -> PyObject *"},
+	 { (char *)"SBTypeNameSpecifier_swigregister", SBTypeNameSpecifier_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBTypeSummaryOptions", _wrap_new_SBTypeSummaryOptions, METH_VARARGS, (char *)"\n"
+		"SBTypeSummaryOptions()\n"
+		"new_SBTypeSummaryOptions(SBTypeSummaryOptions rhs) -> SBTypeSummaryOptions\n"
+		""},
+	 { (char *)"delete_SBTypeSummaryOptions", _wrap_delete_SBTypeSummaryOptions, METH_VARARGS, (char *)"delete_SBTypeSummaryOptions(SBTypeSummaryOptions self)"},
+	 { (char *)"SBTypeSummaryOptions_IsValid", _wrap_SBTypeSummaryOptions_IsValid, METH_VARARGS, (char *)"SBTypeSummaryOptions_IsValid(SBTypeSummaryOptions self) -> bool"},
+	 { (char *)"SBTypeSummaryOptions___nonzero__", _wrap_SBTypeSummaryOptions___nonzero__, METH_VARARGS, (char *)"SBTypeSummaryOptions___nonzero__(SBTypeSummaryOptions self) -> bool"},
+	 { (char *)"SBTypeSummaryOptions_GetLanguage", _wrap_SBTypeSummaryOptions_GetLanguage, METH_VARARGS, (char *)"SBTypeSummaryOptions_GetLanguage(SBTypeSummaryOptions self) -> lldb::LanguageType"},
+	 { (char *)"SBTypeSummaryOptions_GetCapping", _wrap_SBTypeSummaryOptions_GetCapping, METH_VARARGS, (char *)"SBTypeSummaryOptions_GetCapping(SBTypeSummaryOptions self) -> lldb::TypeSummaryCapping"},
+	 { (char *)"SBTypeSummaryOptions_SetLanguage", _wrap_SBTypeSummaryOptions_SetLanguage, METH_VARARGS, (char *)"SBTypeSummaryOptions_SetLanguage(SBTypeSummaryOptions self, lldb::LanguageType arg3)"},
+	 { (char *)"SBTypeSummaryOptions_SetCapping", _wrap_SBTypeSummaryOptions_SetCapping, METH_VARARGS, (char *)"SBTypeSummaryOptions_SetCapping(SBTypeSummaryOptions self, lldb::TypeSummaryCapping arg3)"},
+	 { (char *)"SBTypeSummaryOptions_swigregister", SBTypeSummaryOptions_swigregister, METH_VARARGS, NULL},
+	 { (char *)"SBTypeSummary_CreateWithSummaryString", _wrap_SBTypeSummary_CreateWithSummaryString, METH_VARARGS, (char *)"\n"
+		"CreateWithSummaryString(char const * data, uint32_t options=0) -> SBTypeSummary\n"
+		"SBTypeSummary_CreateWithSummaryString(char const * data) -> SBTypeSummary\n"
+		""},
+	 { (char *)"SBTypeSummary_CreateWithFunctionName", _wrap_SBTypeSummary_CreateWithFunctionName, METH_VARARGS, (char *)"\n"
+		"CreateWithFunctionName(char const * data, uint32_t options=0) -> SBTypeSummary\n"
+		"SBTypeSummary_CreateWithFunctionName(char const * data) -> SBTypeSummary\n"
+		""},
+	 { (char *)"SBTypeSummary_CreateWithScriptCode", _wrap_SBTypeSummary_CreateWithScriptCode, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"CreateWithScriptCode(char const * data, uint32_t options=0) -> SBTypeSummary\n"
 		"SBTypeSummary_CreateWithScriptCode(char const * data) -> SBTypeSummary\n"
 		""},
@@ -82223,6 +85635,7 @@ static PyMethodDef SwigMethods[] = {
 		"SBTypeSummary()\n"
 		"new_SBTypeSummary(SBTypeSummary rhs) -> SBTypeSummary\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBTypeSummary", _wrap_delete_SBTypeSummary, METH_VARARGS, (char *)"delete_SBTypeSummary(SBTypeSummary self)"},
 	 { "SBTypeSummary_IsValid", _wrap_SBTypeSummary_IsValid, METH_VARARGS, (char *)"SBTypeSummary_IsValid(SBTypeSummary self) -> bool"},
 	 { "SBTypeSummary___nonzero__", _wrap_SBTypeSummary___nonzero__, METH_VARARGS, (char *)"SBTypeSummary___nonzero__(SBTypeSummary self) -> bool"},
@@ -82246,6 +85659,31 @@ static PyMethodDef SwigMethods[] = {
 		"SBTypeSynthetic_CreateWithClassName(char const * data) -> SBTypeSynthetic\n"
 		""},
 	 { "SBTypeSynthetic_CreateWithScriptCode", _wrap_SBTypeSynthetic_CreateWithScriptCode, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBTypeSummary", _wrap_delete_SBTypeSummary, METH_VARARGS, (char *)"delete_SBTypeSummary(SBTypeSummary self)"},
+	 { (char *)"SBTypeSummary_IsValid", _wrap_SBTypeSummary_IsValid, METH_VARARGS, (char *)"SBTypeSummary_IsValid(SBTypeSummary self) -> bool"},
+	 { (char *)"SBTypeSummary___nonzero__", _wrap_SBTypeSummary___nonzero__, METH_VARARGS, (char *)"SBTypeSummary___nonzero__(SBTypeSummary self) -> bool"},
+	 { (char *)"SBTypeSummary_IsEqualTo", _wrap_SBTypeSummary_IsEqualTo, METH_VARARGS, (char *)"SBTypeSummary_IsEqualTo(SBTypeSummary self, SBTypeSummary rhs) -> bool"},
+	 { (char *)"SBTypeSummary_IsFunctionCode", _wrap_SBTypeSummary_IsFunctionCode, METH_VARARGS, (char *)"SBTypeSummary_IsFunctionCode(SBTypeSummary self) -> bool"},
+	 { (char *)"SBTypeSummary_IsFunctionName", _wrap_SBTypeSummary_IsFunctionName, METH_VARARGS, (char *)"SBTypeSummary_IsFunctionName(SBTypeSummary self) -> bool"},
+	 { (char *)"SBTypeSummary_IsSummaryString", _wrap_SBTypeSummary_IsSummaryString, METH_VARARGS, (char *)"SBTypeSummary_IsSummaryString(SBTypeSummary self) -> bool"},
+	 { (char *)"SBTypeSummary_GetData", _wrap_SBTypeSummary_GetData, METH_VARARGS, (char *)"SBTypeSummary_GetData(SBTypeSummary self) -> char const *"},
+	 { (char *)"SBTypeSummary_SetSummaryString", _wrap_SBTypeSummary_SetSummaryString, METH_VARARGS, (char *)"SBTypeSummary_SetSummaryString(SBTypeSummary self, char const * data)"},
+	 { (char *)"SBTypeSummary_SetFunctionName", _wrap_SBTypeSummary_SetFunctionName, METH_VARARGS, (char *)"SBTypeSummary_SetFunctionName(SBTypeSummary self, char const * data)"},
+	 { (char *)"SBTypeSummary_SetFunctionCode", _wrap_SBTypeSummary_SetFunctionCode, METH_VARARGS, (char *)"SBTypeSummary_SetFunctionCode(SBTypeSummary self, char const * data)"},
+	 { (char *)"SBTypeSummary_GetOptions", _wrap_SBTypeSummary_GetOptions, METH_VARARGS, (char *)"SBTypeSummary_GetOptions(SBTypeSummary self) -> uint32_t"},
+	 { (char *)"SBTypeSummary_SetOptions", _wrap_SBTypeSummary_SetOptions, METH_VARARGS, (char *)"SBTypeSummary_SetOptions(SBTypeSummary self, uint32_t arg3)"},
+	 { (char *)"SBTypeSummary_GetDescription", _wrap_SBTypeSummary_GetDescription, METH_VARARGS, (char *)"SBTypeSummary_GetDescription(SBTypeSummary self, SBStream description, lldb::DescriptionLevel description_level) -> bool"},
+	 { (char *)"SBTypeSummary___eq__", _wrap_SBTypeSummary___eq__, METH_VARARGS, (char *)"SBTypeSummary___eq__(SBTypeSummary self, SBTypeSummary rhs) -> bool"},
+	 { (char *)"SBTypeSummary___ne__", _wrap_SBTypeSummary___ne__, METH_VARARGS, (char *)"SBTypeSummary___ne__(SBTypeSummary self, SBTypeSummary rhs) -> bool"},
+	 { (char *)"SBTypeSummary___str__", _wrap_SBTypeSummary___str__, METH_VARARGS, (char *)"SBTypeSummary___str__(SBTypeSummary self) -> PyObject *"},
+	 { (char *)"SBTypeSummary_swigregister", SBTypeSummary_swigregister, METH_VARARGS, NULL},
+	 { (char *)"SBTypeSynthetic_CreateWithClassName", _wrap_SBTypeSynthetic_CreateWithClassName, METH_VARARGS, (char *)"\n"
+		"CreateWithClassName(char const * data, uint32_t options=0) -> SBTypeSynthetic\n"
+		"SBTypeSynthetic_CreateWithClassName(char const * data) -> SBTypeSynthetic\n"
+		""},
+	 { (char *)"SBTypeSynthetic_CreateWithScriptCode", _wrap_SBTypeSynthetic_CreateWithScriptCode, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"CreateWithScriptCode(char const * data, uint32_t options=0) -> SBTypeSynthetic\n"
 		"SBTypeSynthetic_CreateWithScriptCode(char const * data) -> SBTypeSynthetic\n"
 		""},
@@ -82253,6 +85691,7 @@ static PyMethodDef SwigMethods[] = {
 		"SBTypeSynthetic()\n"
 		"new_SBTypeSynthetic(SBTypeSynthetic rhs) -> SBTypeSynthetic\n"
 		""},
+<<<<<<< HEAD
 	 { "delete_SBTypeSynthetic", _wrap_delete_SBTypeSynthetic, METH_VARARGS, (char *)"delete_SBTypeSynthetic(SBTypeSynthetic self)"},
 	 { "SBTypeSynthetic_IsValid", _wrap_SBTypeSynthetic_IsValid, METH_VARARGS, (char *)"SBTypeSynthetic_IsValid(SBTypeSynthetic self) -> bool"},
 	 { "SBTypeSynthetic___nonzero__", _wrap_SBTypeSynthetic___nonzero__, METH_VARARGS, (char *)"SBTypeSynthetic___nonzero__(SBTypeSynthetic self) -> bool"},
@@ -82287,17 +85726,58 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBValue_SetFormat", _wrap_SBValue_SetFormat, METH_VARARGS, (char *)"SBValue_SetFormat(SBValue self, lldb::Format format)"},
 	 { "SBValue_GetValue", _wrap_SBValue_GetValue, METH_VARARGS, (char *)"SBValue_GetValue(SBValue self) -> char const *"},
 	 { "SBValue_GetValueAsSigned", _wrap_SBValue_GetValueAsSigned, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"delete_SBTypeSynthetic", _wrap_delete_SBTypeSynthetic, METH_VARARGS, (char *)"delete_SBTypeSynthetic(SBTypeSynthetic self)"},
+	 { (char *)"SBTypeSynthetic_IsValid", _wrap_SBTypeSynthetic_IsValid, METH_VARARGS, (char *)"SBTypeSynthetic_IsValid(SBTypeSynthetic self) -> bool"},
+	 { (char *)"SBTypeSynthetic___nonzero__", _wrap_SBTypeSynthetic___nonzero__, METH_VARARGS, (char *)"SBTypeSynthetic___nonzero__(SBTypeSynthetic self) -> bool"},
+	 { (char *)"SBTypeSynthetic_IsEqualTo", _wrap_SBTypeSynthetic_IsEqualTo, METH_VARARGS, (char *)"SBTypeSynthetic_IsEqualTo(SBTypeSynthetic self, SBTypeSynthetic rhs) -> bool"},
+	 { (char *)"SBTypeSynthetic_IsClassCode", _wrap_SBTypeSynthetic_IsClassCode, METH_VARARGS, (char *)"SBTypeSynthetic_IsClassCode(SBTypeSynthetic self) -> bool"},
+	 { (char *)"SBTypeSynthetic_GetData", _wrap_SBTypeSynthetic_GetData, METH_VARARGS, (char *)"SBTypeSynthetic_GetData(SBTypeSynthetic self) -> char const *"},
+	 { (char *)"SBTypeSynthetic_SetClassName", _wrap_SBTypeSynthetic_SetClassName, METH_VARARGS, (char *)"SBTypeSynthetic_SetClassName(SBTypeSynthetic self, char const * data)"},
+	 { (char *)"SBTypeSynthetic_SetClassCode", _wrap_SBTypeSynthetic_SetClassCode, METH_VARARGS, (char *)"SBTypeSynthetic_SetClassCode(SBTypeSynthetic self, char const * data)"},
+	 { (char *)"SBTypeSynthetic_GetOptions", _wrap_SBTypeSynthetic_GetOptions, METH_VARARGS, (char *)"SBTypeSynthetic_GetOptions(SBTypeSynthetic self) -> uint32_t"},
+	 { (char *)"SBTypeSynthetic_SetOptions", _wrap_SBTypeSynthetic_SetOptions, METH_VARARGS, (char *)"SBTypeSynthetic_SetOptions(SBTypeSynthetic self, uint32_t arg3)"},
+	 { (char *)"SBTypeSynthetic_GetDescription", _wrap_SBTypeSynthetic_GetDescription, METH_VARARGS, (char *)"SBTypeSynthetic_GetDescription(SBTypeSynthetic self, SBStream description, lldb::DescriptionLevel description_level) -> bool"},
+	 { (char *)"SBTypeSynthetic___eq__", _wrap_SBTypeSynthetic___eq__, METH_VARARGS, (char *)"SBTypeSynthetic___eq__(SBTypeSynthetic self, SBTypeSynthetic rhs) -> bool"},
+	 { (char *)"SBTypeSynthetic___ne__", _wrap_SBTypeSynthetic___ne__, METH_VARARGS, (char *)"SBTypeSynthetic___ne__(SBTypeSynthetic self, SBTypeSynthetic rhs) -> bool"},
+	 { (char *)"SBTypeSynthetic___str__", _wrap_SBTypeSynthetic___str__, METH_VARARGS, (char *)"SBTypeSynthetic___str__(SBTypeSynthetic self) -> PyObject *"},
+	 { (char *)"SBTypeSynthetic_swigregister", SBTypeSynthetic_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBValue", _wrap_new_SBValue, METH_VARARGS, (char *)"\n"
+		"SBValue()\n"
+		"new_SBValue(SBValue rhs) -> SBValue\n"
+		""},
+	 { (char *)"delete_SBValue", _wrap_delete_SBValue, METH_VARARGS, (char *)"delete_SBValue(SBValue self)"},
+	 { (char *)"SBValue_IsValid", _wrap_SBValue_IsValid, METH_VARARGS, (char *)"SBValue_IsValid(SBValue self) -> bool"},
+	 { (char *)"SBValue___nonzero__", _wrap_SBValue___nonzero__, METH_VARARGS, (char *)"SBValue___nonzero__(SBValue self) -> bool"},
+	 { (char *)"SBValue_Clear", _wrap_SBValue_Clear, METH_VARARGS, (char *)"SBValue_Clear(SBValue self)"},
+	 { (char *)"SBValue_GetError", _wrap_SBValue_GetError, METH_VARARGS, (char *)"SBValue_GetError(SBValue self) -> SBError"},
+	 { (char *)"SBValue_GetID", _wrap_SBValue_GetID, METH_VARARGS, (char *)"SBValue_GetID(SBValue self) -> lldb::user_id_t"},
+	 { (char *)"SBValue_GetName", _wrap_SBValue_GetName, METH_VARARGS, (char *)"SBValue_GetName(SBValue self) -> char const *"},
+	 { (char *)"SBValue_GetTypeName", _wrap_SBValue_GetTypeName, METH_VARARGS, (char *)"SBValue_GetTypeName(SBValue self) -> char const *"},
+	 { (char *)"SBValue_GetDisplayTypeName", _wrap_SBValue_GetDisplayTypeName, METH_VARARGS, (char *)"SBValue_GetDisplayTypeName(SBValue self) -> char const *"},
+	 { (char *)"SBValue_GetByteSize", _wrap_SBValue_GetByteSize, METH_VARARGS, (char *)"SBValue_GetByteSize(SBValue self) -> size_t"},
+	 { (char *)"SBValue_IsInScope", _wrap_SBValue_IsInScope, METH_VARARGS, (char *)"SBValue_IsInScope(SBValue self) -> bool"},
+	 { (char *)"SBValue_GetFormat", _wrap_SBValue_GetFormat, METH_VARARGS, (char *)"SBValue_GetFormat(SBValue self) -> lldb::Format"},
+	 { (char *)"SBValue_SetFormat", _wrap_SBValue_SetFormat, METH_VARARGS, (char *)"SBValue_SetFormat(SBValue self, lldb::Format format)"},
+	 { (char *)"SBValue_GetValue", _wrap_SBValue_GetValue, METH_VARARGS, (char *)"SBValue_GetValue(SBValue self) -> char const *"},
+	 { (char *)"SBValue_GetValueAsSigned", _wrap_SBValue_GetValueAsSigned, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"GetValueAsSigned(SBError error, int64_t fail_value=0) -> int64_t\n"
 		"GetValueAsSigned(SBError error) -> int64_t\n"
 		"GetValueAsSigned(int64_t fail_value=0) -> int64_t\n"
 		"SBValue_GetValueAsSigned(SBValue self) -> int64_t\n"
 		""},
+<<<<<<< HEAD
 	 { "SBValue_GetValueAsUnsigned", _wrap_SBValue_GetValueAsUnsigned, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBValue_GetValueAsUnsigned", _wrap_SBValue_GetValueAsUnsigned, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"GetValueAsUnsigned(SBError error, uint64_t fail_value=0) -> uint64_t\n"
 		"GetValueAsUnsigned(SBError error) -> uint64_t\n"
 		"GetValueAsUnsigned(uint64_t fail_value=0) -> uint64_t\n"
 		"SBValue_GetValueAsUnsigned(SBValue self) -> uint64_t\n"
 		""},
+<<<<<<< HEAD
 	 { "SBValue_GetValueType", _wrap_SBValue_GetValueType, METH_VARARGS, (char *)"SBValue_GetValueType(SBValue self) -> lldb::ValueType"},
 	 { "SBValue_GetValueDidChange", _wrap_SBValue_GetValueDidChange, METH_VARARGS, (char *)"SBValue_GetValueDidChange(SBValue self) -> bool"},
 	 { "SBValue_GetSummary", _wrap_SBValue_GetSummary, METH_VARARGS, (char *)"\n"
@@ -82319,6 +85799,29 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBValue_SetSyntheticChildrenGenerated", _wrap_SBValue_SetSyntheticChildrenGenerated, METH_VARARGS, (char *)"SBValue_SetSyntheticChildrenGenerated(SBValue self, bool arg3)"},
 	 { "SBValue_GetLocation", _wrap_SBValue_GetLocation, METH_VARARGS, (char *)"SBValue_GetLocation(SBValue self) -> char const *"},
 	 { "SBValue_SetValueFromCString", _wrap_SBValue_SetValueFromCString, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBValue_GetValueType", _wrap_SBValue_GetValueType, METH_VARARGS, (char *)"SBValue_GetValueType(SBValue self) -> lldb::ValueType"},
+	 { (char *)"SBValue_GetValueDidChange", _wrap_SBValue_GetValueDidChange, METH_VARARGS, (char *)"SBValue_GetValueDidChange(SBValue self) -> bool"},
+	 { (char *)"SBValue_GetSummary", _wrap_SBValue_GetSummary, METH_VARARGS, (char *)"\n"
+		"GetSummary() -> char const\n"
+		"SBValue_GetSummary(SBValue self, SBStream stream, SBTypeSummaryOptions options) -> char const *\n"
+		""},
+	 { (char *)"SBValue_GetObjectDescription", _wrap_SBValue_GetObjectDescription, METH_VARARGS, (char *)"SBValue_GetObjectDescription(SBValue self) -> char const *"},
+	 { (char *)"SBValue_GetTypeValidatorResult", _wrap_SBValue_GetTypeValidatorResult, METH_VARARGS, (char *)"SBValue_GetTypeValidatorResult(SBValue self) -> char const *"},
+	 { (char *)"SBValue_GetDynamicValue", _wrap_SBValue_GetDynamicValue, METH_VARARGS, (char *)"SBValue_GetDynamicValue(SBValue self, lldb::DynamicValueType use_dynamic) -> SBValue"},
+	 { (char *)"SBValue_GetStaticValue", _wrap_SBValue_GetStaticValue, METH_VARARGS, (char *)"SBValue_GetStaticValue(SBValue self) -> SBValue"},
+	 { (char *)"SBValue_GetNonSyntheticValue", _wrap_SBValue_GetNonSyntheticValue, METH_VARARGS, (char *)"SBValue_GetNonSyntheticValue(SBValue self) -> SBValue"},
+	 { (char *)"SBValue_GetPreferDynamicValue", _wrap_SBValue_GetPreferDynamicValue, METH_VARARGS, (char *)"SBValue_GetPreferDynamicValue(SBValue self) -> lldb::DynamicValueType"},
+	 { (char *)"SBValue_SetPreferDynamicValue", _wrap_SBValue_SetPreferDynamicValue, METH_VARARGS, (char *)"SBValue_SetPreferDynamicValue(SBValue self, lldb::DynamicValueType use_dynamic)"},
+	 { (char *)"SBValue_GetPreferSyntheticValue", _wrap_SBValue_GetPreferSyntheticValue, METH_VARARGS, (char *)"SBValue_GetPreferSyntheticValue(SBValue self) -> bool"},
+	 { (char *)"SBValue_SetPreferSyntheticValue", _wrap_SBValue_SetPreferSyntheticValue, METH_VARARGS, (char *)"SBValue_SetPreferSyntheticValue(SBValue self, bool use_synthetic)"},
+	 { (char *)"SBValue_IsDynamic", _wrap_SBValue_IsDynamic, METH_VARARGS, (char *)"SBValue_IsDynamic(SBValue self) -> bool"},
+	 { (char *)"SBValue_IsSynthetic", _wrap_SBValue_IsSynthetic, METH_VARARGS, (char *)"SBValue_IsSynthetic(SBValue self) -> bool"},
+	 { (char *)"SBValue_IsSyntheticChildrenGenerated", _wrap_SBValue_IsSyntheticChildrenGenerated, METH_VARARGS, (char *)"SBValue_IsSyntheticChildrenGenerated(SBValue self) -> bool"},
+	 { (char *)"SBValue_SetSyntheticChildrenGenerated", _wrap_SBValue_SetSyntheticChildrenGenerated, METH_VARARGS, (char *)"SBValue_SetSyntheticChildrenGenerated(SBValue self, bool arg3)"},
+	 { (char *)"SBValue_GetLocation", _wrap_SBValue_GetLocation, METH_VARARGS, (char *)"SBValue_GetLocation(SBValue self) -> char const *"},
+	 { (char *)"SBValue_SetValueFromCString", _wrap_SBValue_SetValueFromCString, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SetValueFromCString(char const * value_str) -> bool\n"
 		"SBValue_SetValueFromCString(SBValue self, char const * value_str, SBError error) -> bool\n"
 		""},
@@ -82330,6 +85833,7 @@ static PyMethodDef SwigMethods[] = {
 		"GetChildAtIndex(uint32_t idx) -> SBValue\n"
 		"SBValue_GetChildAtIndex(SBValue self, uint32_t idx, lldb::DynamicValueType use_dynamic, bool can_create_synthetic) -> SBValue\n"
 		""},
+<<<<<<< HEAD
 	 { "SBValue_CreateChildAtOffset", _wrap_SBValue_CreateChildAtOffset, METH_VARARGS, (char *)"SBValue_CreateChildAtOffset(SBValue self, char const * name, uint32_t offset, SBType type) -> SBValue"},
 	 { "SBValue_Cast", _wrap_SBValue_Cast, METH_VARARGS, (char *)"SBValue_Cast(SBValue self, SBType type) -> SBValue"},
 	 { "SBValue_CreateValueFromExpression", _wrap_SBValue_CreateValueFromExpression, METH_VARARGS, (char *)"\n"
@@ -82342,26 +85846,45 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBValue_GetIndexOfChildWithName", _wrap_SBValue_GetIndexOfChildWithName, METH_VARARGS, (char *)"\n"
 		"SBValue_GetIndexOfChildWithName(SBValue self, char const * name) -> uint32_t\n"
 		"\n"
-		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Returns the child member index.\n"
-		"///\n"
-		"/// Matches children of this object only and will match base classes and\n"
-		"/// member names if this is a clang typed object.\n"
-		"///\n"
-		"/// @param[in] name\n"
-		"///     The name of the child value to get\n"
-		"///\n"
-		"/// @return\n"
-		"///     An index to the child member value.\n"
-		"//------------------------------------------------------------------\n"
-		"\n"
+=======
+	 { (char *)"SBValue_CreateChildAtOffset", _wrap_SBValue_CreateChildAtOffset, METH_VARARGS, (char *)"SBValue_CreateChildAtOffset(SBValue self, char const * name, uint32_t offset, SBType type) -> SBValue"},
+	 { (char *)"SBValue_Cast", _wrap_SBValue_Cast, METH_VARARGS, (char *)"SBValue_Cast(SBValue self, SBType type) -> SBValue"},
+	 { (char *)"SBValue_CreateValueFromExpression", _wrap_SBValue_CreateValueFromExpression, METH_VARARGS, (char *)"\n"
+		"CreateValueFromExpression(char const * name, char const * expression) -> SBValue\n"
+		"SBValue_CreateValueFromExpression(SBValue self, char const * name, char const * expression, SBExpressionOptions options) -> SBValue\n"
 		""},
+	 { (char *)"SBValue_CreateValueFromAddress", _wrap_SBValue_CreateValueFromAddress, METH_VARARGS, (char *)"SBValue_CreateValueFromAddress(SBValue self, char const * name, lldb::addr_t address, SBType type) -> SBValue"},
+	 { (char *)"SBValue_CreateValueFromData", _wrap_SBValue_CreateValueFromData, METH_VARARGS, (char *)"SBValue_CreateValueFromData(SBValue self, char const * name, SBData data, SBType type) -> SBValue"},
+	 { (char *)"SBValue_GetType", _wrap_SBValue_GetType, METH_VARARGS, (char *)"SBValue_GetType(SBValue self) -> SBType"},
+	 { (char *)"SBValue_GetIndexOfChildWithName", _wrap_SBValue_GetIndexOfChildWithName, METH_VARARGS, (char *)"\n"
+		"SBValue_GetIndexOfChildWithName(SBValue self, char const * name) -> uint32_t\n"
+		"\n"
+		"\n"
+		"Returns the child member index.\n"
+		"\n"
+		"Matches children of this object only and will match base classes and\n"
+		"member names if this is a clang typed object.\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"@param[in] name\n"
+		"    The name of the child value to get\n"
+		"\n"
+		"@return\n"
+		"    An index to the child member value.\n"
+		""},
+<<<<<<< HEAD
 	 { "SBValue_GetChildMemberWithName", _wrap_SBValue_GetChildMemberWithName, METH_VARARGS, (char *)"\n"
 		"GetChildMemberWithName(char const * name) -> SBValue\n"
 		"SBValue_GetChildMemberWithName(SBValue self, char const * name, lldb::DynamicValueType use_dynamic) -> SBValue\n"
 		""},
 	 { "SBValue_GetValueForExpressionPath", _wrap_SBValue_GetValueForExpressionPath, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBValue_GetChildMemberWithName", _wrap_SBValue_GetChildMemberWithName, METH_VARARGS, (char *)"\n"
+		"GetChildMemberWithName(char const * name) -> SBValue\n"
+		"SBValue_GetChildMemberWithName(SBValue self, char const * name, lldb::DynamicValueType use_dynamic) -> SBValue\n"
+		""},
+	 { (char *)"SBValue_GetValueForExpressionPath", _wrap_SBValue_GetValueForExpressionPath, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"SBValue_GetValueForExpressionPath(SBValue self, char const * expr_path) -> SBValue\n"
 		"\n"
 		"Expands nested expressions like .a->b[0].c[1]->d.\n"
@@ -82373,6 +85896,7 @@ static PyMethodDef SwigMethods[] = {
 		"GetNumChildren() -> uint32_t\n"
 		"SBValue_GetNumChildren(SBValue self, uint32_t max) -> uint32_t\n"
 		""},
+<<<<<<< HEAD
 	 { "SBValue_GetOpaqueType", _wrap_SBValue_GetOpaqueType, METH_VARARGS, (char *)"SBValue_GetOpaqueType(SBValue self) -> void *"},
 	 { "SBValue_Dereference", _wrap_SBValue_Dereference, METH_VARARGS, (char *)"SBValue_Dereference(SBValue self) -> SBValue"},
 	 { "SBValue_AddressOf", _wrap_SBValue_AddressOf, METH_VARARGS, (char *)"SBValue_AddressOf(SBValue self) -> SBValue"},
@@ -82384,25 +85908,48 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBValue_Watch", _wrap_SBValue_Watch, METH_VARARGS, (char *)"\n"
 		"SBValue_Watch(SBValue self, bool resolve_location, bool read, bool write, SBError error) -> SBWatchpoint\n"
 		"\n"
+=======
+	 { (char *)"SBValue_GetOpaqueType", _wrap_SBValue_GetOpaqueType, METH_VARARGS, (char *)"SBValue_GetOpaqueType(SBValue self) -> void *"},
+	 { (char *)"SBValue_Dereference", _wrap_SBValue_Dereference, METH_VARARGS, (char *)"SBValue_Dereference(SBValue self) -> SBValue"},
+	 { (char *)"SBValue_AddressOf", _wrap_SBValue_AddressOf, METH_VARARGS, (char *)"SBValue_AddressOf(SBValue self) -> SBValue"},
+	 { (char *)"SBValue_TypeIsPointerType", _wrap_SBValue_TypeIsPointerType, METH_VARARGS, (char *)"SBValue_TypeIsPointerType(SBValue self) -> bool"},
+	 { (char *)"SBValue_GetTarget", _wrap_SBValue_GetTarget, METH_VARARGS, (char *)"SBValue_GetTarget(SBValue self) -> SBTarget"},
+	 { (char *)"SBValue_GetProcess", _wrap_SBValue_GetProcess, METH_VARARGS, (char *)"SBValue_GetProcess(SBValue self) -> SBProcess"},
+	 { (char *)"SBValue_GetThread", _wrap_SBValue_GetThread, METH_VARARGS, (char *)"SBValue_GetThread(SBValue self) -> SBThread"},
+	 { (char *)"SBValue_GetFrame", _wrap_SBValue_GetFrame, METH_VARARGS, (char *)"SBValue_GetFrame(SBValue self) -> SBFrame"},
+	 { (char *)"SBValue_Watch", _wrap_SBValue_Watch, METH_VARARGS, (char *)"\n"
+		"SBValue_Watch(SBValue self, bool resolve_location, bool read, bool write, SBError error) -> SBWatchpoint\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"/// Find and watch a variable.\n"
-		"/// It returns an SBWatchpoint, which may be invalid.\n"
 		"\n"
+		"Find and watch a variable.\n"
+		"It returns an SBWatchpoint, which may be invalid.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBValue_WatchPointee", _wrap_SBValue_WatchPointee, METH_VARARGS, (char *)"\n"
 		"SBValue_WatchPointee(SBValue self, bool resolve_location, bool read, bool write, SBError error) -> SBWatchpoint\n"
 		"\n"
+=======
+	 { (char *)"SBValue_WatchPointee", _wrap_SBValue_WatchPointee, METH_VARARGS, (char *)"\n"
+		"SBValue_WatchPointee(SBValue self, bool resolve_location, bool read, bool write, SBError error) -> SBWatchpoint\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"/// Find and watch the location pointed to by a variable.\n"
-		"/// It returns an SBWatchpoint, which may be invalid.\n"
 		"\n"
+		"Find and watch the location pointed to by a variable.\n"
+		"It returns an SBWatchpoint, which may be invalid.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBValue_GetDescription", _wrap_SBValue_GetDescription, METH_VARARGS, (char *)"SBValue_GetDescription(SBValue self, SBStream description) -> bool"},
 	 { "SBValue_GetPointeeData", _wrap_SBValue_GetPointeeData, METH_VARARGS, (char *)"\n"
+=======
+	 { (char *)"SBValue_GetDescription", _wrap_SBValue_GetDescription, METH_VARARGS, (char *)"SBValue_GetDescription(SBValue self, SBStream description) -> bool"},
+	 { (char *)"SBValue_GetPointeeData", _wrap_SBValue_GetPointeeData, METH_VARARGS, (char *)"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"GetPointeeData(uint32_t item_idx=0, uint32_t item_count=1) -> SBData\n"
 		"GetPointeeData(uint32_t item_idx=0) -> SBData\n"
 		"SBValue_GetPointeeData(SBValue self) -> SBData\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"//------------------------------------------------------------------\n"
 		"  /// Get an SBData wrapping what this SBValue points to.\n"
@@ -82425,11 +85972,33 @@ static PyMethodDef SwigMethods[] = {
 		"  ///     An SBData with the contents of the copied items, on success.\n"
 		"  ///     An empty SBData otherwise.\n"
 		"  //------------------------------------------------------------------\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Get an SBData wrapping what this SBValue points to.\n"
+		"\n"
+		"This method will dereference the current SBValue, if its\n"
+		"data type is a T* or T[], and extract item_count elements\n"
+		"of type T from it, copying their contents in an SBData.\n"
+		"\n"
+		"@param[in] item_idx\n"
+		"    The index of the first item to retrieve. For an array\n"
+		"    this is equivalent to array[item_idx], for a pointer\n"
+		"    to *(pointer + item_idx). In either case, the measurement\n"
+		"    unit for item_idx is the sizeof(T) rather than the byte\n"
+		"\n"
+		"@param[in] item_count\n"
+		"    How many items should be copied into the output. By default\n"
+		"    only one item is copied, but more can be asked for.\n"
+		"\n"
+		"@return\n"
+		"    An SBData with the contents of the copied items, on success.\n"
+		"    An empty SBData otherwise.\n"
 		""},
 	 { "SBValue_GetData", _wrap_SBValue_GetData, METH_VARARGS, (char *)"\n"
 		"SBValue_GetData(SBValue self) -> SBData\n"
 		"\n"
+<<<<<<< HEAD
 		"\n"
 		"//------------------------------------------------------------------\n"
 		"  /// Get an SBData wrapping the contents of this SBValue.\n"
@@ -82441,8 +86010,19 @@ static PyMethodDef SwigMethods[] = {
 		"  ///     An SBData with the contents of this SBValue, on success.\n"
 		"  ///     An empty SBData otherwise.\n"
 		"  //------------------------------------------------------------------\n"
+=======
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
+		"Get an SBData wrapping the contents of this SBValue.\n"
+		"\n"
+		"This method will read the contents of this object in memory\n"
+		"and copy them into an SBData for future use.\n"
+		"\n"
+		"@return\n"
+		"    An SBData with the contents of this SBValue, on success.\n"
+		"    An empty SBData otherwise.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBValue_SetData", _wrap_SBValue_SetData, METH_VARARGS, (char *)"SBValue_SetData(SBValue self, SBData data, SBError error) -> bool"},
 	 { "SBValue_GetLoadAddress", _wrap_SBValue_GetLoadAddress, METH_VARARGS, (char *)"SBValue_GetLoadAddress(SBValue self) -> lldb::addr_t"},
 	 { "SBValue_GetAddress", _wrap_SBValue_GetAddress, METH_VARARGS, (char *)"SBValue_GetAddress(SBValue self) -> SBAddress"},
@@ -82509,8 +86089,81 @@ static PyMethodDef SwigMethods[] = {
 		"//------------------------------------------------------------------\n"
 		"/// With -1 representing an invalid hardware index.\n"
 		"//------------------------------------------------------------------\n"
-		"\n"
+=======
+	 { (char *)"SBValue_SetData", _wrap_SBValue_SetData, METH_VARARGS, (char *)"SBValue_SetData(SBValue self, SBData data, SBError error) -> bool"},
+	 { (char *)"SBValue_GetLoadAddress", _wrap_SBValue_GetLoadAddress, METH_VARARGS, (char *)"SBValue_GetLoadAddress(SBValue self) -> lldb::addr_t"},
+	 { (char *)"SBValue_GetAddress", _wrap_SBValue_GetAddress, METH_VARARGS, (char *)"SBValue_GetAddress(SBValue self) -> SBAddress"},
+	 { (char *)"SBValue_Persist", _wrap_SBValue_Persist, METH_VARARGS, (char *)"SBValue_Persist(SBValue self) -> SBValue"},
+	 { (char *)"SBValue_GetExpressionPath", _wrap_SBValue_GetExpressionPath, METH_VARARGS, (char *)"\n"
+		"GetExpressionPath(SBStream description) -> bool\n"
+		"SBValue_GetExpressionPath(SBValue self, SBStream description, bool qualify_cxx_base_classes) -> bool\n"
 		""},
+	 { (char *)"SBValue_EvaluateExpression", _wrap_SBValue_EvaluateExpression, METH_VARARGS, (char *)"\n"
+		"EvaluateExpression(char const * expr) -> SBValue\n"
+		"EvaluateExpression(char const * expr, SBExpressionOptions options) -> SBValue\n"
+		"SBValue_EvaluateExpression(SBValue self, char const * expr, SBExpressionOptions options, char const * name) -> SBValue\n"
+		""},
+	 { (char *)"SBValue___str__", _wrap_SBValue___str__, METH_VARARGS, (char *)"SBValue___str__(SBValue self) -> PyObject *"},
+	 { (char *)"SBValue_swigregister", SBValue_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBValueList", _wrap_new_SBValueList, METH_VARARGS, (char *)"\n"
+		"SBValueList()\n"
+		"new_SBValueList(SBValueList rhs) -> SBValueList\n"
+		""},
+	 { (char *)"delete_SBValueList", _wrap_delete_SBValueList, METH_VARARGS, (char *)"delete_SBValueList(SBValueList self)"},
+	 { (char *)"SBValueList_IsValid", _wrap_SBValueList_IsValid, METH_VARARGS, (char *)"SBValueList_IsValid(SBValueList self) -> bool"},
+	 { (char *)"SBValueList___nonzero__", _wrap_SBValueList___nonzero__, METH_VARARGS, (char *)"SBValueList___nonzero__(SBValueList self) -> bool"},
+	 { (char *)"SBValueList_Clear", _wrap_SBValueList_Clear, METH_VARARGS, (char *)"SBValueList_Clear(SBValueList self)"},
+	 { (char *)"SBValueList_Append", _wrap_SBValueList_Append, METH_VARARGS, (char *)"\n"
+		"Append(SBValue val_obj)\n"
+		"SBValueList_Append(SBValueList self, SBValueList value_list)\n"
+		""},
+	 { (char *)"SBValueList_GetSize", _wrap_SBValueList_GetSize, METH_VARARGS, (char *)"SBValueList_GetSize(SBValueList self) -> uint32_t"},
+	 { (char *)"SBValueList_GetValueAtIndex", _wrap_SBValueList_GetValueAtIndex, METH_VARARGS, (char *)"SBValueList_GetValueAtIndex(SBValueList self, uint32_t idx) -> SBValue"},
+	 { (char *)"SBValueList_FindValueObjectByUID", _wrap_SBValueList_FindValueObjectByUID, METH_VARARGS, (char *)"SBValueList_FindValueObjectByUID(SBValueList self, lldb::user_id_t uid) -> SBValue"},
+	 { (char *)"SBValueList_GetFirstValueByName", _wrap_SBValueList_GetFirstValueByName, METH_VARARGS, (char *)"SBValueList_GetFirstValueByName(SBValueList self, char const * name) -> SBValue"},
+	 { (char *)"SBValueList___str__", _wrap_SBValueList___str__, METH_VARARGS, (char *)"SBValueList___str__(SBValueList self) -> PyObject *"},
+	 { (char *)"SBValueList_swigregister", SBValueList_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBVariablesOptions", _wrap_new_SBVariablesOptions, METH_VARARGS, (char *)"\n"
+		"SBVariablesOptions()\n"
+		"new_SBVariablesOptions(SBVariablesOptions options) -> SBVariablesOptions\n"
+		""},
+	 { (char *)"delete_SBVariablesOptions", _wrap_delete_SBVariablesOptions, METH_VARARGS, (char *)"delete_SBVariablesOptions(SBVariablesOptions self)"},
+	 { (char *)"SBVariablesOptions_IsValid", _wrap_SBVariablesOptions_IsValid, METH_VARARGS, (char *)"SBVariablesOptions_IsValid(SBVariablesOptions self) -> bool"},
+	 { (char *)"SBVariablesOptions___nonzero__", _wrap_SBVariablesOptions___nonzero__, METH_VARARGS, (char *)"SBVariablesOptions___nonzero__(SBVariablesOptions self) -> bool"},
+	 { (char *)"SBVariablesOptions_GetIncludeArguments", _wrap_SBVariablesOptions_GetIncludeArguments, METH_VARARGS, (char *)"SBVariablesOptions_GetIncludeArguments(SBVariablesOptions self) -> bool"},
+	 { (char *)"SBVariablesOptions_SetIncludeArguments", _wrap_SBVariablesOptions_SetIncludeArguments, METH_VARARGS, (char *)"SBVariablesOptions_SetIncludeArguments(SBVariablesOptions self, bool arg3)"},
+	 { (char *)"SBVariablesOptions_GetIncludeRecognizedArguments", _wrap_SBVariablesOptions_GetIncludeRecognizedArguments, METH_VARARGS, (char *)"SBVariablesOptions_GetIncludeRecognizedArguments(SBVariablesOptions self, SBTarget arg3) -> bool"},
+	 { (char *)"SBVariablesOptions_SetIncludeRecognizedArguments", _wrap_SBVariablesOptions_SetIncludeRecognizedArguments, METH_VARARGS, (char *)"SBVariablesOptions_SetIncludeRecognizedArguments(SBVariablesOptions self, bool arg3)"},
+	 { (char *)"SBVariablesOptions_GetIncludeLocals", _wrap_SBVariablesOptions_GetIncludeLocals, METH_VARARGS, (char *)"SBVariablesOptions_GetIncludeLocals(SBVariablesOptions self) -> bool"},
+	 { (char *)"SBVariablesOptions_SetIncludeLocals", _wrap_SBVariablesOptions_SetIncludeLocals, METH_VARARGS, (char *)"SBVariablesOptions_SetIncludeLocals(SBVariablesOptions self, bool arg3)"},
+	 { (char *)"SBVariablesOptions_GetIncludeStatics", _wrap_SBVariablesOptions_GetIncludeStatics, METH_VARARGS, (char *)"SBVariablesOptions_GetIncludeStatics(SBVariablesOptions self) -> bool"},
+	 { (char *)"SBVariablesOptions_SetIncludeStatics", _wrap_SBVariablesOptions_SetIncludeStatics, METH_VARARGS, (char *)"SBVariablesOptions_SetIncludeStatics(SBVariablesOptions self, bool arg3)"},
+	 { (char *)"SBVariablesOptions_GetInScopeOnly", _wrap_SBVariablesOptions_GetInScopeOnly, METH_VARARGS, (char *)"SBVariablesOptions_GetInScopeOnly(SBVariablesOptions self) -> bool"},
+	 { (char *)"SBVariablesOptions_SetInScopeOnly", _wrap_SBVariablesOptions_SetInScopeOnly, METH_VARARGS, (char *)"SBVariablesOptions_SetInScopeOnly(SBVariablesOptions self, bool arg3)"},
+	 { (char *)"SBVariablesOptions_GetIncludeRuntimeSupportValues", _wrap_SBVariablesOptions_GetIncludeRuntimeSupportValues, METH_VARARGS, (char *)"SBVariablesOptions_GetIncludeRuntimeSupportValues(SBVariablesOptions self) -> bool"},
+	 { (char *)"SBVariablesOptions_SetIncludeRuntimeSupportValues", _wrap_SBVariablesOptions_SetIncludeRuntimeSupportValues, METH_VARARGS, (char *)"SBVariablesOptions_SetIncludeRuntimeSupportValues(SBVariablesOptions self, bool arg3)"},
+	 { (char *)"SBVariablesOptions_GetUseDynamic", _wrap_SBVariablesOptions_GetUseDynamic, METH_VARARGS, (char *)"SBVariablesOptions_GetUseDynamic(SBVariablesOptions self) -> lldb::DynamicValueType"},
+	 { (char *)"SBVariablesOptions_SetUseDynamic", _wrap_SBVariablesOptions_SetUseDynamic, METH_VARARGS, (char *)"SBVariablesOptions_SetUseDynamic(SBVariablesOptions self, lldb::DynamicValueType arg3)"},
+	 { (char *)"SBVariablesOptions_swigregister", SBVariablesOptions_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBWatchpoint", _wrap_new_SBWatchpoint, METH_VARARGS, (char *)"\n"
+		"SBWatchpoint()\n"
+		"new_SBWatchpoint(SBWatchpoint rhs) -> SBWatchpoint\n"
+		""},
+	 { (char *)"delete_SBWatchpoint", _wrap_delete_SBWatchpoint, METH_VARARGS, (char *)"delete_SBWatchpoint(SBWatchpoint self)"},
+	 { (char *)"SBWatchpoint_IsValid", _wrap_SBWatchpoint_IsValid, METH_VARARGS, (char *)"SBWatchpoint_IsValid(SBWatchpoint self) -> bool"},
+	 { (char *)"SBWatchpoint___nonzero__", _wrap_SBWatchpoint___nonzero__, METH_VARARGS, (char *)"SBWatchpoint___nonzero__(SBWatchpoint self) -> bool"},
+	 { (char *)"SBWatchpoint___eq__", _wrap_SBWatchpoint___eq__, METH_VARARGS, (char *)"SBWatchpoint___eq__(SBWatchpoint self, SBWatchpoint rhs) -> bool"},
+	 { (char *)"SBWatchpoint___ne__", _wrap_SBWatchpoint___ne__, METH_VARARGS, (char *)"SBWatchpoint___ne__(SBWatchpoint self, SBWatchpoint rhs) -> bool"},
+	 { (char *)"SBWatchpoint_GetError", _wrap_SBWatchpoint_GetError, METH_VARARGS, (char *)"SBWatchpoint_GetError(SBWatchpoint self) -> SBError"},
+	 { (char *)"SBWatchpoint_GetID", _wrap_SBWatchpoint_GetID, METH_VARARGS, (char *)"SBWatchpoint_GetID(SBWatchpoint self) -> lldb::watch_id_t"},
+	 { (char *)"SBWatchpoint_GetHardwareIndex", _wrap_SBWatchpoint_GetHardwareIndex, METH_VARARGS, (char *)"\n"
+		"SBWatchpoint_GetHardwareIndex(SBWatchpoint self) -> int32_t\n"
+		"\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
+		"\n"
+		"With -1 representing an invalid hardware index.\n"
+		""},
+<<<<<<< HEAD
 	 { "SBWatchpoint_GetWatchAddress", _wrap_SBWatchpoint_GetWatchAddress, METH_VARARGS, (char *)"SBWatchpoint_GetWatchAddress(SBWatchpoint self) -> lldb::addr_t"},
 	 { "SBWatchpoint_GetWatchSize", _wrap_SBWatchpoint_GetWatchSize, METH_VARARGS, (char *)"SBWatchpoint_GetWatchSize(SBWatchpoint self) -> size_t"},
 	 { "SBWatchpoint_SetEnabled", _wrap_SBWatchpoint_SetEnabled, METH_VARARGS, (char *)"SBWatchpoint_SetEnabled(SBWatchpoint self, bool enabled)"},
@@ -82521,21 +86174,34 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBWatchpoint_GetCondition", _wrap_SBWatchpoint_GetCondition, METH_VARARGS, (char *)"\n"
 		"SBWatchpoint_GetCondition(SBWatchpoint self) -> char const *\n"
 		"\n"
+=======
+	 { (char *)"SBWatchpoint_GetWatchAddress", _wrap_SBWatchpoint_GetWatchAddress, METH_VARARGS, (char *)"SBWatchpoint_GetWatchAddress(SBWatchpoint self) -> lldb::addr_t"},
+	 { (char *)"SBWatchpoint_GetWatchSize", _wrap_SBWatchpoint_GetWatchSize, METH_VARARGS, (char *)"SBWatchpoint_GetWatchSize(SBWatchpoint self) -> size_t"},
+	 { (char *)"SBWatchpoint_SetEnabled", _wrap_SBWatchpoint_SetEnabled, METH_VARARGS, (char *)"SBWatchpoint_SetEnabled(SBWatchpoint self, bool enabled)"},
+	 { (char *)"SBWatchpoint_IsEnabled", _wrap_SBWatchpoint_IsEnabled, METH_VARARGS, (char *)"SBWatchpoint_IsEnabled(SBWatchpoint self) -> bool"},
+	 { (char *)"SBWatchpoint_GetHitCount", _wrap_SBWatchpoint_GetHitCount, METH_VARARGS, (char *)"SBWatchpoint_GetHitCount(SBWatchpoint self) -> uint32_t"},
+	 { (char *)"SBWatchpoint_GetIgnoreCount", _wrap_SBWatchpoint_GetIgnoreCount, METH_VARARGS, (char *)"SBWatchpoint_GetIgnoreCount(SBWatchpoint self) -> uint32_t"},
+	 { (char *)"SBWatchpoint_SetIgnoreCount", _wrap_SBWatchpoint_SetIgnoreCount, METH_VARARGS, (char *)"SBWatchpoint_SetIgnoreCount(SBWatchpoint self, uint32_t n)"},
+	 { (char *)"SBWatchpoint_GetCondition", _wrap_SBWatchpoint_GetCondition, METH_VARARGS, (char *)"\n"
+		"SBWatchpoint_GetCondition(SBWatchpoint self) -> char const *\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"//------------------------------------------------------------------\n"
-		"/// Get the condition expression for the watchpoint.\n"
-		"//------------------------------------------------------------------\n"
 		"\n"
+		"Get the condition expression for the watchpoint.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBWatchpoint_SetCondition", _wrap_SBWatchpoint_SetCondition, METH_VARARGS, (char *)"\n"
 		"SBWatchpoint_SetCondition(SBWatchpoint self, char const * condition)\n"
 		"\n"
+=======
+	 { (char *)"SBWatchpoint_SetCondition", _wrap_SBWatchpoint_SetCondition, METH_VARARGS, (char *)"\n"
+		"SBWatchpoint_SetCondition(SBWatchpoint self, char const * condition)\n"
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 		"\n"
-		"//--------------------------------------------------------------------------\n"
-		"/// The watchpoint stops only if the condition expression evaluates to true.\n"
-		"//--------------------------------------------------------------------------\n"
 		"\n"
+		"The watchpoint stops only if the condition expression evaluates to true.\n"
 		""},
+<<<<<<< HEAD
 	 { "SBWatchpoint_GetDescription", _wrap_SBWatchpoint_GetDescription, METH_VARARGS, (char *)"SBWatchpoint_GetDescription(SBWatchpoint self, SBStream description, lldb::DescriptionLevel level) -> bool"},
 	 { "SBWatchpoint_EventIsWatchpointEvent", _wrap_SBWatchpoint_EventIsWatchpointEvent, METH_VARARGS, (char *)"SBWatchpoint_EventIsWatchpointEvent(SBEvent event) -> bool"},
 	 { "SBWatchpoint_GetWatchpointEventTypeFromEvent", _wrap_SBWatchpoint_GetWatchpointEventTypeFromEvent, METH_VARARGS, (char *)"SBWatchpoint_GetWatchpointEventTypeFromEvent(SBEvent event) -> lldb::WatchpointEventType"},
@@ -82561,6 +86227,33 @@ static PyMethodDef SwigMethods[] = {
 	 { "SBUnixSignals_GetNumSignals", _wrap_SBUnixSignals_GetNumSignals, METH_VARARGS, (char *)"SBUnixSignals_GetNumSignals(SBUnixSignals self) -> int32_t"},
 	 { "SBUnixSignals_GetSignalAtIndex", _wrap_SBUnixSignals_GetSignalAtIndex, METH_VARARGS, (char *)"SBUnixSignals_GetSignalAtIndex(SBUnixSignals self, int32_t index) -> int32_t"},
 	 { "SBUnixSignals_swigregister", SBUnixSignals_swigregister, METH_VARARGS, NULL},
+=======
+	 { (char *)"SBWatchpoint_GetDescription", _wrap_SBWatchpoint_GetDescription, METH_VARARGS, (char *)"SBWatchpoint_GetDescription(SBWatchpoint self, SBStream description, lldb::DescriptionLevel level) -> bool"},
+	 { (char *)"SBWatchpoint_EventIsWatchpointEvent", _wrap_SBWatchpoint_EventIsWatchpointEvent, METH_VARARGS, (char *)"SBWatchpoint_EventIsWatchpointEvent(SBEvent event) -> bool"},
+	 { (char *)"SBWatchpoint_GetWatchpointEventTypeFromEvent", _wrap_SBWatchpoint_GetWatchpointEventTypeFromEvent, METH_VARARGS, (char *)"SBWatchpoint_GetWatchpointEventTypeFromEvent(SBEvent event) -> lldb::WatchpointEventType"},
+	 { (char *)"SBWatchpoint_GetWatchpointFromEvent", _wrap_SBWatchpoint_GetWatchpointFromEvent, METH_VARARGS, (char *)"SBWatchpoint_GetWatchpointFromEvent(SBEvent event) -> SBWatchpoint"},
+	 { (char *)"SBWatchpoint___str__", _wrap_SBWatchpoint___str__, METH_VARARGS, (char *)"SBWatchpoint___str__(SBWatchpoint self) -> PyObject *"},
+	 { (char *)"SBWatchpoint_swigregister", SBWatchpoint_swigregister, METH_VARARGS, NULL},
+	 { (char *)"new_SBUnixSignals", _wrap_new_SBUnixSignals, METH_VARARGS, (char *)"\n"
+		"SBUnixSignals()\n"
+		"new_SBUnixSignals(SBUnixSignals rhs) -> SBUnixSignals\n"
+		""},
+	 { (char *)"delete_SBUnixSignals", _wrap_delete_SBUnixSignals, METH_VARARGS, (char *)"delete_SBUnixSignals(SBUnixSignals self)"},
+	 { (char *)"SBUnixSignals_Clear", _wrap_SBUnixSignals_Clear, METH_VARARGS, (char *)"SBUnixSignals_Clear(SBUnixSignals self)"},
+	 { (char *)"SBUnixSignals_IsValid", _wrap_SBUnixSignals_IsValid, METH_VARARGS, (char *)"SBUnixSignals_IsValid(SBUnixSignals self) -> bool"},
+	 { (char *)"SBUnixSignals___nonzero__", _wrap_SBUnixSignals___nonzero__, METH_VARARGS, (char *)"SBUnixSignals___nonzero__(SBUnixSignals self) -> bool"},
+	 { (char *)"SBUnixSignals_GetSignalAsCString", _wrap_SBUnixSignals_GetSignalAsCString, METH_VARARGS, (char *)"SBUnixSignals_GetSignalAsCString(SBUnixSignals self, int32_t signo) -> char const *"},
+	 { (char *)"SBUnixSignals_GetSignalNumberFromName", _wrap_SBUnixSignals_GetSignalNumberFromName, METH_VARARGS, (char *)"SBUnixSignals_GetSignalNumberFromName(SBUnixSignals self, char const * name) -> int32_t"},
+	 { (char *)"SBUnixSignals_GetShouldSuppress", _wrap_SBUnixSignals_GetShouldSuppress, METH_VARARGS, (char *)"SBUnixSignals_GetShouldSuppress(SBUnixSignals self, int32_t signo) -> bool"},
+	 { (char *)"SBUnixSignals_SetShouldSuppress", _wrap_SBUnixSignals_SetShouldSuppress, METH_VARARGS, (char *)"SBUnixSignals_SetShouldSuppress(SBUnixSignals self, int32_t signo, bool value) -> bool"},
+	 { (char *)"SBUnixSignals_GetShouldStop", _wrap_SBUnixSignals_GetShouldStop, METH_VARARGS, (char *)"SBUnixSignals_GetShouldStop(SBUnixSignals self, int32_t signo) -> bool"},
+	 { (char *)"SBUnixSignals_SetShouldStop", _wrap_SBUnixSignals_SetShouldStop, METH_VARARGS, (char *)"SBUnixSignals_SetShouldStop(SBUnixSignals self, int32_t signo, bool value) -> bool"},
+	 { (char *)"SBUnixSignals_GetShouldNotify", _wrap_SBUnixSignals_GetShouldNotify, METH_VARARGS, (char *)"SBUnixSignals_GetShouldNotify(SBUnixSignals self, int32_t signo) -> bool"},
+	 { (char *)"SBUnixSignals_SetShouldNotify", _wrap_SBUnixSignals_SetShouldNotify, METH_VARARGS, (char *)"SBUnixSignals_SetShouldNotify(SBUnixSignals self, int32_t signo, bool value) -> bool"},
+	 { (char *)"SBUnixSignals_GetNumSignals", _wrap_SBUnixSignals_GetNumSignals, METH_VARARGS, (char *)"SBUnixSignals_GetNumSignals(SBUnixSignals self) -> int32_t"},
+	 { (char *)"SBUnixSignals_GetSignalAtIndex", _wrap_SBUnixSignals_GetSignalAtIndex, METH_VARARGS, (char *)"SBUnixSignals_GetSignalAtIndex(SBUnixSignals self, int32_t index) -> int32_t"},
+	 { (char *)"SBUnixSignals_swigregister", SBUnixSignals_swigregister, METH_VARARGS, NULL},
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
 	 { NULL, NULL, 0, NULL }
 };
 
@@ -84145,7 +87838,11 @@ extern "C" {
             char *ndoc = (char*)malloc(ldoc + lptr + 10);
             if (ndoc) {
               char *buff = ndoc;
+<<<<<<< HEAD
               memcpy(buff, methods[i].ml_doc, ldoc);
+=======
+              strncpy(buff, methods[i].ml_doc, ldoc);
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
               buff += ldoc;
               memcpy(buff, "swig_ptr: ", 10);
               buff += 10;
@@ -84209,8 +87906,13 @@ SWIG_init(void) {
     (char *)"this", &SwigPyBuiltin_ThisClosure, NULL, NULL, NULL
   };
   static SwigPyGetSet thisown_getset_closure = {
+<<<<<<< HEAD
     SwigPyObject_own,
     SwigPyObject_own
+=======
+    (PyCFunction) SwigPyObject_own,
+    (PyCFunction) SwigPyObject_own
+>>>>>>> swift-DEVELOPMENT-SNAPSHOT-2019-10-08-a
   };
   static PyGetSetDef thisown_getset_def = {
     (char *)"thisown", SwigPyBuiltin_GetterClosure, SwigPyBuiltin_SetterClosure, NULL, &thisown_getset_closure
@@ -84427,6 +88129,7 @@ SWIG_init(void) {
   SWIG_Python_SetConstant(d, "eFormatHexFloat",SWIG_From_int(static_cast< int >(lldb::eFormatHexFloat)));
   SWIG_Python_SetConstant(d, "eFormatInstruction",SWIG_From_int(static_cast< int >(lldb::eFormatInstruction)));
   SWIG_Python_SetConstant(d, "eFormatVoid",SWIG_From_int(static_cast< int >(lldb::eFormatVoid)));
+  SWIG_Python_SetConstant(d, "eFormatUnicode8",SWIG_From_int(static_cast< int >(lldb::eFormatUnicode8)));
   SWIG_Python_SetConstant(d, "kNumFormats",SWIG_From_int(static_cast< int >(lldb::kNumFormats)));
   SWIG_Python_SetConstant(d, "eDescriptionLevelBrief",SWIG_From_int(static_cast< int >(lldb::eDescriptionLevelBrief)));
   SWIG_Python_SetConstant(d, "eDescriptionLevelFull",SWIG_From_int(static_cast< int >(lldb::eDescriptionLevelFull)));
@@ -84779,6 +88482,7 @@ SWIG_init(void) {
   SWIG_Python_SetConstant(d, "eSectionTypeDWARFDebugInfoDwo",SWIG_From_int(static_cast< int >(lldb::eSectionTypeDWARFDebugInfoDwo)));
   SWIG_Python_SetConstant(d, "eSectionTypeDWARFDebugStrDwo",SWIG_From_int(static_cast< int >(lldb::eSectionTypeDWARFDebugStrDwo)));
   SWIG_Python_SetConstant(d, "eSectionTypeDWARFDebugStrOffsetsDwo",SWIG_From_int(static_cast< int >(lldb::eSectionTypeDWARFDebugStrOffsetsDwo)));
+  SWIG_Python_SetConstant(d, "eSectionTypeDWARFDebugTypesDwo",SWIG_From_int(static_cast< int >(lldb::eSectionTypeDWARFDebugTypesDwo)));
   SWIG_Python_SetConstant(d, "eEmulateInstructionOptionNone",SWIG_From_int(static_cast< int >(lldb::eEmulateInstructionOptionNone)));
   SWIG_Python_SetConstant(d, "eEmulateInstructionOptionAutoAdvancePC",SWIG_From_int(static_cast< int >(lldb::eEmulateInstructionOptionAutoAdvancePC)));
   SWIG_Python_SetConstant(d, "eEmulateInstructionOptionIgnoreConditions",SWIG_From_int(static_cast< int >(lldb::eEmulateInstructionOptionIgnoreConditions)));
