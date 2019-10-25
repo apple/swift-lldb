@@ -1,12 +1,9 @@
+# Disclaimer
+
+The swift-lldb repository is frozen and is preserved for historical purposes only.
+Active development is now happening in the following repository: https://github.com/apple/llvm-project
 
 # Swift Debugger and REPL
-
-|| **Status** |
-|---|---|
-|**macOS**         |[![Build Status](https://ci.swift.org/job/oss-lldb-incremental-osx-cmake/badge/icon)](https://ci.swift.org/job/oss-lldb-incremental-osx)|
-|**Ubuntu 14.04** |[![Build Status](https://ci.swift.org/job/oss-lldb-incremental-linux-ubuntu-14_04/badge/icon)](https://ci.swift.org/job/oss-lldb-incremental-linux-ubuntu-14_04)|
-|**Ubuntu 16.04** |[![Build Status](https://ci.swift.org/job/oss-lldb-incremental-linux-ubuntu-16_04/badge/icon)](https://ci.swift.org/job/oss-lldb-incremental-linux-ubuntu-16_04)|
-|**Ubuntu 18.04** |[![Build Status](https://ci.swift.org/job/oss-lldb-incremental-linux-ubuntu-18_04/badge/icon)](https://ci.swift.org/job/oss-lldb-incremental-linux-ubuntu-18_04)|
 
 **Welcome to the Swift Debugger and REPL!**
 
