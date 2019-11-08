@@ -340,19 +340,13 @@ static void LoadSwiftFormatters(lldb::TypeCategoryImplSP swift_category_sp) {
       swift_category_sp,
       lldb_private::formatters::swift::ObjectDescription_SummaryProvider,
       "TensorFlow.Tensor summary provider",
-      ConstString("^TensorFlow.Tensor([1-9][0-9]*D)?<.+>$"),
+      ConstString("^TensorFlow.Tensor<.+>$"),
       summary_flags, true);
   AddCXXSummary(
       swift_category_sp,
       lldb_private::formatters::swift::ObjectDescription_SummaryProvider,
       "TensorFlow.ShapedArray summary provider",
       ConstString("^TensorFlow.ShapedArray(Slice)?<.+>$"),
-      summary_flags, true);
-  AddCXXSummary(
-      swift_category_sp,
-      lldb_private::formatters::swift::ObjectDescription_SummaryProvider,
-      "TensorFlow.ArrayXD summary provider",
-      ConstString("^TensorFlow.Array(Slice)?([2-9][0-9]*D)?<.+>$"),
       summary_flags, true);
   AddCXXSummary(
       swift_category_sp,
